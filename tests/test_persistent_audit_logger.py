@@ -11,12 +11,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.persistent_audit_logger import (PersistentAuditLogger,
-                                           get_persistent_audit_logger,
-                                           log_delete_persistent,
-                                           log_import_persistent,
-                                           log_read_persistent,
-                                           log_write_persistent)
+from utils.persistent_audit_logger import (
+    PersistentAuditLogger,
+    get_persistent_audit_logger,
+    log_delete_persistent,
+    log_import_persistent,
+    log_read_persistent,
+    log_write_persistent,
+)
 
 
 class TestPersistentAuditLogger:
@@ -50,9 +52,7 @@ class TestPersistentAuditLogger:
         log_file = temp_dir / "audit.log"
         logger = PersistentAuditLogger(str(log_file))
 
-        logger.log_operation(
-            "write", {"file_path": "test.txt"}, success=False, error="Permission denied"
-        )
+        logger.log_operation("write", {"file_path": "test.txt"}, success=False, error="Permission denied")
 
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["success"] is False

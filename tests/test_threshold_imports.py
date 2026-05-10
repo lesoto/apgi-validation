@@ -91,9 +91,7 @@ def extract_float_literals(file_path: Path) -> list[float]:
             # Only flag if left side is threshold-like
             if left_is_threshold_like:
                 for comparator in node.comparators:
-                    if isinstance(comparator, ast.Constant) and isinstance(
-                        comparator.value, float
-                    ):
+                    if isinstance(comparator, ast.Constant) and isinstance(comparator.value, float):
                         # Only flag small values (likely thresholds) in comparisons
                         if 0.001 <= abs(comparator.value) <= 1.0:
                             threshold_literals.append(comparator.value)
@@ -106,9 +104,7 @@ def extract_float_literals(file_path: Path) -> list[float]:
                     # Must match threshold pattern AND not be excluded
                     if any(pattern in var_name for pattern in threshold_patterns):
                         if not any(pattern in var_name for pattern in exclude_patterns):
-                            if isinstance(node.value, ast.Constant) and isinstance(
-                                node.value, float
-                            ):
+                            if isinstance(node.value, ast.Constant) and isinstance(node.value, float):
                                 value = float(node.value.value)  # type: ignore[arg-type]
                                 if 0.001 <= abs(value) <= 1.0:
                                     threshold_literals.append(value)
@@ -140,9 +136,7 @@ def extract_float_literals(file_path: Path) -> list[float]:
                         # Skip alpha in plotting functions (transparency, not significance)
                         if arg_name == "alpha" and is_plotting:
                             continue
-                        if isinstance(keyword.value, ast.Constant) and isinstance(
-                            keyword.value.value, float
-                        ):
+                        if isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, float):
                             if 0.001 <= abs(keyword.value.value) <= 1.0:
                                 threshold_literals.append(keyword.value.value)
 
@@ -168,9 +162,7 @@ def test_all_protocols_use_threshold_registry():
             files_missing_import.append(protocol_file.name)
 
     if files_missing_import:
-        pytest.fail(
-            f"Files missing import from falsification_thresholds.py: {files_missing_import}"
-        )
+        pytest.fail(f"Files missing import from falsification_thresholds.py: {files_missing_import}")
 
 
 def test_no_assumed_values_in_falsification_functions():
@@ -191,9 +183,7 @@ def test_no_assumed_values_in_falsification_functions():
         lines = content.split("\n")
         for i, line in enumerate(lines, 1):
             if "# Assume" in line and "assumed" in line.lower():
-                pytest.fail(
-                    f"{protocol_file.name} line {i} contains assumed value comment: {line.strip()}"
-                )
+                pytest.fail(f"{protocol_file.name} line {i} contains assumed value comment: {line.strip()}")
 
 
 def test_falsification_thresholds_file_exists():
@@ -204,9 +194,7 @@ def test_falsification_thresholds_file_exists():
         pytest.fail("falsification_thresholds.py does not exist")
 
     # Load and check for required constants
-    spec = importlib.util.spec_from_file_location(
-        "falsification_thresholds", threshold_file
-    )
+    spec = importlib.util.spec_from_file_location("falsification_thresholds", threshold_file)
     if spec is None or spec.loader is None:
         pytest.fail("Could not load falsification_thresholds.py")
 

@@ -46,10 +46,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-try:
-    from utils.constants import VISUAL_CONSTANTS
-except ImportError:
-    from constants import VISUAL_CONSTANTS
+from utils.constants import VISUAL_CONSTANTS
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -63,9 +60,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -239,10 +234,7 @@ class APGINeuromodulatorSystem:
         DA and orexin act via separate pathways (not direct θ modulation).
         """
         exponent = (
-            -KAPPA_NE * profile.NE
-            - KAPPA_ACh * profile.ACh
-            + KAPPA_5HT * profile.serotonin
-            + KAPPA_HIST * profile.hist
+            -KAPPA_NE * profile.NE - KAPPA_ACh * profile.ACh + KAPPA_5HT * profile.serotonin + KAPPA_HIST * profile.hist
         )
         return float(self.theta_base * np.exp(exponent))
 
@@ -253,11 +245,7 @@ class APGINeuromodulatorSystem:
 
             Πᵉ = Pi_e_base · (1 + κ_ACh·[ACh]) · (1 + 0.5·κ_hist·[hist])
         """
-        return float(
-            self.Pi_e_base
-            * (1.0 + KAPPA_ACh * profile.ACh)
-            * (1.0 + 0.5 * KAPPA_HIST * profile.hist)
-        )
+        return float(self.Pi_e_base * (1.0 + KAPPA_ACh * profile.ACh) * (1.0 + 0.5 * KAPPA_HIST * profile.hist))
 
     def compute_Pi_i(self, profile: NeuromodProfile) -> float:
         """
@@ -266,11 +254,7 @@ class APGINeuromodulatorSystem:
 
             Πⁱ = Pi_i_base · (1 + κ_NE·[NE]) · exp(-0.3·κ_5HT·[5HT])
         """
-        return float(
-            self.Pi_i_base
-            * (1.0 + KAPPA_NE * profile.NE)
-            * np.exp(-0.3 * KAPPA_5HT * profile.serotonin)
-        )
+        return float(self.Pi_i_base * (1.0 + KAPPA_NE * profile.NE) * np.exp(-0.3 * KAPPA_5HT * profile.serotonin))
 
     def compute_alpha(self, profile: NeuromodProfile) -> float:
         """
@@ -341,9 +325,7 @@ class APGINeuromodulatorSystem:
 
         if stimulus_stream is None:
             # Default: ramp stimulus with noise
-            stimulus_stream = 0.3 * np.linspace(
-                0, 1, n_steps
-            ) + 0.1 * rng.standard_normal(n_steps)
+            stimulus_stream = 0.3 * np.linspace(0, 1, n_steps) + 0.1 * rng.standard_normal(n_steps)
 
         tau_e = params.tau_e_eff
         alpha = params.alpha_eff
@@ -370,9 +352,7 @@ class APGINeuromodulatorSystem:
 
         n_ignitions = len(ignition_times)
         ignition_prob = n_ignitions / max(1.0, duration_s)
-        mean_latency = (
-            float(np.mean(ignition_times)) if ignition_times else float("nan")
-        )
+        mean_latency = float(np.mean(ignition_times)) if ignition_times else float("nan")
         bandwidth = float(np.std(S[S > theta])) if np.any(S > theta) else 0.0
 
         return SimulationResult(
@@ -417,9 +397,7 @@ class APGINeuromodulatorSystem:
     # Validation against known phenomenology
     # ------------------------------------------------------------------
 
-    def validate_phenomenological_predictions(
-        self, results: Dict[str, SimulationResult]
-    ) -> Dict[str, bool]:
+    def validate_phenomenological_predictions(self, results: Dict[str, SimulationResult]) -> Dict[str, bool]:
         """
         Validate that profile predictions align with known phenomenology:
 
@@ -439,45 +417,31 @@ class APGINeuromodulatorSystem:
         high_da = results.get("high_DA_reward")
 
         if baseline and high_ne:
-            checks["high_NE_lowers_theta"] = (
-                high_ne.params.theta_eff < baseline.params.theta_eff
-            )
-            checks["high_NE_increases_ignitions"] = (
-                high_ne.ignition_probability >= baseline.ignition_probability
-            )
+            checks["high_NE_lowers_theta"] = high_ne.params.theta_eff < baseline.params.theta_eff
+            checks["high_NE_increases_ignitions"] = high_ne.ignition_probability >= baseline.ignition_probability
 
         if baseline and low_ach:
             checks["low_ACh_reduces_Pi_e"] = low_ach.params.Pi_e < baseline.params.Pi_e
 
         if baseline and psychedelic:
-            checks["psychedelic_increases_alpha"] = (
-                psychedelic.params.alpha_eff > baseline.params.alpha_eff
-            )
+            checks["psychedelic_increases_alpha"] = psychedelic.params.alpha_eff > baseline.params.alpha_eff
 
         if sleep and baseline:
-            checks["sleep_highest_theta"] = (
-                sleep.params.theta_eff > baseline.params.theta_eff
-            )
+            checks["sleep_highest_theta"] = sleep.params.theta_eff > baseline.params.theta_eff
 
         if baseline and high_da:
-            checks["high_DA_increases_gamma_V"] = (
-                high_da.params.gamma_V > baseline.params.gamma_V
-            )
+            checks["high_DA_increases_gamma_V"] = high_da.params.gamma_V > baseline.params.gamma_V
 
         passed = sum(checks.values())
         total = len(checks)
-        logger.info(
-            f"Phenomenological validation: {passed}/{total} predictions confirmed"
-        )
+        logger.info(f"Phenomenological validation: {passed}/{total} predictions confirmed")
         return checks
 
     # ------------------------------------------------------------------
     # Report generation
     # ------------------------------------------------------------------
 
-    def generate_appendix_b_table(
-        self, results: Dict[str, SimulationResult]
-    ) -> List[Dict]:
+    def generate_appendix_b_table(self, results: Dict[str, SimulationResult]) -> List[Dict]:
         """Generate Paper 2 Appendix B parameter table rows."""
         rows = []
         for name, result in results.items():
@@ -559,7 +523,8 @@ class APGINeuromodulatorSystem:
         if save_path is None:
             import tempfile
 
-            save_path = tempfile.mktemp(suffix="_neuromod_profiles.png")
+            with tempfile.NamedTemporaryFile(suffix="_neuromod_profiles.png", delete=False) as tmp_file:
+                save_path = tmp_file.name
 
         plt.savefig(save_path, dpi=100, bbox_inches="tight")
         plt.close(fig)
@@ -593,9 +558,7 @@ class APGINeuromodulatorSystem:
         # 3. Appendix B table
         table = self.generate_appendix_b_table(results)
         logger.info("\nPaper 2 Appendix B — Parameter Table:")
-        logger.info(
-            f"{'Profile':<30} {'θ_eff':>8} {'α_eff':>8} {'Πᵉ':>8} {'γ_V':>8} {'P_ign':>8}"
-        )
+        logger.info(f"{'Profile':<30} {'θ_eff':>8} {'α_eff':>8} {'Πᵉ':>8} {'γ_V':>8} {'P_ign':>8}")
         logger.info("-" * 72)
         for row in table:
             logger.info(

@@ -23,11 +23,37 @@ Usage::
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 
-CONFIG = {
+
+class APGIConfig:
+    """Configuration for APGI model."""
+
+    dt: float
+    tau_theta: float
+    theta0: float
+    alpha: float
+    tau_S: float
+    tau_M: float
+    beta: float
+    beta_M: float
+    M_0: float
+    gamma_M: float
+    lambda_S: float
+    sigma_S: float
+    sigma_theta: float
+    sigma_M: float
+    rho: float
+    alpha_mu: float
+    alpha_sigma: float
+    c1: float
+    c2: float
+    hierarchical: Dict[str, Any]
+
+
+CONFIG: Dict[str, Any] = {
     "dt": 0.01,
     "tau_theta": 20.0,
     "theta0": 0.5,
@@ -136,9 +162,7 @@ def compute_precision(var: float) -> float:
     return float(1.0 / (var + 1e-8))
 
 
-def effective_interoceptive_precision(
-    pi_i: float, beta: float, M: float, M0: float = 0.0
-) -> float:
+def effective_interoceptive_precision(pi_i: float, beta: float, M: float, M0: float = 0.0) -> float:
     """
     Compute effective interoceptive precision with somatic modulation.
 
@@ -353,6 +377,9 @@ class HierarchicalLevel:
     broadcast: bool = False
     tau: float = 0.1  # Level-specific timescale
 
+    def __init__(self, tau: float = 0.1):
+        self.tau = tau
+
 
 class HierarchicalProcessor:
     """
@@ -363,14 +390,13 @@ class HierarchicalProcessor:
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        self.cfg = config or CONFIG
-        self.beta_cross: float = self.cfg.get("beta_cross", 0.2)
+        self.cfg: Dict[str, Any] = config or CONFIG
+        beta_cross_value = self.cfg.get("beta_cross", 0.2)
+        self.beta_cross: float = float(str(beta_cross_value)) if beta_cross_value is not None else 0.2
 
         # Initialize 5 hierarchical levels with timescales
         default_taus = [0.1, 0.2, 0.4, 1.0, 5.0]
-        self.levels: List[HierarchicalLevel] = [
-            HierarchicalLevel(tau=default_taus[i]) for i in range(5)
-        ]
+        self.levels: List[HierarchicalLevel] = [HierarchicalLevel(tau=default_taus[i]) for i in range(5)]
 
         # Level names for reference
         self.level_names = [
@@ -413,9 +439,7 @@ class HierarchicalProcessor:
         level.Pi_i = max(0.01, min(10.0, level.Pi_i))
 
         # Compute ignition probability for this level
-        level.ignition_prob = float(
-            1.0 / (1.0 + np.exp(-5.0 * (level.S - level.theta)))
-        )
+        level.ignition_prob = float(1.0 / (1.0 + np.exp(-5.0 * (level.S - level.theta))))
 
         # Determine if broadcast occurs
         level.broadcast = level.S > level.theta
@@ -536,54 +560,53 @@ class APGIModel:
         Args:
             config: Optional configuration dict (uses CONFIG default if None)
         """
-        # Preserve the caller-provided config exactly as passed in (tests rely on
+        # Preserve caller-provided config exactly as passed in (tests rely on
         # strict equality), but still compute a merged config for internal use.
         if config is None:
             self.config = CONFIG.copy()
-            self.cfg = self.config
+            self._merged_config = self.config
         else:
-            self.config = dict(config)
-
+            self.config = config
             # Deep merge for nested dictionaries (internal defaults + overrides)
-            merged = CONFIG.copy()
+            merged: Dict[str, Any] = CONFIG.copy()
             for key, value in config.items():
-                if (
-                    key in merged
-                    and isinstance(merged[key], dict)
-                    and isinstance(value, dict)
-                ):
-                    merged[key].update(value)
+                if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+                    # Type: ignore for dynamic key assignment to TypedDict
+                    merged = cast(Dict[str, Any], {**merged, key: {**merged[key], **value}})
                 else:
-                    merged[key] = value
+                    # Type: ignore for dynamic key assignment to TypedDict
+                    merged = cast(Dict[str, Any], {**merged, key: value})
+            self._merged_config = merged
 
-            self.cfg = merged
+        # Add cfg alias for compatibility with tests - use merged config for internal operations
+        self.cfg = self._merged_config
 
         # Generative model for exteroceptive predictions
         self.gen = GenerativeModel(lr=0.05)
 
         # Running statistics for z-score normalization
         self.stats_e = RunningStatsEMA(
-            alpha_mu=self.cfg["alpha_mu"],
-            alpha_sigma=self.cfg["alpha_sigma"],
+            alpha_mu=float(cast(float, self.cfg["alpha_mu"])),
+            alpha_sigma=float(cast(float, self.cfg["alpha_sigma"])),
         )
         self.stats_i = RunningStatsEMA(
-            alpha_mu=self.cfg["alpha_mu"],
-            alpha_sigma=self.cfg["alpha_sigma"],
+            alpha_mu=float(cast(float, self.cfg["alpha_mu"])),
+            alpha_sigma=float(cast(float, self.cfg["alpha_sigma"])),
         )
 
         # State variables
-        self.theta: float = self.cfg["theta0"]
+        self.theta: float = cast(float, self.cfg["theta0"])
         self.S: float = 0.0
         self.M: float = 0.0
 
         # Parameters
-        self.beta: float = self.cfg["beta"]
-        self.beta_M: float = self.cfg["beta_M"]
-        self.M_0: float = self.cfg["M_0"]
-        self.gamma_M: float = self.cfg["gamma_M"]
+        self.beta: float = float(cast(float, self.cfg["beta"]))
+        self.beta_M: float = float(cast(float, self.cfg["beta_M"]))
+        self.M_0: float = float(cast(float, self.cfg["M_0"]))
+        self.gamma_M: float = float(cast(float, self.cfg["gamma_M"]))
 
         # Hierarchical 5-level processor
-        self.hierarchical = HierarchicalProcessor(config=self.cfg)
+        self.hierarchical = HierarchicalProcessor(config=self._merged_config)
 
         # History for tracking
         self.history: List[Dict[str, Any]] = []
@@ -626,7 +649,7 @@ class APGIModel:
             base_signal=self.S,
             z_e=z_e,
             z_i=z_i,
-            dt=self.cfg["dt"],
+            dt=float(cast(float, self.cfg["dt"])),
         )
 
         # Get aggregate signal from hierarchy (weighted across levels)
@@ -636,24 +659,24 @@ class APGIModel:
         V = compute_information_value(z_e, z_i)
 
         # 8. Ignition detection (using hierarchical aggregate)
-        p = ignition_probability(S_hierarchical, self.theta, self.cfg["alpha"])
+        p = ignition_probability(S_hierarchical, self.theta, float(cast(float, self.cfg["alpha"])))
         ignited = ignite(S_hierarchical, self.theta)
 
         # 9. Compute metabolic cost C = c1 * p_ignition + c2
-        c1 = self.cfg.get("c1", 0.1)
-        c2 = self.cfg.get("c2", 0.02)
+        c1 = float(self.cfg.get("c1", 0.1))
+        c2 = float(self.cfg.get("c2", 0.02))
         metabolic_cost = c1 * p + c2
 
         # 10. Update threshold (using hierarchical aggregate and formal metabolic cost)
         self.theta = update_threshold(
             self.theta,
-            self.cfg["theta0"],
+            float(cast(float, self.cfg["theta0"])),
             S_hierarchical,
             V,
-            self.cfg["dt"],
-            self.cfg["tau_theta"],
+            float(cast(float, self.cfg["dt"])),
+            float(cast(float, self.cfg["tau_theta"])),
             self.gamma_M,
-            metabolic_cost=metabolic_cost,
+            metabolic_cost=(float(metabolic_cost) if metabolic_cost is not None else None),
         )
 
         # 11. Stability enforcement
@@ -745,14 +768,14 @@ class APGIModel:
         """Reset model to initial state."""
         self.gen = GenerativeModel(lr=0.05)
         self.stats_e = RunningStatsEMA(
-            alpha_mu=self.cfg["alpha_mu"],
-            alpha_sigma=self.cfg["alpha_sigma"],
+            alpha_mu=float(cast(float, self.cfg["alpha_mu"])),
+            alpha_sigma=float(cast(float, self.cfg["alpha_sigma"])),
         )
         self.stats_i = RunningStatsEMA(
-            alpha_mu=self.cfg["alpha_mu"],
-            alpha_sigma=self.cfg["alpha_sigma"],
+            alpha_mu=float(cast(float, self.cfg["alpha_mu"])),
+            alpha_sigma=float(cast(float, self.cfg["alpha_sigma"])),
         )
-        self.theta = self.cfg["theta0"]
+        self.theta = float(cast(float, self.cfg["theta0"]))
         self.S = 0.0
         self.M = 0.0
         self.hierarchical.reset()

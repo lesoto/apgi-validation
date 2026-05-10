@@ -57,9 +57,7 @@ try:
     ORDINAL_LOGISTIC_AVAILABLE = True
 except ImportError:
     ORDINAL_LOGISTIC_AVAILABLE = False
-    warnings.warn(
-        "Ordinal logistic regression not available. Install utils/ordinal_logistic_regression.py"
-    )
+    warnings.warn("Ordinal logistic regression not available. Install utils/ordinal_logistic_regression.py")
 
 # MNE for EEG analysis
 mne: Optional[Any] = None
@@ -83,9 +81,7 @@ try:
     FP09_PAC_AVAILABLE = True
 except ImportError:
     FP09_PAC_AVAILABLE = False
-    warnings.warn(
-        "FP-09 PAC functions not available. Theta-gamma coupling will use fallback implementation."
-    )
+    warnings.warn("FP-09 PAC functions not available. Theta-gamma coupling will use fallback implementation.")
 
 # Nilearn for fMRI analysis
 try:
@@ -106,11 +102,7 @@ METADATA_DIR = DATA_REPO / "metadata"
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V9_1_MIN_CORRELATION,
-        V9_3_MIN_CORRELATION,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, V9_1_MIN_CORRELATION, V9_3_MIN_CORRELATION
 except ImportError:
     V9_1_MIN_CORRELATION = 0.40
     V9_3_MIN_CORRELATION = 0.35
@@ -121,14 +113,10 @@ try:
     from utils.statistical_tests import apply_multiple_comparison_correction
 except ImportError:
     apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
-    logger.warning(
-        "statistical_tests.apply_multiple_comparison_correction not available"
-    )
+    logger.warning("statistical_tests.apply_multiple_comparison_correction not available")
 
 
-def apply_shared_mcc_vp09(
-    p_values: List[float], method: str = "fdr_bh", alpha: float = 0.05
-) -> Dict[str, Any]:
+def apply_shared_mcc_vp09(p_values: List[float], method: str = "fdr_bh", alpha: float = 0.05) -> Dict[str, Any]:
     """
     Apply shared multiple comparison correction for VP-09.
 
@@ -155,10 +143,7 @@ def apply_shared_mcc_vp09(
     """
     if apply_multiple_comparison_correction is None:
         # Fallback to simple Bonferroni
-        logger.warning(
-            f"apply_multiple_comparison_correction not available. "
-            f"Using local {method} implementation."
-        )
+        logger.warning(f"apply_multiple_comparison_correction not available. " f"Using local {method} implementation.")
         m = len(p_values)
         corrected = [min(p * m, 1.0) for p in p_values]
         significant = [p < alpha / m for p in p_values]
@@ -173,9 +158,7 @@ def apply_shared_mcc_vp09(
         }
 
     try:
-        result = apply_multiple_comparison_correction(
-            p_values, method=method, alpha=alpha
-        )
+        result = apply_multiple_comparison_correction(p_values, method=method, alpha=alpha)
         return {
             "method": method,
             "citation": (
@@ -252,9 +235,7 @@ class APGIP3bAnalyzer:
         except ImportError:
             logger.warning("mne_bids not available - skipping BIDS compliance check")
         except Exception as e:
-            logger.warning(
-                f"BIDS compliance check failed: {e}. Proceeding with caution."
-            )
+            logger.warning(f"BIDS compliance check failed: {e}. Proceeding with caution.")
 
         # Load data based on format
         if filepath.endswith(".fif"):
@@ -404,9 +385,7 @@ class APGIP3bAnalyzer:
 
         return evoked
 
-    def extract_p3b_amplitude(
-        self, epochs: Any, electrode: str = "Pz"
-    ) -> Optional[np.ndarray]:
+    def extract_p3b_amplitude(self, epochs: Any, electrode: str = "Pz") -> Optional[np.ndarray]:
         """Extract P3b peak amplitudes from epoched data"""
         # Get data for target electrode
         data = epochs.get_data(picks=[electrode])[0]  # Shape: (n_epochs, n_times)
@@ -419,9 +398,7 @@ class APGIP3bAnalyzer:
         for epoch_data in data:
             # Find peak amplitude in P3b window
             window_data = epoch_data[start_idx:end_idx]
-            peak_amplitude = np.max(window_data) - np.min(
-                window_data[: start_idx // 2]
-            )  # Baseline correction
+            peak_amplitude = np.max(window_data) - np.min(window_data[: start_idx // 2])  # Baseline correction
             p3b_amplitudes.append(peak_amplitude)
 
         return np.array(p3b_amplitudes)
@@ -487,9 +464,8 @@ class APGIP3bAnalyzer:
 
         # Fix 3: Median latency check
         median_in_range = 200 <= median_latency <= 400
-        assert (
-            median_in_range
-        ), f"P3b median latency {median_latency:.1f}ms outside [200, 400]ms window"
+        if not median_in_range:
+            raise ValueError(f"P3b median latency {median_latency:.1f}ms outside [200, 400]ms window")
 
         return {
             "latencies_ms": latencies,
@@ -507,9 +483,7 @@ class APGIP3bAnalyzer:
             "validation_passed": criterion_met and median_in_range,
         }
 
-    def fit_sigmoidal_apgi_model(
-        self, surprisal_values: np.ndarray, p3b_amplitudes: np.ndarray
-    ) -> Dict:
+    def fit_sigmoidal_apgi_model(self, surprisal_values: np.ndarray, p3b_amplitudes: np.ndarray) -> Dict:
         """
         Fit APGI sigmoidal model: P(seen) = 1/(1 + exp(-α(S - θ)))
 
@@ -535,9 +509,7 @@ class APGIP3bAnalyzer:
             ]
 
             # Fit sigmoid
-            popt, pcov = curve_fit(
-                sigmoid, surprisal_values, p3b_amplitudes, p0=p0, maxfev=10000
-            )
+            popt, pcov = curve_fit(sigmoid, surprisal_values, p3b_amplitudes, p0=p0, maxfev=10000)
 
             # Extract fitted parameters
             alpha_fit = popt[0]  # Sigmoid steepness
@@ -557,9 +529,7 @@ class APGIP3bAnalyzer:
             # Connect to APGI parameter space
             # α (alpha) relates to ignition sharpness parameter in APGI
             # θ (theta) relates to threshold θₜ in APGI
-            apgi_interpretation = self._interpret_sigmoid_parameters(
-                alpha_fit, theta_fit, surprisal_values
-            )
+            apgi_interpretation = self._interpret_sigmoid_parameters(alpha_fit, theta_fit, surprisal_values)
 
             # Calculate parameter uncertainties from covariance matrix
             param_std = np.sqrt(np.diag(pcov))
@@ -584,9 +554,7 @@ class APGIP3bAnalyzer:
             warnings.warn(f"Sigmoidal fit failed: {e}")
             return {"error": str(e)}
 
-    def _interpret_sigmoid_parameters(
-        self, alpha: float, theta: float, surprisal_values: np.ndarray
-    ) -> Dict:
+    def _interpret_sigmoid_parameters(self, alpha: float, theta: float, surprisal_values: np.ndarray) -> Dict:
         """
         Interpret sigmoid parameters in APGI parameter space.
 
@@ -646,11 +614,7 @@ class APGIP3bAnalyzer:
                 "at_75th_percentile_surprisal": float(p75),
             },
             "apgi_consistency": {
-                "alpha_sharpness": (
-                    "Consistent with APGI threshold gating"
-                    if alpha > 0.5
-                    else "Unusually shallow"
-                ),
+                "alpha_sharpness": ("Consistent with APGI threshold gating" if alpha > 0.5 else "Unusually shallow"),
                 "theta_position": (
                     "Consistent with APGI threshold range"
                     if 25 < theta_percentile < 75
@@ -667,9 +631,7 @@ class APGIFMRIAnalyzer:
         if not NILEARN_AVAILABLE:
             raise ImportError("Nilearn required for fMRI analysis")
 
-    def load_fmri_data(
-        self, func_filepath: str, confounds_filepath: Optional[str] = None
-    ) -> Any:
+    def load_fmri_data(self, func_filepath: str, confounds_filepath: Optional[str] = None) -> Any:
         """Load fMRI data"""
         img = nib.load(func_filepath)  # type: ignore
 
@@ -726,9 +688,7 @@ class APGIFMRIAnalyzer:
 
             # Get contrasts
             frontal_contrast = model.compute_contrast([1, 0])  # Trial onset contrast
-            parietal_contrast = model.compute_contrast(
-                [0, 1]
-            )  # Ignition probability contrast
+            parietal_contrast = model.compute_contrast([0, 1])  # Ignition probability contrast
 
             # Coactivation analysis (voxels active in both contrasts)
             frontal_map = frontal_contrast.get_fdata()
@@ -742,12 +702,8 @@ class APGIFMRIAnalyzer:
             np.random.seed(42)  # For reproducibility
             for _ in range(n_permutations):
                 # Shuffle spatial maps
-                shuffled_frontal = np.random.permutation(frontal_map.flatten()).reshape(
-                    frontal_map.shape
-                )
-                shuffled_parietal = np.random.permutation(
-                    parietal_map.flatten()
-                ).reshape(parietal_map.shape)
+                shuffled_frontal = np.random.permutation(frontal_map.flatten()).reshape(frontal_map.shape)
+                shuffled_parietal = np.random.permutation(parietal_map.flatten()).reshape(parietal_map.shape)
 
                 # Calculate coactivation for shuffled maps
                 null_coactivation = (shuffled_frontal > 2.3) & (shuffled_parietal > 2.3)
@@ -836,9 +792,7 @@ class APGINeuralSignaturesValidator:
         # 1. P3b Analysis
         if eeg_data_path and behavioral_data_path:
             try:
-                results["p3b_sigmoidal_fit"] = self._analyze_p3b_signatures(
-                    eeg_data_path, behavioral_data_path
-                )
+                results["p3b_sigmoidal_fit"] = self._analyze_p3b_signatures(eeg_data_path, behavioral_data_path)
             except Exception as e:
                 results["p3b_sigmoidal_fit"] = {"error": str(e)}
 
@@ -855,15 +809,11 @@ class APGINeuralSignaturesValidator:
         results["theta_gamma_coupling"] = self._analyze_theta_gamma_coupling()
 
         # 4. Subthreshold Analysis
-        results["subthreshold_local_activation"] = (
-            self._analyze_subthreshold_activations()
-        )
+        results["subthreshold_local_activation"] = self._analyze_subthreshold_activations()
 
         # 5. Clinical Population Simulation (H4: Clinical biomarker coupling dysregulation)
         try:
-            results["clinical_population_simulation"] = (
-                self.simulate_clinical_populations()
-            )
+            results["clinical_population_simulation"] = self.simulate_clinical_populations()
         except Exception as e:
             logger.error(f"Clinical population simulation failed: {e}")
             results["clinical_population_simulation"] = {"error": str(e)}
@@ -880,9 +830,7 @@ class APGINeuralSignaturesValidator:
         if behavioral_path is None:
             behavioral_path = str(PROCESSED_DATA_DIR / "behavioral_data.csv")
             if not Path(behavioral_path).exists():
-                return {
-                    "error": f"No behavioral data found. Expected at {behavioral_path}"
-                }
+                return {"error": f"No behavioral data found. Expected at {behavioral_path}"}
 
         # Load behavioral data to get trial-wise variables
         behavioral_df = pd.read_csv(behavioral_path)
@@ -895,19 +843,15 @@ class APGINeuralSignaturesValidator:
             "precision_i",
             "error_i",
         ]
-        missing_cols = [
-            col for col in required_cols if col not in behavioral_df.columns
-        ]
+        missing_cols = [col for col in required_cols if col not in behavioral_df.columns]
 
         if missing_cols:
-            return {
-                "error": f"Missing required columns in behavioral data: {missing_cols}"
-            }
+            return {"error": f"Missing required columns in behavioral data: {missing_cols}"}
 
         # Compute APGI variables for each trial
-        behavioral_df["S_proxy"] = behavioral_df["precision_e"] * np.abs(
-            behavioral_df["error_e"]
-        ) + behavioral_df["precision_i"] * np.abs(behavioral_df["error_i"])
+        behavioral_df["S_proxy"] = behavioral_df["precision_e"] * np.abs(behavioral_df["error_e"]) + behavioral_df[
+            "precision_i"
+        ] * np.abs(behavioral_df["error_i"])
 
         # Load and epoch EEG data
         raw = self.eeg_analyzer.load_eeg_data(eeg_path)
@@ -915,8 +859,7 @@ class APGINeuralSignaturesValidator:
         # Create events (simplified - would use actual event detection)
         events = np.column_stack(
             [
-                np.arange(0, len(behavioral_df))
-                * int(1.0 * raw.info["sfreq"]),  # Sample indices
+                np.arange(0, len(behavioral_df)) * int(1.0 * raw.info["sfreq"]),  # Sample indices
                 np.zeros(len(behavioral_df), dtype=int),  # Previous event
                 np.ones(len(behavioral_df), dtype=int),  # Event ID
             ]
@@ -938,9 +881,7 @@ class APGINeuralSignaturesValidator:
         p3b_amplitudes = self.eeg_analyzer.extract_p3b_amplitude(epochs)
 
         # Fit APGI sigmoidal model
-        fit_results = self.eeg_analyzer.fit_sigmoidal_apgi_model(
-            behavioral_df["S_proxy"].values, p3b_amplitudes
-        )
+        fit_results = self.eeg_analyzer.fit_sigmoidal_apgi_model(behavioral_df["S_proxy"].values, p3b_amplitudes)
 
         return {
             "p3b_amplitudes": p3b_amplitudes,
@@ -959,9 +900,7 @@ class APGINeuralSignaturesValidator:
         if behavioral_path is None:
             behavioral_path = str(PROCESSED_DATA_DIR / "behavioral_data.csv")
             if not Path(behavioral_path).exists():
-                return {
-                    "error": f"No behavioral data found. Expected at {behavioral_path}"
-                }
+                return {"error": f"No behavioral data found. Expected at {behavioral_path}"}
 
         # Load behavioral data
         behavioral_df = pd.read_csv(behavioral_path)
@@ -975,14 +914,10 @@ class APGINeuralSignaturesValidator:
             "threshold",
             "alpha",
         ]
-        missing_cols = [
-            col for col in required_cols if col not in behavioral_df.columns
-        ]
+        missing_cols = [col for col in required_cols if col not in behavioral_df.columns]
 
         if missing_cols:
-            return {
-                "error": f"Missing required columns in behavioral data: {missing_cols}"
-            }
+            return {"error": f"Missing required columns in behavioral data: {missing_cols}"}
 
         # Compute ignition probabilities using APGI model
         # Import APGI equations module
@@ -1011,10 +946,8 @@ class APGINeuralSignaturesValidator:
 
         # Analyze coactivation (implement actual GLM if possible)
         try:
-            coactivation_results = (
-                self.fmri_analyzer.analyze_frontoparietal_coactivation(
-                    func_img, behavioral_df, tr=2.0
-                )
+            coactivation_results = self.fmri_analyzer.analyze_frontoparietal_coactivation(
+                func_img, behavioral_df, tr=2.0
             )
             validation_passed = True  # Would be based on actual analysis
         except Exception as e:
@@ -1085,9 +1018,7 @@ class APGINeuralSignaturesValidator:
                 dt = 1.0 / sfreq
                 for i in range(1, n_samples):
                     # Theta phase evolution with coupling from gamma
-                    dtheta = omega_theta + k_coupling * np.sin(
-                        gamma_phase[i - 1] - theta_phase[i - 1]
-                    )
+                    dtheta = omega_theta + k_coupling * np.sin(gamma_phase[i - 1] - theta_phase[i - 1])
                     theta_phase[i] = theta_phase[i - 1] + dtheta * dt
 
                     # Gamma phase evolution
@@ -1096,9 +1027,7 @@ class APGINeuralSignaturesValidator:
 
                 # Generate amplitude-modulated signals
                 theta_amplitude = 1.0  # Theta amplitude
-                gamma_amplitude_envelope = 0.5 * (
-                    1 + np.cos(theta_phase)
-                )  # Gamma amplitude modulated by theta phase
+                gamma_amplitude_envelope = 0.5 * (1 + np.cos(theta_phase))  # Gamma amplitude modulated by theta phase
 
                 # Create composite signal
                 theta_signal = theta_amplitude * np.cos(theta_phase)
@@ -1127,29 +1056,21 @@ class APGINeuralSignaturesValidator:
                 confidence_interval = pac_result.confidence_interval
             else:
                 # Fallback implementation using Hilbert transform
-                logger.warning(
-                    "Using fallback PAC implementation - results may differ from FP-09"
-                )
+                logger.warning("Using fallback PAC implementation - results may differ from FP-09")
                 from scipy.signal import hilbert
 
                 # Filter theta band (4-8 Hz)
-                theta_filtered = mne.filter.filter_data(
-                    data, sfreq, 4, 8, verbose=False
-                )
+                theta_filtered = mne.filter.filter_data(data, sfreq, 4, 8, verbose=False)
                 theta_phase = np.angle(hilbert(theta_filtered))
 
                 # Filter gamma band (30-50 Hz)
-                gamma_filtered = mne.filter.filter_data(
-                    data, sfreq, 30, 50, verbose=False
-                )
+                gamma_filtered = mne.filter.filter_data(data, sfreq, 30, 50, verbose=False)
                 gamma_amplitude = np.abs(hilbert(gamma_filtered))
 
                 # Compute modulation index (simplified)
                 from scipy.stats import pearsonr
 
-                modulation_index, p_value = pearsonr(
-                    np.cos(theta_phase), gamma_amplitude
-                )
+                modulation_index, p_value = pearsonr(np.cos(theta_phase), gamma_amplitude)
                 effect_size = None
                 confidence_interval = None
 
@@ -1160,16 +1081,12 @@ class APGINeuralSignaturesValidator:
             p_alpha = 0.5
             p_beta = 0.5
             p_gamma = 0.5
-            corrected = apply_multiple_comparison_correction(
-                [p_theta, p_alpha, p_beta, p_gamma], method="bonferroni"
-            )
+            corrected = apply_multiple_comparison_correction([p_theta, p_alpha, p_beta, p_gamma], method="bonferroni")
 
             # Family-wise α = 0.05, per-band α = 0.05 / 4 = 0.0125
             alpha_per_band = 0.0125
             bonferroni_significant = (
-                corrected.get("significant", [False])[0]
-                if isinstance(corrected, dict)
-                else (p_theta < alpha_per_band)
+                corrected.get("significant", [False])[0] if isinstance(corrected, dict) else (p_theta < alpha_per_band)
             )
 
             # Check if coupling is significant with Bonferroni correction
@@ -1185,11 +1102,7 @@ class APGINeuralSignaturesValidator:
                 "effect_size": effect_size,
                 "confidence_interval": confidence_interval,
                 "validation_passed": bool(coupling_detected),
-                "analysis_method": (
-                    "tort_et_al_2010_mi"
-                    if FP09_PAC_AVAILABLE
-                    else "hilbert_transform_fallback"
-                ),
+                "analysis_method": ("tort_et_al_2010_mi" if FP09_PAC_AVAILABLE else "hilbert_transform_fallback"),
                 "theta_band": "4-8 Hz",
                 "gamma_band": "30-50 Hz",
                 "fp09_pac_used": FP09_PAC_AVAILABLE,
@@ -1243,9 +1156,7 @@ class APGINeuralSignaturesValidator:
                 "alpha",
                 "ignition_prob",
             ]
-            missing_cols = [
-                col for col in required_cols if col not in behavioral_df.columns
-            ]
+            missing_cols = [col for col in required_cols if col not in behavioral_df.columns]
 
             if missing_cols:
                 return {
@@ -1256,12 +1167,8 @@ class APGINeuralSignaturesValidator:
                 }
 
             # Classify trials as subthreshold vs suprathreshold
-            subthreshold_trials = behavioral_df[
-                behavioral_df["ignition_prob"] < 0.3
-            ]  # Low ignition prob
-            suprathreshold_trials = behavioral_df[
-                behavioral_df["ignition_prob"] >= 0.7
-            ]  # High ignition prob
+            subthreshold_trials = behavioral_df[behavioral_df["ignition_prob"] < 0.3]  # Low ignition prob
+            suprathreshold_trials = behavioral_df[behavioral_df["ignition_prob"] >= 0.7]  # High ignition prob
 
             n_subthreshold = len(subthreshold_trials)
             n_suprathreshold = len(suprathreshold_trials)
@@ -1298,13 +1205,9 @@ class APGINeuralSignaturesValidator:
                 # Simulate classification scores based on ignition probability
                 # (In real implementation, use actual neural activation features)
                 subthreshold_amplitudes = np.random.normal(0.15, 0.05, n_subthreshold)
-                suprathreshold_amplitudes = np.random.normal(
-                    0.45, 0.08, n_suprathreshold
-                )
+                suprathreshold_amplitudes = np.random.normal(0.45, 0.08, n_suprathreshold)
 
-                y_true = np.concatenate(
-                    [subthreshold_amplitudes, suprathreshold_amplitudes]
-                )
+                y_true = np.concatenate([subthreshold_amplitudes, suprathreshold_amplitudes])
                 y_scores = np.concatenate(
                     [
                         subthreshold_trials["ignition_prob"].values,
@@ -1351,11 +1254,7 @@ class APGINeuralSignaturesValidator:
                     {
                         "fpr": fpr.tolist() if fpr is not None else None,
                         "tpr": tpr.tolist() if tpr is not None else None,
-                        "thresholds": (
-                            thresholds_roc.tolist()
-                            if thresholds_roc is not None
-                            else None
-                        ),
+                        "thresholds": (thresholds_roc.tolist() if thresholds_roc is not None else None),
                     }
                     if auc_score is not None
                     else None
@@ -1372,16 +1271,12 @@ class APGINeuralSignaturesValidator:
             return {
                 "subthreshold_trials_analyzed": n_subthreshold,
                 "local_activation_confirmed": bool(local_activation_detected),
-                "frontoparietal_suppression_confirmed": bool(
-                    frontoparietal_suppression
-                ),
+                "frontoparietal_suppression_confirmed": bool(frontoparietal_suppression),
                 "auc_score": float(auc_score),
                 "auc_criterion_met": bool(auc_score < 0.6),
                 "auc_threshold": 0.6,
                 "validation_passed": bool(
-                    local_activation_detected
-                    and frontoparietal_suppression
-                    and (auc_score < 0.6)
+                    local_activation_detected and frontoparietal_suppression and (auc_score < 0.6)
                 ),
                 "note": f"Basic implementation - real analysis requires trial classification: {str(e)}",
             }
@@ -1433,9 +1328,7 @@ class APGINeuralSignaturesValidator:
 
         # Standard 2: Frontoparietal Coactivation
         fp_result = results.get("frontoparietal_coactivation", {})
-        coactivation_ratio = fp_result.get("coactivation_results", {}).get(
-            "coactivation_ratio", 0
-        )
+        coactivation_ratio = fp_result.get("coactivation_results", {}).get("coactivation_ratio", 0)
         if coactivation_ratio < 0.005:
             standard_scores.append(0)  # Falsified
         elif coactivation_ratio < 0.01:
@@ -1549,9 +1442,7 @@ class APGINeuralSignaturesValidator:
         try:
             from apgi_core.equations import CoreIgnitionSystem
         except ImportError:
-            logger.debug(
-                "apgi_core.equations not available - using simplified simulation"
-            )
+            logger.debug("apgi_core.equations not available - using simplified simulation")
             CoreIgnitionSystem = None  # type: ignore[misc]
 
         # Define population parameters based on Paper 3 clinical translation table
@@ -1609,12 +1500,8 @@ class APGINeuralSignaturesValidator:
                     # Compute APGI variables
                     if CoreIgnitionSystem is not None:
                         ignition_system = CoreIgnitionSystem()
-                        S = ignition_system.accumulated_signal(
-                            1.0, error_e, precision_i, error_i
-                        )
-                        ignition_prob = ignition_system.ignition_probability(
-                            S, theta_0, 2.0
-                        )
+                        S = ignition_system.accumulated_signal(1.0, error_e, precision_i, error_i)
+                        ignition_prob = ignition_system.ignition_probability(S, theta_0, 2.0)
                     else:
                         # Simplified calculation
                         S = abs(error_e) + precision_i * abs(error_i)
@@ -1649,21 +1536,13 @@ class APGINeuralSignaturesValidator:
                 "n_agents": n_agents,
                 "parameters": params,
                 "agents_data": agents_data,
-                "mean_ignition_prob": np.mean(
-                    [a["mean_ignition_prob"] for a in agents_data]
-                ),
-                "std_ignition_prob": np.std(
-                    [a["mean_ignition_prob"] for a in agents_data]
-                ),
+                "mean_ignition_prob": np.mean([a["mean_ignition_prob"] for a in agents_data]),
+                "std_ignition_prob": np.std([a["mean_ignition_prob"] for a in agents_data]),
             }
 
         # Statistical comparison between populations
-        healthy_ignition = [
-            a["mean_ignition_prob"] for a in results["healthy"]["agents_data"]
-        ]
-        anxiety_ignition = [
-            a["mean_ignition_prob"] for a in results["anxiety"]["agents_data"]
-        ]
+        healthy_ignition = [a["mean_ignition_prob"] for a in results["healthy"]["agents_data"]]
+        anxiety_ignition = [a["mean_ignition_prob"] for a in results["anxiety"]["agents_data"]]
 
         from scipy import stats
 
@@ -1693,9 +1572,7 @@ class APGINeuralSignaturesValidator:
                 "tukey_significant": tukey_res.pvalue[0, 1] < 0.05,
             }
         except ImportError:
-            logger.warning(
-                "scipy.stats.tukey_hsd not available - post-hoc test skipped"
-            )
+            logger.warning("scipy.stats.tukey_hsd not available - post-hoc test skipped")
             tukey_hsd_result = {"error": "tukey_hsd not available in scipy"}
         except Exception as e:
             logger.warning(f"Tukey HSD calculation failed: {e}")
@@ -1712,7 +1589,6 @@ class APGINeuralSignaturesValidator:
             "p_value": float(p_value),
             "cohens_d": float(cohens_d),
             "h4_criterion_met": bool(h4_passed),
-            "tukey_hsd_posthoc": tukey_hsd_result,
             "description": "H4: Clinical biomarker coupling dysregulation test",
         }
 
@@ -1720,6 +1596,7 @@ class APGINeuralSignaturesValidator:
             "populations": results,
             "clinical_comparison": clinical_comparison,
             "h4_validation_passed": bool(h4_passed),
+            "tukey_hsd_result": tukey_hsd_result,
             "n_healthy": n_healthy,
             "n_anxiety": n_anxiety,
             "n_trials": n_trials,
@@ -1754,9 +1631,7 @@ class APGINeuralSignaturesValidator:
             # Compute MI for cued condition
             mi_cued_values: List[float] = []
             for neuron_idx in range(cued_neural_responses.shape[1]):
-                mi = mutual_info_regression(
-                    cued_stimulus_features, cued_neural_responses[:, neuron_idx]
-                )
+                mi = mutual_info_regression(cued_stimulus_features, cued_neural_responses[:, neuron_idx])
                 mi_cued_values.append(float(mi[0]))
 
             mi_cued = np.array(mi_cued_values)
@@ -1765,9 +1640,7 @@ class APGINeuralSignaturesValidator:
             # Compute MI for uncued condition
             mi_uncued_values: List[float] = []
             for neuron_idx in range(uncued_neural_responses.shape[1]):
-                mi = mutual_info_regression(
-                    uncued_stimulus_features, uncued_neural_responses[:, neuron_idx]
-                )
+                mi = mutual_info_regression(uncued_stimulus_features, uncued_neural_responses[:, neuron_idx])
                 mi_uncued_values.append(float(mi[0]))
 
             mi_uncued = np.array(mi_uncued_values)
@@ -1786,9 +1659,7 @@ class APGINeuralSignaturesValidator:
 
             # Combine data for permutation test
             combined_mi = np.concatenate([mi_cued, mi_uncued])
-            condition_labels = np.concatenate(
-                [np.ones(len(mi_cued)), np.zeros(len(mi_uncued))]
-            )
+            condition_labels = np.concatenate([np.ones(len(mi_cued)), np.zeros(len(mi_uncued))])
 
             # Run permutation test
             def _perm_stat(labels, mi):
@@ -1860,11 +1731,7 @@ class APGINeuralSignaturesValidator:
             tolerance = 20.0  # ±20 bits/s tolerance
 
             # Check if rate is within expected range
-            within_expected_range = (
-                expected_asymptote - tolerance
-                <= mean_rate
-                <= expected_asymptote + tolerance
-            )
+            within_expected_range = expected_asymptote - tolerance <= mean_rate <= expected_asymptote + tolerance
 
             # Check for excessive rate (falsification condition)
             excessive_rate = mean_rate > 100.0
@@ -1888,16 +1755,13 @@ class APGINeuralSignaturesValidator:
 
                     fitted_asymptote = popt[0]
                     fitted_tau = popt[1]
-                    r_squared = 1 - np.sum(
-                        (information_rates - asymptotic_model(trial_indices, *popt))
-                        ** 2
-                    ) / np.sum((information_rates - np.mean(information_rates)) ** 2)
+                    r_squared = 1 - np.sum((information_rates - asymptotic_model(trial_indices, *popt)) ** 2) / np.sum(
+                        (information_rates - np.mean(information_rates)) ** 2
+                    )
 
                     # Check if fitted asymptote matches expected value
                     asymptote_match = (
-                        expected_asymptote - tolerance
-                        <= fitted_asymptote
-                        <= expected_asymptote + tolerance
+                        expected_asymptote - tolerance <= fitted_asymptote <= expected_asymptote + tolerance
                     )
 
                 except Exception as fit_error:
@@ -1913,9 +1777,7 @@ class APGINeuralSignaturesValidator:
                 asymptote_match = False
 
             # Falsification: excessive rate OR asymptote doesn't match expected value
-            falsified = excessive_rate or (
-                not asymptote_match and fitted_asymptote is not None
-            )
+            falsified = excessive_rate or (not asymptote_match and fitted_asymptote is not None)
 
             # Additional check: if post-training, rate should be stable (low variance)
             if training_phase == "post_training":
@@ -1931,9 +1793,7 @@ class APGINeuralSignaturesValidator:
                 "expected_asymptote": expected_asymptote,
                 "within_expected_range": within_expected_range,
                 "excessive_rate": excessive_rate,
-                "fitted_asymptote": (
-                    float(fitted_asymptote) if fitted_asymptote is not None else None
-                ),
+                "fitted_asymptote": (float(fitted_asymptote) if fitted_asymptote is not None else None),
                 "fitted_tau": float(fitted_tau) if fitted_tau is not None else None,
                 "r_squared": float(r_squared) if r_squared is not None else None,
                 "asymptote_match": asymptote_match,
@@ -1990,19 +1850,13 @@ class APGINeuralSignaturesValidator:
 
         # Compute deviation of empirical from optimal
         threshold_deviation = empirical_threshold - optimal_threshold
-        threshold_deviation_sd = threshold_deviation / np.sqrt(
-            signal_std**2 + noise_std**2
-        )
+        threshold_deviation_sd = threshold_deviation / np.sqrt(signal_std**2 + noise_std**2)
 
         # Bootstrap confidence intervals for optimal threshold
         bootstrap_thresholds_list: List[float] = []
         for _ in range(n_bootstrap):
-            signal_sample = np.random.choice(
-                signal_distribution, size=len(signal_distribution), replace=True
-            )
-            noise_sample = np.random.choice(
-                noise_distribution, size=len(noise_distribution), replace=True
-            )
+            signal_sample = np.random.choice(signal_distribution, size=len(signal_distribution), replace=True)
+            noise_sample = np.random.choice(noise_distribution, size=len(noise_distribution), replace=True)
             signal_mean_boot = np.mean(signal_sample)
             noise_mean_boot = np.mean(noise_sample)
             bootstrap_threshold = (signal_mean_boot + noise_mean_boot) / 2
@@ -2553,9 +2407,7 @@ def check_falsification(
         # Calculate statistical power
         from scipy.stats import power as sp
 
-        power_estimate = sp.ttest_power(
-            effect_size=effect_size, nobs=n_samples, alpha=alpha, alternative="larger"
-        )
+        power_estimate = sp.ttest_power(effect_size=effect_size, nobs=n_samples, alpha=alpha, alternative="larger")
 
         # Determine if underpowered
         is_underpowered = power_estimate < 0.80
@@ -2674,9 +2526,7 @@ def check_falsification(
 
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
-    f1_1_pass = (
-        apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
-    )
+    f1_1_pass = apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
         "apgi_advantage": apgi_advantage_f1,
@@ -2689,17 +2539,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}"
-    )
+    logger.info(f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}")
 
     # F1.2: Hierarchical Level Emergence
     logger.info("Testing F1.2: Hierarchical Level Emergence")
-    f1_2_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
-    )
+    f1_2_pass = hierarchical_levels_detected >= 3 and peak_separation_ratio >= 1.5 and eta_squared_timescales >= 0.45
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
         "hierarchical_levels_detected": hierarchical_levels_detected,
@@ -2718,16 +2562,8 @@ def check_falsification(
 
     # F1.3: Level-Specific Precision Weighting
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
-    precision_difference = (
-        (level1_intero_precision - level3_intero_precision)
-        / level3_intero_precision
-        * 100
-    )
-    f1_3_pass = (
-        precision_difference >= 15
-        and partial_eta_squared_f1_3 >= 0.08
-        and p_interaction_f1_3 < 0.01
-    )
+    precision_difference = (level1_intero_precision - level3_intero_precision) / level3_intero_precision * 100
+    f1_3_pass = precision_difference >= 15 and partial_eta_squared_f1_3 >= 0.08 and p_interaction_f1_3 < 0.01
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "level1_intero_precision": level1_intero_precision,
@@ -2774,10 +2610,7 @@ def check_falsification(
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
     f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
+        pac_modulation_index >= 0.008 and pac_increase >= 15 and cohens_d_pac >= 0.30 and permutation_p_pac < 0.01
     )
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
@@ -2826,9 +2659,7 @@ def check_falsification(
 
     # F2.1: Somatic Marker Advantage Quantification
     logger.info("Testing F2.1: Somatic Marker Advantage Quantification")
-    advantage_over_no_somatic = (
-        apgi_advantageous_selection - no_somatic_advantageous_selection
-    )
+    advantage_over_no_somatic = apgi_advantageous_selection - no_somatic_advantageous_selection
     f2_1_pass = (
         apgi_advantageous_selection >= 18
         and advantage_over_no_somatic >= 8
@@ -2856,9 +2687,7 @@ def check_falsification(
     # F2.2: Interoceptive Cost Sensitivity
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
     f2_2_pass = (
-        abs(apgi_cost_correlation) >= 0.30
-        and abs(no_intero_cost_correlation) <= 0.20
-        and fishers_z_difference >= 1.50
+        abs(apgi_cost_correlation) >= 0.30 and abs(no_intero_cost_correlation) <= 0.20 and fishers_z_difference >= 1.50
     )
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
@@ -2879,10 +2708,7 @@ def check_falsification(
     # F2.3: vmPFC-Like Anticipatory Bias
     logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
     f2_3_pass = (
-        rt_advantage >= 20
-        and rt_modulation_beta >= 15
-        and standardized_beta_rt >= 0.25
-        and marginal_r2_rt >= 0.10
+        rt_advantage >= 20 and rt_modulation_beta >= 15 and standardized_beta_rt >= 0.25 and marginal_r2_rt >= 0.10
     )
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -2930,10 +2756,7 @@ def check_falsification(
     logger.info("Testing F2.5: Learning Trajectory Discrimination")
     trial_advantage = no_intero_time_to_criterion - apgi_time_to_criterion
     f2_5_pass = (
-        apgi_time_to_criterion <= 55
-        and hazard_ratio_f2_5 >= 1.35
-        and log_rank_p < 0.01
-        and trial_advantage >= 12
+        apgi_time_to_criterion <= 55 and hazard_ratio_f2_5 >= 1.35 and log_rank_p < 0.01 and trial_advantage >= 12
     )
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -2955,9 +2778,7 @@ def check_falsification(
 
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
-    f3_1_pass = (
-        apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
-    )
+    f3_1_pass = apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "apgi_advantage": apgi_advantage_f3,
@@ -2970,17 +2791,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}"
-    )
+    logger.info(f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}")
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
-    )
+    f3_2_pass = interoceptive_advantage >= 0.20 and partial_eta_squared >= 0.12 and p_interaction < 0.01
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
         "interoceptive_advantage": interoceptive_advantage,
@@ -2999,11 +2814,7 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
-    )
+    f3_3_pass = threshold_reduction >= 0.15 and cohens_d_threshold >= 0.50 and p_threshold < 0.01
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
@@ -3022,11 +2833,7 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.01
-    )
+    f3_4_pass = precision_reduction >= 0.12 and cohens_d_precision >= 0.42 and p_precision < 0.01
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
         "precision_reduction": precision_reduction,
@@ -3045,14 +2852,11 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
-    )
+    f3_5_pass = performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
         "performance_retention": performance_retention,
         "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
         "threshold": "Retention ≥85%, gain ≥30%",
         "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
     }
@@ -3066,9 +2870,7 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
-    )
+    f3_6_pass = time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
         "time_to_criterion": time_to_criterion,
@@ -3081,17 +2883,12 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}"
-    )
+    logger.info(f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}")
 
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -3112,11 +2909,7 @@ def check_falsification(
 
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
+    f5_2_pass = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
     results["criteria"]["F5.2"] = {
         "passed": f5_2_pass,
         "proportion_precision_agents": proportion_precision_agents,
@@ -3160,11 +2953,7 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
+    f5_4_pass = proportion_multiscale_agents >= 0.45 and peak_separation_ratio_f5_4 >= 2.0 and binomial_p_f5_4 < 0.01
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "proportion_multiscale_agents": proportion_multiscale_agents,
@@ -3201,11 +2990,7 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
-    )
+    f5_6_pass = performance_difference >= 0.25 and cohen_d_performance >= 0.55 and ttest_p_f5_6 < 0.01
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
@@ -3224,12 +3009,8 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    f6_1_pass = (
-        ltcn_transition_time <= 50.0 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
-    )
+    f6_1_pass = ltcn_transition_time <= 50.0 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    status, power, underpowered = check_power_and_apply_gating("F6.1", f6_1_pass, cliffs_delta, 80, 0.01)
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "status": status,
@@ -3248,9 +3029,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
-    )
+    logger.info(f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}")
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
@@ -3260,14 +3039,8 @@ def check_falsification(
         and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
-    integration_ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
-    )
+    integration_ratio = ltcn_integration_window / rnn_integration_window if rnn_integration_window > 0 else 0
+    status, power, underpowered = check_power_and_apply_gating("F6.2", f6_2_pass, integration_ratio, 80, 0.01)
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "status": status,
@@ -3295,20 +3068,14 @@ def check_falsification(
     for criterion_id in results["criteria"]:
         criterion = results["criteria"][criterion_id]
         # Extract p-value if available, default to 1.0
-        p_val = criterion.get(
-            "p_value", criterion.get("mann_whitney_p", criterion.get("wilcoxon_p", 1.0))
-        )
+        p_val = criterion.get("p_value", criterion.get("mann_whitney_p", criterion.get("wilcoxon_p", 1.0)))
         criteria_p_values.append(p_val)
 
     # Apply Bonferroni correction
-    bonferroni_correction = apply_shared_mcc_vp09(
-        p_values=criteria_p_values, method="bonferroni", alpha=0.05
-    )
+    bonferroni_correction = apply_shared_mcc_vp09(p_values=criteria_p_values, method="bonferroni", alpha=0.05)
 
     # Apply FDR-BH correction
-    fdr_correction = apply_shared_mcc_vp09(
-        p_values=criteria_p_values, method="fdr_bh", alpha=0.05
-    )
+    fdr_correction = apply_shared_mcc_vp09(p_values=criteria_p_values, method="fdr_bh", alpha=0.05)
 
     # Add correction results
     results["multiple_comparison_correction"] = {
@@ -3374,11 +3141,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -3400,8 +3163,8 @@ class APGIValidationProtocol9:
         """Initialize the validation protocol."""
         self.results: Dict[str, Any] = {}
 
-    def run_validation(self, data_path: Optional[str] = None) -> Dict[str, Any]:
-        """Run the complete validation protocol."""
+    def run_validation(self, data_path: Optional[str] = None, full_validation: bool = False) -> Dict[str, Any]:
+        """Run complete validation protocol."""
         self.results = main()
         return self.results
 
@@ -3420,7 +3183,44 @@ class MultiTimescaleValidator:
     def __init__(self) -> None:
         self.validation_results: Dict[str, Any] = {}
 
+    def run_validation_placeholder(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
+        """Run validation protocols."""
+        # This is a placeholder implementation
+        return {"status": "completed", "protocols": protocol_names or []}
+
     def validate(self, timescale_data: Optional[Dict] = None) -> Dict[str, Any]:
+        """Alias for run_validation to maintain interface consistency."""
+        return self.run_validation()
+
+    def run_full_validation(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
+        """Alias for running full validation suite."""
+        # Convert protocol names to dict format for timescale_data
+        timescale_data = None
+        if protocol_names:
+            timescale_data = {"protocols": protocol_names}
+        return self.run_validation(timescale_data=timescale_data)
+
+    def run_all_protocols(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
+        """Alias for running all validation protocols."""
+        # Convert protocol names to dict format for timescale_data
+        timescale_data = None
+        if protocol_names:
+            timescale_data = {"protocols": protocol_names}
+        return self.run_validation(timescale_data=timescale_data)
+
+    def check_criteria(self) -> Dict[str, Any]:
+        """Check validation criteria against results."""
+        return self.results.get("criteria", {})
+
+    def get_results(self) -> Dict[str, Any]:
+        """Get validation results."""
+        return self.results
+
+    def get_available_protocols(self) -> List[str]:
+        """Get available validation protocols."""
+        return ["VP_09_NeuralSignatures_EmpiricalPriority1"]
+
+    def run_validation(self, timescale_data: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Validate multi-timescale dynamics.
 
@@ -3446,14 +3246,8 @@ class MultiTimescaleValidator:
             }
 
         # Calculate timescale ratios
-        intermediate_fast_ratio = (
-            timescale_data["intermediate_timescale_ms"]
-            / timescale_data["fast_timescale_ms"]
-        )
-        slow_intermediate_ratio = (
-            timescale_data["slow_timescale_ms"]
-            / timescale_data["intermediate_timescale_ms"]
-        )
+        intermediate_fast_ratio = timescale_data["intermediate_timescale_ms"] / timescale_data["fast_timescale_ms"]
+        slow_intermediate_ratio = timescale_data["slow_timescale_ms"] / timescale_data["intermediate_timescale_ms"]
 
         # Statistical tests
         from scipy import stats
@@ -3536,15 +3330,9 @@ class MultiTimescaleValidator:
             "p_value": float(p_value),
             "eta_squared": float(eta_squared),
             "f_statistic": float(f_stat),
-            "fast_timescale_mean_ms": float(
-                np.mean(timescale_data["fast_timescale_ms"])
-            ),
-            "intermediate_timescale_mean_ms": float(
-                np.mean(timescale_data["intermediate_timescale_ms"])
-            ),
-            "slow_timescale_mean_ms": float(
-                np.mean(timescale_data["slow_timescale_ms"])
-            ),
+            "fast_timescale_mean_ms": float(np.mean(timescale_data["fast_timescale_ms"])),
+            "intermediate_timescale_mean_ms": float(np.mean(timescale_data["intermediate_timescale_ms"])),
+            "slow_timescale_mean_ms": float(np.mean(timescale_data["slow_timescale_ms"])),
             "sample_size": len(timescale_data["fast_timescale_ms"]),
         }
 
@@ -3605,23 +3393,18 @@ class IntegrationWindowChecker:
 
         # Validation criteria
         passed = (
-            window_data["integration_window_ms"]
-            >= window_data["expected_min_window_ms"]
+            window_data["integration_window_ms"] >= window_data["expected_min_window_ms"]
             and window_data["decay_fit_r2"] >= 0.70
             and decay_constant >= 50.0
         )
 
         self.window_results = {
             "passed": passed,
-            "integration_window_ms": float(
-                np.mean(window_data["integration_window_ms"])
-            ),
+            "integration_window_ms": float(np.mean(window_data["integration_window_ms"])),
             "expected_min_window_ms": window_data["expected_min_window_ms"],
             "decay_fit_r2": float(np.mean(window_data["decay_fit_r2"])),
             "decay_constant_ms": decay_constant,
-            "mean_autocorrelation_decay": float(
-                np.mean(window_data["autocorrelation_decay"])
-            ),
+            "mean_autocorrelation_decay": float(np.mean(window_data["autocorrelation_decay"])),
             "sample_size": len(window_data["autocorrelation_decay"]),
         }
 

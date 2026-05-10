@@ -32,9 +32,7 @@ _dir = Path(__file__).parent
 
 # Protocol 1: Active Inference Agent Testing - mapped to existing FP_1_Falsification_ActiveInferenceAgents_F1F2
 try:
-    _spec1 = importlib.util.spec_from_file_location(
-        "Protocol_1", _dir / "FP_01_ActiveInference.py"
-    )
+    _spec1 = importlib.util.spec_from_file_location("Protocol_1", _dir / "FP_01_ActiveInference.py")
     if _spec1 and _spec1.loader:
         Protocol_1 = importlib.util.module_from_spec(_spec1)
         _spec1.loader.exec_module(Protocol_1)
@@ -90,9 +88,7 @@ except Exception as e:
 
 # Protocol 5: Evolutionary APGI Emergence - uses existing Falsification_Protocol_P5
 try:
-    _spec5 = importlib.util.spec_from_file_location(
-        "Protocol_5", _dir / "FP_05_EvolutionaryPlausibility.py"
-    )
+    _spec5 = importlib.util.spec_from_file_location("Protocol_5", _dir / "FP_05_EvolutionaryPlausibility.py")
     if _spec5 and _spec5.loader:
         Protocol_5 = importlib.util.module_from_spec(_spec5)
         _spec5.loader.exec_module(Protocol_5)
@@ -104,9 +100,7 @@ except Exception as e:
 
 # Protocol 6: Network Comparison Experiment - uses existing Falsification_Protocol_P6
 try:
-    _spec6 = importlib.util.spec_from_file_location(
-        "Protocol_6", _dir / "FP_06_LiquidNetwork_EnergyBenchmark.py"
-    )
+    _spec6 = importlib.util.spec_from_file_location("Protocol_6", _dir / "FP_06_LiquidNetwork_EnergyBenchmark.py")
     if _spec6 and _spec6.loader:
         Protocol_6 = importlib.util.module_from_spec(_spec6)
         _spec6.loader.exec_module(Protocol_6)
@@ -118,13 +112,9 @@ except Exception as e:
 
 # Framework-Level Aggregator
 try:
-    _spec_aggregator = importlib.util.spec_from_file_location(
-        "FP_ALL_Aggregator", _dir / "FP_ALL_Aggregator.py"
-    )
+    _spec_aggregator = importlib.util.spec_from_file_location("FP_ALL_Aggregator", _dir / "FP_ALL_Aggregator.py")
     if _spec_aggregator and _spec_aggregator.loader:
-        FP_ALL_Falsification_Aggregator = importlib.util.module_from_spec(
-            _spec_aggregator
-        )
+        FP_ALL_Falsification_Aggregator = importlib.util.module_from_spec(_spec_aggregator)
         _spec_aggregator.loader.exec_module(FP_ALL_Falsification_Aggregator)
     else:
         raise ImportError("Could not load FP_ALL_Falsification_Aggregator")
@@ -137,9 +127,7 @@ ProtocolRunnerGUI = None
 
 # Master Falsification module
 try:
-    _spec_master = importlib.util.spec_from_file_location(
-        "Master_Falsification", _dir / "Master_Falsification.py"
-    )
+    _spec_master = importlib.util.spec_from_file_location("Master_Falsification", _dir / "Master_Falsification.py")
     if _spec_master and _spec_master.loader:
         Master_Falsification = importlib.util.module_from_spec(_spec_master)
         _spec_master.loader.exec_module(Master_Falsification)
@@ -152,9 +140,7 @@ except Exception as e:
 # Protocol 1 exports
 if Protocol_1:
     try:
-        HierarchicalGenerativeModel = getattr(
-            Protocol_1, "HierarchicalGenerativeModel", None
-        )
+        HierarchicalGenerativeModel = getattr(Protocol_1, "HierarchicalGenerativeModel", None)
         SomaticMarkerNetwork = getattr(Protocol_1, "SomaticMarkerNetwork", None)
         PolicyNetwork = getattr(Protocol_1, "PolicyNetwork", None)
         HabitualPolicy = getattr(Protocol_1, "HabitualPolicy", None)

@@ -20,9 +20,7 @@ class StandardizedMetadata:
     """
 
     # Data provenance (REQUIRED)
-    data_sources: List[
-        str
-    ]  # e.g., ["Synthetic EEG data", "Iowa Gambling Task simulation"]
+    data_sources: List[str]  # e.g., ["Synthetic EEG data", "Iowa Gambling Task simulation"]
     empirical_vs_synthetic: str  # "empirical" | "synthetic" | "hybrid"
     sample_size: Optional[int] = None  # n=50, n=100, etc.
 
@@ -42,9 +40,7 @@ class StandardizedMetadata:
     # Publication tracking (OPTIONAL)
     dataset_doi: Optional[str] = None
     preregistered: bool = False
-    replication_status: str = (
-        "not_attempted"  # "replicated" | "failed" | "not_attempted"
-    )
+    replication_status: str = "not_attempted"  # "replicated" | "failed" | "not_attempted"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for ProtocolResult.metadata."""
@@ -191,9 +187,7 @@ def create_metadata_template(type: str = "basic") -> MetadataTemplate:
     return template
 
 
-def validate_metadata(
-    data: Dict[str, Any], template: MetadataTemplate
-) -> Dict[str, Any]:
+def validate_metadata(data: Dict[str, Any], template: MetadataTemplate) -> Dict[str, Any]:
     result: Dict[str, Any] = {"valid": True, "missing": [], "errors": []}
     for field_name, field_spec in template.fields.items():
         if field_spec.get("required", False) and field_name not in data:

@@ -1,4 +1,5 @@
 """
+
 APGI PARAMETER ESTIMATION PROTOCOL
 
 Model Structure:
@@ -62,9 +63,7 @@ class APGIConstants:
     """All constants with scientific justification"""
 
     # Measurement relationship constants (empirically validated)
-    HEP_SCALE_FACTOR: float = (
-        0.48  # Park et al. (2014): HEP ~ 0.5 ± 0.1 μV per unit precision
-    )
+    HEP_SCALE_FACTOR: float = 0.48  # Park et al. (2014): HEP ~ 0.5 ± 0.1 μV per unit precision
     HEP_NOISE_SD: float = 0.15  # Pollatos et al. (2007): within-subject HEP variability
 
     PUPIL_SCALE_FACTOR: float = 0.32  # Beatty (1982): pupil dilation ~ precision
@@ -86,11 +85,11 @@ class APGIConstants:
     BLINK_PERCENTILE: float = 95.0  # Pupil velocity threshold
 
     # Model fitting parameters
-    MCMC_DRAWS: int = 2000  # Increased for better convergence
-    MCMC_TUNE: int = 1500
+    MCMC_DRAWS: int = 3000  # Increased from 2000 for better convergence
+    MCMC_TUNE: int = 2500  # Increased from 1500 for complex 18-parameter model
     MCMC_CHAINS: int = 4  # Increased from 2
-    MCMC_TARGET_ACCEPT: float = 0.92  # Reduced from 0.95 for efficiency
-    MCMC_MAX_TREEDEPTH: int = 11  # Reduced from 12
+    MCMC_TARGET_ACCEPT: float = 0.95  # Increased from 0.92 to reduce divergences
+    MCMC_MAX_TREEDEPTH: int = 15  # Increased from 11 to prevent premature termination
 
     # Validation thresholds (justified by power analysis in Appendix A)
     RECOVERY_R_CRITICAL: float = 0.82  # Core parameters
@@ -187,9 +186,7 @@ class DriftDiffusionGenerator:
 
             # Confidence based on decision variable magnitude
             # Higher intensity → stronger evidence → higher confidence
-            confidence[i] = min(
-                4, max(1, int(1 + 3 * intensity) + self.rng.randint(-1, 2))
-            )
+            confidence[i] = min(4, max(1, int(1 + 3 * intensity) + self.rng.randint(-1, 2)))
 
         return responses, rts, confidence
 
@@ -297,9 +294,7 @@ class ParameterIdentifiabilityAnalyzer:
         else:
             raise ValueError(f"Unknown method: {method}")
 
-    def _parametric_bootstrap(
-        self, n_samples: int, alpha: float
-    ) -> Dict[str, Tuple[float, float, float]]:
+    def _parametric_bootstrap(self, n_samples: int, alpha: float) -> Dict[str, Tuple[float, float, float]]:
         """Parametric bootstrap confidence intervals"""
         if self.fitted_estimator is None:
             raise ValueError("No fitted estimator available")
@@ -328,9 +323,7 @@ class ParameterIdentifiabilityAnalyzer:
             for param in params:
                 if param in param_estimates:
                     # Generate bootstrap intervals based on FIM uncertainty
-                    param_std = np.sqrt(
-                        fim_result["parameter_variances"].get(param, 0.1)
-                    )
+                    param_std = np.sqrt(fim_result["parameter_variances"].get(param, 0.1))
                     median = param_estimates[param]
 
                     # Compute confidence intervals using FIM-based standard errors
@@ -343,13 +336,9 @@ class ParameterIdentifiabilityAnalyzer:
 
                     # Ensure reasonable bounds for APGI parameters
                     if param == "beta":
-                        lower, upper = np.clip(
-                            [lower, upper], 0.3, 0.7
-                        )  # β_som ≈ 0.3–0.7
+                        lower, upper = np.clip([lower, upper], 0.3, 0.7)  # β_som ≈ 0.3–0.7
                     elif param == "theta":
-                        lower, upper = np.clip(
-                            [lower, upper], 0.5, 1.5
-                        )  # θ_t ≈ 0.5–1.5
+                        lower, upper = np.clip([lower, upper], 0.5, 1.5)  # θ_t ≈ 0.5–1.5
 
                     intervals[param] = (median, lower, upper)
                 else:
@@ -364,10 +353,7 @@ class ParameterIdentifiabilityAnalyzer:
             self._last_identifiability_result = {
                 "identifiable": identifiable,
                 "condition_number": condition_number,
-                "classification": (
-                    "well-identified" if identifiable else "requires dedicated paradigm"
-                ),
-                "fim_result": fim_result,
+                "classification": ("well-identified" if identifiable else "requires dedicated paradigm"),
             }
 
         except Exception as e:
@@ -397,9 +383,7 @@ class ParameterIdentifiabilityAnalyzer:
 
         return intervals
 
-    def _bayesian_posterior(
-        self, n_samples: int, alpha: float
-    ) -> Dict[str, Tuple[float, float, float]]:
+    def _bayesian_posterior(self, n_samples: int, alpha: float) -> Dict[str, Tuple[float, float, float]]:
         """Bayesian credible intervals via MCMC"""
         if self.fitted_estimator is None:
             raise ValueError("No fitted estimator available")
@@ -426,8 +410,7 @@ class ParameterIdentifiabilityAnalyzer:
 
             # Identifiability classification based on FIM properties
             identifiable = (
-                condition_number < CONST.FIM_CONDITION_NUMBER_MAX
-                and eigenvalue_ratio > CONST.MIN_EIGENVALUE_RATIO
+                condition_number < CONST.FIM_CONDITION_NUMBER_MAX and eigenvalue_ratio > CONST.MIN_EIGENVALUE_RATIO
             )
 
             # Generate credible intervals with identifiability-aware uncertainty
@@ -438,15 +421,10 @@ class ParameterIdentifiabilityAnalyzer:
                     # Scale uncertainty based on identifiability
                     if identifiable:
                         # Well-identified parameters have tighter posteriors
-                        param_std = np.sqrt(
-                            fim_result["parameter_variances"].get(param, 0.05)
-                        )
+                        param_std = np.sqrt(fim_result["parameter_variances"].get(param, 0.05))
                     else:
                         # Poorly identified parameters have wider posteriors
-                        param_std = (
-                            np.sqrt(fim_result["parameter_variances"].get(param, 0.2))
-                            * 2
-                        )
+                        param_std = np.sqrt(fim_result["parameter_variances"].get(param, 0.2)) * 2
 
                     # Compute Bayesian credible intervals
                     from scipy import stats
@@ -458,13 +436,9 @@ class ParameterIdentifiabilityAnalyzer:
 
                     # Apply target range constraints
                     if param == "beta":
-                        lower, upper = np.clip(
-                            [lower, upper], 0.3, 0.7
-                        )  # β_som ≈ 0.3–0.7
+                        lower, upper = np.clip([lower, upper], 0.3, 0.7)  # β_som ≈ 0.3–0.7
                     elif param == "theta":
-                        lower, upper = np.clip(
-                            [lower, upper], 0.5, 1.5
-                        )  # θ_t ≈ 0.5–1.5
+                        lower, upper = np.clip([lower, upper], 0.5, 1.5)  # θ_t ≈ 0.5–1.5
 
                     intervals[param] = (median, lower, upper)
                 else:
@@ -487,18 +461,13 @@ class ParameterIdentifiabilityAnalyzer:
                 "identifiable": identifiable,
                 "condition_number": condition_number,
                 "eigenvalue_ratio": eigenvalue_ratio,
-                "classification": (
-                    "well-identified" if identifiable else "requires dedicated paradigm"
-                ),
+                "classification": ("well-identified" if identifiable else "requires dedicated paradigm"),
                 "method": "bayesian_posterior",
-                "fim_result": fim_result,
                 "target_ranges_met": self._check_target_ranges(param_estimates),
             }
 
         except Exception as e:
-            print(
-                f"Warning: Bayesian MCMC analysis failed ({e}), using fallback intervals"
-            )
+            print(f"Warning: Bayesian MCMC analysis failed ({e}), using fallback intervals")
             # Fallback to wider intervals reflecting uncertainty
             for param in params:
                 if param == "beta":
@@ -541,9 +510,7 @@ class ParameterIdentifiabilityAnalyzer:
                 "tau_s": 0.48,
             }
 
-    def _compute_fisher_information_matrix(
-        self, param_estimates: Dict[str, float]
-    ) -> Dict[str, Any]:
+    def _compute_fisher_information_matrix(self, param_estimates: Dict[str, float]) -> Dict[str, Any]:
         """Compute Fisher Information Matrix for identifiability assessment."""
         try:
             # Create parameter list and approximate Hessian
@@ -609,9 +576,7 @@ class ParameterIdentifiabilityAnalyzer:
                 "error": str(e),
             }
 
-    def _check_target_ranges(
-        self, param_estimates: Dict[str, float]
-    ) -> Dict[str, bool]:
+    def _check_target_ranges(self, param_estimates: Dict[str, float]) -> Dict[str, bool]:
         """Check if parameters are within target ranges specified in document."""
         target_ranges = {
             "beta": (0.3, 0.7),  # β_som ≈ 0.3–0.7
@@ -670,14 +635,11 @@ class ParameterIdentifiabilityAnalyzer:
         for variation_type, variation_values in variations.items():
             for value in variation_values:
                 # Perturb estimation
-                perturbed_params = self._estimate_with_perturbation(
-                    variation_type, value
-                )
+                perturbed_params = self._estimate_with_perturbation(variation_type, value)
 
                 # Compute parameter shifts
                 shifts = {
-                    param: abs(perturbed_params[param] - baseline_params[param])
-                    / baseline_params[param]
+                    param: abs(perturbed_params[param] - baseline_params[param]) / baseline_params[param]
                     for param in baseline_params
                 }
 
@@ -691,9 +653,7 @@ class ParameterIdentifiabilityAnalyzer:
 
         return pd.DataFrame(results)
 
-    def cross_validation_strategy(
-        self, validation_type: str, **kwargs
-    ) -> Dict[str, float]:
+    def cross_validation_strategy(self, validation_type: str, **kwargs) -> Dict[str, float]:
         """
         Out-of-sample validation for parameter generalization.
 
@@ -723,9 +683,7 @@ class ParameterIdentifiabilityAnalyzer:
         else:
             raise ValueError(f"Unknown validation type: {validation_type}")
 
-    def identifiability_metrics(
-        self, ground_truth: Optional[Dict[str, float]] = None
-    ) -> Dict[str, Dict[str, float]]:
+    def identifiability_metrics(self, ground_truth: Optional[Dict[str, float]] = None) -> Dict[str, Dict[str, float]]:
         """
         Quantify parameter identifiability with FIM-based classification.
 
@@ -756,24 +714,17 @@ class ParameterIdentifiabilityAnalyzer:
 
         for param_name in self.estimator.parameter_names:
             param_metrics = {
-                "correlation_with_truth": self._compute_correlation(
-                    param_name, ground_truth
-                ),
+                "correlation_with_truth": self._compute_correlation(param_name, ground_truth),
                 "posterior_width_ratio": self._compute_posterior_width(param_name),
                 "sensitivity_to_init": self._compute_init_sensitivity(param_name),
             }
 
             # Add FIM-based metrics if available
-            if (
-                "fim_result" in fim_classification
-                and "parameter_variances" in fim_classification["fim_result"]
-            ):
+            if "fim_result" in fim_classification and "parameter_variances" in fim_classification["fim_result"]:
                 fim_variances = fim_classification["fim_result"]["parameter_variances"]
                 if param_name in fim_variances:
                     param_metrics["fim_std"] = np.sqrt(fim_variances[param_name])
-                    param_metrics["fim_condition_number"] = fim_classification[
-                        "condition_number"
-                    ]
+                    param_metrics["fim_condition_number"] = fim_classification["condition_number"]
 
             metrics[param_name] = param_metrics
 
@@ -788,9 +739,7 @@ class ParameterIdentifiabilityAnalyzer:
 
         return metrics
 
-    def _estimate_with_perturbation(
-        self, variation_type: str, value: Any
-    ) -> Dict[str, float]:
+    def _estimate_with_perturbation(self, variation_type: str, value: Any) -> Dict[str, float]:
         """
         Estimate parameters with perturbation for sensitivity analysis.
 
@@ -865,9 +814,7 @@ class ParameterIdentifiabilityAnalyzer:
             "passed": True,
         }
 
-    def _compute_correlation(
-        self, param_name: str, ground_truth: Optional[Dict[str, float]]
-    ) -> float:
+    def _compute_correlation(self, param_name: str, ground_truth: Optional[Dict[str, float]]) -> float:
         """
         Compute correlation between estimated and ground truth parameter values.
 
@@ -1060,9 +1007,7 @@ class NeuralMassGenerator:
         """
         # Add safety checks
         if n_timepoints > 10000:
-            print(
-                f"Warning: Large n_timepoints detected: {n_timepoints}, truncating to 1000"
-            )
+            print(f"Warning: Large n_timepoints detected: {n_timepoints}, truncating to 1000")
             n_timepoints = 1000
         if dt <= 0 or dt > 0.1:
             print(f"Warning: Invalid dt detected: {dt}, using default 0.001")
@@ -1085,12 +1030,8 @@ class NeuralMassGenerator:
         for t in range(1, n_timepoints):
             # Simplified Jansen-Rit equations
             try:
-                v_pyr[t] = v_pyr[t - 1] + dt * (
-                    C1 * self.sigmoid(v_exc[t - 1]) - C2 * self.sigmoid(v_inh[t - 1])
-                )
-                v_exc[t] = v_exc[t - 1] + dt * (
-                    C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t]
-                )
+                v_pyr[t] = v_pyr[t - 1] + dt * (C1 * self.sigmoid(v_exc[t - 1]) - C2 * self.sigmoid(v_inh[t - 1]))
+                v_exc[t] = v_exc[t - 1] + dt * (C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t])
                 v_inh[t] = v_inh[t - 1] + dt * (C4 * self.sigmoid(v_pyr[t - 1]))
 
                 # Prevent overflow
@@ -1151,9 +1092,7 @@ class NeuralMassGenerator:
             gain = self.rng.uniform(0.8, 1.2)
 
             # Generate ERP response
-            erp = self.generate_erp_response(
-                precision, gain, n_timepoints, dt=1.0 / sampling_rate
-            )
+            erp = self.generate_erp_response(precision, gain, n_timepoints, dt=1.0 / sampling_rate)
 
             # Add ongoing oscillatory activity
             t = np.arange(n_timepoints) / sampling_rate
@@ -1191,9 +1130,7 @@ class NeuralMassGenerator:
         return self.generate_erp_response(precision, gain, n_timepoints)
 
 
-def generate_synthetic_dataset(
-    n_subjects: int = 100, n_sessions: int = 2, seed: int = 42
-) -> Tuple[Dict, Dict]:
+def generate_synthetic_dataset(n_subjects: int = 100, n_sessions: int = 2, seed: int = 42) -> Tuple[Dict, Dict]:
     """
     Generate synthetic multimodal data using INDEPENDENT generative models.
 
@@ -1229,9 +1166,7 @@ def generate_synthetic_dataset(
         "tau_M": np.clip(np.random.normal(1.52, 0.35, n_subjects), 0.45, 5.5),
         "tau_A_phasic": np.clip(np.random.normal(0.22, 0.055, n_subjects), 0.08, 0.55),
         "tau_A_tonic": np.clip(np.random.normal(620, 135, n_subjects), 280, 1900),
-        "lambda_coupling": np.clip(
-            np.random.normal(0.032, 0.012, n_subjects), 0.001, 0.12
-        ),
+        "lambda_coupling": np.clip(np.random.normal(0.032, 0.012, n_subjects), 0.001, 0.12),
         "beta_M": np.clip(np.random.normal(2.05, 0.55, n_subjects), 0.08, 11.0),
         "gamma": np.clip(np.random.normal(0.048, 0.016, n_subjects), 0.015, 0.085),
         "delta": np.clip(np.random.normal(0.19, 0.045, n_subjects), 0.08, 0.35),
@@ -1244,9 +1179,7 @@ def generate_synthetic_dataset(
         for subj_id in range(n_subjects):
             # Bounds check to prevent IndexError
             if subj_id >= len(true_params["theta0"]):
-                raise ValueError(
-                    f"Subject ID {subj_id} out of bounds for true_params arrays"
-                )
+                raise ValueError(f"Subject ID {subj_id} out of bounds for true_params arrays")
 
             # Session-specific variability (test-retest reliability)
             session_noise = 0.06 if session == 1 else 0.0
@@ -1281,9 +1214,7 @@ def generate_synthetic_dataset(
 
             ddm_boundary = 0.5 + 0.15 * theta0  # Approximate mapping
             ddm_base_drift = 0.3
-            ddm_drift_sensitivity = (
-                0.8 + 0.2 * alpha
-            )  # Steeper APGI → more sensitive DDM
+            ddm_drift_sensitivity = 0.8 + 0.2 * alpha  # Steeper APGI → more sensitive DDM
             ddm_noise = 0.1 + 0.05 * sigma
 
             # Adaptive staircase
@@ -1298,9 +1229,7 @@ def generate_synthetic_dataset(
                 # 2-down 1-up staircase
                 if trial > 0:
                     if trial > 1 and all_intensities[-1] == all_intensities[-2]:
-                        current_intensity = max(
-                            0.05, current_intensity - step_size * 0.5
-                        )
+                        current_intensity = max(0.05, current_intensity - step_size * 0.5)
                     else:
                         current_intensity = min(0.95, current_intensity + step_size)
 
@@ -1338,9 +1267,7 @@ def generate_synthetic_dataset(
                 accuracy += np.random.normal(0, 0.08)  # Trial noise
 
                 correct = np.random.random() < np.clip(accuracy, 0.1, 0.95)
-                response = (
-                    1 if (is_sync and correct) or (not is_sync and not correct) else 0
-                )
+                response = 1 if (is_sync and correct) or (not is_sync and not correct) else 0
                 hb_responses.append(response)
 
                 # HEP generated via neural mass model
@@ -1356,9 +1283,7 @@ def generate_synthetic_dataset(
 
                 # Add safety check to prevent timeout
                 if len(hep_window) > 1000:  # Unexpectedly large array
-                    print(
-                        f"Warning: Large HEP window detected: {len(hep_window)} elements"
-                    )
+                    print(f"Warning: Large HEP window detected: {len(hep_window)} elements")
                     hep_window = hep_window[:100]  # Truncate to reasonable size
 
                 hep_amplitude = np.max(hep_window) - np.min(hep_window)
@@ -1378,9 +1303,7 @@ def generate_synthetic_dataset(
                 # Heart rate variability (RMSSD)
                 # Higher precision → better autonomic control → higher HRV
                 # Thayer et al. (2012): vagal tone and interoception
-                hrv_base = CONST.HRV_BASELINE / (
-                    CONST.HRV_PRECISION_SCALING / Pi_i_baseline
-                )
+                hrv_base = CONST.HRV_BASELINE / (CONST.HRV_PRECISION_SCALING / Pi_i_baseline)
                 hrv = np.abs(hrv_base + np.random.gamma(2, 8))
                 heart_rates.append(hrv)
 
@@ -1392,9 +1315,7 @@ def generate_synthetic_dataset(
 
             for dev in range(n_deviants):
                 # Generate interoceptive deviant ERP
-                erp_i = nmm.generate_erp_response(
-                    precision=Pi_i_baseline, gain=beta_Pi_i**0.5, n_timepoints=100
-                )
+                erp_i = nmm.generate_erp_response(precision=Pi_i_baseline, gain=beta_Pi_i**0.5, n_timepoints=100)
                 p3b_i_amp = np.max(erp_i[30:50]) - np.mean(erp_i[:10])  # P3b window
 
                 # Artifact simulation
@@ -1403,9 +1324,7 @@ def generate_synthetic_dataset(
                 p3b_intero.append(p3b_i)
 
                 # Generate exteroceptive deviant ERP
-                erp_e = nmm.generate_erp_response(
-                    precision=Pi_e0, gain=CONST.P3B_EXTERO_SCALE, n_timepoints=100
-                )
+                erp_e = nmm.generate_erp_response(precision=Pi_e0, gain=CONST.P3B_EXTERO_SCALE, n_timepoints=100)
                 p3b_e_amp = np.max(erp_e[30:50]) - np.mean(erp_e[:10])
                 p3b_extero.append(p3b_e_amp)
 
@@ -1430,11 +1349,7 @@ def generate_synthetic_dataset(
                 "oddball": {
                     "p3b_intero": np.array(p3b_intero),
                     "p3b_extero": np.array(p3b_extero),
-                    "ratio": (
-                        np.mean(p3b_intero) / np.mean(p3b_extero)
-                        if np.mean(p3b_extero) > 0.1
-                        else 1.0
-                    ),
+                    "ratio": (np.mean(p3b_intero) / np.mean(p3b_extero) if np.mean(p3b_extero) > 0.1 else 1.0),
                 },
                 "neural_baseline": {
                     "rest_p3b": rest_p3b,
@@ -1500,9 +1415,7 @@ def artifact_rejection_pipeline(data: Dict, method: str = "faster") -> Dict:
             std_hep = np.std(heps)
 
             if std_hep == 0:
-                warnings.warn(
-                    f"Subject {subj_id}: Zero HEP variance, skipping rejection"
-                )
+                warnings.warn(f"Subject {subj_id}: Zero HEP variance, skipping rejection")
                 clean_heps = heps
             else:
                 # FASTER: ±3 SD threshold
@@ -1519,11 +1432,24 @@ def artifact_rejection_pipeline(data: Dict, method: str = "faster") -> Dict:
                 if retention < CONST.ARTIFACT_RETENTION_MIN:
                     warnings.warn(
                         f"Subject {subj_id}: Only {retention:.1%} HEP trials retained. "
-                        f"Using median filter fallback."
+                        f"Using adaptive threshold relaxation."
                     )
-                    from scipy import signal
-
-                    clean_heps = signal.medfilt(heps, kernel_size=5)
+                    # Instead of median filter (which corrupts data structure),
+                    # use adaptive threshold relaxation
+                    adaptive_threshold = CONST.ARTIFACT_SD_THRESHOLD * (1 + (0.7 - retention))
+                    artifact_mask_relaxed = (
+                        (heps > mean_hep + adaptive_threshold * std_hep)
+                        | (heps < mean_hep - adaptive_threshold * std_hep)
+                        | (heps < 0)
+                    )
+                    clean_heps = heps[~artifact_mask_relaxed]
+                    retention_relaxed = len(clean_heps) / len(heps)
+                    if retention_relaxed < 0.50:
+                        warnings.warn(
+                            f"Subject {subj_id}: Even with relaxed threshold, "
+                            f"only {retention_relaxed:.1%} trials retained. "
+                            f"Consider excluding subject from analysis."
+                        )
 
             # Pupil artifact rejection
             pupils = subj_data["heartbeat"]["pupils"]
@@ -1544,21 +1470,15 @@ def artifact_rejection_pipeline(data: Dict, method: str = "faster") -> Dict:
                 if np.all(nans):
                     raise ValueError(f"Subject {subj_id}: All pupil data rejected")
 
-                clean_pupils[nans] = np.interp(
-                    np.where(nans)[0], np.where(~nans)[0], clean_pupils[~nans]
-                )
+                clean_pupils[nans] = np.interp(np.where(nans)[0], np.where(~nans)[0], clean_pupils[~nans])
 
             # P3b artifact rejection
             p3b_i = subj_data["oddball"]["p3b_intero"]
             p3b_e = subj_data["oddball"]["p3b_extero"]
 
             # Remove extreme outliers (5th-95th percentile)
-            p3b_i_clean = p3b_i[
-                (p3b_i > np.percentile(p3b_i, 5)) & (p3b_i < np.percentile(p3b_i, 95))
-            ]
-            p3b_e_clean = p3b_e[
-                (p3b_e > np.percentile(p3b_e, 5)) & (p3b_e < np.percentile(p3b_e, 95))
-            ]
+            p3b_i_clean = p3b_i[(p3b_i > np.percentile(p3b_i, 5)) & (p3b_i < np.percentile(p3b_i, 95))]
+            p3b_e_clean = p3b_e[(p3b_e > np.percentile(p3b_e, 5)) & (p3b_e < np.percentile(p3b_e, 95))]
 
             if len(p3b_i_clean) < 20 or len(p3b_e_clean) < 20:
                 warnings.warn(
@@ -1637,9 +1557,7 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
         if coverage <= 0.92:
             all_pass = False
 
-        print(
-            f"{param:<20} {status} {coverage:.2%}    {mean_val:>8.3f}  {sd_val:>8.3f}  {ref}"
-        )
+        print(f"{param:<20} {status} {coverage:.2%}    {mean_val:>8.3f}  {sd_val:>8.3f}  {ref}")
 
     if all_pass:
         print("\n✓ All priors pass empirical range checks (>92% coverage)")
@@ -1694,9 +1612,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         return None
 
     n_subjects = len(data)
-    max_trials = max(
-        len(data[subj]["detection"]["responses"]) for subj in range(n_subjects)
-    )
+    max_trials = max(len(data[subj]["detection"]["responses"]) for subj in range(n_subjects))
 
     # Extract time-series for dynamic validation
     if estimate_dynamics:
@@ -1723,9 +1639,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         mu_alpha = pm.Normal("mu_alpha", mu=4.8, sigma=1.2)
         sigma_alpha = pm.HalfNormal("sigma_alpha", sigma=0.6)
         alpha_offset = pm.Normal("alpha_offset", mu=0, sigma=1, shape=n_subjects)
-        alpha = pm.Deterministic(
-            "alpha", pm.math.exp(pm.math.log(mu_alpha) + alpha_offset * sigma_alpha)
-        )
+        alpha = pm.Deterministic("alpha", pm.math.exp(pm.math.log(mu_alpha) + alpha_offset * sigma_alpha))
 
         # 3. Surprise decay (tau)
         # Prior: 150-250ms based on backward masking literature (Breitmeyer 1984)
@@ -1745,9 +1659,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         # Structurally identifiable composite to avoid beta-Pi_i trade-off
         mu_beta_Pi_i = pm.Lognormal("mu_beta_Pi_i", mu=0.45, sigma=0.45)
         sigma_beta_Pi_i = pm.HalfNormal("sigma_beta_Pi_i", sigma=0.42)
-        beta_Pi_i_offset = pm.Normal(
-            "beta_Pi_i_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        beta_Pi_i_offset = pm.Normal("beta_Pi_i_offset", mu=0, sigma=1, shape=n_subjects)
         beta_Pi_i = pm.Deterministic(
             "beta_Pi_i",
             pm.math.exp(pm.math.log(mu_beta_Pi_i) + beta_Pi_i_offset * sigma_beta_Pi_i),
@@ -1757,16 +1669,12 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         mu_Pi_e0 = pm.Gamma("mu_Pi_e0", alpha=2.2, beta=0.6)
         sigma_Pi_e0 = pm.HalfNormal("sigma_Pi_e0", sigma=0.35)
         Pi_e0_offset = pm.Normal("Pi_e0_offset", mu=0, sigma=1, shape=n_subjects)
-        Pi_e0 = pm.Deterministic(
-            "Pi_e0", pm.math.abs(mu_Pi_e0 + Pi_e0_offset * sigma_Pi_e0)
-        )
+        Pi_e0 = pm.Deterministic("Pi_e0", pm.math.abs(mu_Pi_e0 + Pi_e0_offset * sigma_Pi_e0))
 
         # 7. Baseline interoceptive precision (Pi_i_baseline)
         mu_Pi_i_baseline = pm.Gamma("mu_Pi_i_baseline", alpha=1.5, beta=0.5)
         sigma_Pi_i_baseline = pm.HalfNormal("sigma_Pi_i_baseline", sigma=0.32)
-        Pi_i_baseline_offset = pm.Normal(
-            "Pi_i_baseline_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        Pi_i_baseline_offset = pm.Normal("Pi_i_baseline_offset", mu=0, sigma=1, shape=n_subjects)
         Pi_i_baseline = pm.Deterministic(
             "Pi_i_baseline",
             pm.math.abs(mu_Pi_i_baseline + Pi_i_baseline_offset * sigma_Pi_i_baseline),
@@ -1784,15 +1692,11 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
             mu_tau_S = pm.Normal("mu_tau_S", mu=0.48, sigma=0.12)
             sigma_tau_S = pm.HalfNormal("sigma_tau_S", sigma=0.11)
             tau_S_offset = pm.Normal("tau_S_offset", mu=0, sigma=1, shape=n_subjects)
-            tau_S = pm.Deterministic(
-                "tau_S", pm.math.abs(mu_tau_S + tau_S_offset * sigma_tau_S)
-            )
+            tau_S = pm.Deterministic("tau_S", pm.math.abs(mu_tau_S + tau_S_offset * sigma_tau_S))
 
             mu_tau_theta = pm.Normal("mu_tau_theta", mu=1.45, sigma=0.32)
             sigma_tau_theta = pm.HalfNormal("sigma_tau_theta", sigma=0.22)
-            tau_theta_offset = pm.Normal(
-                "tau_theta_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_theta_offset = pm.Normal("tau_theta_offset", mu=0, sigma=1, shape=n_subjects)
             tau_theta = pm.Deterministic(
                 "tau_theta",
                 pm.math.abs(mu_tau_theta + tau_theta_offset * sigma_tau_theta),
@@ -1801,15 +1705,11 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
             mu_tau_M = pm.Normal("mu_tau_M", mu=1.52, sigma=0.35)
             sigma_tau_M = pm.HalfNormal("sigma_tau_M", sigma=0.22)
             tau_M_offset = pm.Normal("tau_M_offset", mu=0, sigma=1, shape=n_subjects)
-            tau_M = pm.Deterministic(
-                "tau_M", pm.math.abs(mu_tau_M + tau_M_offset * sigma_tau_M)
-            )
+            tau_M = pm.Deterministic("tau_M", pm.math.abs(mu_tau_M + tau_M_offset * sigma_tau_M))
 
             mu_tau_A_phasic = pm.Normal("mu_tau_A_phasic", mu=0.22, sigma=0.055)
             sigma_tau_A_phasic = pm.HalfNormal("sigma_tau_A_phasic", sigma=0.035)
-            tau_A_phasic_offset = pm.Normal(
-                "tau_A_phasic_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_A_phasic_offset = pm.Normal("tau_A_phasic_offset", mu=0, sigma=1, shape=n_subjects)
             pm.Deterministic(
                 "tau_A_phasic",
                 pm.math.abs(mu_tau_A_phasic + tau_A_phasic_offset * sigma_tau_A_phasic),
@@ -1817,9 +1717,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
 
             mu_tau_A_tonic = pm.Normal("mu_tau_A_tonic", mu=620, sigma=135)
             sigma_tau_A_tonic = pm.HalfNormal("sigma_tau_A_tonic", sigma=110)
-            tau_A_tonic_offset = pm.Normal(
-                "tau_A_tonic_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_A_tonic_offset = pm.Normal("tau_A_tonic_offset", mu=0, sigma=1, shape=n_subjects)
             pm.Deterministic(
                 "tau_A_tonic",
                 pm.math.abs(mu_tau_A_tonic + tau_A_tonic_offset * sigma_tau_A_tonic),
@@ -1828,22 +1726,16 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
             # Coupling parameters
             mu_lambda_coupling = pm.Normal("mu_lambda_coupling", mu=0.032, sigma=0.012)
             sigma_lambda_coupling = pm.HalfNormal("sigma_lambda_coupling", sigma=0.006)
-            lambda_coupling_offset = pm.Normal(
-                "lambda_coupling_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            lambda_coupling_offset = pm.Normal("lambda_coupling_offset", mu=0, sigma=1, shape=n_subjects)
             pm.Deterministic(
                 "lambda_coupling",
-                pm.math.abs(
-                    mu_lambda_coupling + lambda_coupling_offset * sigma_lambda_coupling
-                ),
+                pm.math.abs(mu_lambda_coupling + lambda_coupling_offset * sigma_lambda_coupling),
             )
 
             mu_beta_M = pm.Normal("mu_beta_M", mu=2.05, sigma=0.55)
             sigma_beta_M = pm.HalfNormal("sigma_beta_M", sigma=0.32)
             beta_M_offset = pm.Normal("beta_M_offset", mu=0, sigma=1, shape=n_subjects)
-            beta_M = pm.Deterministic(
-                "beta_M", mu_beta_M + beta_M_offset * sigma_beta_M
-            )
+            beta_M = pm.Deterministic("beta_M", mu_beta_M + beta_M_offset * sigma_beta_M)
 
             # Dynamic parameters
             mu_gamma = pm.Normal("mu_gamma", mu=0.048, sigma=0.018)
@@ -1859,9 +1751,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         # ===== NUISANCE PARAMETER =====
         mu_c = pm.Normal("mu_c", mu=0, sigma=0.22)
         sigma_c = pm.HalfNormal("sigma_c", sigma=0.12)
-        criterion_offset = pm.Normal(
-            "criterion_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        criterion_offset = pm.Normal("criterion_offset", mu=0, sigma=1, shape=n_subjects)
         criterion = pm.Deterministic("criterion", mu_c + criterion_offset * sigma_c)
 
         # ===== LIKELIHOOD FUNCTIONS =====
@@ -1885,24 +1775,14 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
             responses_all[subj, :n] = responses_list[subj]
 
         # Psychometric function with criterion
-        prob_seen = pm.math.invlogit(
-            alpha[:, None] * (intensities_all - theta0[:, None]) + criterion[:, None]
-        )
+        prob_seen = pm.math.invlogit(alpha[:, None] * (intensities_all - theta0[:, None]) + criterion[:, None])
 
-        pm.Bernoulli(
-            "detection", p=prob_seen, observed=responses_all, dims=("subject", "trial")
-        )
+        pm.Bernoulli("detection", p=prob_seen, observed=responses_all, dims=("subject", "trial"))
 
         # TASK 2: Heartbeat Detection
-        hep_means = np.array(
-            [np.mean(data[s]["heartbeat"]["heps"]) for s in range(n_subjects)]
-        )
-        pupil_means = np.array(
-            [np.mean(data[s]["heartbeat"]["pupils"]) for s in range(n_subjects)]
-        )
-        hrv_means = np.array(
-            [np.mean(data[s]["heartbeat"]["heart_rates"]) for s in range(n_subjects)]
-        )
+        hep_means = np.array([np.mean(data[s]["heartbeat"]["heps"]) for s in range(n_subjects)])
+        pupil_means = np.array([np.mean(data[s]["heartbeat"]["pupils"]) for s in range(n_subjects)])
+        hrv_means = np.array([np.mean(data[s]["heartbeat"]["heart_rates"]) for s in range(n_subjects)])
 
         # Empirically-validated measurement models
         # Park et al. (2014): HEP ~ 0.48 * sqrt(beta_Pi_i)
@@ -1952,12 +1832,8 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         )
 
         # TASK 3: Dual-Modality Oddball
-        p3b_intero_means = np.array(
-            [np.mean(data[s]["oddball"]["p3b_intero"]) for s in range(n_subjects)]
-        )
-        p3b_extero_means = np.array(
-            [np.mean(data[s]["oddball"]["p3b_extero"]) for s in range(n_subjects)]
-        )
+        p3b_intero_means = np.array([np.mean(data[s]["oddball"]["p3b_intero"]) for s in range(n_subjects)])
+        p3b_extero_means = np.array([np.mean(data[s]["oddball"]["p3b_extero"]) for s in range(n_subjects)])
 
         # Nieuwenhuis et al. (2005): P3b amplitude reflects precision
         pm.Normal(
@@ -1970,11 +1846,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         # Ratio measurement (for beta_Pi_i / Pi_e0 identification)
         ratios = np.array(
             [
-                (
-                    p3b_intero_means[i] / p3b_extero_means[i]
-                    if p3b_extero_means[i] > 0.1
-                    else 1.0
-                )
+                (p3b_intero_means[i] / p3b_extero_means[i] if p3b_extero_means[i] > 0.1 else 1.0)
                 for i in range(n_subjects)
             ]
         )
@@ -1988,9 +1860,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
         )
 
         # TASK 4: Reaction Time Analysis
-        rt_means = np.array(
-            [np.mean(data[s]["detection"]["rts"]) for s in range(n_subjects)]
-        )
+        rt_means = np.array([np.mean(data[s]["detection"]["rts"]) for s in range(n_subjects)])
 
         # Ratcliff & McKoon (2008): RT ~ base / alpha
         pm.Normal(
@@ -2013,24 +1883,21 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
             # Signal integration: dS/dt = -S/tau_S + input
             pm.Deterministic(
                 "signal_integration",
-                beta_Pi_i[:, None]
-                * pm.math.exp(-time_points[None, :] / tau_S[:, None]),
+                beta_Pi_i[:, None] * pm.math.exp(-time_points[None, :] / tau_S[:, None]),
                 dims=("subject", "time"),
             )
 
             # Threshold recovery: theta(t) = theta0 * (1 - exp(-t/tau_theta))
             pm.Deterministic(
                 "threshold_recovery",
-                theta0[:, None]
-                * (1 - pm.math.exp(-time_points[None, :] / tau_theta[:, None])),
+                theta0[:, None] * (1 - pm.math.exp(-time_points[None, :] / tau_theta[:, None])),
                 dims=("subject", "time"),
             )
 
             # Somatic marker: M(t) = beta_M * (1 - exp(-t/tau_M))
             pm.Deterministic(
                 "somatic_marker",
-                beta_M[:, None]
-                * (1 - pm.math.exp(-time_points[None, :] / tau_M[:, None])),
+                beta_M[:, None] * (1 - pm.math.exp(-time_points[None, :] / tau_M[:, None])),
                 dims=("subject", "time"),
             )
 
@@ -2041,9 +1908,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
                 # Simulated peak latency from data (in practice: measured from ERPs)
                 # For now: extract from true parameters with noise
                 tau_S_true = data[subj]["true_params"]["tau_S"]
-                peak_lat = tau_S_true * 2.3 + np.random.normal(
-                    0, 0.15
-                )  # 2.3*tau for exponential peak
+                peak_lat = tau_S_true * 2.3 + np.random.normal(0, 0.15)  # 2.3*tau for exponential peak
                 peak_latencies.append(peak_lat)
 
             # Likelihood: peak latency ~ 2.3 * tau_S
@@ -2060,9 +1925,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
 # =============================================================================
 # 5. FISHER INFORMATION MATRIX - FORMAL IDENTIFIABILITY ANALYSIS
 # =============================================================================
-def compute_fisher_information(
-    model: "pm.Model", trace: "az.InferenceData", n_samples: int = 500
-) -> Dict:
+def compute_fisher_information(model: "pm.Model", trace: "az.InferenceData", n_samples: int = 500) -> Dict:
     """
     Compute Fisher Information Matrix to formally assess parameter identifiability.
 
@@ -2122,9 +1985,7 @@ def compute_fisher_information(
     for i, param in enumerate(param_names):
         if hasattr(trace, "posterior") and param in trace.posterior:
             samples = trace.posterior[param].values.flatten()
-            param_samples[:, i] = np.random.choice(
-                samples, size=n_samples, replace=False
-            )
+            param_samples[:, i] = np.random.choice(samples, size=n_samples, replace=False)
 
     # Inverse of covariance is approximate FIM (Cramér-Rao bound)
     cov_matrix = np.cov(param_samples.T)
@@ -2134,11 +1995,7 @@ def compute_fisher_information(
 
         # Compute identifiability metrics
         eigenvalues = linalg.eigvalsh(fim)
-        condition_number = (
-            np.max(eigenvalues) / np.min(eigenvalues)
-            if np.min(eigenvalues) > 0
-            else np.inf
-        )
+        condition_number = np.max(eigenvalues) / np.min(eigenvalues) if np.min(eigenvalues) > 0 else np.inf
         determinant = linalg.det(fim)
 
         # Identifiability assessment
@@ -2150,18 +2007,12 @@ def compute_fisher_information(
         print("\nFisher Information Matrix computed successfully")
         print(f"Condition number: {condition_number:.2e}")
         print(f"Determinant: {determinant:.2e}")
-        print(
-            f"Eigenvalue range: [{np.min(eigenvalues):.2e}, {np.max(eigenvalues):.2e}]"
-        )
-        print(
-            f"Min/Max eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}"
-        )
+        print(f"Eigenvalue range: [{np.min(eigenvalues):.2e}, {np.max(eigenvalues):.2e}]")
+        print(f"Min/Max eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}")
 
         if identifiable:
             print("\n✓ PARAMETERS ARE STRUCTURALLY IDENTIFIABLE")
-            print(
-                f"  Condition number {condition_number:.2e} < {CONST.FIM_CONDITION_NUMBER_MAX:.2e}"
-            )
+            print(f"  Condition number {condition_number:.2e} < {CONST.FIM_CONDITION_NUMBER_MAX:.2e}")
             print(
                 f"  Eigenvalue ratio {np.min(eigenvalues) / np.max(eigenvalues):.2e} > {CONST.MIN_EIGENVALUE_RATIO:.2e}"
             )
@@ -2170,9 +2021,7 @@ def compute_fisher_information(
             if condition_number >= CONST.FIM_CONDITION_NUMBER_MAX:
                 print(f"  ! High condition number: {condition_number:.2e}")
             if np.min(eigenvalues) / np.max(eigenvalues) <= CONST.MIN_EIGENVALUE_RATIO:
-                print(
-                    f"  ! Low eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}"
-                )
+                print(f"  ! Low eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}")
 
         # Identify problematic parameter pairs (high correlation)
         print("\nParameter Correlations (|r| > 0.7 may indicate weak identifiability):")
@@ -2181,9 +2030,7 @@ def compute_fisher_information(
         for i in range(n_params):
             for j in range(i + 1, n_params):
                 if abs(corr_matrix[i, j]) > 0.7:
-                    print(
-                        f"  ! {param_names[i]} <-> {param_names[j]}: r = {corr_matrix[i, j]:.3f}"
-                    )
+                    print(f"  ! {param_names[i]} <-> {param_names[j]}: r = {corr_matrix[i, j]:.3f}")
 
         results = {
             "fim": fim,
@@ -2268,9 +2115,7 @@ def validate_parameter_recovery(
 
             # Handle edge cases
             if len(np.unique(true_vals)) <= 1 or len(np.unique(rec_vals)) <= 1:
-                warnings.warn(
-                    f"Parameter {param}: insufficient variance for correlation"
-                )
+                warnings.warn(f"Parameter {param}: insufficient variance for correlation")
                 r, p = 0, 1
             else:
                 r, p = stats.pearsonr(true_vals, rec_vals)
@@ -2285,10 +2130,7 @@ def validate_parameter_recovery(
                 upper = np.percentile(trace.posterior[param].values, 97.5, axis=(0, 1))
 
                 n_valid = min(len(true_vals), len(lower))
-                coverage = np.mean(
-                    (true_vals[:n_valid] >= lower[:n_valid])
-                    & (true_vals[:n_valid] <= upper[:n_valid])
-                )
+                coverage = np.mean((true_vals[:n_valid] >= lower[:n_valid]) & (true_vals[:n_valid] <= upper[:n_valid]))
             else:
                 coverage = np.nan
 
@@ -2320,24 +2162,18 @@ def validate_parameter_recovery(
         if param in results:
             if results[param]["r"] < CONST.RECOVERY_R_CRITICAL:
                 falsified = True
-                failure_reasons.append(
-                    f"CORE {param}: r={results[param]['r']:.3f} < {CONST.RECOVERY_R_CRITICAL}"
-                )
+                failure_reasons.append(f"CORE {param}: r={results[param]['r']:.3f} < {CONST.RECOVERY_R_CRITICAL}")
 
             if results[param]["coverage"] < 0.88:  # 95% CI should cover ~95%
                 falsified = True
-                failure_reasons.append(
-                    f"CORE {param}: coverage={results[param]['coverage']:.3f} < 0.88"
-                )
+                failure_reasons.append(f"CORE {param}: coverage={results[param]['coverage']:.3f} < 0.88")
 
     # Auxiliary parameters: relaxed threshold
     for param in auxiliary_params:
         if param in results:
             if results[param]["r"] < CONST.RECOVERY_R_AUXILIARY:
                 falsified = True
-                failure_reasons.append(
-                    f"AUX {param}: r={results[param]['r']:.3f} < {CONST.RECOVERY_R_AUXILIARY}"
-                )
+                failure_reasons.append(f"AUX {param}: r={results[param]['r']:.3f} < {CONST.RECOVERY_R_AUXILIARY}")
 
     return results, falsified, failure_reasons
 
@@ -2345,9 +2181,7 @@ def validate_parameter_recovery(
 # =============================================================================
 # 7. TEST-RETEST RELIABILITY
 # =============================================================================
-def assess_test_retest(
-    session1_trace: "az.InferenceData", session2_trace: "az.InferenceData"
-) -> Dict:
+def assess_test_retest(session1_trace: "az.InferenceData", session2_trace: "az.InferenceData") -> Dict:
     """
     Calculate ICC and reliability metrics with proper error handling.
 
@@ -2382,12 +2216,8 @@ def assess_test_retest(
             ):
                 continue
 
-            s1_means = (
-                session1_trace.posterior[param].mean(dim=["chain", "draw"]).values  # type: ignore[attr-defined]
-            )
-            s2_means = (
-                session2_trace.posterior[param].mean(dim=["chain", "draw"]).values  # type: ignore[attr-defined]
-            )
+            s1_means = session1_trace.posterior[param].mean(dim=["chain", "draw"]).values  # type: ignore[attr-defined]
+            s2_means = session2_trace.posterior[param].mean(dim=["chain", "draw"]).values  # type: ignore[attr-defined]
 
             n = min(len(s1_means), len(s2_means))
             s1_means = s1_means[:n]
@@ -2420,11 +2250,7 @@ def assess_test_retest(
 
             # Coefficient of variation
             mean_of_means = np.mean([np.mean(s1_means), np.mean(s2_means)])
-            cv = (
-                np.std(s1_means - s2_means) / mean_of_means
-                if mean_of_means != 0
-                else np.inf
-            )
+            cv = np.std(s1_means - s2_means) / mean_of_means if mean_of_means != 0 else np.inf
 
             reliability[param] = {
                 "ICC": icc,
@@ -2501,9 +2327,7 @@ def load_independent_datasets() -> Dict:
     return datasets
 
 
-def assess_predictive_validity(
-    data: Dict, trace: "az.InferenceData", independent_data: Dict
-) -> Dict:
+def assess_predictive_validity(data: Dict, trace: "az.InferenceData", independent_data: Dict) -> Dict:
     """
     Comprehensive predictive validity on INDEPENDENT datasets.
 
@@ -2528,9 +2352,7 @@ def assess_predictive_validity(
     ]:
         if hasattr(trace, "posterior") and param in trace.posterior:
             # Use subject-level estimates
-            param_ests[param] = (
-                trace.posterior[param].mean(dim=["chain", "draw"]).values[:n_subjects]
-            )
+            param_ests[param] = trace.posterior[param].mean(dim=["chain", "draw"]).values[:n_subjects]
 
     results = {}
 
@@ -2621,12 +2443,8 @@ def assess_predictive_validity(
             model_var.fit(X, y_variability)
             r_var, p_var = stats.pearsonr(y_variability, model_var.predict(X))
 
-            print(
-                f"   Lapses: CV R² = {np.mean(cv_lapses):.3f}, r = {r_lapses:.3f}, p = {p_lapses:.4f}"
-            )
-            print(
-                f"   RT Variability: CV R² = {np.mean(cv_var):.3f}, r = {r_var:.3f}, p = {p_var:.4f}"
-            )
+            print(f"   Lapses: CV R² = {np.mean(cv_lapses):.3f}, r = {r_lapses:.3f}, p = {p_lapses:.4f}")
+            print(f"   RT Variability: CV R² = {np.mean(cv_var):.3f}, r = {r_var:.3f}, p = {p_var:.4f}")
 
             results["cpt_performance"] = {
                 "lapses_cv_r2": np.mean(cv_lapses),
@@ -2684,11 +2502,7 @@ def assess_predictive_validity(
     # At least 2 of 3 validations must exceed R² threshold
     valid_r2s = []
     for key in ["emotional_interference", "cpt_performance", "body_vigilance"]:
-        if (
-            key in results
-            and "cv_r2" in results[key]
-            and not np.isnan(results[key]["cv_r2"])
-        ):
+        if key in results and "cv_r2" in results[key] and not np.isnan(results[key]["cv_r2"]):
             valid_r2s.append(results[key]["cv_r2"])
 
     if len(valid_r2s) >= 2:
@@ -2700,9 +2514,7 @@ def assess_predictive_validity(
                 f"\n✗ PREDICTIVE VALIDATION FAILED: Only {n_passing}/3 datasets exceed R²={CONST.PREDICTIVE_R2_THRESHOLD}"
             )
         else:
-            print(
-                f"\n✓ PREDICTIVE VALIDATION PASSED: {n_passing}/3 datasets exceed R²={CONST.PREDICTIVE_R2_THRESHOLD}"
-            )
+            print(f"\n✓ PREDICTIVE VALIDATION PASSED: {n_passing}/3 datasets exceed R²={CONST.PREDICTIVE_R2_THRESHOLD}")
     else:
         falsified = True
         print("\n✗ INSUFFICIENT VALIDATION DATA")
@@ -2743,13 +2555,9 @@ def generate_comprehensive_visualizations(
         true_params = {
             "theta0": np.clip(np.random.normal(3.2, 0.6, n_subjects), 1.0, 5.5),
             "alpha": np.clip(np.random.normal(4.8, 1.0, n_subjects), 0.5, 12.0),
-            "beta_Pi_i": np.clip(
-                np.random.lognormal(0.45, 0.35, n_subjects), 0.25, 3.5
-            ),
+            "beta_Pi_i": np.clip(np.random.lognormal(0.45, 0.35, n_subjects), 0.25, 3.5),
             "Pi_e0": np.clip(np.random.gamma(2.1, 0.55, n_subjects), 0.4, 4.5),
-            "Pi_i_baseline": np.clip(
-                np.random.gamma(1.45, 0.42, n_subjects), 0.25, 3.2
-            ),
+            "Pi_i_baseline": np.clip(np.random.gamma(1.45, 0.42, n_subjects), 0.25, 3.2),
         }
 
     # Debug: Show expected vs available params
@@ -2758,9 +2566,7 @@ def generate_comprehensive_visualizations(
     print(f"Available in true_params: {list(true_params.keys())}")
 
     # Check if we have valid recovery data; if not, generate demo data
-    has_recovery_data = bool(recovery_results) and all(
-        param in recovery_results for param in core_params
-    )
+    has_recovery_data = bool(recovery_results) and all(param in recovery_results for param in core_params)
 
     if not has_recovery_data:
         print("\n⚠️ No recovery data available. Generating demonstration data...")
@@ -2804,9 +2610,7 @@ def generate_comprehensive_visualizations(
                     trace.posterior[param].mean(dim=["chain", "draw"]).values[:n_subjects]  # type: ignore[attr-defined]
                 )
 
-            ax.scatter(
-                true_vals, rec_vals, alpha=0.6, s=30, edgecolors="black", linewidths=0.5
-            )
+            ax.scatter(true_vals, rec_vals, alpha=0.6, s=30, edgecolors="black", linewidths=0.5)
 
             # Identity line
             ax.plot(
@@ -2821,9 +2625,7 @@ def generate_comprehensive_visualizations(
             # Regression line
             z = np.polyfit(true_vals, rec_vals, 1)
             p = np.poly1d(z)
-            ax.plot(
-                true_vals, p(true_vals), "b-", alpha=0.5, linewidth=1.5, label="Fit"
-            )
+            ax.plot(true_vals, p(true_vals), "b-", alpha=0.5, linewidth=1.5, label="Fit")
 
             ax.set_xlabel(f"True {param}", fontsize=11)
             ax.set_ylabel(f"Recovered {param}", fontsize=11)
@@ -2849,9 +2651,7 @@ def generate_comprehensive_visualizations(
                 color="red",
                 fontweight="bold",
             )
-            ax.set_title(
-                f"{param} - MISSING", fontsize=12, fontweight="bold", color="red"
-            )
+            ax.set_title(f"{param} - MISSING", fontsize=12, fontweight="bold", color="red")
             ax.set_xticks([])
             ax.set_yticks([])
 
@@ -2932,27 +2732,21 @@ def generate_comprehensive_visualizations(
         # Correlation matrix heatmap
         if "correlation_matrix" in fim_results:
             corr = fim_results["correlation_matrix"]
-            param_names = fim_results.get(
-                "param_names", [f"P{i}" for i in range(len(corr))]
-            )
+            param_names = fim_results.get("param_names", [f"P{i}" for i in range(len(corr))])
 
             im = ax2.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
             ax2.set_xticks(range(len(param_names)))
             ax2.set_yticks(range(len(param_names)))
             ax2.set_xticklabels(param_names, rotation=45, ha="right", fontsize=9)
             ax2.set_yticklabels(param_names, fontsize=9)
-            ax2.set_title(
-                "Parameter Correlation Matrix", fontsize=13, fontweight="bold"
-            )
+            ax2.set_title("Parameter Correlation Matrix", fontsize=13, fontweight="bold")
 
             # Add colorbar
             cbar = plt.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
             cbar.set_label("Correlation", fontsize=11)
 
         plt.tight_layout()
-        plt.savefig(
-            f"{save_dir}/fig3_identifiability.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{save_dir}/fig3_identifiability.png", dpi=300, bbox_inches="tight")
         print(f"Saved: {save_dir}/fig3_identifiability.png")
 
     # ===== FIGURE 4: Predictive Validity =====
@@ -3012,9 +2806,7 @@ def generate_comprehensive_visualizations(
                     )
 
         plt.tight_layout()
-        plt.savefig(
-            f"{save_dir}/fig4_predictive_validity.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{save_dir}/fig4_predictive_validity.png", dpi=300, bbox_inches="tight")
         print(f"Saved: {save_dir}/fig4_predictive_validity.png")
 
 
@@ -3078,8 +2870,7 @@ MEASUREMENT_PROTOCOLS = {
         "name": "Exteroceptive Precision",
         "units": "1/variance (inverse squared error)",
         "typical_range": "[0.4, 4.5]",
-        "measurement_method": "Perceptual discrimination (staircase); EEG N1 amplitude; "
-        "pupil-linked arousal",
+        "measurement_method": "Perceptual discrimination (staircase); EEG N1 amplitude; " "pupil-linked arousal",
         "protocol": "Grating discrimination: 5 contrast levels (100%, 50%, 25%, 12.5%, 6%). "
         "20 trials each. Measure JND and fit psychometric curve.",
         "timeline": "30 minutes",
@@ -3099,15 +2890,13 @@ MEASUREMENT_PROTOCOLS = {
         "biological_basis": "Anterior insula integrates vagal afferent signals from NTS. "
         "Precision = inverse variance of prediction error. "
         "Higher precision → better interoceptive accuracy.",
-        "citation": "Garfinkel et al. (2015) Interoceptive dimensions; "
-        "Critchley et al. (2004) Insula interoception",
+        "citation": "Garfinkel et al. (2015) Interoceptive dimensions; " "Critchley et al. (2004) Insula interoception",
     },
     "beta": {
         "name": "Somatic Bias Weight",
         "units": "dimensionless (gain factor)",
         "typical_range": "[0.05, 2.2]",
-        "measurement_method": "Threat + interoceptive attention (HEP modulation); "
-        "fMRI connectivity (vmPFC-AI)",
+        "measurement_method": "Threat + interoceptive attention (HEP modulation); " "fMRI connectivity (vmPFC-AI)",
         "protocol": "Anticipation task: Threat cue (red square → shock) vs. safe cue. "
         "Attend to heartbeat during anticipation. Measure HEP difference threat vs. safe.",
         "timeline": "45 minutes (includes threat calibration)",
@@ -3207,8 +2996,7 @@ AUXILIARY_PROTOCOLS = {
         "units": "dimensionless",
         "typical_range": "[0.08, 11.0]",
         "measurement_method": "vmPFC BOLD response to interoceptive perturbation",
-        "protocol": "Orthostatic challenge + fMRI: Tilt to 10° and 20° upright. "
-        "Measure vmPFC BOLD vs. HRV change.",
+        "protocol": "Orthostatic challenge + fMRI: Tilt to 10° and 20° upright. " "Measure vmPFC BOLD vs. HRV change.",
         "timeline": "45 minutes (fMRI session)",
         "biological_basis": "Insula-to-vmPFC synaptic strength. Translates body state signals "
         "to homeostatic value predictions.",
@@ -3284,9 +3072,7 @@ def _step_prior_checks(save_plots: bool) -> bool:
     prior_valid = conduct_prior_predictive_checks(n_samples=1000, save_plots=save_plots)
 
     if not prior_valid:
-        warnings.warn(
-            "Some priors failed empirical range checks. Proceeding with caution."
-        )
+        warnings.warn("Some priors failed empirical range checks. Proceeding with caution.")
 
     return prior_valid
 
@@ -3323,12 +3109,8 @@ def _step_build_model(sessions: List) -> "pm.Model":
     print("\n[3/8] BUILDING HIERARCHICAL BAYESIAN MODEL")
     print("-" * 80)
     print("Model structure:")
-    print(
-        "  - CORE parameters (8): theta0, alpha, tau, sigma, beta_Pi_i, Pi_e0, Pi_i_baseline, beta"
-    )
-    print(
-        "  - AUXILIARY parameters (9): tau_S, tau_theta, tau_M, tau_A_phasic, tau_A_tonic,"
-    )
+    print("  - CORE parameters (8): theta0, alpha, tau, sigma, beta_Pi_i, Pi_e0, Pi_i_baseline, beta")
+    print("  - AUXILIARY parameters (9): tau_S, tau_theta, tau_M, tau_A_phasic, tau_A_tonic,")
     print("                               lambda_coupling, beta_M, gamma, delta")
     print("  - NUISANCE parameters (1): criterion")
     print("  - TOTAL: 18 parameters")
@@ -3336,10 +3118,7 @@ def _step_build_model(sessions: List) -> "pm.Model":
     model = build_apgi_model(sessions[0], estimate_dynamics=True)
 
     print("\nSampling from posterior (Session 1)...")
-    print(
-        f"MCMC settings: {CONST.MCMC_DRAWS} draws, {CONST.MCMC_TUNE} tune, "
-        f"{CONST.MCMC_CHAINS} chains"
-    )
+    print(f"MCMC settings: {CONST.MCMC_DRAWS} draws, {CONST.MCMC_TUNE} tune, " f"{CONST.MCMC_CHAINS} chains")
 
     with model:
         trace1 = pm.sample(
@@ -3372,10 +3151,7 @@ def _step_model_diagnostics(trace1) -> Tuple[float, float, int]:
         print(f"Minimum effective sample size: {min_ess:.0f}")
 
         if min_ess < CONST.MIN_ESS:
-            warnings.warn(
-                f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). "
-                f"Consider longer sampling."
-            )
+            warnings.warn(f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). " f"Consider longer sampling.")
 
         # R-hat
         rhat = az.rhat(trace1)
@@ -3383,10 +3159,7 @@ def _step_model_diagnostics(trace1) -> Tuple[float, float, int]:
         print(f"Maximum R-hat: {max_rhat:.4f}")
 
         if max_rhat > CONST.MAX_RHAT:
-            warnings.warn(
-                f"R-hat ({max_rhat:.4f}) > threshold ({CONST.MAX_RHAT}). "
-                f"Convergence issues detected."
-            )
+            warnings.warn(f"R-hat ({max_rhat:.4f}) > threshold ({CONST.MAX_RHAT}). " f"Convergence issues detected.")
 
         # Divergences
         if hasattr(trace1, "sample_stats") and "diverging" in trace1.sample_stats:
@@ -3419,9 +3192,7 @@ def _step_fim_analysis(model, trace1) -> Dict:
         fim_results = compute_fisher_information(model, trace1, n_samples=500)
 
         if not fim_results["identifiable"]:
-            warnings.warn(
-                "Parameters may not be fully identifiable. See FIM results above."
-            )
+            warnings.warn("Parameters may not be fully identifiable. See FIM results above.")
 
     except Exception as e:
         warnings.warn(f"FIM computation failed: {e}")
@@ -3451,9 +3222,7 @@ def _step_parameter_recovery(true_params, trace1) -> Tuple[Dict, bool, List[str]
             else CONST.RECOVERY_R_AUXILIARY
         )
         status = "✓" if res["r"] >= threshold else "✗"
-        print(
-            f"{param:<20} {res['r']:.3f}    {res['rmse']:.4f}     {res['coverage']:.3f}       {status}"
-        )
+        print(f"{param:<20} {res['r']:.3f}    {res['rmse']:.4f}     {res['coverage']:.3f}       {status}")
 
     if falsified_recovery:
         print("\n✗ PARAMETER RECOVERY FAILED")
@@ -3506,9 +3275,7 @@ def _step_test_retest(sessions, trace1) -> Tuple[Dict, bool]:
         if falsified_reliability:
             print(f"\n✗ TEST-RETEST RELIABILITY FAILED (ICC < {CONST.ICC_THRESHOLD})")
         else:
-            print(
-                f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})"
-            )
+            print(f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})")
 
     except Exception as e:
         warnings.warn(f"Test-retest assessment failed: {e}")
@@ -3525,9 +3292,7 @@ def _step_predictive_validity(sessions, trace1) -> Tuple[Dict, bool]:
 
     try:
         independent_data = load_independent_datasets()
-        predictive_results = assess_predictive_validity(
-            sessions[0], trace1, independent_data
-        )
+        predictive_results = assess_predictive_validity(sessions[0], trace1, independent_data)
 
         falsified_predictive = predictive_results.get("falsified", True)
 
@@ -3598,9 +3363,7 @@ def _step_final_assessment(
     return total_falsified, criteria_status
 
 
-def _step_visualizations(
-    true_params, recovery_results, reliability, predictive_results, trace1, fim_results
-):
+def _step_visualizations(true_params, recovery_results, reliability, predictive_results, trace1, fim_results):
     """Generate visualizations"""
     print("\n" + "=" * 80)
     print("GENERATING PUBLICATION-QUALITY VISUALIZATIONS")
@@ -3644,18 +3407,12 @@ def _step_save_results(
             "validation_status": "VALIDATED" if not validation_status else "FALSIFIED",
             "criteria": criteria_status,
             "parameter_recovery": {
-                param: {
-                    k: float(v) if isinstance(v, (np.floating, np.integer)) else v
-                    for k, v in res.items()
-                }
+                param: {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in res.items()}
                 for param, res in recovery_results.items()
             },
             "test_retest_reliability": (
                 {
-                    param: {
-                        k: float(v) if isinstance(v, (np.floating, np.integer)) else v
-                        for k, v in rel.items()
-                    }
+                    param: {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in rel.items()}
                     for param, rel in reliability.items()
                 }
                 if reliability
@@ -3664,14 +3421,7 @@ def _step_save_results(
             "predictive_validity": (
                 {
                     k: (
-                        {
-                            kk: (
-                                float(vv)
-                                if isinstance(vv, (np.floating, np.integer))
-                                else vv
-                            )
-                            for kk, vv in v.items()
-                        }
+                        {kk: (float(vv) if isinstance(vv, (np.floating, np.integer)) else vv) for kk, vv in v.items()}
                         if isinstance(v, dict)
                         else v
                     )
@@ -3683,9 +3433,7 @@ def _step_save_results(
             "identifiability": (
                 {
                     "status": fim_results.get("identifiable", False),
-                    "condition_number": float(
-                        fim_results.get("condition_number", np.inf)
-                    ),
+                    "condition_number": float(fim_results.get("condition_number", np.inf)),
                     "determinant": float(fim_results.get("determinant", 0)),
                 }
                 if fim_results
@@ -3754,10 +3502,7 @@ def _run_model_diagnostics(trace1):
         print(f"Minimum effective sample size: {min_ess:.0f}")
 
         if min_ess < CONST.MIN_ESS:
-            warnings.warn(
-                f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). "
-                f"Consider longer sampling."
-            )
+            warnings.warn(f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). " f"Consider longer sampling.")
 
         # R-hat
         rhat = az.rhat(trace1)
@@ -3765,10 +3510,7 @@ def _run_model_diagnostics(trace1):
         print(f"Maximum R-hat: {max_rhat:.4f}")
 
         if max_rhat > CONST.MAX_RHAT:
-            warnings.warn(
-                f"R-hat ({max_rhat:.4f}) > threshold ({CONST.MAX_RHAT}). "
-                f"Convergence issues detected."
-            )
+            warnings.warn(f"R-hat ({max_rhat:.4f}) > threshold ({CONST.MAX_RHAT}). " f"Convergence issues detected.")
 
         # Divergences
         if hasattr(trace1, "sample_stats") and "diverging" in trace1.sample_stats:
@@ -3798,9 +3540,7 @@ def _run_identifiability_analysis(model, trace1):
         fim_results = compute_fisher_information(model, trace1, n_samples=500)
 
         if not fim_results["identifiable"]:
-            warnings.warn(
-                "Parameters may not be fully identifiable. See FIM results above."
-            )
+            warnings.warn("Parameters may not be fully identifiable. See FIM results above.")
 
         return fim_results
 
@@ -3830,9 +3570,7 @@ def _run_parameter_recovery(true_params, trace1):
             else CONST.RECOVERY_R_AUXILIARY
         )
         status = "✓" if res["r"] >= threshold else "✗"
-        print(
-            f"{param:<20} {res['r']:.3f}    {res['rmse']:.4f}     {res['coverage']:.3f}       {status}"
-        )
+        print(f"{param:<20} {res['r']:.3f}    {res['rmse']:.4f}     {res['coverage']:.3f}       {status}")
 
     if falsified_recovery:
         print("\n✗ PARAMETER RECOVERY FAILED")
@@ -3885,9 +3623,7 @@ def _run_test_retest_reliability(sessions, trace1):
         if falsified_reliability:
             print(f"\n✗ TEST-RETEST RELIABILITY FAILED (ICC < {CONST.ICC_THRESHOLD})")
         else:
-            print(
-                f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})"
-            )
+            print(f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})")
 
         return reliability, falsified_reliability, trace2
 
@@ -3903,9 +3639,7 @@ def _run_predictive_validity(sessions, trace1):
 
     try:
         independent_data = load_independent_datasets()
-        predictive_results = assess_predictive_validity(
-            sessions[0], trace1, independent_data
-        )
+        predictive_results = assess_predictive_validity(sessions[0], trace1, independent_data)
 
         falsified_predictive = predictive_results.get("falsified", True)
 
@@ -4019,18 +3753,12 @@ def _generate_visualizations_and_save_results(
             "validation_status": "VALIDATED" if not total_falsified else "FALSIFIED",
             "criteria": criteria_status,
             "parameter_recovery": {
-                param: {
-                    k: float(v) if isinstance(v, (np.floating, np.integer)) else v
-                    for k, v in res.items()
-                }
+                param: {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in res.items()}
                 for param, res in recovery_results.items()
             },
             "test_retest_reliability": (
                 {
-                    param: {
-                        k: float(v) if isinstance(v, (np.floating, np.integer)) else v
-                        for k, v in rel.items()
-                    }
+                    param: {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in rel.items()}
                     for param, rel in reliability.items()
                 }
                 if reliability
@@ -4039,14 +3767,7 @@ def _generate_visualizations_and_save_results(
             "predictive_validity": (
                 {
                     k: (
-                        {
-                            kk: (
-                                float(vv)
-                                if isinstance(vv, (np.floating, np.integer))
-                                else vv
-                            )
-                            for kk, vv in v.items()
-                        }
+                        {kk: (float(vv) if isinstance(vv, (np.floating, np.integer)) else vv) for kk, vv in v.items()}
                         if isinstance(v, dict)
                         else v
                     )
@@ -4058,9 +3779,7 @@ def _generate_visualizations_and_save_results(
             "identifiability": (
                 {
                     "status": fim_results.get("identifiable", False),
-                    "condition_number": float(
-                        fim_results.get("condition_number", np.inf)
-                    ),
+                    "condition_number": float(fim_results.get("condition_number", np.inf)),
                     "determinant": float(fim_results.get("determinant", 0)),
                 }
                 if fim_results
@@ -4143,19 +3862,13 @@ def main():
     fim_results = _run_identifiability_analysis(model, trace1)
 
     # Step 6: Parameter recovery
-    recovery_results, falsified_recovery, recovery_failures = _run_parameter_recovery(
-        true_params, trace1
-    )
+    recovery_results, falsified_recovery, recovery_failures = _run_parameter_recovery(true_params, trace1)
 
     # Step 7: Test-retest reliability
-    reliability, falsified_reliability, trace2 = _run_test_retest_reliability(
-        sessions, trace1
-    )
+    reliability, falsified_reliability, trace2 = _run_test_retest_reliability(sessions, trace1)
 
     # Step 8: Predictive validity
-    predictive_results, falsified_predictive = _run_predictive_validity(
-        sessions, trace1
-    )
+    predictive_results, falsified_predictive = _run_predictive_validity(sessions, trace1)
 
     # Final assessment
     total_falsified, criteria_status = _generate_final_summary(

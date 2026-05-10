@@ -113,9 +113,7 @@ def compute_spectral_slope_specparam(
         }
 
     # Check for valid values
-    if not np.all(np.isfinite(freqs_filtered)) or not np.all(
-        np.isfinite(power_filtered)
-    ):
+    if not np.all(np.isfinite(freqs_filtered)) or not np.all(np.isfinite(power_filtered)):
         return {
             "exponent": np.nan,
             "offset": np.nan,
@@ -158,18 +156,12 @@ def compute_spectral_slope_specparam(
 
         # Extract results
         results = {
-            "exponent": (
-                fm.aperiodic_params_[1] if len(fm.aperiodic_params_) >= 2 else np.nan
-            ),
-            "offset": (
-                fm.aperiodic_params_[0] if len(fm.aperiodic_params_) >= 1 else np.nan
-            ),
+            "exponent": (fm.aperiodic_params_[1] if len(fm.aperiodic_params_) >= 2 else np.nan),
+            "offset": (fm.aperiodic_params_[0] if len(fm.aperiodic_params_) >= 1 else np.nan),
             "r_squared": fm.r_squared_,
             "error": fm.error_,
             "knee": (
-                fm.aperiodic_params_[1]
-                if aperiodic_mode == "knee" and len(fm.aperiodic_params_) >= 2
-                else np.nan
+                fm.aperiodic_params_[1] if aperiodic_mode == "knee" and len(fm.aperiodic_params_) >= 2 else np.nan
             ),
             "n_peaks": len(fm.peak_params_) if hasattr(fm, "peak_params_") else 0,
             "fit_success": True,
@@ -286,9 +278,7 @@ def compute_power_spectrum(
     return freqs, power_spectrum
 
 
-def create_fooof_frequencies(
-    fs: float, n_fft: int = None, freq_range: Tuple[float, float] = (1.0, 40.0)
-) -> np.ndarray:
+def create_fooof_frequencies(fs: float, n_fft: int = None, freq_range: Tuple[float, float] = (1.0, 40.0)) -> np.ndarray:
     """
     Create evenly spaced frequencies suitable for FOOOF analysis.
 
@@ -395,9 +385,7 @@ def batch_compute_spectral_slopes(
             freqs, power_spectrum = compute_power_spectrum(sig, fs)
 
             # Compute spectral slope
-            result = compute_spectral_slope_specparam(
-                freqs, power_spectrum, freq_range, **fooof_kwargs
-            )
+            result = compute_spectral_slope_specparam(freqs, power_spectrum, freq_range, **fooof_kwargs)
 
             # Add signal index
             result["signal_index"] = i
@@ -443,9 +431,7 @@ def compare_fooof_vs_loglog(
         Dictionary with comparison results
     """
     # FOOOF method
-    fooof_results = compute_spectral_slope_specparam(
-        freqs, power_spectrum, freq_range, **fooof_kwargs
-    )
+    fooof_results = compute_spectral_slope_specparam(freqs, power_spectrum, freq_range, **fooof_kwargs)
 
     # Manual log-log regression
     freq_mask = (freqs >= freq_range[0]) & (freqs <= freq_range[1])
@@ -491,14 +477,12 @@ def compare_fooof_vs_loglog(
         "difference": {
             "exponent_diff": (
                 fooof_results["exponent"] - loglog_results["exponent"]
-                if np.isfinite(fooof_results["exponent"])
-                and np.isfinite(loglog_results["exponent"])
+                if np.isfinite(fooof_results["exponent"]) and np.isfinite(loglog_results["exponent"])
                 else np.nan
             ),
             "r_squared_diff": (
                 fooof_results["r_squared"] - loglog_results["r_squared"]
-                if np.isfinite(fooof_results["r_squared"])
-                and np.isfinite(loglog_results["r_squared"])
+                if np.isfinite(fooof_results["r_squared"]) and np.isfinite(loglog_results["r_squared"])
                 else np.nan
             ),
         },

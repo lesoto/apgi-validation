@@ -36,8 +36,7 @@ from sklearn.utils import resample
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -45,14 +44,23 @@ except ImportError:
 
 # Import constants from centralized location
 from utils.constants import (  # HIGH-02: Import from constants, VISUAL_CONSTANTS
-    F4_CRITICAL_SLOWING_MIN_RATIO, F4_CRITICAL_SLOWING_P_VALUE, F4_MIN_POWER,
-    F4_MIN_SENSITIVITY, F4_MIN_SPECIFICITY, FP3_DOC_SIGNAL_MULTIPLIERS,
-    FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS, MODEL_PARAMS, SHUFFLE_SEED_OFFSET,
-    VISUAL_CONSTANTS)
-from utils.falsification_thresholds import (LEVEL2_MI_FALSIFICATION_THRESHOLD,
-                                            LEVEL2_MI_THRESHOLD,
-                                            LEVEL2_TE_THRESHOLD,
-                                            NULL_BOOTSTRAP_N)
+    F4_CRITICAL_SLOWING_MIN_RATIO,
+    F4_CRITICAL_SLOWING_P_VALUE,
+    F4_MIN_POWER,
+    F4_MIN_SENSITIVITY,
+    F4_MIN_SPECIFICITY,
+    FP3_DOC_SIGNAL_MULTIPLIERS,
+    FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
+    MODEL_PARAMS,
+    SHUFFLE_SEED_OFFSET,
+    VISUAL_CONSTANTS,
+)
+from utils.falsification_thresholds import (
+    LEVEL2_MI_FALSIFICATION_THRESHOLD,
+    LEVEL2_MI_THRESHOLD,
+    LEVEL2_TE_THRESHOLD,
+    NULL_BOOTSTRAP_N,
+)
 
 try:
     import torch
@@ -61,9 +69,7 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    warnings.warn(
-        "PyTorch not available - Level 1 thermodynamic entropy will be disabled"
-    )
+    warnings.warn("PyTorch not available - Level 1 thermodynamic entropy will be disabled")
 
 import os
 import sys
@@ -73,8 +79,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Power analysis functions
 try:
-    from utils.statistical_tests import (compute_power_analysis,
-                                         compute_required_n)
+    from utils.statistical_tests import compute_power_analysis, compute_required_n
 
     POWER_ANALYSIS_AVAILABLE = True
 except ImportError:
@@ -139,9 +144,7 @@ MIN_POWER = F4_MIN_POWER
 # Import model parameters from constants
 DEFAULT_ALPHA = MODEL_PARAMS.alpha if hasattr(MODEL_PARAMS, "alpha") else 8.0
 DEFAULT_TAU_S = MODEL_PARAMS.tau_S if hasattr(MODEL_PARAMS, "tau_S") else 0.3
-DEFAULT_TAU_THETA = (
-    MODEL_PARAMS.tau_theta if hasattr(MODEL_PARAMS, "tau_theta") else 30.0
-)
+DEFAULT_TAU_THETA = MODEL_PARAMS.tau_theta if hasattr(MODEL_PARAMS, "tau_theta") else 30.0
 DEFAULT_BETA = 1.2
 
 # Clinical biomarker thresholds
@@ -211,12 +214,8 @@ if HAS_TORCH:
             )
 
             # Energy scale factor for physical units
-            self.register_buffer(
-                "energy_scale", torch.tensor(config.energy_scale_factor)
-            )
-            self.register_buffer(
-                "entropy_scale", torch.tensor(config.entropy_scale_factor)
-            )
+            self.register_buffer("energy_scale", torch.tensor(config.energy_scale_factor))
+            self.register_buffer("entropy_scale", torch.tensor(config.entropy_scale_factor))
 
             # Previous state for entropy production calculation
             self.prev_state: Optional[torch.Tensor] = None
@@ -242,9 +241,7 @@ if HAS_TORCH:
 
             # Boltzmann factors: exp(-E/kT) with proper scaling
             scaled_energies = energies_norm / (self.kB_T * self.energy_scale)  # type: ignore[operator]
-            boltzmann_factors = torch.exp(
-                -torch.clamp(scaled_energies, min=-50, max=50)
-            )
+            boltzmann_factors = torch.exp(-torch.clamp(scaled_energies, min=-50, max=50))
 
             # Sum over all accessible states
             Z = boltzmann_factors.sum(dim=-1, keepdim=True)
@@ -278,9 +275,7 @@ if HAS_TORCH:
 
             return torch.clamp(entropy_production, min=0.0)
 
-        def forward(
-            self, state: torch.Tensor, dt: float = 0.01
-        ) -> Dict[str, torch.Tensor]:
+        def forward(self, state: torch.Tensor, dt: float = 0.01) -> Dict[str, torch.Tensor]:
             """Compute thermodynamic entropy and related quantities."""
             # Compute physical energy
             total_energy = self.compute_physical_energy(state)
@@ -296,11 +291,7 @@ if HAS_TORCH:
                 S_thermo = self.config.boltzmann_constant * log_Z * self.entropy_scale.item() + mean_energy / (  # type: ignore[operator]
                     self.config.boltzmann_constant * self.config.temperature_kelvin
                 )
-                F_thermo = (
-                    -self.config.boltzmann_constant
-                    * self.config.temperature_kelvin
-                    * log_Z
-                )
+                F_thermo = -self.config.boltzmann_constant * self.config.temperature_kelvin * log_Z
             else:
                 log_Z = torch.log(Z)
                 mean_energy = total_energy.mean(dim=-1, keepdim=True)
@@ -312,9 +303,7 @@ if HAS_TORCH:
                 "F_thermodynamic": F_thermo,
                 "Z": Z,
                 "mean_energy": mean_energy,
-                "entropy_production_rate": self.compute_entropy_production_rate(
-                    state, total_energy, dt
-                ),
+                "entropy_production_rate": self.compute_entropy_production_rate(state, total_energy, dt),
                 "total_energy": total_energy,
             }
 
@@ -336,14 +325,13 @@ if HAS_TORCH:
 
             # Cross-validation assertion: torch-computed entropy should match analytical
             # within tolerance (allowing for numerical and implementation differences)
-            S_torch = (
-                S_thermo.mean().item() if hasattr(S_thermo, "mean") else float(S_thermo)
-            )
-            assert abs(S_torch - S_analytical) < 2.0, (
-                f"Thermodynamic entropy cross-validation failed: "
-                f"torch={S_torch:.6f} vs analytical={S_analytical:.6f}, "
-                f"diff={abs(S_torch - S_analytical):.6f} >= 2.0"
-            )
+            S_torch = S_thermo.mean().item() if hasattr(S_thermo, "mean") else float(S_thermo)
+            if abs(S_torch - S_analytical) >= 2.0:
+                raise ValueError(
+                    f"Thermodynamic entropy cross-validation failed: "
+                    f"torch={S_torch:.6f} vs analytical={S_analytical:.6f}, "
+                    f"diff={abs(S_torch - S_analytical):.6f} >= 2.0"
+                )
 
             return fwd_result
 
@@ -519,18 +507,12 @@ class SurpriseIgnitionSystem:
             target_theta = self.theta_0 * (M / (A + 0.1))
             s_coupling = 0.2 * self.S_t  # Coupling from surprise to threshold
             noise_theta = np.random.normal(0, 0.02)  # Add stochastic variance
-            dtheta_dt = (
-                (target_theta - self.theta_t) / self.tau_theta
-                + s_coupling
-                + noise_theta
-            )
+            dtheta_dt = (target_theta - self.theta_t) / self.tau_theta + s_coupling + noise_theta
             self.theta_t += dtheta_dt * dt
             self.theta_t = np.clip(self.theta_t, 0.1, 5.0)
 
             # Check ignition
-            ignition_prob = 1.0 / (
-                1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t))
-            )
+            ignition_prob = 1.0 / (1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t)))
             ignition = np.random.random() < ignition_prob
 
             # Store history
@@ -562,13 +544,9 @@ class InformationTheoreticAnalysis:
 
     def __init__(self, apgi_system: SurpriseIgnitionSystem):
         self.system = apgi_system
-        self.data_cache: Dict[str, Any] = (
-            {}
-        )  # Cache for conditional probability estimation
+        self.data_cache: Dict[str, Any] = {}  # Cache for conditional probability estimation
 
-    def _build_conditional_probabilities(
-        self, history: Dict[str, np.ndarray], n_bins: int = DEFAULT_N_BINS
-    ):
+    def _build_conditional_probabilities(self, history: Dict[str, np.ndarray], n_bins: int = DEFAULT_N_BINS):
         """
         Build conditional probability distributions from discretized data
 
@@ -594,9 +572,7 @@ class InformationTheoreticAnalysis:
                 discretized[var_name] = np.zeros(len(data), dtype=int)
             else:
                 bins = np.linspace(data_min, data_max, n_bins + 1)
-                discretized[var_name] = (
-                    np.digitize(data, bins[1:-1]) - 1
-                )  # 0 to n_bins-1
+                discretized[var_name] = np.digitize(data, bins[1:-1]) - 1  # 0 to n_bins-1
                 discretized[var_name] = np.clip(discretized[var_name], 0, n_bins - 1)
 
         # Build conditional probability tables
@@ -649,10 +625,7 @@ class InformationTheoreticAnalysis:
         self._build_conditional_probabilities(history)
 
         # Validate that probability rows sum to 1.0
-        if (
-            cache_key in self.data_cache
-            and "conditional_probs" in self.data_cache[cache_key]
-        ):
+        if cache_key in self.data_cache and "conditional_probs" in self.data_cache[cache_key]:
             conditional_probs = self.data_cache[cache_key]["conditional_probs"]
             for prob_array in conditional_probs.values():
                 if not np.allclose(prob_array.sum(axis=-1), 1.0, atol=1e-6):
@@ -700,13 +673,9 @@ class InformationTheoreticAnalysis:
         Y_binned = np.clip(Y_binned, 1, n_bins) - 1
 
         if vectorized:
-            return self._compute_transfer_entropy_vectorized(
-                X_binned, Y_binned, lag, n_bins
-            )
+            return self._compute_transfer_entropy_vectorized(X_binned, Y_binned, lag, n_bins)
         else:
-            return self._compute_transfer_entropy_scalar(
-                X_binned, Y_binned, lag, n_bins
-            )
+            return self._compute_transfer_entropy_scalar(X_binned, Y_binned, lag, n_bins)
 
     def compute_integrated_information(
         self, history: Dict[str, np.ndarray], window_size: int = DEFAULT_WINDOW_SIZE
@@ -777,9 +746,7 @@ class InformationTheoreticAnalysis:
 
         return phi_values
 
-    def compute_phi_proxy(
-        self, history: Dict[str, np.ndarray], window_size: int = DEFAULT_WINDOW_SIZE
-    ) -> np.ndarray:
+    def compute_phi_proxy(self, history: Dict[str, np.ndarray], window_size: int = DEFAULT_WINDOW_SIZE) -> np.ndarray:
         """
         Alias for compute_integrated_information() for explicit proxy labeling.
 
@@ -832,9 +799,7 @@ class InformationTheoreticAnalysis:
                 post_deriv = np.mean(dS_dt[idx : idx + window])
                 discontinuities.append(abs(post_deriv - pre_deriv))
 
-        results["mean_discontinuity"] = (
-            np.mean(discontinuities) if discontinuities else 0
-        )
+        results["mean_discontinuity"] = np.mean(discontinuities) if discontinuities else 0
 
         # 2. Susceptibility (variance near threshold)
         near_threshold = np.abs(S - theta) < DEFAULT_NEAR_THRESHOLD
@@ -844,28 +809,19 @@ class InformationTheoreticAnalysis:
         susceptibility_near = None
         susceptibility_far = None
 
-        if (
-            np.sum(near_threshold) > DEFAULT_MIN_SAMPLES
-            and np.sum(far_from_threshold) > DEFAULT_MIN_SAMPLES
-        ):
+        if np.sum(near_threshold) > DEFAULT_MIN_SAMPLES and np.sum(far_from_threshold) > DEFAULT_MIN_SAMPLES:
             susceptibility_near = np.var(S[near_threshold])
             susceptibility_far = np.var(S[far_from_threshold])
-            results["susceptibility_ratio"] = susceptibility_near / (
-                susceptibility_far + DEFAULT_EPSILON
-            )
+            results["susceptibility_ratio"] = susceptibility_near / (susceptibility_far + DEFAULT_EPSILON)
         else:
             # Fix: Ensure proper ratio calculation instead of defaulting to 1.0
             # Guard against division by zero with meaningful error handling
             if susceptibility_far is not None and susceptibility_far > DEFAULT_EPSILON:
-                results["susceptibility_ratio"] = susceptibility_near / (
-                    susceptibility_far + DEFAULT_EPSILON
-                )
+                results["susceptibility_ratio"] = susceptibility_near / (susceptibility_far + DEFAULT_EPSILON)
             else:
                 # When variance is too small, set ratio to indicate measurement limitation
                 results["susceptibility_ratio"] = float("nan")
-                results["susceptibility_error"] = (
-                    "Far variance too small for reliable ratio calculation"
-                )
+                results["susceptibility_error"] = "Far variance too small for reliable ratio calculation"
 
         # 3. Critical slowing down with enhanced dynamics
         # Simulate proper phase transition behavior with increased autocorrelation
@@ -888,12 +844,8 @@ class InformationTheoreticAnalysis:
 
                 # Simulate critical slowing with increased autocorrelation near threshold
                 # Add coupling strength that increases near threshold
-                proximity_factor = np.mean(
-                    np.abs(S[near_threshold] - theta[near_threshold])
-                )
-                coupling_strength = 1.0 + 2.0 * np.exp(
-                    -proximity_factor / 0.1
-                )  # Stronger coupling when closer
+                proximity_factor = np.mean(np.abs(S[near_threshold] - theta[near_threshold]))
+                coupling_strength = 1.0 + 2.0 * np.exp(-proximity_factor / 0.1)  # Stronger coupling when closer
 
                 # Critical slowing ratio with realistic dynamics
                 if acf_far > 0.01:  # Avoid division by very small numbers
@@ -921,9 +873,7 @@ class InformationTheoreticAnalysis:
                 for _ in range(n_surrogates):
                     # Shuffle far-from-threshold data to break temporal correlations
                     shuffled_far = np.random.permutation(S[far_from_threshold])
-                    surrogate_acf_far = self._autocorrelation(
-                        shuffled_far, lag=DEFAULT_AC_LAG
-                    )
+                    surrogate_acf_far = self._autocorrelation(shuffled_far, lag=DEFAULT_AC_LAG)
 
                     if surrogate_acf_far > 0.01:
                         surrogate_ratio = acf_near / surrogate_acf_far
@@ -938,15 +888,7 @@ class InformationTheoreticAnalysis:
                     # Compute p-value based on surrogate distribution
                     if surrogate_std > 0.01:
                         z_score = (observed_ratio - surrogate_mean) / surrogate_std
-                        p_value = 2 * (
-                            1
-                            - 0.5
-                            * (
-                                1
-                                + np.sign(z_score)
-                                * (1 - np.exp(-abs(z_score) / np.sqrt(2)))
-                            )
-                        )
+                        p_value = 2 * (1 - 0.5 * (1 + np.sign(z_score) * (1 - np.exp(-abs(z_score) / np.sqrt(2)))))
                     else:
                         # If surrogate variance is too low, use conservative p-value
                         p_value = 0.01 if observed_ratio > 1.3 else 0.5
@@ -975,9 +917,7 @@ class InformationTheoreticAnalysis:
 
             except Exception as e:
                 # Enhanced fallback with proper statistical significance
-                logger.warning(
-                    f"Enhanced surrogate test failed: {e}, using statistical fallback"
-                )
+                logger.warning(f"Enhanced surrogate test failed: {e}, using statistical fallback")
                 # Use a conservative but significant p-value for enhanced critical slowing
                 observed_ratio = results["critical_slowing"]
                 if observed_ratio > 1.25:
@@ -1034,9 +974,7 @@ class InformationTheoreticAnalysis:
         n = len(integrated)
 
         # Define scales (window sizes)
-        scales = np.logspace(
-            np.log10(DEFAULT_MIN_LAG), np.log10(n // 4), num=20, dtype=int
-        )
+        scales = np.logspace(np.log10(DEFAULT_MIN_LAG), np.log10(n // 4), num=20, dtype=int)
         scales = np.unique(scales)  # Remove duplicates
 
         f_values = []
@@ -1133,8 +1071,7 @@ class InformationTheoreticAnalysis:
                 random_phase = np.random.uniform(0, 2 * np.pi)
                 random_amp = np.random.uniform(0.1, 0.5)
                 return {
-                    "Pi_e": 1.0
-                    + random_amp * np.sin(2 * np.pi * t / 10 + random_phase),
+                    "Pi_e": 1.0 + random_amp * np.sin(2 * np.pi * t / 10 + random_phase),
                     "eps_e": np.random.normal(0.5, 0.3),
                     "beta": DEFAULT_BETA * np.random.uniform(0.8, 1.2),  # Vary beta
                     "Pi_i": 1.0 * np.random.uniform(0.8, 1.2),  # Vary Pi_i
@@ -1144,9 +1081,7 @@ class InformationTheoreticAnalysis:
                 }
 
             try:
-                history = self.system.simulate(
-                    DEFAULT_SIMULATION_DURATION, DEFAULT_DT, input_gen
-                )
+                history = self.system.simulate(DEFAULT_SIMULATION_DURATION, DEFAULT_DT, input_gen)
 
                 # Track timing for each major operation
                 sim_time = time.time() - start_time
@@ -1158,36 +1093,27 @@ class InformationTheoreticAnalysis:
                 pt_time = time.time() - pt_start_time
                 print(f"  Phase transition analysis completed in {pt_time:.2f}s")
                 results["discontinuities"].append(pt_results["mean_discontinuity"])
-                results["susceptibility_ratios"].append(
-                    pt_results.get("susceptibility_ratio", 1.0)
-                )
-                results["critical_slowing"].append(
-                    pt_results.get("critical_slowing", 1.0)
-                )
+                results["susceptibility_ratios"].append(pt_results.get("susceptibility_ratio", 1.0))
+                results["critical_slowing"].append(pt_results.get("critical_slowing", 1.0))
                 results["hurst_near"].append(pt_results.get("hurst_near", 0.5))
                 results["hurst_far"].append(pt_results.get("hurst_far", 0.5))
 
                 # Integrated information
                 phi = self.compute_integrated_information(history)
-                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[
-                    0
-                ]
+                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[0]
 
                 if len(ignition_indices) > 0:
                     # Φ at ignition - ensure integer indices
                     ignition_phi = [
                         phi[max(0, int(idx - DEFAULT_PHI_LOOKBACK))]
                         for idx in ignition_indices
-                        if int(idx - DEFAULT_PHI_LOOKBACK) >= 0
-                        and int(idx - DEFAULT_PHI_LOOKBACK) < len(phi)
+                        if int(idx - DEFAULT_PHI_LOOKBACK) >= 0 and int(idx - DEFAULT_PHI_LOOKBACK) < len(phi)
                     ]
                     if ignition_phi:
                         results["phi_at_ignition"].append(np.mean(ignition_phi))
 
                     # Baseline Φ - ensure integer indices
-                    non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[
-                        0
-                    ]
+                    non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[0]
                     valid_indices = non_ignition[non_ignition < len(phi)]
                     if len(valid_indices) > 0:
                         baseline_phi = phi[valid_indices]
@@ -1195,9 +1121,7 @@ class InformationTheoreticAnalysis:
 
                 # New falsification analyses
                 # Level 2 falsification criteria
-                level2_results = self.check_level2_falsification_criteria(
-                    history, vectorized
-                )
+                level2_results = self.check_level2_falsification_criteria(history, vectorized)
                 results["level2_falsification"].append(level2_results)
 
                 # Level 1 falsification stubs
@@ -1207,9 +1131,7 @@ class InformationTheoreticAnalysis:
                 # Additional metrics for analysis
                 try:
                     te_start_time = time.time()
-                    te_values = self.compute_transfer_entropy(
-                        history, "S", "theta", vectorized=vectorized
-                    )
+                    te_values = self.compute_transfer_entropy(history, "S", "theta", vectorized=vectorized)
                     te_time = time.time() - te_start_time
                     print(f"  Transfer entropy computed in {te_time:.2f}s")
                     results["transfer_entropy_means"].append(np.mean(te_values))
@@ -1229,14 +1151,10 @@ class InformationTheoreticAnalysis:
 
                 try:
                     phi_start_time = time.time()
-                    phi_with_baseline = (
-                        self.compute_integrated_information_with_baseline(history)
-                    )
+                    phi_with_baseline = self.compute_integrated_information_with_baseline(history)
                     phi_time = time.time() - phi_start_time
                     print(f"  Integrated information computed in {phi_time:.2f}s")
-                    results["integrated_info_means"].append(
-                        np.mean(phi_with_baseline["phi_actual"])
-                    )
+                    results["integrated_info_means"].append(np.mean(phi_with_baseline["phi_actual"]))
                 except Exception as e:
                     print(f"IIT failed: {e}")
                     results["integrated_info_means"].append(0.0)
@@ -1262,46 +1180,22 @@ class InformationTheoreticAnalysis:
                 results[key] = np.array(results[key])  # type: ignore[assignment]
                 results[f"{key}_mean"] = np.mean(results[key])  # type: ignore[assignment]
             # Count individual criteria failures
-            te_failures = sum(
-                1
-                for r in results["level2_falsification"]
-                if r.get("transfer_entropy_falsified", False)
-            )
-            mi_failures = sum(
-                1
-                for r in results["level2_falsification"]
-                if r.get("mutual_info_falsified", False)
-            )
-            phi_failures = sum(
-                1
-                for r in results["level2_falsification"]
-                if r.get("integrated_info_falsified", False)
-            )
-            cs_failures = sum(
-                1
-                for r in results["level2_falsification"]
-                if r.get("critical_slowing_falsified", False)
-            )
+            te_failures = sum(1 for r in results["level2_falsification"] if r.get("transfer_entropy_falsified", False))
+            mi_failures = sum(1 for r in results["level2_falsification"] if r.get("mutual_info_falsified", False))
+            phi_failures = sum(1 for r in results["level2_falsification"] if r.get("integrated_info_falsified", False))
+            cs_failures = sum(1 for r in results["level2_falsification"] if r.get("critical_slowing_falsified", False))
 
             results["level2_te_failure_rate"] = float(
-                te_failures / len(results["level2_falsification"])
-                if len(results["level2_falsification"]) > 0
-                else 0.0
+                te_failures / len(results["level2_falsification"]) if len(results["level2_falsification"]) > 0 else 0.0
             )
             results["level2_mi_failure_rate"] = float(
-                mi_failures / len(results["level2_falsification"])
-                if len(results["level2_falsification"]) > 0
-                else 0.0
+                mi_failures / len(results["level2_falsification"]) if len(results["level2_falsification"]) > 0 else 0.0
             )
             results["level2_phi_failure_rate"] = float(
-                phi_failures / len(results["level2_falsification"])
-                if len(results["level2_falsification"]) > 0
-                else 0.0
+                phi_failures / len(results["level2_falsification"]) if len(results["level2_falsification"]) > 0 else 0.0
             )
             results["level2_critical_slowing_failure_rate"] = float(
-                cs_failures / len(results["level2_falsification"])
-                if len(results["level2_falsification"]) > 0
-                else 0.0
+                cs_failures / len(results["level2_falsification"]) if len(results["level2_falsification"]) > 0 else 0.0
             )
 
         return results
@@ -1338,9 +1232,7 @@ class InformationTheoreticAnalysis:
 
         return prob_matrix[:, y_past]
 
-    def _conditional_prob_joint(
-        self, y_t: int, y_past: int, x_past: int, n_bins: int
-    ) -> np.ndarray:
+    def _conditional_prob_joint(self, y_t: int, y_past: int, x_past: int, n_bins: int) -> np.ndarray:
         """Compute conditional probability P(y_t | y_past, x_past) from empirical data
 
         Args:
@@ -1416,9 +1308,7 @@ class InformationTheoreticAnalysis:
             n_bins = min(DEFAULT_HISTOGRAM_BINS, max(5, len(data) // 10))
 
             try:
-                hist, _ = np.histogram(
-                    data, bins=n_bins, range=(data_min, data_max), density=False
-                )
+                hist, _ = np.histogram(data, bins=n_bins, range=(data_min, data_max), density=False)
             except (ValueError, np.linalg.LinAlgError):
                 # Fallback: use Gaussian entropy approximation
                 data_std = np.std(data)
@@ -1576,9 +1466,7 @@ class InformationTheoreticAnalysis:
         for i in range(n_bins):
             for j in range(n_bins):
                 if joint_hist[i, j] > 0 and p_x[i] > 0 and p_y[j] > 0:
-                    mi += joint_hist[i, j] * np.log(
-                        joint_hist[i, j] / (p_x[i] * p_y[j])
-                    )
+                    mi += joint_hist[i, j] * np.log(joint_hist[i, j] / (p_x[i] * p_y[j]))
 
         # Convert to bits and apply theoretical ceiling
         mi_bits = max(0.0, mi / np.log(2))
@@ -1622,11 +1510,7 @@ class InformationTheoreticAnalysis:
             y_current = Y_binned[t]
 
             # Ensure valid bin indices
-            if not (
-                0 <= y_past < n_bins
-                and 0 <= x_past < n_bins
-                and 0 <= y_current < n_bins
-            ):
+            if not (0 <= y_past < n_bins and 0 <= x_past < n_bins and 0 <= y_current < n_bins):
                 te_values[t - lag] = 0.0
                 continue
 
@@ -1647,10 +1531,7 @@ class InformationTheoreticAnalysis:
 
                 # FIX: Ensure we have valid lag:t slice
                 y_current_slice = Y_binned[lag:t]
-                joint_count = (
-                    np.sum((y_past_slice == y_past) & (y_current_slice == y_val))
-                    + epsilon
-                )
+                joint_count = np.sum((y_past_slice == y_past) & (y_current_slice == y_val)) + epsilon
 
                 if y_past_count > 0:
                     p_y_given_y_past += joint_count / y_past_count
@@ -1667,19 +1548,11 @@ class InformationTheoreticAnalysis:
                 y_current_slice = Y_binned[lag:t]
 
                 # Count joint occurrences of y_past and x_past
-                joint_past_count = (
-                    np.sum((y_past_slice == y_past) & (x_past_slice == x_past))
-                    + epsilon
-                )
+                joint_past_count = np.sum((y_past_slice == y_past) & (x_past_slice == x_past)) + epsilon
 
                 # Count joint occurrences of all three
                 joint_count = (
-                    np.sum(
-                        (y_past_slice == y_past)
-                        & (x_past_slice == x_past)
-                        & (y_current_slice == y_val)
-                    )
-                    + epsilon
+                    np.sum((y_past_slice == y_past) & (x_past_slice == x_past) & (y_current_slice == y_val)) + epsilon
                 )
 
                 if joint_past_count > 0:
@@ -1694,19 +1567,13 @@ class InformationTheoreticAnalysis:
             if 0 <= x_past < n_bins and 0 <= y_past < n_bins:
                 # Stronger coupling when x and y are similar (simulating information transfer)
                 distance = abs(x_past - y_past) / n_bins
-                coupling_strength = 1.0 + 2.0 * np.exp(
-                    -distance * 3.0
-                )  # Exponential decay with distance
+                coupling_strength = 1.0 + 2.0 * np.exp(-distance * 3.0)  # Exponential decay with distance
 
             # Transfer entropy: TE = H(Y|Y_past) - H(Y|Y_past,X_past)
             if p_y_given_y_past > epsilon and p_y_given_both > epsilon:
                 # Standard TE calculation
-                h_y_given_past = -np.sum(
-                    p_y_given_y_past * np.log(p_y_given_y_past + epsilon)
-                )
-                h_y_given_both = -np.sum(
-                    p_y_given_both * np.log(p_y_given_both + epsilon)
-                )
+                h_y_given_past = -np.sum(p_y_given_y_past * np.log(p_y_given_y_past + epsilon))
+                h_y_given_both = -np.sum(p_y_given_both * np.log(p_y_given_both + epsilon))
 
                 # Base transfer entropy
                 te_base = h_y_given_past - h_y_given_both
@@ -1751,9 +1618,7 @@ class InformationTheoreticAnalysis:
 
         for t in range(lag, len(X_binned)):
             # H(Y_t | Y_{t-lag})
-            p_Y_given_Ypast = self._conditional_prob(
-                Y_binned[t], Y_binned[t - lag], n_bins
-            )
+            p_Y_given_Ypast = self._conditional_prob(Y_binned[t], Y_binned[t - lag], n_bins)
 
             # FIX: Ensure probability array is valid before calling entropy
             if p_Y_given_Ypast is None or len(p_Y_given_Ypast) == 0:
@@ -1762,9 +1627,7 @@ class InformationTheoreticAnalysis:
                 H_Y_given_Ypast = entropy(p_Y_given_Ypast)
 
             # H(Y_t | Y_{t-lag}, X_{t-lag})
-            p_Y_given_both = self._conditional_prob_joint(
-                Y_binned[t], Y_binned[t - lag], X_binned[t - lag], n_bins
-            )
+            p_Y_given_both = self._conditional_prob_joint(Y_binned[t], Y_binned[t - lag], X_binned[t - lag], n_bins)
 
             # FIX: Ensure probability array is valid before calling entropy
             if p_Y_given_both is None or len(p_Y_given_both) == 0:
@@ -1776,9 +1639,7 @@ class InformationTheoreticAnalysis:
 
         return te_values
 
-    def _compute_conditional_entropy_vectorized(
-        self, y_t: int, y_past: int, n_bins: int
-    ) -> float:
+    def _compute_conditional_entropy_vectorized(self, y_t: int, y_past: int, n_bins: int) -> float:
         """
         Vectorized conditional entropy computation - H(Y|Y_past)
 
@@ -1805,9 +1666,7 @@ class InformationTheoreticAnalysis:
         entropy_nats: float = -np.sum(probs * np.log(probs + DEFAULT_EPSILON))
         return entropy_nats / np.log(2)  # Convert to bits
 
-    def _compute_joint_conditional_entropy_vectorized(
-        self, y_t: int, y_past: int, x_past: int, n_bins: int
-    ) -> float:
+    def _compute_joint_conditional_entropy_vectorized(self, y_t: int, y_past: int, x_past: int, n_bins: int) -> float:
         """
         Vectorized joint conditional entropy computation - H(Y|Y_past, X_past)
         This should be LOWER than H(Y|Y_past) to represent information transfer
@@ -1911,12 +1770,8 @@ class InformationTheoreticAnalysis:
         phi_baselines: List[np.ndarray] = []
         for i in range(n_bootstrap):
             # Create shuffled version of history
-            shuffled_history = self._create_shuffled_history(
-                history, SHUFFLE_SEED_OFFSET + i
-            )
-            phi_shuffled = self.compute_integrated_information(
-                shuffled_history, window_size
-            )
+            shuffled_history = self._create_shuffled_history(history, SHUFFLE_SEED_OFFSET + i)
+            phi_shuffled = self.compute_integrated_information(shuffled_history, window_size)
             phi_baselines.append(phi_shuffled)
 
         phi_baselines_array = np.array(phi_baselines)
@@ -1941,9 +1796,7 @@ class InformationTheoreticAnalysis:
             "phi_baselines": phi_baselines_array,
         }
 
-    def _create_shuffled_history(
-        self, history: Dict[str, np.ndarray], random_seed: int
-    ) -> Dict[str, np.ndarray]:
+    def _create_shuffled_history(self, history: Dict[str, np.ndarray], random_seed: int) -> Dict[str, np.ndarray]:
         """
         Create a shuffled version of the history for null baseline
 
@@ -1999,9 +1852,7 @@ class InformationTheoreticAnalysis:
 
         # 1. Transfer entropy criterion
         try:
-            te_values = self.compute_transfer_entropy(
-                history, "S", "theta", lag=1, vectorized=vectorized
-            )
+            te_values = self.compute_transfer_entropy(history, "S", "theta", lag=1, vectorized=vectorized)
             te_mean = np.mean(te_values)
             te_falsified = te_mean < LEVEL2_TE_THRESHOLD
             results["transfer_entropy_falsified"] = te_falsified
@@ -2059,8 +1910,7 @@ class InformationTheoreticAnalysis:
             surrogate_test = pt_results.get("critical_slowing_surrogate_test", {})
             p_slowing = surrogate_test.get("p_value", 1.0)
             critical_slowing_falsified = (
-                critical_slowing_ratio <= CRITICAL_SLOWING_MIN_RATIO
-                or p_slowing >= CRITICAL_SLOWING_P_VALUE
+                critical_slowing_ratio <= CRITICAL_SLOWING_MIN_RATIO or p_slowing >= CRITICAL_SLOWING_P_VALUE
             )
             results["critical_slowing_falsified"] = critical_slowing_falsified
             results["details"]["critical_slowing"] = {
@@ -2086,9 +1936,7 @@ class InformationTheoreticAnalysis:
 
         return results
 
-    def run_level1_falsification_stubs(
-        self, history: Dict[str, np.ndarray]
-    ) -> Dict[str, Any]:
+    def run_level1_falsification_stubs(self, history: Dict[str, np.ndarray]) -> Dict[str, Any]:
         """
         Level 1 falsification using thermodynamic entropy (metabolic cost measurement protocols)
 
@@ -2117,9 +1965,7 @@ class InformationTheoreticAnalysis:
 
         if not HAS_TORCH:
             # Fallback to basic implementation without thermodynamic calculator
-            logger.warning(
-                "PyTorch not available - using simplified Level 1 falsification"
-            )
+            logger.warning("PyTorch not available - using simplified Level 1 falsification")
             return self._run_level1_fallback_stubs(history)
 
         try:
@@ -2140,9 +1986,7 @@ class InformationTheoreticAnalysis:
                 state = S_tensor[i : i + 1]  # Keep batch dimension
                 result = thermo_calc(state, dt=dt)
                 thermo_results.append(result)
-                entropy_production_rates_list.append(
-                    result["entropy_production_rate"].item()
-                )
+                entropy_production_rates_list.append(result["entropy_production_rate"].item())
                 thermodynamic_entropies_list.append(result["S_thermodynamic"].item())
 
             entropy_production_rates = np.array(entropy_production_rates_list)
@@ -2168,15 +2012,11 @@ class InformationTheoreticAnalysis:
 
             # 3. Energy efficiency: information per ATP consumed
             information_value = (
-                np.sum(S[B > DEFAULT_IGNITION_THRESHOLD])
-                if np.any(B > DEFAULT_IGNITION_THRESHOLD)
-                else 1.0
+                np.sum(S[B > DEFAULT_IGNITION_THRESHOLD]) if np.any(B > DEFAULT_IGNITION_THRESHOLD) else 1.0
             )
             energy_per_bit = total_atp_consumed / (information_value + DEFAULT_EPSILON)
             baseline_efficiency = 1.0 / (BASELINE_METABOLIC_RATE * ATP_PER_SPIKE)
-            efficiency_ratio = (
-                information_value / total_atp_consumed
-            ) / baseline_efficiency
+            efficiency_ratio = (information_value / total_atp_consumed) / baseline_efficiency
             efficiency_falsified = efficiency_ratio < 0.5
 
             # 4. Landauer bound: S_thermodynamic ≥ k_B * T * ln(2) * ΔH_bits
@@ -2240,9 +2080,7 @@ class InformationTheoreticAnalysis:
 
         return results
 
-    def _run_level1_fallback_stubs(
-        self, history: Dict[str, np.ndarray]
-    ) -> Dict[str, Any]:
+    def _run_level1_fallback_stubs(self, history: Dict[str, np.ndarray]) -> Dict[str, Any]:
         """
         Fallback Level 1 falsification without thermodynamic calculator
         """
@@ -2269,9 +2107,7 @@ class InformationTheoreticAnalysis:
         metabolic_rate = total_atp_consumed / duration
         normalized_metabolic_cost = metabolic_rate / BASELINE_METABOLIC_RATE
 
-        results["metabolic_cost_falsified"] = (
-            normalized_metabolic_cost > BIOLOGICAL_CEILING
-        )
+        results["metabolic_cost_falsified"] = normalized_metabolic_cost > BIOLOGICAL_CEILING
         results["details"]["metabolic_cost"] = {
             "total_atp_consumed": float(total_atp_consumed),
             "normalized_cost": float(normalized_metabolic_cost),
@@ -2323,18 +2159,10 @@ class ClinicalBiomarkerFalsification:
         doc_indices = np.random.choice(n_samples, n_doc, replace=False)
 
         # Add signal to DoC samples using centralized constants (HIGH-02)
-        features[doc_indices, 0] += (
-            signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["entropy"]
-        )
-        features[doc_indices, 1] += (
-            signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["temporal_pattern"]
-        )
-        features[doc_indices, 2] += (
-            signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["integration_complexity"]
-        )
-        features[doc_indices, 3] += (
-            signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["threshold_modulation"]
-        )
+        features[doc_indices, 0] += signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["entropy"]
+        features[doc_indices, 1] += signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["temporal_pattern"]
+        features[doc_indices, 2] += signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["integration_complexity"]
+        features[doc_indices, 3] += signal_strength * FP3_DOC_SIGNAL_MULTIPLIERS["threshold_modulation"]
 
         # Labels: 1 = DoC, 0 = Healthy
         labels = np.zeros(n_samples)
@@ -2450,9 +2278,7 @@ class ClinicalBiomarkerFalsification:
         Returns:
             Dictionary with falsification results
         """
-        results = self.compute_roc_analysis(
-            features, labels, bootstrap_n, bootstrap_alpha
-        )
+        results = self.compute_roc_analysis(features, labels, bootstrap_n, bootstrap_alpha)
 
         # Import DOC_AUC thresholds with fallback
         try:
@@ -2467,16 +2293,12 @@ class ClinicalBiomarkerFalsification:
         auc_in_range = DOC_AUC_MIN <= results["auc"] <= DOC_AUC_MAX
 
         if not auc_in_range:
-            logger.warning(
-                f"AUC {results['auc']:.3f} outside target range [{DOC_AUC_MIN}, {DOC_AUC_MAX}]"
-            )
+            logger.warning(f"AUC {results['auc']:.3f} outside target range [{DOC_AUC_MIN}, {DOC_AUC_MAX}]")
         sensitivity_acceptable = results["sensitivity"] >= MIN_SENSITIVITY
         specificity_acceptable = results["specificity"] >= MIN_SPECIFICITY
 
         # Overall pass: AUC in range AND both sensitivity and specificity acceptable
-        falsification_pass = (
-            auc_in_range and sensitivity_acceptable and specificity_acceptable
-        )
+        falsification_pass = auc_in_range and sensitivity_acceptable and specificity_acceptable
 
         results["falsification_pass"] = falsification_pass
         results["auc_target_range"] = f"{DOC_AUC_MIN}-{DOC_AUC_MAX}"
@@ -2514,34 +2336,22 @@ class ClinicalBiomarkerFalsification:
         )
 
         logger.info("Computing ROC analysis with bootstrap CI...")
-        results = self.check_falsification(
-            features, labels, bootstrap_n, bootstrap_alpha
-        )
+        results = self.check_falsification(features, labels, bootstrap_n, bootstrap_alpha)
 
-        logger.info(
-            f"AUC: {results['auc']:.3f} (95% CI: {results['auc_ci_lower']:.3f}-{results['auc_ci_upper']:.3f})"
-        )
-        logger.info(
-            f"Sensitivity: {results['sensitivity']:.3f}, Specificity: {results['specificity']:.3f}"
-        )
-        logger.info(
-            f"Falsification: {'PASS' if results['falsification_pass'] else 'FAIL'}"
-        )
+        logger.info(f"AUC: {results['auc']:.3f} (95% CI: {results['auc_ci_lower']:.3f}-{results['auc_ci_upper']:.3f})")
+        logger.info(f"Sensitivity: {results['sensitivity']:.3f}, Specificity: {results['specificity']:.3f}")
+        logger.info(f"Falsification: {'PASS' if results['falsification_pass'] else 'FAIL'}")
 
         # Add power analysis for clinical groups (N=30 per group)
         if POWER_ANALYSIS_AVAILABLE:
-            logger.info(
-                "Computing power analysis for clinical groups (N=30 per group)..."
-            )
+            logger.info("Computing power analysis for clinical groups (N=30 per group)...")
             # Calculate effect size from AUC
             # Convert AUC to Cohen's d approximation
             # d = (2 * AUC - 1) / sqrt(3) for AUC to d conversion
             cohens_d = (2 * results["auc"] - 1) / np.sqrt(3)
 
             # Compute power for N=30 per group
-            power = compute_power_analysis(
-                effect_size=cohens_d, n_per_group=30, alpha=0.05, test_type="ttest_ind"
-            )
+            power = compute_power_analysis(effect_size=cohens_d, n_per_group=30, alpha=0.05, test_type="ttest_ind")
 
             # Compute required N for 80% power
             required_n = compute_required_n(
@@ -2569,18 +2379,14 @@ class ClinicalBiomarkerFalsification:
             )
         else:
             logger.warning("Power analysis not available - skipping")
-            results["power_analysis"] = {
-                "error": "Power analysis functions not available"
-            }
+            results["power_analysis"] = {"error": "Power analysis functions not available"}
 
         return results
 
 
 # Main execution
 if __name__ == "__main__":
-    print(
-        "Running comprehensive phase transition analysis with falsification criteria..."
-    )
+    print("Running comprehensive phase transition analysis with falsification criteria...")
 
     # Initialize APGI system and analyzer
     apgi_system = SurpriseIgnitionSystem(random_seed=42)
@@ -2615,18 +2421,14 @@ if __name__ == "__main__":
 
     # Display falsification results
     print("\n=== Level 2 Falsification Results ===")
-    print(
-        f"Overall falsification rate: {results.get('level2_falsification_rate', 0):.2%}"
-    )
+    print(f"Overall falsification rate: {results.get('level2_falsification_rate', 0):.2%}")
     print(
         f"Transfer entropy failures: {results.get('level2_te_failure_rate', 0):.2%} (threshold < {LEVEL2_TE_THRESHOLD} bits)"
     )
     print(
         f"Mutual information failures: {results.get('level2_mi_failure_rate', 0):.2%} (threshold > {LEVEL2_MI_FALSIFICATION_THRESHOLD} bits/s)"
     )
-    print(
-        f"Integrated information failures: {results.get('level2_phi_failure_rate', 0):.2%} (below baseline)"
-    )
+    print(f"Integrated information failures: {results.get('level2_phi_failure_rate', 0):.2%} (below baseline)")
     print(
         f"Critical slowing failures: {results.get('level2_critical_slowing_failure_rate', 0):.2%} (τ_auto ≤ 20% increase)"
     )
@@ -2634,24 +2436,15 @@ if __name__ == "__main__":
     # Run clinical biomarker falsification
     print("\n=== Clinical Biomarker Falsification ===")
     clinical_falsifier = ClinicalBiomarkerFalsification(random_seed=42)
-    clinical_results = clinical_falsifier.run_clinical_biomarker_falsification(
-        n_samples=200
-    )
+    clinical_results = clinical_falsifier.run_clinical_biomarker_falsification(n_samples=200)
 
     print(
         f"AUC: {clinical_results['auc']:.3f} (95% CI: {clinical_results['auc_ci_lower']:.3f}-{clinical_results['auc_ci_upper']:.3f})"
     )
-    print(
-        f"Sensitivity: {clinical_results['sensitivity']:.3f}, Specificity: {clinical_results['specificity']:.3f}"
-    )
-    print(
-        f"Clinical falsification: {'PASS' if clinical_results['falsification_pass'] else 'FAIL'}"
-    )
+    print(f"Sensitivity: {clinical_results['sensitivity']:.3f}, Specificity: {clinical_results['specificity']:.3f}")
+    print(f"Clinical falsification: {'PASS' if clinical_results['falsification_pass'] else 'FAIL'}")
 
-    if (
-        "power_analysis" in clinical_results
-        and "power" in clinical_results["power_analysis"]
-    ):
+    if "power_analysis" in clinical_results and "power" in clinical_results["power_analysis"]:
         power_info = clinical_results["power_analysis"]
         print(
             f"Power analysis: {power_info['power']:.3f} (N=30 per group, required N={power_info['required_n_for_80_power']})"
@@ -2685,8 +2478,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
     # Import criteria registry for threshold definitions
     try:
-        from utils.criteria_registry import \
-            get_falsification_criteria as get_registry_criteria
+        from utils.criteria_registry import get_falsification_criteria as get_registry_criteria
 
         registry = get_registry_criteria()
     except ImportError:
@@ -2698,9 +2490,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
 
     # Run a minimal analysis to compute metrics
     try:
-        results = analyzer.run_phase_transition_analysis(
-            n_simulations=3, vectorized=True
-        )
+        results = analyzer.run_phase_transition_analysis(n_simulations=3, vectorized=True)
     except Exception as e:
         # Return structure with error status if analysis fails
         return {
@@ -2845,22 +2635,14 @@ def run_falsification():
 
         # Run with reduced simulations for faster execution
         n_simulations = min(5, DEFAULT_N_SIMULATIONS)  # Cap at 5 for quick testing
-        print(
-            f"Running {n_simulations} simulations (reduced from {DEFAULT_N_SIMULATIONS})..."
-        )
+        print(f"Running {n_simulations} simulations (reduced from {DEFAULT_N_SIMULATIONS})...")
 
         # Run with vectorized computation for efficiency
-        results = analyzer.run_phase_transition_analysis(
-            n_simulations=n_simulations, vectorized=True
-        )
+        results = analyzer.run_phase_transition_analysis(n_simulations=n_simulations, vectorized=True)
 
         # Summary results
-        print(
-            f"\nAnalysis completed with {len(results.get('level2_falsification', []))} simulations"
-        )
-        print(
-            f"Level 2 falsification rate: {results.get('level2_falsification_rate', 0):.2%}"
-        )
+        print(f"\nAnalysis completed with {len(results.get('level2_falsification', []))} simulations")
+        print(f"Level 2 falsification rate: {results.get('level2_falsification_rate', 0):.2%}")
         print(
             f"Transfer entropy: {results.get('transfer_entropy_means_mean', 0):.3f} ± {results.get('transfer_entropy_means_std', 0):.3f} bits"
         )
@@ -2909,9 +2691,7 @@ def run_falsification():
 
                 return True
 
-            success = add_standard_png_output(
-                4, results, fp04_custom_plot, "Phase Transition"
-            )
+            success = add_standard_png_output(4, results, fp04_custom_plot, "Phase Transition")
             if success:
                 print("✓ Generated protocol04.png visualization")
             else:

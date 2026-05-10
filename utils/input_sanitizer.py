@@ -34,9 +34,7 @@ class InputSanitizer:
         if base_dir:
             base_dir = base_dir.resolve()
             if not str(path).startswith(str(base_dir)):
-                raise ValueError(
-                    f"Path traversal detected: {path_str} is outside {base_dir}"
-                )
+                raise ValueError(f"Path traversal detected: {path_str} is outside {base_dir}")
 
         return path
 
@@ -53,9 +51,7 @@ class InputSanitizer:
         try:
             num_val = expected_type(value)
         except (ValueError, TypeError):
-            raise ValueError(
-                f"Invalid numeric input: {value} (expected {expected_type.__name__})"
-            )
+            raise ValueError(f"Invalid numeric input: {value} (expected {expected_type.__name__})")
 
         if min_val is not None and num_val < min_val:
             raise ValueError(f"Value {num_val} is below minimum {min_val}")
@@ -66,9 +62,7 @@ class InputSanitizer:
         return cast(T, num_val)
 
     @classmethod
-    def sanitize_params(
-        cls, params: Dict[str, Any], schema: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def sanitize_params(cls, params: Dict[str, Any], schema: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Sanitizes a dictionary of parameters against a schema.
 
@@ -96,12 +90,8 @@ class InputSanitizer:
                     max_val=spec.get("max"),
                 )
             elif p_type == str:
-                sanitized[name] = cls.sanitize_string(
-                    val, pattern=spec.get("pattern", r"^[a-zA-Z0-9_\-\.]+$")
-                )
+                sanitized[name] = cls.sanitize_string(val, pattern=spec.get("pattern", r"^[a-zA-Z0-9_\-\.]+$"))
             else:
-                sanitized[name] = (
-                    val  # Passthrough for complex types (should be handled by Pydantic usually)
-                )
+                sanitized[name] = val  # Passthrough for complex types (should be handled by Pydantic usually)
 
         return sanitized

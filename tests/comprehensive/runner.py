@@ -53,8 +53,7 @@ def convert_numpy_types(obj):
 from tests.comprehensive import AdversarialTestFramework, TestCategory
 from tests.comprehensive.integration_e2e import run_integration_tests
 from tests.comprehensive.mutation_tester import run_mutation_testing
-from tests.comprehensive.performance_regression import \
-    run_performance_regression_tests
+from tests.comprehensive.performance_regression import run_performance_regression_tests
 from tests.comprehensive.security_tester import run_security_tests
 
 
@@ -278,9 +277,7 @@ class TestRunner:
                     "lines": len(analysis[1]),
                     "missing_lines": len(analysis[2]),
                     "line_coverage": (
-                        (len(analysis[1]) - len(analysis[2])) / len(analysis[1]) * 100
-                        if analysis[1]
-                        else 0
+                        (len(analysis[1]) - len(analysis[2])) / len(analysis[1]) * 100 if analysis[1] else 0
                     ),
                 }
 
@@ -307,9 +304,7 @@ class TestRunner:
                         }
                     )
 
-            summary["overall_line_coverage"] = (
-                covered_lines / total_lines * 100 if total_lines > 0 else 0
-            )
+            summary["overall_line_coverage"] = covered_lines / total_lines * 100 if total_lines > 0 else 0
 
             summary["total_branches"] = total_branches
             summary["covered_branches"] = covered_branches
@@ -462,9 +457,7 @@ class TestRunner:
         print(f"Overall Status: {summary['overall_status']}")
         print(f"Test Categories: {summary['total_test_categories']}")
         print(f"Passed: {summary['passed_categories']} ✅")
-        print(
-            f"Failed: {summary['failed_categories']} {'✅' if summary['failed_categories'] == 0 else '❌'}"
-        )
+        print(f"Failed: {summary['failed_categories']} {'✅' if summary['failed_categories'] == 0 else '❌'}")
         print(f"Duration: {report['duration_seconds']:.1f}s")
         print(f"\nReports saved to: {self.output_dir}")
 

@@ -46,11 +46,7 @@ logger = logging.getLogger(__name__)
 
 # Import shared multiple comparison correction
 try:
-    from utils.constants import (
-        TMS_MOTOR_THRESHOLD_ADJUST,
-        TMS_PULSE_WIDTH_MS,
-        TMS_SIGMOID_STEEPNESS,
-    )
+    from utils.constants import TMS_MOTOR_THRESHOLD_ADJUST, TMS_PULSE_WIDTH_MS, TMS_SIGMOID_STEEPNESS
     from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
     from utils.statistical_tests import apply_multiple_comparison_correction
 
@@ -75,12 +71,10 @@ except ImportError:
     # Fix 2: Make utils.falsification_thresholds a hard dependency
     # Remove local fallback thresholds entirely
     logger.error(
-        "CRITICAL: utils.falsification_thresholds is required for VP-10. "
-        "Install or configure the utils module."
+        "CRITICAL: utils.falsification_thresholds is required for VP-10. " "Install or configure the utils module."
     )
     raise ImportError(
-        "VP-10 requires utils.falsification_thresholds. "
-        "This is a hard dependency to ensure paper spec alignment."
+        "VP-10 requires utils.falsification_thresholds. " "This is a hard dependency to ensure paper spec alignment."
     )
 
 # Fix 1: Assert that imported values match expected paper specifications
@@ -90,18 +84,16 @@ _EXPECTED_P2_B_MIN_HEP_REDUCTION = 35.0
 _EXPECTED_P2_B_MIN_PCI_REDUCTION = 25.0
 _EXPECTED_P2_C_MIN_ETA_SQ = 0.12
 
-assert (
-    P2_A_MIN_THRESHOLD_SHIFT == _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT
-), f"P2_A_MIN_THRESHOLD_SHIFT mismatch: {P2_A_MIN_THRESHOLD_SHIFT} != {_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT}"
-assert (
-    P2_B_MIN_HEP_REDUCTION == _EXPECTED_P2_B_MIN_HEP_REDUCTION
-), f"P2_B_MIN_HEP_REDUCTION mismatch: {P2_B_MIN_HEP_REDUCTION} != {_EXPECTED_P2_B_MIN_HEP_REDUCTION}"
-assert (
-    P2_B_MIN_PCI_REDUCTION == _EXPECTED_P2_B_MIN_PCI_REDUCTION
-), f"P2_B_MIN_PCI_REDUCTION mismatch: {P2_B_MIN_PCI_REDUCTION} != {_EXPECTED_P2_B_MIN_PCI_REDUCTION}"
-assert (
-    P2_C_MIN_ETA_SQ == _EXPECTED_P2_C_MIN_ETA_SQ
-), f"P2_C_MIN_ETA_SQ mismatch: {P2_C_MIN_ETA_SQ} != {_EXPECTED_P2_C_MIN_ETA_SQ}"
+if P2_A_MIN_THRESHOLD_SHIFT != _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT:
+    raise ValueError(
+        f"P2_A_MIN_THRESHOLD_SHIFT mismatch: {P2_A_MIN_THRESHOLD_SHIFT} != {_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT}"
+    )
+if P2_B_MIN_HEP_REDUCTION != _EXPECTED_P2_B_MIN_HEP_REDUCTION:
+    raise ValueError(f"P2_B_MIN_HEP_REDUCTION mismatch: {P2_B_MIN_HEP_REDUCTION} != {_EXPECTED_P2_B_MIN_HEP_REDUCTION}")
+if P2_B_MIN_PCI_REDUCTION != _EXPECTED_P2_B_MIN_PCI_REDUCTION:
+    raise ValueError(f"P2_B_MIN_PCI_REDUCTION mismatch: {P2_B_MIN_PCI_REDUCTION} != {_EXPECTED_P2_B_MIN_PCI_REDUCTION}")
+if P2_C_MIN_ETA_SQ != _EXPECTED_P2_C_MIN_ETA_SQ:
+    raise ValueError(f"P2_C_MIN_ETA_SQ mismatch: {P2_C_MIN_ETA_SQ} != {_EXPECTED_P2_C_MIN_ETA_SQ}")
 
 # Set random seeds
 
@@ -123,9 +115,7 @@ class TMSIntervention:
         self.inter_pulse_interval = 50  # ms for paired-pulse
         self.mt_adjustment = TMS_MOTOR_THRESHOLD_ADJUST
 
-    def apply_tms_pulse(
-        self, neural_state: Dict, target_region: str, timing: float
-    ) -> Dict:
+    def apply_tms_pulse(self, neural_state: Dict, target_region: str, timing: float) -> Dict:
         """
         Apply TMS pulse to neural state
 
@@ -145,24 +135,18 @@ class TMSIntervention:
         if target_region in ["dlPFC", "posterior_parietal"]:
             if ignition_window[0] <= timing <= ignition_window[1]:
                 # Disrupt ignition parameters
-                disruption_factor = self.intensity * (
-                    1.0 if self.coil_type == "figure8" else 0.7
-                )
+                disruption_factor = self.intensity * (1.0 if self.coil_type == "figure8" else 0.7)
 
                 # Reduce effective precision in frontoparietal network
                 modified_state["Pi_e_effective"] *= 1.0 - disruption_factor * 0.3
-                modified_state["theta_t"] *= (
-                    1.0 + disruption_factor * 0.2
-                )  # Increase threshold
+                modified_state["theta_t"] *= 1.0 + disruption_factor * 0.2  # Increase threshold
 
                 # Add neural noise
                 modified_state["noise_level"] += disruption_factor * 0.5
 
         return modified_state
 
-    def simulate_tms_experiment(
-        self, n_trials: int = 100, target_region: str = "dlPFC"
-    ) -> Dict:
+    def simulate_tms_experiment(self, n_trials: int = 100, target_region: str = "dlPFC") -> Dict:
         """
         Simulate complete TMS experiment
 
@@ -195,21 +179,14 @@ class TMSIntervention:
             detection = np.random.random() < ignition_prob
 
             results["detection_rates"].append(detection)
-            results["p3b_amplitudes"].append(
-                self._simulate_p3b_amplitude(tms_state, detection)
-            )
-            results["reaction_times"].append(
-                self._simulate_reaction_time(tms_state, detection)
-            )
+            results["p3b_amplitudes"].append(self._simulate_p3b_amplitude(tms_state, detection))
+            results["reaction_times"].append(self._simulate_reaction_time(tms_state, detection))
 
         return results
 
     def _compute_ignition_probability(self, state: Dict) -> float:
         """Compute ignition probability from state"""
-        S = (
-            state["Pi_e_effective"] * state["stimulus_intensity"]
-            + state["Pi_i_effective"] * 0.1
-        )
+        S = state["Pi_e_effective"] * state["stimulus_intensity"] + state["Pi_i_effective"] * 0.1
         theta = state["theta_t"]
         alpha = TMS_SIGMOID_STEEPNESS
 
@@ -253,16 +230,12 @@ class TACSIntervention:
 
         # Theta-tACS (4-8 Hz) affects threshold dynamics
         if 4 <= self.frequency <= 8:
-            threshold_modulation = (
-                self.amplitude * 0.2 * np.sin(2 * np.pi * self.frequency * duration)
-            )
+            threshold_modulation = self.amplitude * 0.2 * np.sin(2 * np.pi * self.frequency * duration)
             modified_state["theta_t"] += threshold_modulation
 
         # Gamma-tACS (40-80 Hz) affects precision
         elif 40 <= self.frequency <= 80:
-            precision_modulation = (
-                self.amplitude * 0.15 * np.sin(2 * np.pi * self.frequency * duration)
-            )
+            precision_modulation = self.amplitude * 0.15 * np.sin(2 * np.pi * self.frequency * duration)
             modified_state["Pi_e_effective"] += precision_modulation
 
         return modified_state
@@ -380,9 +353,7 @@ class CausalManipulationsValidator:
 
         # Fix 2: Sample IA scores from Beta(2,2) distribution instead of hardcoded distributions
         n_participants = 40
-        ia_scores = np.random.beta(
-            2, 2, n_participants
-        )  # Beta distribution for IA scores
+        ia_scores = np.random.beta(2, 2, n_participants)  # Beta distribution for IA scores
 
         # Median split to create High-IA and Low-IA groups
         median_ia = np.median(ia_scores)
@@ -420,9 +391,7 @@ class CausalManipulationsValidator:
             ia_score = ia_scores[participant_idx]
             # Low-IA participants: weaker response to insula stimulation
             base = baseline_response + ia_effect * (ia_score - 0.5)
-            insula_response = np.random.normal(
-                base + insula_effect * 0.6, noise_std, 20
-            )
+            insula_response = np.random.normal(base + insula_effect * 0.6, noise_std, 20)
             control_response = np.random.normal(base, noise_std, 20)
             results["low_ia_insula"].extend(insula_response)
             results["low_ia_control"].extend(control_response)
@@ -450,9 +419,7 @@ class CausalManipulationsValidator:
                         "subject_id": subject_id,
                         "IA_group": "High",
                         "condition": "insula",
-                        "response": high_ia_insula[
-                            subject_id * n_trials_per_participant % len(high_ia_insula)
-                        ],
+                        "response": high_ia_insula[subject_id * n_trials_per_participant % len(high_ia_insula)],
                     }
                 )
             for _ in range(n_trials_per_participant):
@@ -461,9 +428,7 @@ class CausalManipulationsValidator:
                         "subject_id": subject_id,
                         "IA_group": "High",
                         "condition": "control",
-                        "response": high_ia_control[
-                            subject_id * n_trials_per_participant % len(high_ia_control)
-                        ],
+                        "response": high_ia_control[subject_id * n_trials_per_participant % len(high_ia_control)],
                     }
                 )
             subject_id += 1
@@ -476,9 +441,7 @@ class CausalManipulationsValidator:
                         "IA_group": "Low",
                         "condition": "insula",
                         "response": low_ia_insula[
-                            (subject_id - len(high_ia_participants))
-                            * n_trials_per_participant
-                            % len(low_ia_insula)
+                            (subject_id - len(high_ia_participants)) * n_trials_per_participant % len(low_ia_insula)
                         ],
                     }
                 )
@@ -489,9 +452,7 @@ class CausalManipulationsValidator:
                         "IA_group": "Low",
                         "condition": "control",
                         "response": low_ia_control[
-                            (subject_id - len(high_ia_participants))
-                            * n_trials_per_participant
-                            % len(low_ia_control)
+                            (subject_id - len(high_ia_participants)) * n_trials_per_participant % len(low_ia_control)
                         ],
                     }
                 )
@@ -512,22 +473,10 @@ class CausalManipulationsValidator:
                 subject="subject_id",
             )
             # Extract interaction effect
-            interaction_row = mixed_anova_result[
-                mixed_anova_result["Source"] == "condition * IA_group"
-            ]
-            f_interaction = (
-                float(interaction_row["F"].values[0]) if len(interaction_row) > 0 else 0
-            )
-            p_interaction = (
-                float(interaction_row["p-unc"].values[0])
-                if len(interaction_row) > 0
-                else 1.0
-            )
-            partial_eta_squared = (
-                float(interaction_row["np2"].values[0])
-                if len(interaction_row) > 0
-                else 0
-            )
+            interaction_row = mixed_anova_result[mixed_anova_result["Source"] == "condition * IA_group"]
+            f_interaction = float(interaction_row["F"].values[0]) if len(interaction_row) > 0 else 0
+            p_interaction = float(interaction_row["p-unc"].values[0]) if len(interaction_row) > 0 else 1.0
+            partial_eta_squared = float(interaction_row["np2"].values[0]) if len(interaction_row) > 0 else 0
         except ImportError:
             logger.warning("pingouin not available - using fallback simplified F-test")
             # Fallback to simplified calculation
@@ -540,9 +489,7 @@ class CausalManipulationsValidator:
 
             var_high = np.var(high_ia_insula - high_ia_control, ddof=1)
             var_low = np.var(low_ia_insula - low_ia_control, ddof=1)
-            pooled_var = ((n_high - 1) * var_high + (n_low - 1) * var_low) / (
-                n_high + n_low - 2
-            )
+            pooled_var = ((n_high - 1) * var_high + (n_low - 1) * var_low) / (n_high + n_low - 2)
 
             if pooled_var > 0:
                 f_interaction = (interaction_effect**2) / (2 * pooled_var)
@@ -560,9 +507,7 @@ class CausalManipulationsValidator:
             mixed_anova_result = {
                 "note": "Fallback calculation - pingouin not available",
                 "interaction_effect": float(interaction_effect),
-                "pooled_variance": (
-                    float(pooled_var) if "pooled_var" in locals() else None
-                ),
+                "pooled_variance": (float(pooled_var) if "pooled_var" in locals() else None),
             }
 
         # Calculate simple effects for interpretation
@@ -583,7 +528,6 @@ class CausalManipulationsValidator:
             "p2c_passed": p2c_passed,
             "n_high_ia": len(high_ia_participants),
             "n_low_ia": len(low_ia_participants),
-            "mixed_anova_result": mixed_anova_result,
             "validation_passed": p2c_passed,
         }
 
@@ -605,20 +549,14 @@ class CausalManipulationsValidator:
             "overall_causal_validation_score": 0.0,
         }
         specificity_test = PharmacologicalSpecificityTest()
-        results["pharmacological_specificity"] = (
-            specificity_test.test_circuit_specificity()
-        )
+        results["pharmacological_specificity"] = specificity_test.test_circuit_specificity()
 
         # NEW: Medication × TMS interaction test (Type I error control)
         interaction_test = MedicationTMSInteractionTest()
-        results["medication_tms_interaction"] = (
-            interaction_test.test_interaction_effect()
-        )
+        results["medication_tms_interaction"] = interaction_test.test_interaction_effect()
 
         # Calculate overall score
-        results["overall_causal_validation_score"] = self._calculate_causal_score(
-            results
-        )
+        results["overall_causal_validation_score"] = self._calculate_causal_score(results)
 
         return results
 
@@ -637,9 +575,7 @@ class CausalManipulationsValidator:
                 desired_power=0.80,
                 alpha=0.01,
             )
-            logger.info(
-                f"Power analysis: Required n = {n_required} for TMS disruption detection"
-            )
+            logger.info(f"Power analysis: Required n = {n_required} for TMS disruption detection")
         except ImportError:
             logger.warning("compute_required_n not available - power analysis skipped")
             n_required = None
@@ -653,9 +589,7 @@ class CausalManipulationsValidator:
 
             for timing in timings:
                 # Simulate TMS experiment
-                tms_results = self.tms_intervention.simulate_tms_experiment(
-                    n_trials=20, target_region=region
-                )
+                tms_results = self.tms_intervention.simulate_tms_experiment(n_trials=20, target_region=region)
 
                 # Find timing closest to current timing
                 timing_idx = int(np.argmin(np.abs(tms_results["timings"] - timing)))
@@ -666,24 +600,12 @@ class CausalManipulationsValidator:
 
                 # Check if we have valid data
                 if end_idx > start_idx:
-                    detection_rates_slice = tms_results["detection_rates"][
-                        start_idx:end_idx
-                    ]
-                    p3b_amplitudes_slice = tms_results["p3b_amplitudes"][
-                        start_idx:end_idx
-                    ]
+                    detection_rates_slice = tms_results["detection_rates"][start_idx:end_idx]
+                    p3b_amplitudes_slice = tms_results["p3b_amplitudes"][start_idx:end_idx]
 
                     # Only compute mean if we have valid data
-                    detection_rate = (
-                        np.mean(detection_rates_slice)
-                        if detection_rates_slice
-                        else np.nan
-                    )
-                    p3b_amplitude = (
-                        np.mean(p3b_amplitudes_slice)
-                        if p3b_amplitudes_slice
-                        else np.nan
-                    )
+                    detection_rate = np.mean(detection_rates_slice) if detection_rates_slice else np.nan
+                    p3b_amplitude = np.mean(p3b_amplitudes_slice) if p3b_amplitudes_slice else np.nan
                 else:
                     detection_rate = np.nan
                     p3b_amplitude = np.nan
@@ -708,10 +630,7 @@ class CausalManipulationsValidator:
         control_window_results = []
         for region_data in results.values():
             for trial_data in region_data:
-                if (
-                    0.1 <= trial_data["timing"] < 0.2
-                    or 0.3 < trial_data["timing"] <= 0.4
-                ):
+                if 0.1 <= trial_data["timing"] < 0.2 or 0.3 < trial_data["timing"] <= 0.4:
                     control_window_results.append(trial_data["detection_rate"])
 
         # Statistical test - filter out NaN values first
@@ -725,18 +644,13 @@ class CausalManipulationsValidator:
 
             # Fix 4: Add effect size check (Cohen's d >= V10_MIN_COHENS_D)
             V10_MIN_COHENS_D = 0.5  # Minimum effect size for TMS disruption
-            pooled_std = np.sqrt(
-                (np.var(ignition_clean, ddof=1) + np.var(control_clean, ddof=1)) / 2
-            )
-            cohens_d = (
-                (ignition_mean - control_mean) / pooled_std if pooled_std > 0 else 0
-            )
+            pooled_std = np.sqrt((np.var(ignition_clean, ddof=1) + np.var(control_clean, ddof=1)) / 2)
+            cohens_d = (ignition_mean - control_mean) / pooled_std if pooled_std > 0 else 0
             effect_size_passed = abs(cohens_d) >= V10_MIN_COHENS_D
 
             # Assert for effect size criterion
-            assert (
-                effect_size_passed
-            ), f"TMS disruption effect size {abs(cohens_d):.3f} < minimum {V10_MIN_COHENS_D}"
+            if not effect_size_passed:
+                raise ValueError(f"TMS disruption effect size {abs(cohens_d):.3f} < minimum {V10_MIN_COHENS_D}")
         else:
             p_value = np.nan
             ignition_mean = np.nan
@@ -751,13 +665,9 @@ class CausalManipulationsValidator:
         return {
             "region_specific_effects": results,
             "ignition_window_disruption": (
-                ignition_mean < control_mean
-                if not np.isnan(ignition_mean) and not np.isnan(control_mean)
-                else False
+                ignition_mean < control_mean if not np.isnan(ignition_mean) and not np.isnan(control_mean) else False
             ),
-            "statistical_significance": (
-                p_value < 0.05 if not np.isnan(p_value) else False
-            ),
+            "statistical_significance": (p_value < 0.05 if not np.isnan(p_value) else False),
             "power_analysis": {
                 "n_required": n_required,
                 "n_trials_used": n_trials_used,
@@ -769,11 +679,7 @@ class CausalManipulationsValidator:
                 "V10_MIN_COHENS_D": 0.5,
             },
             "validation_passed": (p_value < 0.05 if not np.isnan(p_value) else False)
-            and (
-                ignition_mean < control_mean
-                if not np.isnan(ignition_mean) and not np.isnan(control_mean)
-                else False
-            )
+            and (ignition_mean < control_mean if not np.isnan(ignition_mean) and not np.isnan(control_mean) else False)
             and effect_size_passed,
         }
 
@@ -784,9 +690,7 @@ class CausalManipulationsValidator:
         results = {}
 
         for drug in drugs:
-            self.pharmacological_intervention = PharmacologicalIntervention(
-                drug, dose=50.0
-            )  # Standard dose
+            self.pharmacological_intervention = PharmacologicalIntervention(drug, dose=50.0)  # Standard dose
 
             # Simulate baseline and drug conditions
             baseline_state = {
@@ -796,9 +700,7 @@ class CausalManipulationsValidator:
                 "arousal": 0.5,
             }
 
-            drug_state = self.pharmacological_intervention.apply_drug_effects(
-                baseline_state
-            )
+            drug_state = self.pharmacological_intervention.apply_drug_effects(baseline_state)
 
             # Simulate psychometric function
             stimulus_intensities = np.linspace(0.1, 1.0, 20)
@@ -808,78 +710,47 @@ class CausalManipulationsValidator:
             for intensity in stimulus_intensities:
                 # Baseline
                 baseline_S = baseline_state["Pi_e_baseline"] * intensity
-                baseline_prob = 1.0 / (
-                    1.0
-                    + np.exp(
-                        -TMS_SIGMOID_STEEPNESS
-                        * (baseline_S - baseline_state["theta_t"])
-                    )
-                )
+                baseline_prob = 1.0 / (1.0 + np.exp(-TMS_SIGMOID_STEEPNESS * (baseline_S - baseline_state["theta_t"])))
                 baseline_responses.append(baseline_prob)
 
                 # Drug
                 drug_S = drug_state["Pi_e_baseline"] * intensity
-                drug_prob = 1.0 / (
-                    1.0
-                    + np.exp(-TMS_SIGMOID_STEEPNESS * (drug_S - drug_state["theta_t"]))
-                )
+                drug_prob = 1.0 / (1.0 + np.exp(-TMS_SIGMOID_STEEPNESS * (drug_S - drug_state["theta_t"])))
                 drug_responses.append(drug_prob)
 
             # Statistical test
             t_stat, p_value = stats.ttest_rel(baseline_responses, drug_responses)
 
             # Effect size (Cohen's d)
-            pooled_std = np.sqrt(
-                (np.var(baseline_responses, ddof=1) + np.var(drug_responses, ddof=1))
-                / 2
-            )
-            cohens_d = (
-                np.mean(drug_responses) - np.mean(baseline_responses)
-            ) / pooled_std
+            pooled_std = np.sqrt((np.var(baseline_responses, ddof=1) + np.var(drug_responses, ddof=1)) / 2)
+            cohens_d = (np.mean(drug_responses) - np.mean(baseline_responses)) / pooled_std
 
             # Drug-specific predictions
             if drug == "propranolol":
                 # Beta-blocker: should reduce precision (lower Pi), increase threshold
                 expected_precision_change = "decrease"
                 expected_threshold_change = "increase"
-                precision_passed = (
-                    drug_state["Pi_e_baseline"] < baseline_state["Pi_e_baseline"]
-                    and p_value < 0.05
-                )
-                threshold_passed = (
-                    drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
-                )
+                precision_passed = drug_state["Pi_e_baseline"] < baseline_state["Pi_e_baseline"] and p_value < 0.05
+                threshold_passed = drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
             elif drug == "atomoxetine":
                 # NE reuptake inhibitor: should increase precision (higher Pi), decrease threshold
                 expected_precision_change = "increase"
                 expected_threshold_change = "decrease"
-                precision_passed = (
-                    drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"]
-                    and p_value < 0.05
-                )
-                threshold_passed = (
-                    drug_state["theta_t"] < baseline_state["theta_t"] and p_value < 0.05
-                )
+                precision_passed = drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"] and p_value < 0.05
+                threshold_passed = drug_state["theta_t"] < baseline_state["theta_t"] and p_value < 0.05
             else:  # caffeine
                 # Stimulant: should increase both precision and threshold
                 expected_precision_change = "increase"
                 expected_threshold_change = "increase"
-                precision_passed = (
-                    drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"]
-                    and p_value < 0.05
-                )
-                threshold_passed = (
-                    drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
-                )
+                precision_passed = drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"] and p_value < 0.05
+                threshold_passed = drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
 
             # Calculate threshold shift in log units for P2.a compliance
             baseline_theta = baseline_state["theta_t"]
             drug_theta = drug_state["theta_t"]
             # Log units: log10(drug_theta / baseline_theta)
             threshold_shift_log_units = (
-                np.log10(drug_theta / baseline_theta)
-                if baseline_theta > 0 and drug_theta > 0
-                else 0.0
+                np.log10(drug_theta / baseline_theta) if baseline_theta > 0 and drug_theta > 0 else 0.0
             )  # Log units for P2.a
 
             results[drug] = {
@@ -888,8 +759,7 @@ class CausalManipulationsValidator:
                 "stimulus_intensities": stimulus_intensities,
                 "threshold_shift": drug_theta - baseline_theta,
                 "threshold_shift_log_units": threshold_shift_log_units,  # Log units for P2.a
-                "precision_change": drug_state["Pi_e_baseline"]
-                - baseline_state["Pi_e_baseline"],
+                "precision_change": drug_state["Pi_e_baseline"] - baseline_state["Pi_e_baseline"],
                 "t_statistic": float(t_stat),
                 "p_value": float(p_value),
                 "cohens_d": float(cohens_d),
@@ -913,9 +783,7 @@ class CausalManipulationsValidator:
         t_stat, p_value = stats.ttest_rel(baseline_erp, post_manipulation_erp)
 
         # Effect size (Cohen's d)
-        pooled_std = np.sqrt(
-            (np.var(baseline_erp, ddof=1) + np.var(post_manipulation_erp, ddof=1)) / 2
-        )
+        pooled_std = np.sqrt((np.var(baseline_erp, ddof=1) + np.var(post_manipulation_erp, ddof=1)) / 2)
         cohens_d = (np.mean(post_manipulation_erp) - np.mean(baseline_erp)) / pooled_std
 
         # ERP invariance: no significant change (p > 0.05)
@@ -982,27 +850,15 @@ class CausalManipulationsValidator:
                 metabolic_thresholds = np.random.normal(metabolic_theta, 0.05, 30)
 
                 # Paired t-test
-                t_stat, p_value = stats.ttest_rel(
-                    baseline_thresholds, metabolic_thresholds
-                )
+                t_stat, p_value = stats.ttest_rel(baseline_thresholds, metabolic_thresholds)
 
                 # Effect size (Cohen's d)
-                pooled_std = np.sqrt(
-                    (
-                        np.var(baseline_thresholds, ddof=1)
-                        + np.var(metabolic_thresholds, ddof=1)
-                    )
-                    / 2
-                )
-                cohens_d = (
-                    np.mean(metabolic_thresholds) - np.mean(baseline_thresholds)
-                ) / pooled_std
+                pooled_std = np.sqrt((np.var(baseline_thresholds, ddof=1) + np.var(metabolic_thresholds, ddof=1)) / 2)
+                cohens_d = (np.mean(metabolic_thresholds) - np.mean(baseline_thresholds)) / pooled_std
 
                 # Prediction: hypoglycemia (glucose < 3.9) should elevate threshold
                 is_hypoglycemic = glucose < 3.9
-                prediction_passed = (
-                    threshold_elevation and cohens_d > 0.3 and p_value < 0.05
-                )
+                prediction_passed = threshold_elevation and cohens_d > 0.3 and p_value < 0.05
 
                 results[f"glucose_{glucose}_fasting_{fasting}"] = {
                     "metabolic_effects": effects,
@@ -1040,9 +896,7 @@ class CausalManipulationsValidator:
             tacs_state = baseline_state.copy()
             for cycle in range(10):  # 10 modulation cycles
                 duration = cycle * 0.1  # 100ms per cycle
-                tacs_state = self.tacs_intervention.apply_tacs_modulation(
-                    tacs_state, duration
-                )
+                tacs_state = self.tacs_intervention.apply_tacs_modulation(tacs_state, duration)
 
             # Simulate oscillatory effects
             stimulus_intensities = np.linspace(0.1, 1.0, 20)
@@ -1052,34 +906,20 @@ class CausalManipulationsValidator:
             for intensity in stimulus_intensities:
                 # Baseline
                 baseline_S = baseline_state["Pi_e_effective"] * intensity
-                baseline_prob = 1.0 / (
-                    1.0
-                    + np.exp(
-                        -TMS_SIGMOID_STEEPNESS
-                        * (baseline_S - baseline_state["theta_t"])
-                    )
-                )
+                baseline_prob = 1.0 / (1.0 + np.exp(-TMS_SIGMOID_STEEPNESS * (baseline_S - baseline_state["theta_t"])))
                 baseline_responses.append(baseline_prob)
 
                 # tACS
                 tacs_S = tacs_state["Pi_e_effective"] * intensity
-                tacs_prob = 1.0 / (
-                    1.0
-                    + np.exp(-TMS_SIGMOID_STEEPNESS * (tacs_S - tacs_state["theta_t"]))
-                )
+                tacs_prob = 1.0 / (1.0 + np.exp(-TMS_SIGMOID_STEEPNESS * (tacs_S - tacs_state["theta_t"])))
                 tacs_responses.append(tacs_prob)
 
             # Statistical test for oscillatory modulation effect
             t_stat, p_value = stats.ttest_rel(baseline_responses, tacs_responses)
 
             # Effect size (Cohen's d)
-            pooled_std = np.sqrt(
-                (np.var(baseline_responses, ddof=1) + np.var(tacs_responses, ddof=1))
-                / 2
-            )
-            cohens_d = (
-                np.mean(tacs_responses) - np.mean(baseline_responses)
-            ) / pooled_std
+            pooled_std = np.sqrt((np.var(baseline_responses, ddof=1) + np.var(tacs_responses, ddof=1)) / 2)
+            cohens_d = (np.mean(tacs_responses) - np.mean(baseline_responses)) / pooled_std
 
             # Frequency-specific prediction: theta band (4-8 Hz) should enhance precision
             if 4.0 <= freq <= 8.0:
@@ -1105,8 +945,7 @@ class CausalManipulationsValidator:
                 "tacs_responses": tacs_responses,
                 "stimulus_intensities": stimulus_intensities,
                 "threshold_shift": tacs_state["theta_t"] - baseline_state["theta_t"],
-                "precision_change": tacs_state["Pi_e_effective"]
-                - baseline_state["Pi_e_effective"],
+                "precision_change": tacs_state["Pi_e_effective"] - baseline_state["Pi_e_effective"],
                 "frequency": freq,
                 "t_statistic": float(t_stat),
                 "p_value": float(p_value),
@@ -1138,15 +977,11 @@ class CausalManipulationsValidator:
         atomoxetine_result = pharma_results.get("atomoxetine", {})
 
         # Use log units for threshold shift as specified in paper
-        dlpfc_threshold_shift_log = atomoxetine_result.get(
-            "threshold_shift_log_units", 0
-        )
+        dlpfc_threshold_shift_log = atomoxetine_result.get("threshold_shift_log_units", 0)
         dlpfc_p_value = atomoxetine_result.get("p_value", 1.0)
 
         # P2.a passes if threshold shift exceeds the shared log-unit threshold
-        p2a_passed = (dlpfc_threshold_shift_log > P2_A_MIN_THRESHOLD_SHIFT) and (
-            dlpfc_p_value < 0.01
-        )
+        p2a_passed = (dlpfc_threshold_shift_log > P2_A_MIN_THRESHOLD_SHIFT) and (dlpfc_p_value < 0.01)
 
         # P2.b: HEP and PCI reductions from TMS ignition disruption
         tms_results = results.get("tms_ignition_disruption", {})
@@ -1154,9 +989,7 @@ class CausalManipulationsValidator:
 
         # Extract dlPFC effects during ignition window (200-300ms)
         dlpfc_data = region_effects.get("dlPFC", [])
-        ignition_window_data = [
-            d for d in dlpfc_data if 0.2 <= d.get("timing", 0) <= 0.3
-        ]
+        ignition_window_data = [d for d in dlpfc_data if 0.2 <= d.get("timing", 0) <= 0.3]
 
         if ignition_window_data:
             # Calculate HEP reduction (P3b amplitude reduction)
@@ -1166,9 +999,7 @@ class CausalManipulationsValidator:
 
             # Calculate PCI reduction (detection rate reduction)
             baseline_detection = 0.8  # Baseline detection rate
-            avg_detection = np.mean(
-                [d.get("detection_rate", 0) for d in ignition_window_data]
-            )
+            avg_detection = np.mean([d.get("detection_rate", 0) for d in ignition_window_data])
             pci_reduction = (baseline_detection - avg_detection) / baseline_detection
         else:
             hep_reduction = 0.0
@@ -1203,8 +1034,7 @@ class CausalManipulationsValidator:
                 "hep_reduction": float(hep_reduction),
                 "pci_reduction": float(pci_reduction),
                 "threshold": (
-                    f"HEP >= {P2_B_MIN_HEP_REDUCTION / 100.0:.2f} "
-                    f"AND PCI >= {P2_B_MIN_PCI_REDUCTION / 100.0:.2f}"
+                    f"HEP >= {P2_B_MIN_HEP_REDUCTION / 100.0:.2f} " f"AND PCI >= {P2_B_MIN_PCI_REDUCTION / 100.0:.2f}"
                 ),
                 "actual": f"HEP: {hep_reduction:.2f}, PCI: {pci_reduction:.2f}",
             },
@@ -1225,16 +1055,12 @@ class CausalManipulationsValidator:
         named_predictions = self._extract_named_predictions(results)
 
         # Score based on proportion of named predictions that pass
-        passed_count = sum(
-            1 for pred in named_predictions.values() if pred.get("passed", False)
-        )
+        passed_count = sum(1 for pred in named_predictions.values() if pred.get("passed", False))
         total_count = len(named_predictions)
 
         score = passed_count / total_count if total_count > 0 else 0.0
 
-        logger.info(
-            f"Named predictions passed: {passed_count}/{total_count} (score: {score:.3f})"
-        )
+        logger.info(f"Named predictions passed: {passed_count}/{total_count} (score: {score:.3f})")
         for pred_name, pred_data in named_predictions.items():
             logger.info(
                 f"  {pred_name}: {'PASS' if pred_data.get('passed', False) else 'FAIL'} - {pred_data.get('actual', 'N/A')}"
@@ -1278,9 +1104,7 @@ class SubliminalPrimingMeasure:
             Dictionary with priming metrics
         """
         # Compute priming strength as feature similarity
-        priming_strength = self._compute_feature_similarity(
-            stimulus_features, response_features
-        )
+        priming_strength = self._compute_feature_similarity(stimulus_features, response_features)
 
         # Store measurement
         measurement = {
@@ -1310,9 +1134,7 @@ class SubliminalPrimingMeasure:
             Dictionary with detection metrics
         """
         # Compute detection confidence
-        detection_confidence = self._compute_detection_confidence(
-            stimulus_intensity, response_accuracy, response_time
-        )
+        detection_confidence = self._compute_detection_confidence(stimulus_intensity, response_accuracy, response_time)
 
         # Store measurement
         measurement = {
@@ -1344,10 +1166,7 @@ class SubliminalPrimingMeasure:
         Returns:
             Dictionary with dissociation test results
         """
-        if (
-            len(self.priming_history) < min_trials
-            or len(self.conscious_detection_history) < min_trials
-        ):
+        if len(self.priming_history) < min_trials or len(self.conscious_detection_history) < min_trials:
             return {
                 "error": f"Insufficient trials: need {min_trials}, "
                 f"have {len(self.priming_history)} priming, "
@@ -1363,9 +1182,7 @@ class SubliminalPrimingMeasure:
             data = []
 
             # Align priming and detection data by timestamp
-            max_len = min(
-                len(self.priming_history), len(self.conscious_detection_history)
-            )
+            max_len = min(len(self.priming_history), len(self.conscious_detection_history))
 
             for i in range(max_len):
                 priming = self.priming_history[i]
@@ -1384,17 +1201,11 @@ class SubliminalPrimingMeasure:
 
             # Test 1: Conscious report × TMS condition interaction
             # Model: conscious_report ~ tms_condition + priming_strength + tms_condition:priming_strength
-            model_conscious = ols(
-                "conscious_report ~ tms_condition * priming_strength", data=df
-            ).fit()
+            model_conscious = ols("conscious_report ~ tms_condition * priming_strength", data=df).fit()
 
             # Extract interaction coefficient
-            interaction_coef = model_conscious.params.get(
-                "tms_condition:priming_strength", 0
-            )
-            interaction_p = model_conscious.pvalues.get(
-                "tms_condition:priming_strength", 1.0
-            )
+            interaction_coef = model_conscious.params.get("tms_condition:priming_strength", 0)
+            interaction_p = model_conscious.pvalues.get("tms_condition:priming_strength", 1.0)
 
             # Test 2: Subliminal priming should be relatively preserved under TMS
             # Compare priming strength in subliminal trials across TMS conditions
@@ -1407,9 +1218,7 @@ class SubliminalPrimingMeasure:
                 # For this analysis, we'd ideally have data from both TMS conditions
                 # Since we only have one condition per call, we check if priming is above baseline
                 baseline_priming = 0.3  # Expected baseline priming strength
-                priming_preserved = (
-                    subliminal_data["priming_strength"].mean() > baseline_priming
-                )
+                priming_preserved = subliminal_data["priming_strength"].mean() > baseline_priming
 
             # Test 3: Conscious report should be significantly disrupted under active TMS
             # Compare conscious report in suprathreshold trials
@@ -1421,9 +1230,7 @@ class SubliminalPrimingMeasure:
                 # Active TMS should reduce conscious report
                 # (This would ideally be compared against sham condition)
                 baseline_conscious = 0.7  # Expected baseline conscious detection
-                conscious_disrupted = (
-                    suprathreshold_data["conscious_report"].mean() < baseline_conscious
-                )
+                conscious_disrupted = suprathreshold_data["conscious_report"].mean() < baseline_conscious
 
             # Falsification criterion: TMS disrupts both conscious and subliminal equally
             # (i.e., no dissociation)
@@ -1456,9 +1263,7 @@ class SubliminalPrimingMeasure:
                 "description": "TMS disrupts conscious report without equally disrupting subliminal priming",
             }
 
-    def _compute_feature_similarity(
-        self, features_a: np.ndarray, features_b: np.ndarray
-    ) -> float:
+    def _compute_feature_similarity(self, features_a: np.ndarray, features_b: np.ndarray) -> float:
         """Compute feature similarity as cosine similarity"""
         norm_a = np.linalg.norm(features_a)
         norm_b = np.linalg.norm(features_b)
@@ -1507,9 +1312,7 @@ def main():
     results = validator.validate_causal_predictions()
 
     print("APGI Causal Manipulations Validation Results:")
-    print(
-        f"Overall Causal Validation Score: {results['overall_causal_validation_score']:.3f}"
-    )
+    print(f"Overall Causal Validation Score: {results['overall_causal_validation_score']:.3f}")
 
     print("\nDetailed Results:")
     for key, value in results.items():
@@ -1546,16 +1349,12 @@ def run_validation(**kwargs):
             if p2_key in named_predictions:
                 named_predictions[p2_key]["source_type"] = "supplementary"
                 named_predictions[p2_key]["canonical_source"] = "VP-07"
-                named_predictions[p2_key][
-                    "note"
-                ] = "VP-10 supplementary validation - VP-07 is canonical source"
+                named_predictions[p2_key]["note"] = "VP-10 supplementary validation - VP-07 is canonical source"
 
         # Add VP-10 specific supplementary predictions
         if "pharmacological_specificity" in results:
             named_predictions["V10.SPEC"] = {
-                "passed": results["pharmacological_specificity"].get(
-                    "specificity_passed", False
-                ),
+                "passed": results["pharmacological_specificity"].get("specificity_passed", False),
                 "description": "Pharmacological specificity: propranolol vs insula TMS",
                 "source_type": "vp10_supplementary",
                 "detail": results["pharmacological_specificity"],
@@ -1572,9 +1371,7 @@ def run_validation(**kwargs):
             }
 
         # Calculate overall pass status based on named predictions
-        all_passed = all(
-            pred.get("passed", False) for pred in named_predictions.values()
-        )
+        all_passed = all(pred.get("passed", False) for pred in named_predictions.values())
 
         return {
             "protocol_id": "VP_10_CausalManipulations_Priority2",
@@ -1584,13 +1381,9 @@ def run_validation(**kwargs):
             "status": "success" if all_passed else "failed",
             "message": f"Protocol 10 (SUPPLEMENTARY) completed: P2.a={named_predictions['P2.a']['passed']}, P2.b={named_predictions['P2.b']['passed']}, P2.c={named_predictions['P2.c']['passed']}",
             "named_predictions": named_predictions,
-            "overall_causal_validation_score": results.get(
-                "overall_causal_validation_score", 0
-            ),
+            "overall_causal_validation_score": results.get("overall_causal_validation_score", 0),
             "supplementary_tests": {
-                "pharmacological_specificity": results.get(
-                    "pharmacological_specificity"
-                ),
+                "pharmacological_specificity": results.get("pharmacological_specificity"),
                 "medication_tms_interaction": results.get("medication_tms_interaction"),
             },
         }
@@ -1640,9 +1433,7 @@ def run_protocol_main(config=None):
                 passed=pred_data.get("passed", False),
                 value=pred_data.get("actual"),
                 threshold=pred_data.get("threshold"),
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
+                status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
                 sources=["VP_10_CausalManipulations_Priority2"],
                 metadata=pred_data,
@@ -1658,9 +1449,7 @@ def run_protocol_main(config=None):
             errors=legacy_result.get("errors", []),
             metadata={
                 "status": legacy_result.get("status"),
-                "overall_causal_validation_score": legacy_result.get(
-                    "overall_causal_validation_score", 0
-                ),
+                "overall_causal_validation_score": legacy_result.get("overall_causal_validation_score", 0),
             },
         )
 
@@ -1671,9 +1460,7 @@ def run_protocol_main(config=None):
         "passed": legacy_result.get("passed", False),
         "status": legacy_result.get("status", "unknown"),
         "named_predictions": legacy_result.get("named_predictions", {}),
-        "overall_causal_validation_score": legacy_result.get(
-            "overall_causal_validation_score", 0
-        ),
+        "overall_causal_validation_score": legacy_result.get("overall_causal_validation_score", 0),
         "supplementary_tests": legacy_result.get("supplementary_tests", {}),
         "timestamp": datetime.now().isoformat(),
     }
@@ -1704,9 +1491,7 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
     vp10_dlpfc_tms = vp10_results.get("P2.a", {})
 
     # Check consistency
-    passed = fp01_threshold_dynamics.get("passed", False) and vp10_dlpfc_tms.get(
-        "passed", False
-    )
+    passed = fp01_threshold_dynamics.get("passed", False) and vp10_dlpfc_tms.get("passed", False)
 
     # Determine direction consistency
     direction_consistent = True
@@ -1730,12 +1515,8 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
             f"VP-10 P2.a (dlPFC TMS): {vp10_dlpfc_tms.get('passed')}",
             f"Direction consistency: {direction_consistent}",
         ],
-        "fp01_threshold_direction": fp01_threshold_dynamics.get(
-            "threshold_direction", "unknown"
-        ),
-        "vp10_threshold_shift_direction": vp10_dlpfc_tms.get(
-            "threshold_shift_direction", "unknown"
-        ),
+        "fp01_threshold_direction": fp01_threshold_dynamics.get("threshold_direction", "unknown"),
+        "vp10_threshold_shift_direction": vp10_dlpfc_tms.get("threshold_shift_direction", "unknown"),
         "cross_protocol_prediction_alignment": direction_consistent,
     }
 
@@ -1966,12 +1747,7 @@ def check_falsification(
 
     # V10.1: Selective Disruption
     logger.info("Testing V10.1: Selective Disruption")
-    v10_1_pass = (
-        ignition_reduction >= 25
-        and early_erp_change <= 20
-        and cohens_d_ignition >= 0.55
-        and tost_erp_passed
-    )
+    v10_1_pass = ignition_reduction >= 25 and early_erp_change <= 20 and cohens_d_ignition >= 0.55 and tost_erp_passed
     results["criteria"]["V10.1"] = {
         "passed": v10_1_pass,
         "ignition_reduction_pct": ignition_reduction,
@@ -2018,14 +1794,12 @@ def check_falsification(
         bonferroni_result = apply_multiple_comparison_correction(
             p_values=criteria_p_values, method="bonferroni", alpha=0.05
         )
-        fdr_result = apply_multiple_comparison_correction(
-            p_values=criteria_p_values, method="fdr_bh", alpha=0.05
-        )
+        fdr_result = apply_multiple_comparison_correction(p_values=criteria_p_values, method="fdr_bh", alpha=0.05)
         results["multiple_comparison_correction"] = {
-            "bonferroni": bonferroni_result,
-            "fdr_bh": fdr_result,
             "n_tests": len(criteria_p_values),
             "correction_applied": True,
+            "bonferroni_result": bonferroni_result,
+            "fdr_result": fdr_result,
         }
     else:
         results["multiple_comparison_correction"] = {
@@ -2074,9 +1848,7 @@ class PharmacologicalSpecificityTest:
     def __init__(self):
         self.test_results = {}
 
-    def _simulate_propranolol_neural_mechanism(
-        self, baseline_state: Dict, dose_mg: float = 40.0
-    ) -> Dict:
+    def _simulate_propranolol_neural_mechanism(self, baseline_state: Dict, dose_mg: float = 40.0) -> Dict:
         """
         Simulate propranolol's neural mechanism via peripheral β-blockade.
 
@@ -2098,24 +1870,20 @@ class PharmacologicalSpecificityTest:
 
         # Propranolol effects (peripheral mechanism)
         # 1. Reduced cardiac output variability → reduced signal bandwidth
-        modified_state["cardiac_hrv"] = baseline_state.get("cardiac_hrv", 1.0) * (
-            1.0 - 0.35 * dose_factor
-        )
+        modified_state["cardiac_hrv"] = baseline_state.get("cardiac_hrv", 1.0) * (1.0 - 0.35 * dose_factor)
 
         # 2. Attenuated afferent signal strength from periphery
-        modified_state["afferent_signal_strength"] = baseline_state.get(
-            "afferent_signal_strength", 1.0
-        ) * (1.0 - 0.3 * dose_factor)
-
-        # 3. Indirect reduction in interoceptive precision (via reduced input quality)
-        modified_state["Pi_i_effective"] = baseline_state.get("Pi_i_effective", 1.0) * (
-            1.0 - 0.25 * dose_factor
+        modified_state["afferent_signal_strength"] = baseline_state.get("afferent_signal_strength", 1.0) * (
+            1.0 - 0.3 * dose_factor
         )
 
+        # 3. Indirect reduction in interoceptive precision (via reduced input quality)
+        modified_state["Pi_i_effective"] = baseline_state.get("Pi_i_effective", 1.0) * (1.0 - 0.25 * dose_factor)
+
         # 4. Insula cortical activity reduced due to reduced input, NOT direct suppression
-        modified_state["insula_cortical_activity"] = baseline_state.get(
-            "insula_cortical_activity", 1.0
-        ) * (1.0 - 0.2 * dose_factor)
+        modified_state["insula_cortical_activity"] = baseline_state.get("insula_cortical_activity", 1.0) * (
+            1.0 - 0.2 * dose_factor
+        )
 
         # 5. Crucially: insula remains CAPABLE of processing (cortical mechanism intact)
         modified_state["insula_processing_capacity"] = baseline_state.get(
@@ -2123,15 +1891,11 @@ class PharmacologicalSpecificityTest:
         )  # Unchanged
 
         # 6. Threshold slightly elevated due to reduced signal clarity
-        modified_state["theta_t"] = baseline_state.get("theta_t", 0.5) * (
-            1.0 + 0.1 * dose_factor
-        )
+        modified_state["theta_t"] = baseline_state.get("theta_t", 0.5) * (1.0 + 0.1 * dose_factor)
 
         return modified_state
 
-    def _simulate_insula_tms_neural_mechanism(
-        self, baseline_state: Dict, intensity_pct: float = 100.0
-    ) -> Dict:
+    def _simulate_insula_tms_neural_mechanism(self, baseline_state: Dict, intensity_pct: float = 100.0) -> Dict:
         """
         Simulate insula TMS neural mechanism via direct cortical stimulation.
 
@@ -2155,53 +1919,47 @@ class PharmacologicalSpecificityTest:
         # Insula TMS effects (direct cortical mechanism)
         # 1. Direct modulation of insula cortical activity (excitation or suppression)
         if intensity_factor <= 1.2:  # Sub-threshold: facilitatory
-            modified_state["insula_cortical_activity"] = baseline_state.get(
-                "insula_cortical_activity", 1.0
-            ) * (1.0 + 0.4 * intensity_factor)
-            modified_state["insula_processing_capacity"] = baseline_state.get(
-                "insula_processing_capacity", 1.0
-            ) * (1.0 + 0.2 * intensity_factor)
+            modified_state["insula_cortical_activity"] = baseline_state.get("insula_cortical_activity", 1.0) * (
+                1.0 + 0.4 * intensity_factor
+            )
+            modified_state["insula_processing_capacity"] = baseline_state.get("insula_processing_capacity", 1.0) * (
+                1.0 + 0.2 * intensity_factor
+            )
         else:  # Suprathreshold: inhibitory (stimulation-induced disruption)
-            modified_state["insula_cortical_activity"] = baseline_state.get(
-                "insula_cortical_activity", 1.0
-            ) * (1.0 - 0.3 * intensity_factor)
-            modified_state["insula_processing_capacity"] = baseline_state.get(
-                "insula_processing_capacity", 1.0
-            ) * (1.0 - 0.4 * intensity_factor)
+            modified_state["insula_cortical_activity"] = baseline_state.get("insula_cortical_activity", 1.0) * (
+                1.0 - 0.3 * intensity_factor
+            )
+            modified_state["insula_processing_capacity"] = baseline_state.get("insula_processing_capacity", 1.0) * (
+                1.0 - 0.4 * intensity_factor
+            )
 
         # 2. Disruption of theta-gamma coupling in insula
-        modified_state["insula_theta_gamma_coupling"] = baseline_state.get(
-            "insula_theta_gamma_coupling", 0.5
-        ) * (1.0 - 0.3 * intensity_factor)
+        modified_state["insula_theta_gamma_coupling"] = baseline_state.get("insula_theta_gamma_coupling", 0.5) * (
+            1.0 - 0.3 * intensity_factor
+        )
 
         # 3. Changes in effective connectivity with dlPFC
-        modified_state["insula_dlpfc_connectivity"] = baseline_state.get(
-            "insula_dlpfc_connectivity", 0.5
-        ) * (1.0 - 0.25 * intensity_factor)
+        modified_state["insula_dlpfc_connectivity"] = baseline_state.get("insula_dlpfc_connectivity", 0.5) * (
+            1.0 - 0.25 * intensity_factor
+        )
 
         # 4. Direct effect on interoceptive precision (cortical processing change)
         if intensity_factor <= 1.2:
-            modified_state["Pi_i_effective"] = baseline_state.get(
-                "Pi_i_effective", 1.0
-            ) * (1.0 + 0.3 * intensity_factor)
+            modified_state["Pi_i_effective"] = baseline_state.get("Pi_i_effective", 1.0) * (
+                1.0 + 0.3 * intensity_factor
+            )
         else:
-            modified_state["Pi_i_effective"] = baseline_state.get(
-                "Pi_i_effective", 1.0
-            ) * (1.0 - 0.35 * intensity_factor)
+            modified_state["Pi_i_effective"] = baseline_state.get("Pi_i_effective", 1.0) * (
+                1.0 - 0.35 * intensity_factor
+            )
 
         # 5. Cardiac afferents unchanged (peripheral signals intact)
-        modified_state["cardiac_hrv"] = baseline_state.get(
-            "cardiac_hrv", 1.0
-        )  # Unchanged
-        modified_state["afferent_signal_strength"] = baseline_state.get(
-            "afferent_signal_strength", 1.0
-        )  # Unchanged
+        modified_state["cardiac_hrv"] = baseline_state.get("cardiac_hrv", 1.0)  # Unchanged
+        modified_state["afferent_signal_strength"] = baseline_state.get("afferent_signal_strength", 1.0)  # Unchanged
 
         return modified_state
 
-    def test_circuit_specificity(
-        self, n_trials: int = 100, seed: int = 42
-    ) -> Dict[str, Any]:
+    def test_circuit_specificity(self, n_trials: int = 100, seed: int = 42) -> Dict[str, Any]:
         """
         Test that propranolol and insula TMS produce distinct neural signatures.
 
@@ -2233,56 +1991,40 @@ class PharmacologicalSpecificityTest:
 
         # Key specificity metrics
         results = {
-            "propranolol_cardiac_reduction": baseline["cardiac_hrv"]
-            - propranolol_state["cardiac_hrv"],
-            "insula_tms_cardiac_reduction": baseline["cardiac_hrv"]
-            - insula_tms_state["cardiac_hrv"],
+            "propranolol_cardiac_reduction": baseline["cardiac_hrv"] - propranolol_state["cardiac_hrv"],
+            "insula_tms_cardiac_reduction": baseline["cardiac_hrv"] - insula_tms_state["cardiac_hrv"],
             "propranolol_cortical_change": abs(
-                propranolol_state["insula_processing_capacity"]
-                - baseline["insula_processing_capacity"]
+                propranolol_state["insula_processing_capacity"] - baseline["insula_processing_capacity"]
             ),
             "insula_tms_cortical_change": abs(
-                insula_tms_state["insula_processing_capacity"]
-                - baseline["insula_processing_capacity"]
+                insula_tms_state["insula_processing_capacity"] - baseline["insula_processing_capacity"]
             ),
             "propranolol_afferent_reduction": baseline["afferent_signal_strength"]
             - propranolol_state["afferent_signal_strength"],
             "insula_tms_afferent_reduction": baseline["afferent_signal_strength"]
             - insula_tms_state["afferent_signal_strength"],
             "propranolol_connectivity_change": abs(
-                propranolol_state["insula_dlpfc_connectivity"]
-                - baseline["insula_dlpfc_connectivity"]
+                propranolol_state["insula_dlpfc_connectivity"] - baseline["insula_dlpfc_connectivity"]
             ),
             "insula_tms_connectivity_change": abs(
-                insula_tms_state["insula_dlpfc_connectivity"]
-                - baseline["insula_dlpfc_connectivity"]
+                insula_tms_state["insula_dlpfc_connectivity"] - baseline["insula_dlpfc_connectivity"]
             ),
         }
 
         # Specificity test: propranolol affects cardiac > cortical, TMS affects cortical > cardiac
         propranolol_cardiac_vs_cortical = (
-            results["propranolol_cardiac_reduction"]
-            > results["propranolol_cortical_change"]
+            results["propranolol_cardiac_reduction"] > results["propranolol_cortical_change"]
         )
-        tms_cortical_vs_cardiac = (
-            results["insula_tms_cortical_change"]
-            > results["insula_tms_cardiac_reduction"]
-        )
+        tms_cortical_vs_cardiac = results["insula_tms_cortical_change"] > results["insula_tms_cardiac_reduction"]
 
         # Double dissociation criterion
-        double_dissociation = (
-            propranolol_cardiac_vs_cortical and tms_cortical_vs_cardiac
-        )
+        double_dissociation = propranolol_cardiac_vs_cortical and tms_cortical_vs_cardiac
 
         # Statistical significance of difference (simulated with effect sizes)
         cardiac_specificity_d = (
-            results["propranolol_cardiac_reduction"]
-            - results["insula_tms_cardiac_reduction"]
+            results["propranolol_cardiac_reduction"] - results["insula_tms_cardiac_reduction"]
         ) / 0.15  # Assuming SD=0.15
-        cortical_specificity_d = (
-            results["insula_tms_cortical_change"]
-            - results["propranolol_cortical_change"]
-        ) / 0.15
+        cortical_specificity_d = (results["insula_tms_cortical_change"] - results["propranolol_cortical_change"]) / 0.15
 
         return {
             "specificity_passed": double_dissociation,
@@ -2386,13 +2128,7 @@ class MedicationTMSInteractionTest:
                     # Add noise
                     noise = np.random.normal(0, 0.05)
 
-                    outcome = (
-                        baseline_threshold
-                        + med_effect
-                        + tms_effect
-                        + interaction
-                        + noise
-                    )
+                    outcome = baseline_threshold + med_effect + tms_effect + interaction + noise
 
                     data.append(
                         {
@@ -2415,14 +2151,8 @@ class MedicationTMSInteractionTest:
         ss_total = ((df["threshold"] - grand_mean) ** 2).sum()
 
         # SS for effects
-        ss_medication = sum(
-            len(df[df["medication"] == m]) * (med_means[m] - grand_mean) ** 2
-            for m in medications
-        )
-        ss_tms = sum(
-            len(df[df["tms_site"] == t]) * (tms_means[t] - grand_mean) ** 2
-            for t in tms_sites
-        )
+        ss_medication = sum(len(df[df["medication"] == m]) * (med_means[m] - grand_mean) ** 2 for m in medications)
+        ss_tms = sum(len(df[df["tms_site"] == t]) * (tms_means[t] - grand_mean) ** 2 for t in tms_sites)
 
         # Interaction SS
         ss_interaction = 0
@@ -2442,19 +2172,11 @@ class MedicationTMSInteractionTest:
 
         # Mean squares
         ms_int = ss_interaction / df_int if df_int > 0 else 0
-        ms_error = (
-            (ss_total - ss_medication - ss_tms - ss_interaction) / df_error
-            if df_error > 0
-            else 0
-        )
+        ms_error = (ss_total - ss_medication - ss_tms - ss_interaction) / df_error if df_error > 0 else 0
 
         # F-statistic and p-value
         f_interaction = ms_int / ms_error if ms_error > 0 else 0
-        p_interaction = (
-            1 - stats.f.cdf(f_interaction, df_int, df_error)
-            if f_interaction > 0
-            else 1.0
-        )
+        p_interaction = 1 - stats.f.cdf(f_interaction, df_int, df_error) if f_interaction > 0 else 1.0
 
         # Effect size
         eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
@@ -2479,9 +2201,7 @@ class MedicationTMSInteractionTest:
                 "significant": interaction_significant,
             },
             "cell_means": {
-                f"{med}_{tms}": float(cell_means.get((med, tms), 0))
-                for med in medications
-                for tms in tms_sites
+                f"{med}_{tms}": float(cell_means.get((med, tms), 0)) for med in medications for tms in tms_sites
             },
             "type_i_error_control": {
                 "risk_detected": type_i_error_risk,
@@ -2593,10 +2313,7 @@ class ColdPressorTest:
                 results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"HR exceeded: {cardiovascular_response['hr_bpm']}"
                 )
-            if (
-                cardiovascular_response["sbp_mmhg"]  # type: ignore[operator]
-                > self.safety_criteria["max_sbp_mmhg"]
-            ):
+            if cardiovascular_response["sbp_mmhg"] > self.safety_criteria["max_sbp_mmhg"]:  # type: ignore[operator]
                 results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"SBP exceeded: {cardiovascular_response['sbp_mmhg']}"
                 )
@@ -2749,18 +2466,14 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 
-def validate_p2a_tms_log_ignition(
-    pre_theta, post_theta, alpha_param=5.0, surplus_s=0.5
-):
+def validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param=5.0, surplus_s=0.5):
     """Standalone wrapper for P2.a TMS log ignition validation."""
     config = {"significance_level": 0.01, "power_threshold": 0.8}
     validator = CausalManipulationsValidator(config)
     # Convert scalars to arrays if needed
     pre_theta = np.atleast_1d(np.asarray(pre_theta, dtype=float))
     post_theta = np.atleast_1d(np.asarray(post_theta, dtype=float))
-    return validator.validate_p2a_tms_log_ignition(
-        pre_theta, post_theta, alpha_param, surplus_s
-    )
+    return validator.validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param, surplus_s)
 
 
 def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
@@ -2775,9 +2488,7 @@ def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
     return validator.validate_p2b_hep_pci(pre_hep, post_hep, pre_pci, post_pci)
 
 
-def validate_p2c_high_ia_interaction(
-    tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
-):
+def validate_p2c_high_ia_interaction(tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b):
     """Standalone wrapper for P2.c high IA interaction validation."""
     config = {"significance_level": 0.01, "power_threshold": 0.8}
     validator = CausalManipulationsValidator(config)
@@ -2786,9 +2497,7 @@ def validate_p2c_high_ia_interaction(
     tms_drug_b = np.atleast_1d(np.asarray(tms_drug_b, dtype=float))
     pharm_drug_a = np.atleast_1d(np.asarray(pharm_drug_a, dtype=float))
     pharm_drug_b = np.atleast_1d(np.asarray(pharm_drug_b, dtype=float))
-    return validator.validate_p2c_interaction_eta_squared(
-        tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
-    )
+    return validator.validate_p2c_interaction_eta_squared(tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b)
 
 
 def validate() -> Dict[str, Any]:
@@ -2807,9 +2516,7 @@ def validate() -> Dict[str, Any]:
 
         # Add metadata
         results["protocol_name"] = "VP_10_CausalManipulations_Priority2"
-        results["protocol_description"] = (
-            "Causal manipulations that selectively disrupt ignition parameters"
-        )
+        results["protocol_description"] = "Causal manipulations that selectively disrupt ignition parameters"
         results["validation_timestamp"] = str(pd.Timestamp.now())
 
         return results

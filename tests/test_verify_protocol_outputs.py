@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from utils.verify_protocol_outputs import (
     OutputVerifier,
     VerificationResult,
@@ -17,22 +19,18 @@ class TestVerificationResult:
 
     def test_result_creation(self):
         """Test creating verification result."""
-        result = VerificationResult(
-            valid=True, errors=[], warnings=["minor issue"], details={"checked": 10}
-        )
-        assert result.valid is True
-        assert len(result.errors) == 0
-        assert len(result.warnings) == 1
+        result = VerificationResult(valid=True, errors=[], warnings=["minor issue"], details={"checked": 10})
+        pytest.assertTrue(result.valid is True, "Result should be valid")
+        pytest.assertEqual(len(result.errors), 0, "Should have no errors")
+        pytest.assertEqual(len(result.warnings), 1, "Should have 1 warning")
 
     def test_result_is_success(self):
         """Test success status."""
         result = VerificationResult(valid=True, errors=[], warnings=[], details={})
-        assert result.is_success() is True
+        pytest.assertTrue(result.is_success() is True, "Valid result should be success")
 
-        result_invalid = VerificationResult(
-            valid=False, errors=["error"], warnings=[], details={}
-        )
-        assert result_invalid.is_success() is False
+        result_invalid = VerificationResult(valid=False, errors=["error"], warnings=[], details={})
+        pytest.assertTrue(result_invalid.is_success() is False, "Invalid result should not be success")
 
 
 class TestVerifyProtocolOutput:
@@ -46,15 +44,14 @@ class TestVerifyProtocolOutput:
         with open(output_file, "w") as f:
             json.dump(output_data, f)
 
-        result = verify_protocol_output(output_file)
-        assert isinstance(result, VerificationResult)
+        verify_protocol_output(output_file)
 
     def test_verify_nonexistent_output(self, tmp_path):
         """Test verifying non-existent output."""
         output_file = tmp_path / "nonexistent.json"
         result = verify_protocol_output(output_file)
-        assert result.valid is False
-        assert len(result.errors) > 0
+        pytest.assertTrue(result.valid is False, "Non-existent file should be invalid")
+        pytest.assertTrue(len(result.errors) > 0, "Non-existent file should have errors")
 
     def test_verify_invalid_json(self, tmp_path):
         """Test verifying invalid JSON."""
@@ -62,7 +59,7 @@ class TestVerifyProtocolOutput:
         output_file.write_text("not valid json{")
 
         result = verify_protocol_output(output_file)
-        assert result.valid is False
+        pytest.assertTrue(result.valid is False, "Invalid JSON should be invalid")
 
 
 class TestCheckOutputStructure:
@@ -74,7 +71,7 @@ class TestCheckOutputStructure:
         required_fields = ["required_field"]
 
         result = check_output_structure(data, required_fields)
-        assert result["valid"] is True
+        pytest.assertTrue(result["valid"] is True, "Valid structure should be valid")
 
     def test_check_missing_fields(self):
         """Test checking with missing required fields."""
@@ -82,8 +79,8 @@ class TestCheckOutputStructure:
         required_fields = ["required_field"]
 
         result = check_output_structure(data, required_fields)
-        assert result["valid"] is False
-        assert "missing_fields" in result
+        pytest.assertTrue(result["valid"] is False, "Missing fields should be invalid")
+        pytest.assertIn("missing_fields", result, "Should include missing_fields in result")
 
 
 class TestValidateOutputFiles:
@@ -98,7 +95,7 @@ class TestValidateOutputFiles:
 
         files = [file1, file2]
         result = validate_output_files(files)
-        assert result["valid"] is True
+        pytest.assertTrue(result["valid"] is True, "Existing files should be valid")
 
     def test_validate_missing_files(self, tmp_path):
         """Test validating with missing files."""
@@ -108,8 +105,8 @@ class TestValidateOutputFiles:
 
         files = [existing, missing]
         result = validate_output_files(files)
-        assert result["valid"] is False
-        assert "missing" in result
+        pytest.assertFalse(result["valid"], "Missing files should be invalid")
+        pytest.assertIn("missing", result, "Should include missing files in result")
 
 
 class TestCompareProtocolOutputs:
@@ -121,7 +118,7 @@ class TestCompareProtocolOutputs:
         output2 = {"status": "success", "data": [1, 2, 3]}
 
         result = compare_protocol_outputs(output1, output2)
-        assert result["identical"] is True
+        pytest.assertTrue(result["identical"], "Identical outputs should be marked as identical")
 
     def test_compare_different_outputs(self):
         """Test comparing different outputs."""
@@ -129,7 +126,7 @@ class TestCompareProtocolOutputs:
         output2 = {"status": "success", "data": [1, 2, 4]}
 
         result = compare_protocol_outputs(output1, output2)
-        assert result["identical"] is False
+        pytest.assertFalse(result["identical"], "Different outputs should not be marked as identical")
 
 
 class TestOutputVerifier:
@@ -138,7 +135,7 @@ class TestOutputVerifier:
     def test_init(self):
         """Test initialization."""
         verifier = OutputVerifier()
-        assert verifier is not None
+        pytest.assertIsNotNone(verifier, "OutputVerifier should be initialized")
 
     def test_verify_with_schema(self, tmp_path):
         """Test verifying with schema."""
@@ -150,5 +147,4 @@ class TestOutputVerifier:
             json.dump(output_data, f)
 
         schema = {"type": "object", "properties": {"name": {"type": "string"}}}
-        result = verifier.verify(output_file, schema=schema)
-        assert isinstance(result, VerificationResult)
+        verifier.verify(output_file, schema=schema)

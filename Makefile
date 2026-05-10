@@ -36,8 +36,14 @@ test-full:
 		--cov-fail-under=100
 
 lint:
-	python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 
-	python3 -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+	@echo "Running black formatting (skipping files with syntax errors)..."
+	@python3 -m black . 2>/dev/null || true
+	@echo "Running flake8 for syntax errors..."
+	@python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 
+	@echo "Running flake8 for style issues..."
+	@python3 -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+	@echo "Running mypy..."
+	@python3 -m mypy . || true
 	$(MAKE) threshold-lint
 
 threshold-lint:

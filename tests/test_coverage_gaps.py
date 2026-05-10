@@ -716,9 +716,7 @@ class TestLoggingAndMemoryCoverage:
         """Test that logging includes context information."""
         log_buffer = StringIO()
         handler = logging.StreamHandler(log_buffer)
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
 
         logger = logging.getLogger("test_context")
@@ -886,15 +884,11 @@ class TestGUICodeCoverage:
         """Test GUI message dialog functionality."""
         # Test error dialog
         mock_tkinter.messagebox.showerror("Error", "Test error message")
-        mock_tkinter.messagebox.showerror.assert_called_once_with(
-            "Error", "Test error message"
-        )
+        mock_tkinter.messagebox.showerror.assert_called_once_with("Error", "Test error message")
 
         # Test info dialog
         mock_tkinter.messagebox.showinfo("Info", "Test info message")
-        mock_tkinter.messagebox.showinfo.assert_called_once_with(
-            "Info", "Test info message"
-        )
+        mock_tkinter.messagebox.showinfo.assert_called_once_with("Info", "Test info message")
 
         # Test confirmation dialog
         result = mock_tkinter.messagebox.askyesno("Confirm", "Are you sure?")
@@ -910,9 +904,7 @@ class TestGUICodeCoverage:
         assert result == "/tmp/test.txt"
 
         # Test open dialog
-        result = mock_tkinter.filedialog.askopenfilename(
-            filetypes=[("Text files", "*.txt")]
-        )
+        result = mock_tkinter.filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
         assert result == "/tmp/test.txt"
 
     def test_gui_event_handling(self, mock_tkinter):

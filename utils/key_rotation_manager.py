@@ -15,25 +15,52 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, cast
 
+# Try to import TypeAlias, fallback if not available
+try:
+    from typing import TypeAlias
+except ImportError:
+    TypeAlias = type  # type: ignore[assignment]
+
 # Apply Python 3.14 NumPy compatibility patches first
 try:
     from tests.python314_numpy_fixes import *  # noqa: F403,F401
 except ImportError:
     pass
 
+# Fallback for missing cryptography package
+
+
+class FernetFallback:
+    def __init__(self, key):
+        self.key = key
+
+    @staticmethod
+    def generate_key() -> bytes:
+        """Generate a dummy key for fallback implementation"""
+        return b"dummy_key_32_bytes_long_fallback"
+
+    def encrypt(self, data):
+        return data
+
+    def decrypt(self, data):
+        return data
+
+
+# Try to import cryptography, fallback to dummy implementation
+_Fernet_impl: Any = None
+FernetType: Any = None
+
 try:
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet as CryptographyFernet
+
+    _Fernet_impl = CryptographyFernet
+    FernetType = type[CryptographyFernet]  # type: ignore[misc]
 except ImportError:
-    # Fallback for missing cryptography package
-    class Fernet:
-        def __init__(self, key):
-            self.key = key
+    CryptographyFernet = FernetFallback  # type: ignore
+    _Fernet_impl = FernetFallback  # type: ignore[misc]
+    FernetType = type[FernetFallback]  # type: ignore[misc]
 
-        def encrypt(self, data):
-            return data
-
-        def decrypt(self, data):
-            return data
+_Fernet: FernetType = _Fernet_impl
 
 
 try:
@@ -149,9 +176,7 @@ class KeyRotationManager:
         # Save encrypted key
         master_key = os.environ.get("APGI_MASTER_KEY")
         if not master_key:
-            allow_ephemeral = os.environ.get(
-                "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
-            ).strip().lower() in {
+            allow_ephemeral = os.environ.get("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "").strip().lower() in {
                 "1",
                 "true",
                 "yes",
@@ -161,13 +186,13 @@ class KeyRotationManager:
                     "APGI_MASTER_KEY is not set. Set APGI_MASTER_KEY, or (dev/tests only) "
                     "set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral master key."
                 )
-            master_key = Fernet.generate_key().decode()
+            master_key = _Fernet.generate_key().decode()
             os.environ["APGI_MASTER_KEY"] = master_key
         else:
             # Validate the master key format - if invalid, we have a problem
             # because we can't decrypt existing keys
             try:
-                Fernet(master_key.encode())
+                _Fernet(master_key.encode())
             except ValueError:
                 # Invalid key format - this is a critical error
                 # We cannot decrypt existing keys with an invalid master key
@@ -176,7 +201,7 @@ class KeyRotationManager:
                     "Please set a valid APGI_MASTER_KEY environment variable or unset it to generate a new one."
                 ) from None
 
-        fernet = Fernet(master_key.encode())
+        fernet = _Fernet(master_key.encode())
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
         encrypted = fernet.encrypt(key_b64.encode("utf-8"))
 
@@ -203,9 +228,7 @@ class KeyRotationManager:
         try:
             master_key = os.environ.get("APGI_MASTER_KEY")
             if not master_key:
-                allow_ephemeral = os.environ.get(
-                    "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
-                ).strip().lower() in {
+                allow_ephemeral = os.environ.get("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "").strip().lower() in {
                     "1",
                     "true",
                     "yes",
@@ -215,7 +238,7 @@ class KeyRotationManager:
                         "APGI_MASTER_KEY is not set. Set APGI_MASTER_KEY, or (dev/tests only) "
                         "set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral master key."
                     )
-                master_key = Fernet.generate_key().decode()
+                master_key = _Fernet.generate_key().decode()
                 os.environ["APGI_MASTER_KEY"] = master_key
                 self.logger.info(
                     "APGI_MASTER_KEY not set; generated ephemeral key because "
@@ -224,22 +247,20 @@ class KeyRotationManager:
             else:
                 # Validate the master key format
                 try:
-                    Fernet(master_key.encode())
+                    _Fernet(master_key.encode())
                 except ValueError:
                     raise ValueError(
                         "Invalid APGI_MASTER_KEY format. Master key must be 32 url-safe base64-encoded bytes."
                     ) from None
 
-            fernet = Fernet(master_key.encode())
+            fernet = _Fernet(master_key.encode())
             encrypted = key_file.read_bytes()
 
             try:
                 key_b64 = fernet.decrypt(encrypted).decode("utf-8")
             except Exception:
                 # Fallback for old base64-only keys to allow migrating
-                self.logger.warning(
-                    f"Failed to decrypt {key_type}, falling back to legacy base64 load."
-                )
+                self.logger.warning(f"Failed to decrypt {key_type}, falling back to legacy base64 load.")
                 key_b64 = encrypted.decode("utf-8")
 
             # Fix base64 padding issues
@@ -312,11 +333,9 @@ class KeyRotationManager:
                 if master_key:
                     # Validate master key before using
                     try:
-                        fernet = Fernet(master_key.encode())
+                        fernet = _Fernet(master_key.encode())
                     except ValueError:
-                        self.logger.warning(
-                            "Invalid APGI_MASTER_KEY format, cannot decrypt pickle key"
-                        )
+                        self.logger.warning("Invalid APGI_MASTER_KEY format, cannot decrypt pickle key")
                         return
                     encrypted = pickle_key_file.read_bytes()
                     key_b64 = fernet.decrypt(encrypted).decode("utf-8")
@@ -331,11 +350,9 @@ class KeyRotationManager:
                 if master_key:
                     # Validate master key before using
                     try:
-                        fernet = Fernet(master_key.encode())
+                        fernet = _Fernet(master_key.encode())
                     except ValueError:
-                        self.logger.warning(
-                            "Invalid APGI_MASTER_KEY format, cannot decrypt backup key"
-                        )
+                        self.logger.warning("Invalid APGI_MASTER_KEY format, cannot decrypt backup key")
                         return
                     encrypted = backup_key_file.read_bytes()
                     key_b64 = fernet.decrypt(encrypted).decode("utf-8")
@@ -391,9 +408,7 @@ class KeyRotationManager:
         # Invalidate all in-flight references across the application
         invalidate_all_key_references()
 
-        self.logger.info(
-            f"Rotated {key_type}: {old_fingerprint[:8]}... -> {new_fingerprint[:8]}..."
-        )
+        self.logger.info(f"Rotated {key_type}: {old_fingerprint[:8]}... -> {new_fingerprint[:8]}...")
 
         return old_fingerprint, new_fingerprint
 
@@ -453,9 +468,10 @@ class KeyRotationManager:
             for key_type in ["pickle_key", "backup_key"]:
                 key_info = self.metadata[key_type]
                 if key_info and key_info.get("current"):
+                    current_key = key_info["current"]
                     status["keys"][key_type] = {
-                        "fingerprint": key_info["current"]["fingerprint"],
-                        "created_at": key_info["current"]["created_at"],
+                        "fingerprint": current_key.get("fingerprint"),
+                        "created_at": current_key.get("created_at"),
                         "rotation_count": len(key_info.get("rotation_history", [])),
                     }
                 else:
@@ -476,9 +492,7 @@ class KeyRotationManager:
         }
 
         # Log notification
-        self.logger.info(
-            f"Key rotation notification: {json.dumps(notification, indent=2)}"
-        )
+        self.logger.info(f"Key rotation notification: {json.dumps(notification, indent=2)}")
 
     def force_rotation(self, key_type: Optional[str] = None) -> Dict:
         """

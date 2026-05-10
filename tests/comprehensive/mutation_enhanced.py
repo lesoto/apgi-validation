@@ -58,9 +58,7 @@ class HTMLReportGenerator:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_report(
-        self, report: Dict[str, Any], output_name: str = "mutation_enhanced"
-    ) -> Path:
+    def generate_report(self, report: Dict[str, Any], output_name: str = "mutation_enhanced") -> Path:
         """Generate comprehensive HTML report."""
         html_path = self.output_dir / f"{output_name}.html"
 
@@ -504,15 +502,11 @@ class HTMLReportGenerator:
         # Generate additional recommendations based on score
         additional_recs = []
         if mutation_score < 80:
-            additional_recs.append(
-                "Add more specific assertions to kill surviving mutants"
-            )
+            additional_recs.append("Add more specific assertions to kill surviving mutants")
             additional_recs.append("Consider adding boundary value tests")
         if mutation_score < 60:
             additional_recs.append("Review test coverage for critical paths")
-            additional_recs.append(
-                "Add integration tests that verify end-to-end behavior"
-            )
+            additional_recs.append("Add integration tests that verify end-to-end behavior")
 
         all_recs = recommendations + additional_recs
 
@@ -549,9 +543,7 @@ class EnhancedMutationTester(MutationTester):
         parallel_workers: int = 4,
         score_target: MutationScoreTarget = None,
     ):
-        super().__init__(
-            target_modules, test_modules, timeout_seconds, parallel_workers
-        )
+        super().__init__(target_modules, test_modules, timeout_seconds, parallel_workers)
         self.score_target = score_target or MutationScoreTarget()
         self.html_generator = HTMLReportGenerator()
 
@@ -575,9 +567,7 @@ class EnhancedMutationTester(MutationTester):
         recommendations = self._generate_recommendations(base_report)
 
         # Generate HTML report
-        html_path = self.html_generator.generate_report(
-            base_report, "mutation_enhanced"
-        )
+        html_path = self.html_generator.generate_report(base_report, "mutation_enhanced")
 
         # Build enhanced report
         enhanced_report = EnhancedMutationReport(
@@ -614,9 +604,7 @@ class EnhancedMutationTester(MutationTester):
 
         # Check for specific mutation types that survived
         comparison_survivors = sum(
-            1
-            for s in survived
-            if any(t in s.get("type", "") for t in ["GT_TO_GE", "LT_TO_LE", "EQ_TO_NE"])
+            1 for s in survived if any(t in s.get("type", "") for t in ["GT_TO_GE", "LT_TO_LE", "EQ_TO_NE"])
         )
         if comparison_survivors > 0:
             recommendations.append(
@@ -625,9 +613,7 @@ class EnhancedMutationTester(MutationTester):
             )
 
         arithmetic_survivors = sum(
-            1
-            for s in survived
-            if any(t in s.get("type", "") for t in ["ADD_TO_SUB", "MUL_TO_DIV"])
+            1 for s in survived if any(t in s.get("type", "") for t in ["ADD_TO_SUB", "MUL_TO_DIV"])
         )
         if arithmetic_survivors > 0:
             recommendations.append(
@@ -654,9 +640,7 @@ class EnhancedMutationTester(MutationTester):
 
         # Calculate percentages
         for module, stats in coverage.items():
-            stats["mutation_score"] = int(
-                stats["killed"] / stats["total"] * 100 if stats["total"] > 0 else 0
-            )
+            stats["mutation_score"] = int(stats["killed"] / stats["total"] * 100 if stats["total"] > 0 else 0)
 
         return coverage
 
@@ -686,9 +670,7 @@ class EnhancedMutationTester(MutationTester):
         if report.target_met:
             print("✅ Target mutation score of ≥80% achieved!")
         else:
-            print(
-                f"⚠️ Target mutation score of ≥80% not achieved. Current: {report.mutation_score:.1f}%"
-            )
+            print(f"⚠️ Target mutation score of ≥80% not achieved. Current: {report.mutation_score:.1f}%")
 
 
 def run_enhanced_mutation_testing() -> EnhancedMutationReport:

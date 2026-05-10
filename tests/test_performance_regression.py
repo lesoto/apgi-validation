@@ -154,9 +154,7 @@ class TestPerformanceRegression:
 
         start_time = time.time()
         for _ in range(100):
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=True
-            ) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=True) as f:
                 json.dump(test_data, f)
                 f.flush()
         elapsed = time.time() - start_time

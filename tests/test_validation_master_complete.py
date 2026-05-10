@@ -25,54 +25,48 @@ class TestAPGIMasterValidator:
 
     def test_validator_creation(self, validator):
         """Test validator initialization"""
-        assert isinstance(validator.protocol_results, dict)
-        assert isinstance(validator.PROTOCOL_TIERS, dict)
-        assert isinstance(validator.falsification_status, dict)
-        assert validator.timeout_seconds == 3600
+        pytest.assume(isinstance(validator.protocol_results, dict))
+        pytest.assume(isinstance(validator.PROTOCOL_TIERS, dict))
+        pytest.assume(isinstance(validator.falsification_status, dict))
+        pytest.assume(validator.timeout_seconds == 3600)
 
     def test_protocol_tiers_structure(self, validator):
         """Test protocol tiers structure"""
-        assert 1 in validator.PROTOCOL_TIERS
-        assert 2 in validator.PROTOCOL_TIERS
-        assert validator.PROTOCOL_TIERS[1] == "primary"
-        assert validator.PROTOCOL_TIERS[2] == "primary"
+        pytest.assume(1 in validator.PROTOCOL_TIERS)
+        pytest.assume(2 in validator.PROTOCOL_TIERS)
+        pytest.assume(validator.PROTOCOL_TIERS[1] == "primary")
+        pytest.assume(validator.PROTOCOL_TIERS[2] == "primary")
 
     def test_primary_protocols(self, validator):
         """Test primary protocol assignments"""
-        primary_protocols = [
-            k for k, v in validator.PROTOCOL_TIERS.items() if v == "primary"
-        ]
-        assert 1 in primary_protocols
-        assert 2 in primary_protocols
+        primary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "primary"]
+        pytest.assume(1 in primary_protocols)
+        pytest.assume(2 in primary_protocols)
 
     def test_secondary_protocols(self, validator):
         """Test secondary protocol assignments"""
-        secondary_protocols = [
-            k for k, v in validator.PROTOCOL_TIERS.items() if v == "secondary"
-        ]
-        assert 3 in secondary_protocols
-        assert 4 in secondary_protocols
-        assert 8 in secondary_protocols
-        assert 11 in secondary_protocols
-        assert 12 in secondary_protocols
+        secondary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "secondary"]
+        pytest.assume(3 in secondary_protocols)
+        pytest.assume(4 in secondary_protocols)
+        pytest.assume(8 in secondary_protocols)
+        pytest.assume(11 in secondary_protocols)
+        pytest.assume(12 in secondary_protocols)
 
     def test_tertiary_protocols(self, validator):
         """Test tertiary protocol assignments"""
-        tertiary_protocols = [
-            k for k, v in validator.PROTOCOL_TIERS.items() if v == "tertiary"
-        ]
-        assert 5 in tertiary_protocols
-        assert 6 in tertiary_protocols
-        assert 7 in tertiary_protocols
-        assert 9 in tertiary_protocols
-        assert 10 in tertiary_protocols
+        tertiary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "tertiary"]
+        pytest.assume(5 in tertiary_protocols)
+        pytest.assume(6 in tertiary_protocols)
+        pytest.assume(7 in tertiary_protocols)
+        pytest.assume(9 in tertiary_protocols)
+        pytest.assume(10 in tertiary_protocols)
 
     def test_falsification_status_structure(self, validator):
         """Test falsification status dictionary structure"""
-        assert "primary" in validator.falsification_status
-        assert "secondary" in validator.falsification_status
-        assert "tertiary" in validator.falsification_status
-        assert isinstance(validator.falsification_status["primary"], list)
+        pytest.assume("primary" in validator.falsification_status)
+        pytest.assume("secondary" in validator.falsification_status)
+        pytest.assume("tertiary" in validator.falsification_status)
+        pytest.assume(isinstance(validator.falsification_status["primary"], list))
 
     def test_is_protocol_passed_with_metadata(self, validator):
         """Test protocol pass check with metadata"""
@@ -81,7 +75,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is True
+        pytest.assume(result is True)
 
     def test_is_protocol_passed_with_named_predictions_all_pass(self, validator):
         """Test protocol pass check when all named predictions pass"""
@@ -96,7 +90,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {"pred1": pred1, "pred2": pred2}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is True
+        pytest.assume(result is True)
 
     def test_is_protocol_passed_with_named_predictions_some_fail(self, validator):
         """Test protocol pass check when some named predictions fail"""
@@ -111,7 +105,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {"pred1": pred1, "pred2": pred2}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        pytest.assume(result is False)
 
     def test_is_protocol_passed_empty_predictions(self, validator):
         """Test protocol pass check with empty predictions"""
@@ -120,7 +114,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        pytest.assume(result is False)
 
     def test_is_protocol_passed_no_metadata_or_predictions(self, validator):
         """Test protocol pass check with neither metadata nor predictions"""
@@ -129,7 +123,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = None
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        pytest.assume(result is False)
 
 
 class TestProtocolTiers:
@@ -139,23 +133,19 @@ class TestProtocolTiers:
         """Test that all protocols 1-12 have tier assignments"""
         validator = APGIMasterValidator()
         for i in range(1, 13):
-            assert (
-                i in validator.PROTOCOL_TIERS
-            ), f"Protocol {i} missing tier assignment"
+            pytest.assume(i in validator.PROTOCOL_TIERS, f"Protocol {i} missing tier assignment")
 
     def test_no_duplicate_tier_conflicts(self):
         """Test that each protocol has exactly one tier"""
         validator = APGIMasterValidator()
-        assert len(validator.PROTOCOL_TIERS) == len(
-            set(validator.PROTOCOL_TIERS.keys())
-        )
+        pytest.assume(len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys())))
 
     def test_valid_tier_values(self):
         """Test that all tier values are valid"""
         validator = APGIMasterValidator()
         valid_tiers = {"primary", "secondary", "tertiary"}
         for tier in validator.PROTOCOL_TIERS.values():
-            assert tier in valid_tiers, f"Invalid tier value: {tier}"
+            pytest.assume(tier in valid_tiers, f"Invalid tier value: {tier}")
 
 
 class TestEdgeCases:
@@ -168,7 +158,7 @@ class TestEdgeCases:
         try:
             result = validator._is_protocol_passed(None)
             # If it doesn't raise, it should return False
-            assert result is False
+            pytest.assume(result is False)
         except AttributeError:
             # Expected behavior - None doesn't have metadata attribute
             pass
@@ -183,7 +173,7 @@ class TestEdgeCases:
         mock_result = MockResult()
         try:
             result = validator._is_protocol_passed(mock_result)
-            assert result is False
+            pytest.assume(result is False)
         except AttributeError:
             # Expected behavior
             pass
@@ -196,14 +186,14 @@ class TestImports:
         """Test that APGIMasterValidator can be imported"""
         from Validation.Master_Validation import APGIMasterValidator
 
-        assert APGIMasterValidator is not None
+        pytest.assume(APGIMasterValidator is not None)
 
     def test_import_logger(self):
         """Test that logger is available"""
         try:
             from Validation.Master_Validation import logger
 
-            assert logger is not None
+            pytest.assume(logger is not None)
         except ImportError:
             # Logger might not be directly importable
             pass

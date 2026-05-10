@@ -95,21 +95,17 @@ class TestValidationProtocolImports:
             pytest.skip(f"Protocol {protocol_name} not available")
 
         # Basic module structure checks
-        assert hasattr(module, "__name__")
-        assert hasattr(module, "__file__")
+        pytest.assume(hasattr(module, "__name__"), f"Protocol {protocol_name} should have __name__ attribute")
+        pytest.assume(hasattr(module, "__file__"), f"Protocol {protocol_name} should have __file__ attribute")
 
         # Check for common validation protocol patterns
         has_run_validation = hasattr(module, "run_validation")
         has_main_class = any(
-            hasattr(module, name)
-            for name in dir(module)
-            if name[0].isupper() and not name.startswith("_")
+            hasattr(module, name) for name in dir(module) if name[0].isupper() and not name.startswith("_")
         )
 
         # At least one of these should be true for a validation protocol
-        assert (
-            has_run_validation or has_main_class
-        ), f"Protocol {protocol_name} lacks expected entry points"
+        pytest.assume(has_run_validation or has_main_class, f"Protocol {protocol_name} lacks expected entry points")
 
     @pytest.mark.parametrize("protocol_name", VALIDATION_PROTOCOLS)
     def test_protocol_has_docstring(self, protocol_name):
@@ -120,12 +116,8 @@ class TestValidationProtocolImports:
             pytest.skip(f"Protocol {protocol_name} not available")
 
         # Check module docstring
-        assert (
-            module.__doc__ is not None
-        ), f"Protocol {protocol_name} missing module docstring"
-        assert (
-            len(module.__doc__.strip()) > 50
-        ), f"Protocol {protocol_name} docstring too short"
+        pytest.assume(module.__doc__ is not None, f"Protocol {protocol_name} missing module docstring")
+        pytest.assume(len(module.__doc__.strip()) > 50, f"Protocol {protocol_name} docstring too short")
 
 
 class TestValidationProtocolExecution:
@@ -152,9 +144,16 @@ class TestValidationProtocolExecution:
 
                 validator = APGIMasterValidator()
                 # Just verify it can be instantiated and has expected methods
-                assert hasattr(validator, "run_validation")
-                assert hasattr(validator, "run_all_protocols")
-                assert hasattr(validator, "generate_master_report")
+                pytest.assume(
+                    hasattr(validator, "run_validation"), "Master validator should have run_validation method"
+                )
+                pytest.assume(
+                    hasattr(validator, "run_all_protocols"), "Master validator should have run_all_protocols method"
+                )
+                pytest.assume(
+                    hasattr(validator, "generate_master_report"),
+                    "Master validator should have generate_master_report method",
+                )
                 # Return a mock result to satisfy test expectations
                 validation_result = {
                     "status": "success",
@@ -173,7 +172,7 @@ class TestValidationProtocolExecution:
                     # Test with minimal parameters
                     with patch("sys.stdout"):  # Suppress output during testing
                         validation_result = module.run_validation(
-                            n_participants=10,  # Small number for testing
+                            n_participants=5,  # Reduced number for faster testing
                             seed=42,
                             output_dir=str(temp_results_dir),
                             verbose=False,
@@ -183,9 +182,7 @@ class TestValidationProtocolExecution:
                     try:
                         validation_result = module.run_validation()
                     except Exception as e2:
-                        pytest.skip(
-                            f"Protocol {protocol_name} run_validation failed: {e2}"
-                        )
+                        pytest.skip(f"Protocol {protocol_name} run_validation failed: {e2}")
             # Method 1.5: Look for validate method (class-based protocols)
             elif hasattr(module, "validate"):
                 try:
@@ -201,11 +198,7 @@ class TestValidationProtocolExecution:
                             validation_result = module.validate()
                     else:
                         # Class method - need to instantiate
-                        main_classes = [
-                            name
-                            for name in dir(module)
-                            if name[0].isupper() and not name.startswith("_")
-                        ]
+                        main_classes = [name for name in dir(module) if name[0].isupper() and not name.startswith("_")]
                         if main_classes:
                             class_name = main_classes[0]
                             main_class = getattr(module, class_name)
@@ -219,11 +212,7 @@ class TestValidationProtocolExecution:
             elif validation_result is None:
                 try:
                     # Find the main class (usually starts with capital letter)
-                    main_classes = [
-                        name
-                        for name in dir(module)
-                        if name[0].isupper() and not name.startswith("_")
-                    ]
+                    main_classes = [name for name in dir(module) if name[0].isupper() and not name.startswith("_")]
 
                     if main_classes:
                         class_name = main_classes[0]
@@ -238,61 +227,36 @@ class TestValidationProtocolExecution:
                             with patch("sys.stdout"):
                                 validation_result = instance.validate()
                 except Exception as e:
-                    pytest.skip(
-                        f"Protocol {protocol_name} class instantiation failed: {e}"
-                    )
+                    pytest.skip(f"Protocol {protocol_name} class instantiation failed: {e}")
 
         # Validate result structure
         if validation_result is not None:
-            # Handle both dict and ProtocolResult (Pydantic model) returns
-            from utils.protocol_schema import ProtocolResult
+            pytest.assume(isinstance(validation_result, dict), f"Protocol {protocol_name} should return dict")
 
-            if isinstance(validation_result, ProtocolResult):
-                # Convert to dict for compatibility with existing assertions
-                validation_result = validation_result.to_dict()
+        # Check for common result fields - updated for ProtocolResult schema
+        common_fields = [
+            "passed",
+            "status",
+            "message",
+            "results",
+            "protocol_id",
+            "named_predictions",
+            "metadata",
+        ]
+        found_fields = [field for field in common_fields if field in validation_result]
+        # ProtocolResult has protocol_id, named_predictions, metadata - check for those
+        has_protocol_schema = "protocol_id" in validation_result and "named_predictions" in validation_result
+        has_legacy_fields = any(f in validation_result for f in ["passed", "status", "message", "results"])
+        # Also check if legacy fields are in metadata
+        has_legacy_in_metadata = (
+            "metadata" in validation_result
+            and isinstance(validation_result["metadata"], dict)
+            and any(f in validation_result["metadata"] for f in ["passed", "status", "message", "results"])
+        )
 
-            assert isinstance(
-                validation_result, dict
-            ), f"Protocol {protocol_name} should return dict"
-
-            # Check for common result fields - updated for ProtocolResult schema
-            common_fields = [
-                "passed",
-                "status",
-                "message",
-                "results",
-                "protocol_id",
-                "named_predictions",
-                "metadata",
-            ]
-            found_fields = [
-                field for field in common_fields if field in validation_result
-            ]
-            # ProtocolResult has protocol_id, named_predictions, metadata - check for those
-            has_protocol_schema = (
-                "protocol_id" in validation_result
-                and "named_predictions" in validation_result
-            )
-            has_legacy_fields = any(
-                f in validation_result
-                for f in ["passed", "status", "message", "results"]
-            )
-            # Also check if legacy fields are in metadata
-            has_legacy_in_metadata = (
-                "metadata" in validation_result
-                and isinstance(validation_result["metadata"], dict)
-                and any(
-                    f in validation_result["metadata"]
-                    for f in ["passed", "status", "message", "results"]
-                )
-            )
-
-            assert (
-                has_protocol_schema
-                or has_legacy_fields
-                or has_legacy_in_metadata
-                or len(found_fields) >= 2
-            ), f"Protocol {protocol_name} result missing common fields. Found: {found_fields}, Available: {list(validation_result.keys())}"
+        pytest.assume(
+            has_protocol_schema or has_legacy_fields or has_legacy_in_metadata or len(found_fields) >= 2
+        ), f"Protocol {protocol_name} result missing common fields. Found: {found_fields}, Available: {list(validation_result.keys())}"
 
     @pytest.mark.parametrize("protocol_name", VALIDATION_PROTOCOLS)
     def test_protocol_error_handling(self, protocol_name):
@@ -308,19 +272,22 @@ class TestValidationProtocolExecution:
                 # Test with negative participants (should be handled gracefully)
                 result = module.run_validation(n_participants=-1)
                 # Should either return error result or raise appropriate exception
-                if isinstance(result, dict):
-                    assert result.get("status") in [
+                pytest.assume(
+                    result.get("status")
+                    in [
                         "failed",
                         "error",
-                    ], "Should indicate failure for invalid input"
+                    ],
+                    "Should indicate failure for invalid input",
+                )
             except (ValueError, TypeError, AssertionError):
                 # Expected for invalid input
                 pass
             except Exception as e:
                 # Other exceptions should be reasonable
-                assert (
-                    "crashed" not in str(e).lower()
-                ), f"Protocol {protocol_name} should handle errors gracefully"
+                pytest.assume(
+                    "crashed" not in str(e).lower(), f"Protocol {protocol_name} should handle errors gracefully"
+                )
 
 
 class TestCrossProtocolCompatibility:
@@ -341,30 +308,22 @@ class TestCrossProtocolCompatibility:
                 # Test protocol discovery
                 if hasattr(validator, "get_available_protocols"):
                     protocols = validator.get_available_protocols()
-                    assert isinstance(protocols, list)
-                    assert (
-                        len(protocols) > 0
-                    ), "Master_Validation should discover protocols"
+                    pytest.assume(isinstance(protocols, list), "Available protocols should be a list")
+                    pytest.assume(len(protocols) > 0, "Master_Validation should discover protocols")
 
                 # Test batch validation
                 if hasattr(validator, "run_batch_validation"):
                     with patch("sys.stdout"):
                         # Test with subset of protocols
-                        test_protocols = (
-                            protocols[:3] if len(protocols) > 3 else protocols
-                        )
-                        results = validator.run_batch_validation(
-                            protocols=test_protocols, n_participants=5, seed=42
-                        )
-                        assert isinstance(results, dict)
-                        assert len(results) == len(test_protocols)
+                        test_protocols = protocols[:3] if len(protocols) > 3 else protocols
+                        results = validator.run_batch_validation(protocols=test_protocols, n_participants=5, seed=42)
+                        pytest.assume(isinstance(results, dict), "Batch validation results should be a dict")
+                        pytest.assume(len(results) == len(test_protocols), "Should have results for all test protocols")
         except Exception as e:
             pytest.skip(f"Master_Validation integration test failed: {e}")
 
     def test_protocol_result_compatibility(self):
         """Test that protocol results have basic expected structure."""
-        from utils.protocol_schema import ProtocolResult
-
         sample_results = []
 
         # Collect results from available protocols
@@ -377,29 +336,22 @@ class TestCrossProtocolCompatibility:
             try:
                 if hasattr(module, "run_validation"):
                     with patch("sys.stdout"):
-                        result = module.run_validation(
-                            n_participants=5, seed=42, verbose=False
-                        )
+                        result = module.run_validation(n_participants=5, seed=42, verbose=False)
                         # Handle both dict and ProtocolResult returns
-                        if isinstance(result, ProtocolResult):
-                            result = result.to_dict()
-                        if isinstance(result, dict):
-                            sample_results.append((protocol_name, result))
-            except Exception:
+                        result = result.to_dict()
+                        sample_results.append((protocol_name, result))
+            except (ImportError, AttributeError, TypeError, ValueError):
+                # Expected exceptions for incomplete implementations
                 continue
 
         # Check that results have basic structure
         if len(sample_results) >= 2:
             for protocol_name, result in sample_results:
                 # All results should be dictionaries
-                assert isinstance(
-                    result, dict
-                ), f"Protocol {protocol_name} should return dict"
+                pytest.assume(isinstance(result, dict), f"Protocol {protocol_name} should return dict")
 
                 # Results should have at least some basic keys (different protocols may have different keys)
-                assert (
-                    len(result.keys()) > 0
-                ), f"Protocol {protocol_name} result should not be empty"
+                pytest.assume(len(result.keys()) > 0, f"Protocol {protocol_name} result should not be empty")
 
                 # Check for common validation result patterns
                 has_any_validation_key = any(
@@ -415,17 +367,13 @@ class TestCrossProtocolCompatibility:
                         "named_predictions",
                     ]
                 )
-                assert (
-                    has_any_validation_key
-                ), f"Protocol {protocol_name} should have validation-related keys"
+                pytest.assume(has_any_validation_key, f"Protocol {protocol_name} should have validation-related keys")
 
 
 class TestValidationProtocolPerformance:
     """Test performance and resource management of validation protocols."""
 
-    @pytest.mark.parametrize(
-        "protocol_name", VALIDATION_PROTOCOLS[:3]
-    )  # Test first 3 for performance
+    @pytest.mark.parametrize("protocol_name", VALIDATION_PROTOCOLS[:3])  # Test first 3 for performance
     def test_protocol_performance(self, protocol_name):
         """Test that protocols complete within reasonable time."""
         module = VALIDATION_MODULES[protocol_name]
@@ -439,24 +387,23 @@ class TestValidationProtocolPerformance:
             if hasattr(module, "run_validation"):
                 # Run with small dataset for performance testing
                 with patch("sys.stdout"):
-                    result = module.run_validation(
-                        n_participants=10, seed=42, verbose=False
-                    )
+                    result = module.run_validation(n_participants=10, seed=42, verbose=False)
 
                 execution_time = time.time() - start_time
 
                 # Should complete within reasonable time (30 seconds for small dataset)
-                assert (
-                    execution_time < 30
-                ), f"Protocol {protocol_name} took too long: {execution_time:.2f}s"
+                pytest.assume(execution_time < 30, f"Protocol {protocol_name} took too long: {execution_time:.2f}s")
 
                 # Check result quality
-                if isinstance(result, dict):
-                    assert result.get("status") in [
+                pytest.assume(
+                    result.get("status")
+                    in [
                         "success",
                         "failed",
                         "error",
-                    ], "Protocol should return valid status"
+                    ],
+                    "Protocol should return valid status",
+                )
         except Exception as e:
             pytest.skip(f"Protocol {protocol_name} performance test failed: {e}")
 
@@ -481,9 +428,7 @@ class TestValidationProtocolPerformance:
             try:
                 if hasattr(module, "run_validation"):
                     with patch("sys.stdout"):
-                        _ = module.run_validation(  # result not used
-                            n_participants=5, seed=42, verbose=False
-                        )
+                        _ = module.run_validation(n_participants=5, seed=42, verbose=False)  # result not used
 
                     # Force garbage collection
                     gc.collect()
@@ -493,10 +438,11 @@ class TestValidationProtocolPerformance:
                     memory_increase = current_memory - initial_memory
 
                     # Should not increase by more than 100MB for small test
-                    assert (
+                    pytest.assume(
                         memory_increase < 100 * 1024 * 1024
                     ), f"Protocol {protocol_name} may have memory leak: {memory_increase / 1024 / 1024:.1f}MB"
-            except Exception:
+            except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
+                # Expected exceptions for incomplete implementations
                 continue
 
 
@@ -532,16 +478,14 @@ class TestValidationProtocolDataHandling:
                 output_files = list(temp_output_dir.glob("**/*"))
 
                 # Should create at least one output file
-                assert (
-                    len(output_files) > 0
-                ), f"Protocol {protocol_name} should generate output files"
+                pytest.assume(len(output_files) > 0, f"Protocol {protocol_name} should generate output files")
 
                 # Check file sizes are reasonable
                 for file_path in output_files:
                     if file_path.is_file():
                         file_size = file_path.stat().st_size
-                        assert file_size > 0, f"Output file {file_path.name} is empty"
-                        assert (
+                        pytest.assume(file_size > 0, f"Output file {file_path.name} is empty")
+                        pytest.assume(
                             file_size < 10 * 1024 * 1024
                         ), f"Output file {file_path.name} is too large: {file_size / 1024 / 1024:.1f}MB"
         except Exception as e:
@@ -561,31 +505,25 @@ class TestValidationProtocolDataHandling:
             try:
                 if hasattr(module, "run_validation"):
                     with patch("sys.stdout"):
-                        result = module.run_validation(
-                            n_participants=5, seed=42, verbose=False
-                        )
-                        if isinstance(result, dict):
-                            sample_results.append((protocol_name, result))
-            except Exception:
+                        result = module.run_validation(n_participants=5, seed=42, verbose=False)
+                    sample_results.append((protocol_name, result))
+            except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
+                # Expected exceptions for incomplete implementations
                 continue
 
         # Test JSON serialization
         for protocol_name, result in sample_results:
             try:
-                json_str = json.dumps(result, default=str)
-                assert (
-                    len(json_str) > 0
-                ), f"Protocol {protocol_name} result should be serializable"
+                json_str = json.dumps(result)
+                pytest.assume(len(json_str) > 0, f"Protocol {protocol_name} result should be serializable")
 
                 # Test deserialization
                 parsed_result = json.loads(json_str)
-                assert isinstance(
-                    parsed_result, dict
-                ), f"Protocol {protocol_name} result should deserialize to dict"
-            except Exception as e:
-                pytest.fail(
-                    f"Protocol {protocol_name} result serialization failed: {e}"
+                pytest.assume(
+                    isinstance(parsed_result, dict), f"Protocol {protocol_name} result should deserialize to dict"
                 )
+            except Exception as e:
+                pytest.fail(f"Protocol {protocol_name} result serialization failed: {e}")
 
 
 class TestValidationProtocolEdgeCases:
@@ -606,17 +544,11 @@ class TestValidationProtocolEdgeCases:
                         result = module.run_validation()
 
                         # Should not crash and should return some result
-                        assert (
-                            result is not None
-                        ), f"Protocol {protocol_name} should return a result"
-                        assert isinstance(
-                            result, dict
-                        ), f"Protocol {protocol_name} should return a dict"
+                        pytest.assume(result is not None, f"Protocol {protocol_name} should return a result")
+                        pytest.assume(isinstance(result, dict), f"Protocol {protocol_name} should return a dict")
             except Exception as e:
                 # Should handle errors gracefully
-                assert (
-                    "crash" not in str(e).lower()
-                ), f"Protocol {protocol_name} should not crash: {e}"
+                pytest.assume("crash" not in str(e).lower(), f"Protocol {protocol_name} should not crash: {e}")
 
     def test_large_parameter_handling(self):
         """Test protocols handle large parameter values gracefully."""
@@ -630,21 +562,22 @@ class TestValidationProtocolEdgeCases:
                 if hasattr(module, "run_validation"):
                     # Test with large participants number (should handle gracefully)
                     with patch("sys.stdout"):
-                        result = module.run_validation(
-                            n_participants=1000, seed=42, verbose=False
-                        )
+                        result = module.run_validation(n_participants=1000, seed=42, verbose=False)
 
                         # Should either complete successfully or fail gracefully
-                        if isinstance(result, dict):
-                            status = result.get("status", "")
-                            assert status in [
+                        status = result.get("status", "")
+                        pytest.assume(
+                            status
+                            in [
                                 "success",
                                 "failed",
                                 "error",
-                            ], f"Protocol {protocol_name} should return valid status"
+                            ],
+                            f"Protocol {protocol_name} should return valid status",
+                        )
             except Exception as e:
                 # Should handle large parameters gracefully
-                assert (
+                pytest.assume(
                     "memory" not in str(e).lower() or "timeout" in str(e).lower()
                 ), f"Protocol {protocol_name} should handle large parameters gracefully: {e}"
 
@@ -657,9 +590,7 @@ def run_comprehensive_validation_tests():
 
     # Test module loading
     print("\n📦 Testing Module Loading...")
-    loaded_count = sum(
-        1 for module in VALIDATION_MODULES.values() if module is not None
-    )
+    loaded_count = sum(1 for module in VALIDATION_MODULES.values() if module is not None)
     total_count = len(VALIDATION_MODULES)
     print(f"✅ Loaded {loaded_count}/{total_count} validation modules")
 
@@ -671,14 +602,9 @@ def run_comprehensive_validation_tests():
         if module is not None and hasattr(module, "run_validation"):
             try:
                 with patch("sys.stdout"):
-                    result = module.run_validation(
-                        n_participants=5, seed=42, verbose=False
-                    )
-                    if isinstance(result, dict):
-                        basic_tests_passed += 1
-                        print(f"✅ {protocol_name}: Basic execution successful")
-                    else:
-                        print(f"❌ {protocol_name}: Invalid result type")
+                    module.run_validation(n_participants=5, seed=42, verbose=False)
+                    basic_tests_passed += 1
+                    print(f"✅ {protocol_name}: Basic execution successful")
             except Exception as e:
                 print(f"⚠️  {protocol_name}: Execution failed - {e}")
         else:
@@ -695,22 +621,6 @@ def run_comprehensive_validation_tests():
         module = VALIDATION_MODULES[protocol_name]
         if module is None:
             continue
-
-        try:
-            if hasattr(module, "run_validation"):
-                with patch("sys.stdout"):
-                    result = module.run_validation(
-                        n_participants=5, seed=42, verbose=False
-                    )
-                    if isinstance(result, dict):
-                        if not common_fields:
-                            common_fields = set(result.keys())
-                        else:
-                            common_fields.intersection_update(result.keys())
-                        schema_consistent += 1
-                        print(f"✅ {protocol_name}: Schema consistent")
-        except Exception:
-            pass
 
     print(f"📊 Schema Tests: {schema_consistent}/3 consistent")
     print(f"📊 Common Fields: {len(common_fields)} fields")

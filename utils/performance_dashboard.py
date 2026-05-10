@@ -149,9 +149,7 @@ class ComprehensivePerformanceDashboard:
             debug: Enable debug mode
         """
         if not DASH_AVAILABLE:
-            raise ImportError(
-                "Dash is required for the performance dashboard. Install with: pip install dash plotly"
-            )
+            raise ImportError("Dash is required for the performance dashboard. Install with: pip install dash plotly")
 
         self.port = port
         self.debug = debug
@@ -226,9 +224,7 @@ class ComprehensivePerformanceDashboard:
                 success = self.export_data(export_format, filename)
                 if success:
                     if apgi_logger:
-                        apgi_logger.logger.info(
-                            f"Data exported successfully in {export_format} format"
-                        )
+                        apgi_logger.logger.info(f"Data exported successfully in {export_format} format")
                     return True
                 else:
                     if apgi_logger:
@@ -252,9 +248,7 @@ class ComprehensivePerformanceDashboard:
                     success = self.export_data(export_format)
                     if success:
                         if apgi_logger:
-                            apgi_logger.logger.info(
-                                f"Download triggered for {export_format} export"
-                            )
+                            apgi_logger.logger.info(f"Download triggered for {export_format} export")
                         return True
                     else:
                         if apgi_logger:
@@ -291,9 +285,7 @@ class ComprehensivePerformanceDashboard:
                     ]
                 )
 
-        @self.app.callback(
-            Output("error-display", "children"), Input("update-interval", "n_intervals")
-        )
+        @self.app.callback(Output("error-display", "children"), Input("update-interval", "n_intervals"))
         def update_error_display(n_intervals):
             """Update error display with proper error handling."""
             try:
@@ -317,13 +309,7 @@ class ComprehensivePerformanceDashboard:
             except Exception as e:
                 if apgi_logger:
                     apgi_logger.logger.error(f"Error updating error display: {e}")
-                return html.Div(
-                    [
-                        html.Span(
-                            "⚠️ Error monitoring system metrics", style={"color": "red"}
-                        )
-                    ]
-                )
+                return html.Div([html.Span("⚠️ Error monitoring system metrics", style={"color": "red"})])
 
         @self.app.callback(
             [
@@ -352,12 +338,8 @@ class ComprehensivePerformanceDashboard:
                     )
                     empty_fig.update_layout(
                         title="System Metrics - No Data Available",
-                        xaxis=dict(
-                            showgrid=False, zeroline=False, showticklabels=False
-                        ),
-                        yaxis=dict(
-                            showgrid=False, zeroline=False, showticklabels=False
-                        ),
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                     )
                     return empty_fig, empty_fig
 
@@ -411,9 +393,7 @@ class ComprehensivePerformanceDashboard:
                 error_fig.update_layout(title=f"Error loading data: {str(e)}")
                 return error_fig, error_fig
 
-        @self.app.callback(
-            Output("performance-table", "data"), Input("update-interval", "n_intervals")
-        )
+        @self.app.callback(Output("performance-table", "data"), Input("update-interval", "n_intervals"))
         def update_performance_table(n_intervals):
             """Update performance metrics table with error handling."""
             try:
@@ -454,9 +434,7 @@ class ComprehensivePerformanceDashboard:
                     result_items.append(
                         html.Div(
                             [
-                                html.H4(
-                                    f"Validation Run: {result.get('timestamp', 'Unknown')}"
-                                ),
+                                html.H4(f"Validation Run: {result.get('timestamp', 'Unknown')}"),
                                 html.P(f"Status: {result.get('status', 'Unknown')}"),
                                 html.Pre(json.dumps(result.get("data", {}), indent=2)),
                                 html.Hr(),
@@ -471,9 +449,7 @@ class ComprehensivePerformanceDashboard:
                     apgi_logger.logger.error(f"Error updating validation results: {e}")
                 return html.Div(
                     [
-                        html.H4(
-                            "Error Loading Validation Results", style={"color": "red"}
-                        ),
+                        html.H4("Error Loading Validation Results", style={"color": "red"}),
                         html.P(f"An error occurred: {str(e)}"),
                     ]
                 )
@@ -568,9 +544,7 @@ class ComprehensivePerformanceDashboard:
                 apgi_logger.logger.error(f"Error creating performance tab: {e}")
             return html.Div(
                 [
-                    html.H3(
-                        "Error Loading Performance Metrics", style={"color": "red"}
-                    ),
+                    html.H3("Error Loading Performance Metrics", style={"color": "red"}),
                     html.P(f"Failed to create performance tab: {str(e)}"),
                 ]
             )
@@ -713,9 +687,7 @@ class ComprehensivePerformanceDashboard:
                     ),
                     html.Div(
                         [
-                            html.Button(
-                                "Update Visualization", id="update-viz-btn", n_clicks=0
-                            ),
+                            html.Button("Update Visualization", id="update-viz-btn", n_clicks=0),
                         ],
                         style={"marginTop": "20px", "marginBottom": "20px"},
                     ),
@@ -791,9 +763,7 @@ class ComprehensivePerformanceDashboard:
     def _start_monitoring(self):
         """Start background monitoring thread."""
         self.monitoring_active = True
-        self.monitoring_thread = threading.Thread(
-            target=self._monitoring_loop, daemon=True
-        )
+        self.monitoring_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self.monitoring_thread.start()
 
     def _monitoring_loop(self):
@@ -819,14 +789,10 @@ class ComprehensivePerformanceDashboard:
 
                                 # Keep only last 50 entries
                                 if len(self.performance_metrics) > 50:
-                                    self.performance_metrics = self.performance_metrics[
-                                        -50:
-                                    ]
+                                    self.performance_metrics = self.performance_metrics[-50:]
                     except Exception as e:
                         if apgi_logger:
-                            apgi_logger.logger.error(
-                                f"Error collecting performance metrics: {e}"
-                            )
+                            apgi_logger.logger.error(f"Error collecting performance metrics: {e}")
 
                     # Collect validation results
                     try:
@@ -848,20 +814,14 @@ class ComprehensivePerformanceDashboard:
 
                                     # Keep only last 20 results
                                     if len(self.validation_results) > 20:
-                                        self.validation_results = (
-                                            self.validation_results[-20:]
-                                        )
+                                        self.validation_results = self.validation_results[-20:]
 
                             except (json.JSONDecodeError, FileNotFoundError) as e:
                                 if apgi_logger:
-                                    apgi_logger.logger.warning(
-                                        f"Error reading validation file {vf}: {e}"
-                                    )
+                                    apgi_logger.logger.warning(f"Error reading validation file {vf}: {e}")
                     except Exception as e:
                         if apgi_logger:
-                            apgi_logger.logger.error(
-                                f"Error collecting validation results: {e}"
-                            )
+                            apgi_logger.logger.error(f"Error collecting validation results: {e}")
 
             except Exception as e:
                 if apgi_logger:
@@ -889,9 +849,7 @@ class ComprehensivePerformanceDashboard:
             IOError: If export fails
         """
         try:
-            if not hasattr(self, "performance_data") or not hasattr(
-                self, "validation_results"
-            ):
+            if not hasattr(self, "performance_data") or not hasattr(self, "validation_results"):
                 raise ValueError("No data available to export")
 
             # Prepare data for export
@@ -921,10 +879,7 @@ class ComprehensivePerformanceDashboard:
         try:
             import json
 
-            output_filename = (
-                filename
-                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            )
+            output_filename = filename or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
             with open(output_filename, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
@@ -943,10 +898,7 @@ class ComprehensivePerformanceDashboard:
         try:
             import pandas as pd
 
-            output_filename = (
-                filename
-                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            )
+            output_filename = filename or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
             # Convert nested data to flat structure for CSV
             csv_data = []
@@ -1017,10 +969,7 @@ class ComprehensivePerformanceDashboard:
             from reportlab.lib.styles import getSampleStyleSheet
             from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
-            output_filename = (
-                filename
-                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            )
+            output_filename = filename or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
             # Create PDF buffer
             buffer = io.BytesIO()
@@ -1090,9 +1039,7 @@ class ComprehensivePerformanceDashboard:
 
         except ImportError:
             if apgi_logger:
-                apgi_logger.logger.error(
-                    "PDF export requires reportlab. Install with: pip install reportlab"
-                )
+                apgi_logger.logger.error("PDF export requires reportlab. Install with: pip install reportlab")
             return False
         except Exception as e:
             if apgi_logger:
@@ -1111,9 +1058,7 @@ class ComprehensivePerformanceDashboard:
             self._start_monitoring()
 
             if apgi_logger:
-                apgi_logger.logger.info(
-                    f"Starting performance dashboard on {host}:{self.port}"
-                )
+                apgi_logger.logger.info(f"Starting performance dashboard on {host}:{self.port}")
 
             # Run the Dash app
             self.app.run_server(

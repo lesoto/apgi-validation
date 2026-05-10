@@ -3,7 +3,7 @@ Integration tests for all FP and VP protocols.
 =============================================
 
 Verifies that:
-1. All 27 protocols can run end-to-end
+    1. All 27 protocols can run end-to-end
 2. All return standardized ProtocolResult objects
 3. Aggregators can consume all protocol outputs
 4. Framework falsification conditions can be evaluated
@@ -81,7 +81,7 @@ if sys.version_info >= (3, 14):
 
         # Wrap the multiply ufunc
         _original_multiply = np.multiply
-        np.multiply = SafeUFunc(_original_multiply)
+        np.multiply = SafeUFunc(_original_multiply)  # type: ignore[assignment]
 
     except ImportError:
         pass  # NumPy not available
@@ -89,11 +89,7 @@ if sys.version_info >= (3, 14):
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import (
-    PredictionResult,
-    PredictionStatus,
-    ProtocolResult,
-)
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
 
 class TestAllFPProtocols:
@@ -170,9 +166,7 @@ class TestAllFPProtocols:
                 result = mod.run_protocol_main()
             except Exception as e:
                 if "zero-size array to reduction operation" in str(e):
-                    pytest.skip(
-                        f"{module_name}: Skipping due to NumPy compatibility issue: {str(e)}"
-                    )
+                    pytest.skip(f"{module_name}: Skipping due to NumPy compatibility issue: {str(e)}")
                 else:
                     pytest.fail(f"{module_name}: {str(e)}")
 
@@ -181,22 +175,15 @@ class TestAllFPProtocols:
                 os.environ.pop("APGI_TEST_MODE", None)
 
             # Check result type
-            assert (
-                result is not None
-            ), f"{module_name}: run_protocol_main() returned None"
+            assert result is not None, f"{module_name}: run_protocol_main() returned None"
 
             # Convert to ProtocolResult if dict
-            if isinstance(result, dict):
-                result = ProtocolResult.from_dict(result)
+            result = ProtocolResult.from_dict(result)
 
-            assert isinstance(
-                result, ProtocolResult
-            ), f"{module_name}: Result is not ProtocolResult"
+            assert isinstance(result, ProtocolResult), f"{module_name}: Result is not ProtocolResult"
             assert result.protocol_id == protocol_id
             assert result.named_predictions, f"{module_name}: No predictions"
-            assert (
-                result.completion_percentage > 0
-            ), f"{module_name}: completion_percentage is 0"
+            assert result.completion_percentage > 0, f"{module_name}: completion_percentage is 0"
 
         except Exception as e:
             pytest.fail(f"{module_name}: {str(e)}")
@@ -236,23 +223,16 @@ class TestAllFPProtocols:
                 ]:
                     os.environ.pop("APGI_TEST_MODE", None)
 
-                if isinstance(result, dict):
                     result = ProtocolResult.from_dict(result)
 
-                assert (
-                    len(result.named_predictions) > 0
-                ), f"{protocol_id}: No predictions"
+                assert len(result.named_predictions) > 0, f"{protocol_id}: No predictions"
 
                 # Check each prediction is a PredictionResult
                 for pred_id, pred in result.named_predictions.items():
                     if isinstance(pred, dict):
                         pred = PredictionResult(**pred)
-                    assert isinstance(
-                        pred, PredictionResult
-                    ), f"{protocol_id}.{pred_id}: Not PredictionResult"
-                    assert hasattr(
-                        pred, "passed"
-                    ), f"{protocol_id}.{pred_id}: No 'passed' field"
+                    assert isinstance(pred, PredictionResult), f"{protocol_id}.{pred_id}: Not PredictionResult"
+                    assert hasattr(pred, "passed"), f"{protocol_id}.{pred_id}: No 'passed' field"
 
             except Exception as e:
                 pytest.fail(f"{protocol_id}: {str(e)}")
@@ -346,24 +326,16 @@ class TestAllVPProtocols:
                 os.environ.pop("APGI_TEST_MODE", None)
 
             # Check result type
-            assert (
-                result is not None
-            ), f"{protocol_id}: run_protocol_main() returned None"
+            assert result is not None, f"{protocol_id}: run_protocol_main() returned None"
 
             # Convert to ProtocolResult if dict
             if isinstance(result, dict):
                 result = ProtocolResult.from_dict(result)
 
-            assert isinstance(
-                result, ProtocolResult
-            ), f"{protocol_id}: Result is not ProtocolResult"
-            assert (
-                result.protocol_id == protocol_id
-            ), f"{protocol_id}: protocol_id mismatch"
+            assert isinstance(result, ProtocolResult), f"{protocol_id}: Result is not ProtocolResult"
+            assert result.protocol_id == protocol_id, f"{protocol_id}: protocol_id mismatch"
             assert result.named_predictions, f"{protocol_id}: No named_predictions"
-            assert (
-                result.completion_percentage > 0
-            ), f"{protocol_id}: completion_percentage is 0"
+            assert result.completion_percentage > 0, f"{protocol_id}: completion_percentage is 0"
 
         except Exception as e:
             pytest.fail(f"{protocol_id}: {str(e)}")
@@ -391,23 +363,16 @@ class TestAllVPProtocols:
                 if module_path in self.SLOW_VP_PROTOCOLS:
                     os.environ.pop("APGI_TEST_MODE", None)
 
-                if isinstance(result, dict):
                     result = ProtocolResult.from_dict(result)
 
-                assert (
-                    len(result.named_predictions) > 0
-                ), f"{protocol_id}: No predictions"
+                assert len(result.named_predictions) > 0, f"{protocol_id}: No predictions"
 
                 # Check each prediction is a PredictionResult
                 for pred_id, pred in result.named_predictions.items():
                     if isinstance(pred, dict):
                         pred = PredictionResult(**pred)
-                    assert isinstance(
-                        pred, PredictionResult
-                    ), f"{protocol_id}.{pred_id}: Not PredictionResult"
-                    assert hasattr(
-                        pred, "passed"
-                    ), f"{protocol_id}.{pred_id}: No 'passed' field"
+                    assert isinstance(pred, PredictionResult), f"{protocol_id}.{pred_id}: Not PredictionResult"
+                    assert hasattr(pred, "passed"), f"{protocol_id}.{pred_id}: No 'passed' field"
 
             except Exception as e:
                 pytest.fail(f"{protocol_id}: {str(e)}")

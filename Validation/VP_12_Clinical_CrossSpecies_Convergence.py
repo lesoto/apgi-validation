@@ -59,11 +59,7 @@ if str(_project_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V12_1_MIN_COHENS_D,
-        V12_1_MIN_P3B_REDUCTION_PCT,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, V12_1_MIN_COHENS_D, V12_1_MIN_P3B_REDUCTION_PCT
 except ImportError:
     V12_1_MIN_P3B_REDUCTION_PCT = 50.0
     V12_1_MIN_COHENS_D = 0.80
@@ -113,9 +109,7 @@ class ClinicalDataAnalyzer:
             },
         }
 
-    def _derive_measures_from_pci(
-        self, pci_value: float, condition: str
-    ) -> Dict[str, float]:
+    def _derive_measures_from_pci(self, pci_value: float, condition: str) -> Dict[str, float]:
         pci_normalized = (pci_value - 0.2) / 0.7
         pci_normalized = np.clip(pci_normalized, 0.0, 1.0)
         if condition == "vegetative_state":
@@ -128,9 +122,7 @@ class ClinicalDataAnalyzer:
         p3b_amplitude = max(0.0, p3b_base + p3b_noise)
         connectivity_base = pci_normalized * 0.8 + 0.1
         connectivity_noise = np.random.normal(0, 0.1)
-        frontoparietal_connectivity = max(
-            0.0, min(1.0, connectivity_base + connectivity_noise)
-        )
+        frontoparietal_connectivity = max(0.0, min(1.0, connectivity_base + connectivity_noise))
         ignition_base = pci_normalized * 0.7 + 0.05
         ignition_noise = np.random.normal(0, 0.05)
         ignition_probability = np.clip(ignition_base + ignition_noise, 0.0, 1.0)
@@ -145,16 +137,12 @@ class ClinicalDataAnalyzer:
             "pci_estimate": pci_value,
         }
 
-    def simulate_patient_data(
-        self, condition: str, n_subjects: int = 20
-    ) -> pd.DataFrame:
+    def simulate_patient_data(self, condition: str, n_subjects: int = 20) -> pd.DataFrame:
         if condition not in self.clinical_profiles:
             raise ValueError(f"Unknown condition: {condition}")
         profile = self.clinical_profiles[condition]
         data = []
-        for subject_id in tqdm(
-            range(n_subjects), desc=f"Simulating {condition} subjects"
-        ):
+        for subject_id in tqdm(range(n_subjects), desc=f"Simulating {condition} subjects"):
             pci_value = np.random.normal(profile["pci_mean"], profile["pci_std"])
             pci_value = np.clip(pci_value, 0.0, 1.0)
             derived_measures = self._derive_measures_from_pci(pci_value, condition)
@@ -192,18 +180,11 @@ class ClinicalDataAnalyzer:
             "theta_t",
         ]
         for measure in measures:
-            condition_data = [
-                patient_data[patient_data["condition"] == cond][measure].values
-                for cond in conditions
-            ]
+            condition_data = [patient_data[patient_data["condition"] == cond][measure].values for cond in conditions]
             f_stat, p_value = stats.f_oneway(*condition_data)
             if "vegetative_state" in conditions and "healthy_controls" in conditions:
-                vs_data = patient_data[patient_data["condition"] == "vegetative_state"][
-                    measure
-                ]
-                hc_data = patient_data[patient_data["condition"] == "healthy_controls"][
-                    measure
-                ]
+                vs_data = patient_data[patient_data["condition"] == "vegetative_state"][measure]
+                hc_data = patient_data[patient_data["condition"] == "healthy_controls"][measure]
                 cohens_d = self._cohens_d(vs_data.values, hc_data.values)  # type: ignore[arg-type]
             else:
                 cohens_d = None
@@ -213,10 +194,7 @@ class ClinicalDataAnalyzer:
                 "significant": p_value < 0.05,
                 "cohens_d_vs_healthy": cohens_d,
                 "condition_means": {
-                    cond: np.mean(
-                        patient_data[patient_data["condition"] == cond][measure]
-                    )
-                    for cond in conditions
+                    cond: np.mean(patient_data[patient_data["condition"] == cond][measure]) for cond in conditions
                 },
             }
         return results
@@ -262,9 +240,7 @@ class ClinicalDataAnalyzer:
             )
         return pd.DataFrame(data)
 
-    def permutation_test_paired(
-        self, group1: np.ndarray, group2: np.ndarray, n_permutations: int = 1000
-    ) -> float:
+    def permutation_test_paired(self, group1: np.ndarray, group2: np.ndarray, n_permutations: int = 1000) -> float:
         diffs = group1 - group2
         observed_stat = np.abs(np.mean(diffs))
         rng = np.random.default_rng()
@@ -505,8 +481,7 @@ class PsychiatricProfileAnalyzer:
             "parameter_origin": metadata["parameter_origin"],
             "pending_datasets": metadata["pending_datasets"],
             "citations": self.CITATIONS.get(diagnosis, {}),
-            "is_empirically_validated": metadata["data_source"] == "empirical"
-            and metadata["status"] == "COMPLETE",
+            "is_empirically_validated": metadata["data_source"] == "empirical" and metadata["status"] == "COMPLETE",
             "simulation_only": metadata["data_source"] == "synthetic",
         }
 
@@ -523,9 +498,7 @@ class PsychiatricProfileAnalyzer:
                 pending_profiles.append(status_info)
         return pending_profiles
 
-    def simulate_psychiatric_data(
-        self, diagnosis: str, n_subjects: int = 30
-    ) -> pd.DataFrame:
+    def simulate_psychiatric_data(self, diagnosis: str, n_subjects: int = 30) -> pd.DataFrame:
         if diagnosis not in self.psychiatric_profiles:
             raise ValueError(f"Unknown diagnosis: {diagnosis}")
         bounds = self.EMPIRICAL_BOUNDS[diagnosis]
@@ -598,11 +571,7 @@ class PsychiatricProfileAnalyzer:
             try:
                 auc = roc_auc_score(
                     y_binary,
-                    (
-                        np.asarray(scores)
-                        if condition != "major_depressive_disorder"
-                        else -np.asarray(scores)
-                    ),
+                    (np.asarray(scores) if condition != "major_depressive_disorder" else -np.asarray(scores)),
                 )
                 roc_results[condition] = {"auc": auc}
             except Exception:
@@ -659,9 +628,7 @@ class CrossSpeciesHomologyAnalyzer:
             }
             subject_data["theta_t"] = np.random.uniform(*profile["theta_t_range"])
             subject_data["Pi_e"] = np.random.uniform(*profile["Pi_e_range"])
-            subject_data["ignition_latency"] = profile[
-                "ignition_latency"
-            ] + np.random.normal(0, 0.02)
+            subject_data["ignition_latency"] = profile["ignition_latency"] + np.random.normal(0, 0.02)
             subject_data.update(self._simulate_species_measures(subject_data, species))
             data.append(subject_data)
         return pd.DataFrame(data)
@@ -715,11 +682,7 @@ class IITConvergenceAnalyzer:
             state = (
                 "unconscious"
                 if ignition < 0.3
-                else (
-                    "minimally_conscious"
-                    if ignition < 0.6
-                    else "conscious" if ignition < 0.8 else "self-conscious"
-                )
+                else ("minimally_conscious" if ignition < 0.6 else "conscious" if ignition < 0.8 else "self-conscious")
             )
             data.append(
                 {
@@ -768,9 +731,7 @@ class AutonomicPerturbationAnalyzer:
             "auditory_sham": (0.15, 0.2, 0.1),
         }
 
-    def simulate_perturbation_data(
-        self, intervention: str, n_subjects: int = 30
-    ) -> pd.DataFrame:
+    def simulate_perturbation_data(self, intervention: str, n_subjects: int = 30) -> pd.DataFrame:
         act, sal, stress = self.profiles[intervention]
         data = []
         for sid in range(n_subjects):
@@ -865,7 +826,7 @@ class LiquidTimeConstantChecker:
                 "validation_passed": True,
             }
         except Exception as e:
-            return {"f6_2_pass": False, "error": str(e), "validation_passed": False}
+            return {"f6_2_pass": False, "error": str(e), "validation_passed": False}  # nosec B105
 
 
 class ClinicalConvergenceValidator:
@@ -900,9 +861,9 @@ class ClinicalConvergenceValidator:
             data["ignition_reduction_pct"].mean(),
         )
         # Calculate effect sizes accurately
-        p3b_reduction_vs_baseline = (
-            data["baseline_p3b"].mean() - data["propofol_p3b"].mean()
-        ) / data["baseline_p3b"].std()
+        p3b_reduction_vs_baseline = (data["baseline_p3b"].mean() - data["propofol_p3b"].mean()) / data[
+            "baseline_p3b"
+        ].std()
 
         return {
             "mean_p3b_reduction_pct": m_p3b,
@@ -910,9 +871,7 @@ class ClinicalConvergenceValidator:
             "cohens_d_p3b": float(p3b_reduction_vs_baseline),
             "eta_squared": 0.48,
             "paired_ttest_p3b_pvalue": float(
-                self.clinical_analyzer.permutation_test_paired(
-                    data["baseline_p3b"], data["propofol_p3b"]
-                )
+                self.clinical_analyzer.permutation_test_paired(data["baseline_p3b"], data["propofol_p3b"])
             ),
             "validation_passed": m_p3b > 50.0 and m_ign > 50.0,
         }
@@ -929,9 +888,7 @@ class ClinicalConvergenceValidator:
         # Collect data source status for all tested disorders
         data_source_status = {}
         for diagnosis in diagnoses:
-            data_source_status[diagnosis] = (
-                self.psychiatric_analyzer.get_data_source_status(diagnosis)
-            )
+            data_source_status[diagnosis] = self.psychiatric_analyzer.get_data_source_status(diagnosis)
 
         all_data = []
         for d in diagnoses:
@@ -945,22 +902,16 @@ class ClinicalConvergenceValidator:
             merged_data = pd.concat(all_data, ignore_index=True)
         else:
             merged_data = pd.DataFrame()
-        accuracy_results = self.psychiatric_analyzer.validate_diagnostic_accuracy(
-            merged_data
-        )
+        accuracy_results = self.psychiatric_analyzer.validate_diagnostic_accuracy(merged_data)
 
         # Count disorders awaiting empirical validation
         pending_empirical_count = sum(
-            1
-            for status in data_source_status.values()
-            if status["validation_status"] == "SYNTHETIC_PENDING_EMPIRICAL"
+            1 for status in data_source_status.values() if status["validation_status"] == "SYNTHETIC_PENDING_EMPIRICAL"
         )
 
         return {
             "diagnostic_accuracy": accuracy_results["accuracy"],
-            "roc_auc_md_depression": accuracy_results["roc_analysis"][
-                "major_depressive_disorder"
-            ]["auc"],
+            "roc_auc_md_depression": accuracy_results["roc_analysis"]["major_depressive_disorder"]["auc"],
             "validation_passed": accuracy_results["accuracy"] > 0.75,
             # Data source tracking (NEW)
             "data_source_status": data_source_status,
@@ -975,17 +926,13 @@ class ClinicalConvergenceValidator:
         species = ["human", "macaque", "mouse", "Fish"]
         all_species_data = []
         for s in species:
-            all_species_data.append(
-                self.species_analyzer.simulate_species_data(s, n_subjects=20)
-            )
+            all_species_data.append(self.species_analyzer.simulate_species_data(s, n_subjects=20))
 
         merged_species = pd.concat(all_species_data)
         homology_results = self.species_analyzer.analyze_homologies(merged_species)
 
         # Calculate inter-species correlation mean
-        mean_r = np.mean(
-            [res["Pi_e"]["correlation"] for res in homology_results.values()]
-        )
+        mean_r = np.mean([res["Pi_e"]["correlation"] for res in homology_results.values()])
 
         return {
             "mean_inter_species_r": float(mean_r),
@@ -1016,20 +963,14 @@ class ClinicalConvergenceValidator:
         interventions = ["cold_pressor", "breathlessness", "tactile_sham"]
         all_perturbations = []
         for i in interventions:
-            all_perturbations.append(
-                self.autonomic_analyzer.simulate_perturbation_data(i, n_subjects=20)
-            )
+            all_perturbations.append(self.autonomic_analyzer.simulate_perturbation_data(i, n_subjects=20))
 
         merged_perturb = pd.concat(all_perturbations)
         dynamics = self.autonomic_analyzer.analyze_temporal_dynamics(merged_perturb)
 
         return {
-            "cold_pressor_significant": dynamics["cold_pressor"]["post_30s"][
-                "significant_theta_t"
-            ],
-            "breathlessness_significant": dynamics["breathlessness"]["post_30s"][
-                "significant_pi_i"
-            ],
+            "cold_pressor_significant": dynamics["cold_pressor"]["post_30s"]["significant_theta_t"],
+            "breathlessness_significant": dynamics["breathlessness"]["post_30s"]["significant_pi_i"],
             "validation_passed": True,
         }
 
@@ -1043,41 +984,22 @@ class ClinicalConvergenceValidator:
     def _run_falsification_audit(self, results: Dict) -> Dict:
         # Pack metrics and call check_falsification
         return check_falsification(
-            p3b_reduction=results["disorders_of_consciousness"][
-                "mean_p3b_reduction_pct"
-            ],
-            ignition_reduction=results["disorders_of_consciousness"][
-                "mean_ignition_reduction_pct"
-            ],
-            ltcn_integration_window=results["liquid_time_constant"][
-                "ltc_integration_window_ms"
-            ],
-            rnn_integration_window=results["liquid_time_constant"][
-                "rnn_integration_window_ms"
-            ],
+            p3b_reduction=results["disorders_of_consciousness"]["mean_p3b_reduction_pct"],
+            ignition_reduction=results["disorders_of_consciousness"]["mean_ignition_reduction_pct"],
+            ltcn_integration_window=results["liquid_time_constant"]["ltc_integration_window_ms"],
+            rnn_integration_window=results["liquid_time_constant"]["rnn_integration_window_ms"],
         )
 
     def _calculate_clinical_score(self, results: Dict) -> float:
         """Calculate overall clinical convergence score (0-1)."""
-        passed_count = sum(
-            1
-            for k, v in results.items()
-            if isinstance(v, dict) and v.get("validation_passed", False)
-        )
-        total_validations = sum(
-            1
-            for k, v in results.items()
-            if isinstance(v, dict) and "validation_passed" in v
-        )
+        passed_count = sum(1 for k, v in results.items() if isinstance(v, dict) and v.get("validation_passed", False))
+        total_validations = sum(1 for k, v in results.items() if isinstance(v, dict) and "validation_passed" in v)
 
         # Add special weights for critical validations
         score = (passed_count / total_validations) if total_validations > 0 else 0.0
 
         # Bonus for high diagnostic accuracy and LTC performance
-        if (
-            results["psychiatric_disorder_profiles"].get("diagnostic_accuracy", 0)
-            > 0.85
-        ):
+        if results["psychiatric_disorder_profiles"].get("diagnostic_accuracy", 0) > 0.85:
             score += 0.05
         if results["liquid_time_constant"].get("curve_fit_r2", 0) > 0.95:
             score += 0.05
@@ -1128,7 +1050,7 @@ def main(progress_callback=None):
         if progress_callback is not None:
             try:
                 progress_callback(percent)
-            except Exception:
+            except Exception:  # nosec - Intentionally suppress progress callback errors
                 pass
         if message:
             print(message)
@@ -1153,11 +1075,7 @@ def run_validation():
                 passed=v.get("passed", False),
                 value=v.get("value"),
                 threshold=v.get("threshold", 0.0),
-                status=(
-                    PredictionStatus.PASSED
-                    if v.get("passed", False)
-                    else PredictionStatus.FAILED
-                ),
+                status=(PredictionStatus.PASSED if v.get("passed", False) else PredictionStatus.FAILED),
             )
         else:
             converted_preds[k] = PredictionResult(passed=bool(v))
@@ -1192,9 +1110,7 @@ class APGIValidationProtocol12:
         self.results: Dict[str, Any] = {}
         self.validator = ClinicalConvergenceValidator()
 
-    def run_validation(
-        self, data_path: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+    def run_validation(self, data_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """Standard entry point called by APGIMasterValidator."""
         self.results = {
             "passed": True,
@@ -1203,9 +1119,9 @@ class APGIValidationProtocol12:
         }
         # Extract named predictions from falsification report if available
         if "falsification_report" in self.results["results"]:
-            self.results["named_predictions"] = self.results["results"][
-                "falsification_report"
-            ].get("named_predictions", {})
+            self.results["named_predictions"] = self.results["results"]["falsification_report"].get(
+                "named_predictions", {}
+            )
         return self.results
 
     def check_criteria(self) -> Dict[str, Any]:
@@ -1230,11 +1146,7 @@ def run_protocol_main(config=None):
     if test_mode:
         # Return mock results for fast test execution
         try:
-            from utils.protocol_schema import (
-                PredictionResult,
-                PredictionStatus,
-                ProtocolResult,
-            )
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
             named = {
                 f"V12.{i}": PredictionResult(
@@ -1260,20 +1172,14 @@ def run_protocol_main(config=None):
 
     legacy = run_validation()
     try:
-        from utils.protocol_schema import (
-            PredictionResult,
-            PredictionStatus,
-            ProtocolResult,
-        )
+        from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
         named = {
             k: PredictionResult(
                 passed=v["passed"],
                 value=v["actual"],
                 threshold=v["threshold"],
-                status=(
-                    PredictionStatus.PASSED if v["passed"] else PredictionStatus.FAILED
-                ),
+                status=(PredictionStatus.PASSED if v["passed"] else PredictionStatus.FAILED),
             )
             for k, v in legacy["named_predictions"].items()
         }

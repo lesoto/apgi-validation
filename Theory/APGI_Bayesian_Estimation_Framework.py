@@ -1,4 +1,5 @@
 """
+
 APGI Bayesian Parameter Estimation Framework
 ===========================================
 
@@ -60,18 +61,14 @@ except ImportError as e:
     pm = None  # Placeholder for mocking in tests
     az = None  # Placeholder for mocking in tests
     logger.warning(f"PyMC/ArviZ/xarray not available: {e}")
-    logger.warning(
-        "Bayesian functionality will be limited. Install with: pip install pymc arviz xarray"
-    )
+    logger.warning("Bayesian functionality will be limited. Install with: pip install pymc arviz xarray")
 except Exception as e:
     # Handle any other import errors (e.g., compatibility issues)
     BAYESIAN_AVAILABLE = False
     pm = None  # Placeholder for mocking in tests
     az = None  # Placeholder for mocking in tests
     logger.warning(f"PyMC/ArviZ import failed due to compatibility issues: {e}")
-    logger.warning(
-        "Bayesian functionality will be limited. Install with: pip install pymc arviz xarray"
-    )
+    logger.warning("Bayesian functionality will be limited. Install with: pip install pymc arviz xarray")
 
 
 def _interpret_bayes_factor(bf: float) -> str:
@@ -135,17 +132,13 @@ class APGIBayesianModel:
                 )
 
             if len(stimulus_intensities) < 5:
-                logger.warning(
-                    f"Small sample size for psychometric fitting: n={len(stimulus_intensities)}"
-                )
+                logger.warning(f"Small sample size for psychometric fitting: n={len(stimulus_intensities)}")
 
             if np.any((detection_rates < 0) | (detection_rates > 1)):
                 logger.warning("Detection rates outside [0,1] range detected")
 
             if not (100 <= n_samples <= 10000):
-                logger.warning(
-                    f"Unusual number of samples: {n_samples}. Recommended: 1000-5000"
-                )
+                logger.warning(f"Unusual number of samples: {n_samples}. Recommended: 1000-5000")
 
             n_trials = 20  # Assume 20 trials per stimulus intensity
             n_stimuli = len(stimulus_intensities)
@@ -159,9 +152,7 @@ class APGIBayesianModel:
             else:
                 responses = (detection_rates * n_trials).astype(int)
 
-            logger.debug(
-                f"Fitting psychometric function with {n_stimuli} stimuli, {n_samples} MCMC samples"
-            )
+            logger.debug(f"Fitting psychometric function with {n_stimuli} stimuli, {n_samples} MCMC samples")
 
             with pm.Model() as apgi_model:
                 # Priors for APGI parameters (non-centered parametrization)
@@ -178,14 +169,10 @@ class APGIBayesianModel:
                 baseline = pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
 
                 # APGI psychometric function
-                prob_detect = baseline + amplitude / (
-                    1 + pm.math.exp(-beta * (stimulus_intensities - theta))
-                )
+                prob_detect = baseline + amplitude / (1 + pm.math.exp(-beta * (stimulus_intensities - theta)))
 
                 # Likelihood
-                pm.Binomial(
-                    "responses_obs", n=n_trials, p=prob_detect, observed=responses
-                )
+                pm.Binomial("responses_obs", n=n_trials, p=prob_detect, observed=responses)
 
                 # Sample posterior
                 try:
@@ -250,9 +237,7 @@ class APGIBayesianModel:
             logger.error(f"Critical error in psychometric function fitting: {e}")
             return {"error": f"Bayesian fitting failed: {str(e)}"}
 
-    def fit_hierarchical_apgi(
-        self, subject_data: pd.DataFrame, n_samples: int = 1000
-    ) -> Dict:
+    def fit_hierarchical_apgi(self, subject_data: pd.DataFrame, n_samples: int = 1000) -> Dict:
         """
         Hierarchical Bayesian model for APGI parameters across subjects
 
@@ -366,9 +351,7 @@ class APGIBayesianModel:
                 log_likelihood = trace.log_likelihood.stack(sample=("chain", "draw"))
                 mean_log_likelihood = log_likelihood.mean()
                 model_evidence = np.exp(mean_log_likelihood)
-                logger.debug(
-                    f"Model evidence computed via harmonic mean: {model_evidence}"
-                )
+                logger.debug(f"Model evidence computed via harmonic mean: {model_evidence}")
                 return float(model_evidence)
             except Exception as e:
                 logger.debug(f"Harmonic mean estimator failed: {e}")
@@ -414,9 +397,7 @@ class ModelComparisonFramework:
         if not BAYESIAN_AVAILABLE:
             raise ImportError("PyMC required for model comparison")
 
-    def compare_psychometric_models(
-        self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray
-    ) -> Dict:
+    def compare_psychometric_models(self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray) -> Dict:
         """
         Compare APGI, GNW, and linear models using Bayes factors
 
@@ -446,20 +427,14 @@ class ModelComparisonFramework:
                 raise ValueError("Stimulus and detection arrays must have same length")
 
             if len(stimulus_intensities) < 5:
-                logger.warning(
-                    f"Small sample size for model comparison: n={len(stimulus_intensities)}"
-                )
+                logger.warning(f"Small sample size for model comparison: n={len(stimulus_intensities)}")
 
             # Fit APGI model
             try:
                 apgi_model = APGIBayesianModel()
-                apgi_results = apgi_model.fit_psychometric_function(
-                    stimulus_intensities, detection_rates
-                )
+                apgi_results = apgi_model.fit_psychometric_function(stimulus_intensities, detection_rates)
                 if "error" in apgi_results:
-                    raise RuntimeError(
-                        f"APGI model fitting failed: {apgi_results['error']}"
-                    )
+                    raise RuntimeError(f"APGI model fitting failed: {apgi_results['error']}")
             except Exception as e:
                 logger.error(f"Failed to fit APGI model: {e}")
                 raise RuntimeError(f"APGI model fitting failed: {str(e)}")
@@ -476,13 +451,9 @@ class ModelComparisonFramework:
 
             # Fit linear model
             try:
-                linear_results = self._fit_linear_model(
-                    stimulus_intensities, detection_rates
-                )
+                linear_results = self._fit_linear_model(stimulus_intensities, detection_rates)
                 if "error" in linear_results:
-                    logger.warning(
-                        f"Linear model fitting failed: {linear_results['error']}"
-                    )
+                    logger.warning(f"Linear model fitting failed: {linear_results['error']}")
                     linear_results = {"model_evidence": 0.001}  # Fallback
             except Exception as e:
                 logger.warning(f"Linear model fitting failed: {e}")
@@ -493,12 +464,8 @@ class ModelComparisonFramework:
             gnw_evidence = gnw_results.get("model_evidence", 0.01)
             linear_evidence = linear_results.get("model_evidence", 0.001)
 
-            bf_apgi_vs_gnw = (
-                apgi_evidence / gnw_evidence if gnw_evidence > 0 else float("inf")
-            )
-            bf_apgi_vs_linear = (
-                apgi_evidence / linear_evidence if linear_evidence > 0 else float("inf")
-            )
+            bf_apgi_vs_gnw = apgi_evidence / gnw_evidence if gnw_evidence > 0 else float("inf")
+            bf_apgi_vs_linear = apgi_evidence / linear_evidence if linear_evidence > 0 else float("inf")
 
             # Determine winning model
             models = [
@@ -518,14 +485,8 @@ class ModelComparisonFramework:
                     "apgi_vs_linear": float(bf_apgi_vs_linear),
                 },
                 "winning_model": winning_model[0],
-                "evidence_strength": self._interpret_bayes_factor(
-                    max(bf_apgi_vs_gnw, bf_apgi_vs_linear)
-                ),
-                "model_comparison": (
-                    "APGI_preferred"
-                    if winning_model[0] == "APGI"
-                    else "Alternative_preferred"
-                ),
+                "evidence_strength": self._interpret_bayes_factor(max(bf_apgi_vs_gnw, bf_apgi_vs_linear)),
+                "model_comparison": ("APGI_preferred" if winning_model[0] == "APGI" else "Alternative_preferred"),
             }
 
             logger.info(
@@ -537,9 +498,7 @@ class ModelComparisonFramework:
             logger.error(f"Critical error in model comparison: {e}")
             return {"error": f"Model comparison failed: {str(e)}"}
 
-    def _fit_gnw_model(
-        self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray
-    ) -> Dict:
+    def _fit_gnw_model(self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray) -> Dict:
         """Fit GNW equivalent model (simplified Bayesian version)"""
 
         n_trials = 20
@@ -547,9 +506,7 @@ class ModelComparisonFramework:
 
         with pm.Model():
             # GNW parameters (different prior structure)
-            slope = pm.TruncatedNormal(
-                "slope", mu=5.0, sigma=3.0, lower=0.1, upper=20.0
-            )
+            slope = pm.TruncatedNormal("slope", mu=5.0, sigma=3.0, lower=0.1, upper=20.0)
             threshold = pm.Normal(
                 "threshold",
                 mu=np.median(stimulus_intensities),
@@ -559,9 +516,7 @@ class ModelComparisonFramework:
             baseline = pm.Beta("baseline", alpha=1, beta=3)
 
             # GNW psychometric function (different functional form)
-            prob_detect = baseline + amplitude / (
-                1 + pm.math.exp(-slope * (stimulus_intensities - threshold))
-            )
+            prob_detect = baseline + amplitude / (1 + pm.math.exp(-slope * (stimulus_intensities - threshold)))
 
             pm.Binomial("responses_obs", n=n_trials, p=prob_detect, observed=responses)
 
@@ -584,9 +539,7 @@ class ModelComparisonFramework:
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
-    def _fit_linear_model(
-        self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray
-    ) -> Dict:
+    def _fit_linear_model(self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray) -> Dict:
         """Fit linear model"""
 
         n_trials = 20
@@ -627,16 +580,18 @@ class ModelComparisonFramework:
                 log_likelihood = trace.log_likelihood.stack(sample=("chain", "draw"))
                 mean_log_likelihood = log_likelihood.mean()
                 return float(np.exp(mean_log_likelihood))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to compute harmonic mean: {e}")
+                return np.nan
 
             # Try LOO
             try:
                 loo = az.loo(trace, pointwise=True)
                 log_marg_like = -loo.loo
                 return float(np.exp(log_marg_like))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to compute LOO evidence: {e}")
+                return np.nan
 
             # Fallback
             return 0.1
@@ -655,9 +610,7 @@ class IITConvergenceBayesian:
         if not BAYESIAN_AVAILABLE:
             raise ImportError("PyMC required for IIT convergence analysis")
 
-    def model_iit_apgi_relationship(
-        self, ignition_data: pd.DataFrame, phi_data: pd.DataFrame
-    ) -> Dict:
+    def model_iit_apgi_relationship(self, ignition_data: pd.DataFrame, phi_data: pd.DataFrame) -> Dict:
         """
         Bayesian model of relationship between APGI ignition and IIT Φ
 
@@ -733,9 +686,7 @@ class ParameterRecoveryAnalysis:
             self.bayesian_model = APGIBayesianModel()
         return self.bayesian_model
 
-    def assess_parameter_recovery(
-        self, true_parameters: Dict, n_simulations: int = 50
-    ) -> Dict:
+    def assess_parameter_recovery(self, true_parameters: Dict, n_simulations: int = 50) -> Dict:
         """
         Assess parameter recovery accuracy
 
@@ -766,12 +717,8 @@ class ParameterRecoveryAnalysis:
                 )
 
                 if recovery_result["converged"]:
-                    recovery_results["beta_recovery"].append(
-                        recovery_result["beta_posterior_mean"]
-                    )
-                    recovery_results["theta_recovery"].append(
-                        recovery_result["theta_posterior_mean"]
-                    )
+                    recovery_results["beta_recovery"].append(recovery_result["beta_posterior_mean"])
+                    recovery_results["theta_recovery"].append(recovery_result["theta_posterior_mean"])
                     recovery_results["convergence_rates"].append(1)
                 else:
                     recovery_results["convergence_rates"].append(0)
@@ -787,23 +734,13 @@ class ParameterRecoveryAnalysis:
         theta_recovered = np.array(recovery_results["theta_recovery"])
 
         recovery_stats = {
-            "beta_recovery_bias": (
-                np.mean(beta_recovered) - beta_true if len(beta_recovered) > 0 else None
-            ),
+            "beta_recovery_bias": (np.mean(beta_recovered) - beta_true if len(beta_recovered) > 0 else None),
             "beta_recovery_rmse": (
-                np.sqrt(np.mean((beta_recovered - beta_true) ** 2))
-                if len(beta_recovered) > 0
-                else None
+                np.sqrt(np.mean((beta_recovered - beta_true) ** 2)) if len(beta_recovered) > 0 else None
             ),
-            "theta_recovery_bias": (
-                np.mean(theta_recovered) - theta_true
-                if len(theta_recovered) > 0
-                else None
-            ),
+            "theta_recovery_bias": (np.mean(theta_recovered) - theta_true if len(theta_recovered) > 0 else None),
             "theta_recovery_rmse": (
-                np.sqrt(np.mean((theta_recovered - theta_true) ** 2))
-                if len(theta_recovered) > 0
-                else None
+                np.sqrt(np.mean((theta_recovered - theta_true) ** 2)) if len(theta_recovered) > 0 else None
             ),
             "convergence_rate": np.mean(recovery_results["convergence_rates"]),
             "n_successful_recoveries": len(beta_recovered),
@@ -888,9 +825,7 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results[
-                    "psychometric_estimation"
-                ] = self._get_apgi_model().fit_psychometric_function(
+                results["psychometric_estimation"] = self._get_apgi_model().fit_psychometric_function(
                     psycho_data["stimuli"], psycho_data["detections"]
                 )
             except Exception as e:
@@ -900,9 +835,7 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results[
-                    "model_comparison"
-                ] = self._get_comparison_framework().compare_psychometric_models(
+                results["model_comparison"] = self._get_comparison_framework().compare_psychometric_models(
                     psycho_data["stimuli"], psycho_data["detections"]
                 )
             except Exception as e:
@@ -911,9 +844,7 @@ class BayesianValidationFramework:
         # 3. IIT convergence analysis
         if "ignition_data" in empirical_data and "phi_data" in empirical_data:
             try:
-                results[
-                    "iit_convergence"
-                ] = self._get_iit_convergence().model_iit_apgi_relationship(
+                results["iit_convergence"] = self._get_iit_convergence().model_iit_apgi_relationship(
                     empirical_data["ignition_data"], empirical_data["phi_data"]
                 )
             except Exception as e:
@@ -922,9 +853,7 @@ class BayesianValidationFramework:
         # 4. Parameter recovery analysis
         true_params = {"beta": 12.0, "theta": 0.5, "amplitude": 1.0, "baseline": 0.0}
         try:
-            results[
-                "parameter_recovery"
-            ] = self._get_parameter_recovery().assess_parameter_recovery(
+            results["parameter_recovery"] = self._get_parameter_recovery().assess_parameter_recovery(
                 true_params, n_simulations=10  # Reduced for demonstration
             )
         except Exception as e:
@@ -946,16 +875,11 @@ class BayesianValidationFramework:
 
         # Model comparison (weight: 0.3)
         comp_result = results.get("model_comparison", {})
-        scores.append(
-            0.3
-            * (1.0 if comp_result.get("model_comparison") == "APGI_preferred" else 0.0)
-        )
+        scores.append(0.3 * (1.0 if comp_result.get("model_comparison") == "APGI_preferred" else 0.0))
 
         # IIT convergence (weight: 0.2)
         iit_result = results.get("iit_convergence", {})
-        scores.append(
-            0.2 * (1.0 if iit_result.get("convergence_supported", False) else 0.0)
-        )
+        scores.append(0.2 * (1.0 if iit_result.get("convergence_supported", False) else 0.0))
 
         # Parameter recovery (weight: 0.2)
         recovery_result = results.get("parameter_recovery", {})
@@ -986,12 +910,7 @@ def main():
 
     # Simulated IIT convergence data
     ignition_data = pd.DataFrame({"ignition_probability": np.random.beta(2, 5, 50)})
-    phi_data = pd.DataFrame(
-        {
-            "phi_value": ignition_data["ignition_probability"] * 10
-            + np.random.normal(0, 1, 50)
-        }
-    )
+    phi_data = pd.DataFrame({"phi_value": ignition_data["ignition_probability"] * 10 + np.random.normal(0, 1, 50)})
 
     empirical_data = {
         "psychometric_data": psychometric_data,

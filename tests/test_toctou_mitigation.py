@@ -261,9 +261,7 @@ class TestSecureFileOperations:
             ops.safe_write(str(test_file), f"modified by {thread_id}")
             results.append(content)
 
-        threads = [
-            threading.Thread(target=concurrent_operation, args=(i,)) for i in range(5)
-        ]
+        threads = [threading.Thread(target=concurrent_operation, args=(i,)) for i in range(5)]
         for thread in threads:
             thread.start()
         for thread in threads:
@@ -314,13 +312,9 @@ class TestSecureFileOperations:
         test_file.write_text("initial")
 
         def operation_thread(thread_id):
-            ops.concurrent_safe_operation(
-                str(test_file), "write", content=f"thread_{thread_id}"
-            )
+            ops.concurrent_safe_operation(str(test_file), "write", content=f"thread_{thread_id}")
 
-        threads = [
-            threading.Thread(target=operation_thread, args=(i,)) for i in range(5)
-        ]
+        threads = [threading.Thread(target=operation_thread, args=(i,)) for i in range(5)]
         for thread in threads:
             thread.start()
         for thread in threads:

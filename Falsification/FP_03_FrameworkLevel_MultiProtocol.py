@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import time
 import warnings
 from datetime import datetime
@@ -102,10 +103,12 @@ try:
     # Import aggregator functions and constants
     try:
         from Falsification.FP_ALL_Aggregator import (
-            NAMED_PREDICTIONS, aggregate_prediction_results,
+            NAMED_PREDICTIONS,
+            aggregate_prediction_results,
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
-            run_framework_falsification)
+            run_framework_falsification,
+        )
 
         AGGREGATOR_AVAILABLE = True
     except ImportError as e:
@@ -134,18 +137,14 @@ try:
 
 except ImportError as e:
 
-    def handle_import_error(
-        module_name: str, error: Exception, context: str = ""
-    ) -> None:
+    def handle_import_error(module_name: str, error: Exception, context: str = "") -> None:
         # Use print since logger isn't set up yet
         print(f"Warning: Could not import {module_name}: {error}")
         if context:
             print(f"Context: {context}")
         return None
 
-    handle_import_error(
-        "APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation"
-    )
+    handle_import_error("APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation")
     # Set fallback flags
     SHARED_FALSEFICATION_AVAILABLE = False
     AGGREGATOR_AVAILABLE = False
@@ -166,31 +165,26 @@ except ImportError as e:
 logger = logging.getLogger(__name__)
 from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
-    DEFAULT_ALPHA, F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT, F1_1_MIN_COHENS_D,
-    F1_6_MIN_LOW_AROUSAL_SLOPE, GENERIC_MEDIUM_COHENS_D)
+    DEFAULT_ALPHA,
+    F1_1_ALPHA,
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F1_6_MIN_LOW_AROUSAL_SLOPE,
+    GENERIC_MEDIUM_COHENS_D,
+)
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Suppress sklearn numerical warnings (overflow, invalid, divide by zero in matmul)
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, message="overflow encountered"
-)
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, message="invalid value encountered"
-)
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, message="divide by zero encountered"
-)
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="divide by zero encountered")
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn")
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, module="sklearn.linear_model"
-)
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn.linear_model")
 
 
-def bootstrap_ci(
-    data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
-) -> Tuple[float, float, float]:
+def bootstrap_ci(data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95) -> Tuple[float, float, float]:
     """
     Compute bootstrap confidence interval for mean.
 
@@ -254,11 +248,7 @@ def bootstrap_one_sample_test(
         p_value = np.mean(bootstrap_means <= 2 * null_value - observed_mean)
 
     # Test statistic is standardized difference
-    test_stat = (
-        (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data)))
-        if np.std(data) > 0
-        else 0.0
-    )
+    test_stat = (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data))) if np.std(data) > 0 else 0.0
 
     return test_stat, min(2 * p_value, 1.0)
 
@@ -297,7 +287,9 @@ def _persist_protocol_result(protocol_label: str, result: Dict[str, Any]) -> Pat
 
     # Atomic write: write to temp file then replace
     with tmp_path.open("w", encoding="utf-8") as handle:
-        json.dump(result, handle, indent=2, default=_json_default)
+        import json
+
+        json.dump(result, handle, indent=2)
     os.replace(tmp_path, output_path)
     return output_path
 
@@ -314,9 +306,7 @@ def _load_protocol_result_json(path: Path) -> Dict[str, Any]:
             return {}
 
 
-def _summarize_protocol_json(
-    protocol_label: str, result: Dict[str, Any]
-) -> Dict[str, Any]:
+def _summarize_protocol_json(protocol_label: str, result: Dict[str, Any]) -> Dict[str, Any]:
     """Summarize pass/fail status from a persisted protocol result."""
     if not result:
         return {
@@ -328,10 +318,7 @@ def _summarize_protocol_json(
         }
     criteria = result.get("criteria", {})
     failed_criteria = sorted(
-        criterion
-        for criterion, criterion_result in criteria.items()
-        if isinstance(criterion_result, dict)
-        and not criterion_result.get("passed", False)
+        criterion for criterion, criterion_result in criteria.items() if not criterion_result.get("passed", False)
     )
     status_raw = str(result.get("status", "")).strip().lower()
     error_value = result.get("error")
@@ -444,9 +431,7 @@ def _compute_paired_percentage_reduction(
     }
 
 
-def measure_wall_clock_seconds(
-    callback: Any, repeats: int = 5, warmup: int = 1
-) -> List[float]:
+def measure_wall_clock_seconds(callback: Any, repeats: int = 5, warmup: int = 1) -> List[float]:
     """Measure runtime with time.perf_counter() for F3.5 wall-clock comparisons."""
     timings: List[float] = []
     for _ in range(max(0, warmup)):
@@ -458,9 +443,7 @@ def measure_wall_clock_seconds(
     return timings
 
 
-def _compute_wall_clock_efficiency(
-    performance_retention: Any, efficiency_gain: Any
-) -> Dict[str, Any]:
+def _compute_wall_clock_efficiency(performance_retention: Any, efficiency_gain: Any) -> Dict[str, Any]:
     """
     Compute performance retention and efficiency from wall-clock traces.
 
@@ -473,8 +456,7 @@ def _compute_wall_clock_efficiency(
     """
     if isinstance(performance_retention, dict):
         full_perf = _to_numeric_array(
-            performance_retention.get("full_model_performance")
-            or performance_retention.get("full_performance")
+            performance_retention.get("full_model_performance") or performance_retention.get("full_performance")
         )
         efficient_perf = _to_numeric_array(
             performance_retention.get("efficient_model_performance")
@@ -482,13 +464,9 @@ def _compute_wall_clock_efficiency(
             or performance_retention.get("measured_performance")
         )
         if full_perf.size and efficient_perf.size:
-            retention_pct = float(
-                (np.mean(efficient_perf) / max(1e-10, np.mean(full_perf))) * 100.0
-            )
+            retention_pct = float((np.mean(efficient_perf) / max(1e-10, np.mean(full_perf))) * 100.0)
         else:
-            retention_pct = float(
-                performance_retention.get("performance_retention_pct", np.nan)
-            )
+            retention_pct = float(performance_retention.get("performance_retention_pct", np.nan))
     else:
         retention_pct = float(performance_retention)
 
@@ -501,13 +479,9 @@ def _compute_wall_clock_efficiency(
 
     method = efficiency_gain.get("measurement_method", "wall_clock")
     if method != "wall_clock":
-        raise ValueError(
-            "F3.5 requires wall-clock timing measured with time.perf_counter()."
-        )
+        raise ValueError("F3.5 requires wall-clock timing measured with time.perf_counter().")
 
-    apgi_seconds = _to_numeric_array(
-        efficiency_gain.get("apgi_seconds") or efficiency_gain.get("full_model_seconds")
-    )
+    apgi_seconds = _to_numeric_array(efficiency_gain.get("apgi_seconds") or efficiency_gain.get("full_model_seconds"))
     baseline_seconds = _to_numeric_array(
         efficiency_gain.get("baseline_seconds")
         or efficiency_gain.get("flop_equivalent_seconds")
@@ -520,13 +494,10 @@ def _compute_wall_clock_efficiency(
             "performance_retention_pct": retention_pct,
         }
 
-    timing_gain_pct = float(
-        (1.0 - (np.mean(apgi_seconds) / max(1e-10, np.mean(baseline_seconds)))) * 100.0
-    )
+    timing_gain_pct = float((1.0 - (np.mean(apgi_seconds) / max(1e-10, np.mean(baseline_seconds)))) * 100.0)
     t_stat, p_value = stats.ttest_ind(baseline_seconds, apgi_seconds, equal_var=False)
-    assert (
-        method == "wall_clock"
-    ), "F3.5 requires wall-clock timing measured with time.perf_counter()"
+    if method != "wall_clock":
+        raise ValueError("F3.5 requires wall-clock timing measured with time.perf_counter()")
     return {
         "valid": True,
         "performance_retention_pct": retention_pct,
@@ -538,9 +509,7 @@ def _compute_wall_clock_efficiency(
     }
 
 
-def _compute_sample_efficiency(
-    apgi_time_to_criterion: Any, baseline_time_to_criterion: Any
-) -> Dict[str, Any]:
+def _compute_sample_efficiency(apgi_time_to_criterion: Any, baseline_time_to_criterion: Any) -> Dict[str, Any]:
     """Compute sample-efficiency statistics against a measured RL baseline."""
     apgi_trials = _to_numeric_array(apgi_time_to_criterion)
     baseline_trials = _to_numeric_array(baseline_time_to_criterion)
@@ -599,16 +568,12 @@ def _get_protocol1() -> Any:
         spec1.loader.exec_module(protocol1)
         return protocol1
     except ImportError as e:
-        handle_import_error(
-            "Falsification-Protocol-1", e, "Protocol 1 import for agent comparison"
-        )
+        handle_import_error("Falsification-Protocol-1", e, "Protocol 1 import for agent comparison")
         raise
     except Exception as e:
         from utils.error_handler import import_error
 
-        raise import_error(
-            "DEPENDENCY_ERROR", details=f"Failed to import Protocol 1: {str(e)}"
-        )
+        raise import_error("DEPENDENCY_ERROR", details=f"Failed to import Protocol 1: {str(e)}")
 
 
 def _get_protocol2() -> Any:
@@ -634,16 +599,12 @@ def _get_protocol2() -> Any:
         spec2.loader.exec_module(protocol2)
         return protocol2
     except ImportError as e:
-        handle_import_error(
-            "Protocol_2", e, "Protocol 2 import for environment creation"
-        )
+        handle_import_error("Protocol_2", e, "Protocol 2 import for environment creation")
         raise
     except Exception as e:
         from utils.error_handler import import_error
 
-        raise import_error(
-            "DEPENDENCY_ERROR", details=f"Failed to import Protocol 2: {str(e)}"
-        )
+        raise import_error("DEPENDENCY_ERROR", details=f"Failed to import Protocol 2: {str(e)}")
 
 
 def _get_stats() -> Any:
@@ -655,16 +616,12 @@ def _get_stats() -> Any:
     except ImportError as e:
         from utils.error_handler import handle_import_error
 
-        handle_import_error(
-            "scipy.stats", e, "Statistical analysis in agent comparison"
-        )
+        handle_import_error("scipy.stats", e, "Statistical analysis in agent comparison")
         raise
     except Exception as e:
         from utils.error_handler import import_error
 
-        raise import_error(
-            "DEPENDENCY_ERROR", details=f"Failed to import scipy.stats: {str(e)}"
-        )
+        raise import_error("DEPENDENCY_ERROR", details=f"Failed to import scipy.stats: {str(e)}")
 
 
 def _get_logistic_regression() -> Any:
@@ -762,9 +719,7 @@ class StandardPPAgent:
             # Handle dimension mismatch with policy weights
             if state.shape[0] != self.policy_weights.shape[1]:
                 if state.shape[0] < self.policy_weights.shape[1]:
-                    state = np.pad(
-                        state, (0, self.policy_weights.shape[1] - state.shape[0])
-                    )
+                    state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
                 else:
                     state = state[: self.policy_weights.shape[1]]
 
@@ -774,13 +729,9 @@ class StandardPPAgent:
 
         except Exception as e:
             print(f"Warning: StandardPPAgent step failed: {str(e)}")
-            return np.random.choice(
-                DIM_CONSTANTS.N_ACTIONS
-            )  # Random action as fallback
+            return np.random.choice(DIM_CONSTANTS.N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ) -> None:
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
         """Receive outcome with type hints"""
         pass  # Simple agent doesn't learn
 
@@ -790,9 +741,7 @@ class GWTOnlyAgent:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.policy_weights = np.random.normal(
-            0, 0.01, (DIM_CONSTANTS.N_ACTIONS, DIM_CONSTANTS.STATE_DIMENSION)
-        )
+        self.policy_weights = np.random.normal(0, 0.01, (DIM_CONSTANTS.N_ACTIONS, DIM_CONSTANTS.STATE_DIMENSION))
         self.conscious_access = False
         self.ignition_history: List[Dict[str, Any]] = []
 
@@ -804,9 +753,7 @@ class GWTOnlyAgent:
             # Handle dimension mismatch with policy weights
             if state.shape[0] != self.policy_weights.shape[1]:
                 if state.shape[0] < self.policy_weights.shape[1]:
-                    state = np.pad(
-                        state, (0, self.policy_weights.shape[1] - state.shape[0])
-                    )
+                    state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
                 else:
                     state = state[: self.policy_weights.shape[1]]
 
@@ -824,13 +771,9 @@ class GWTOnlyAgent:
 
         except Exception as e:
             print(f"Warning: GWTOnlyAgent step failed: {str(e)}")
-            return np.random.choice(
-                DIM_CONSTANTS.N_ACTIONS
-            )  # Random action as fallback
+            return np.random.choice(DIM_CONSTANTS.N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ) -> None:
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
         """Receive outcome with type hints"""
         pass
 
@@ -840,12 +783,8 @@ class StandardActorCriticAgent:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.actor_weights = np.random.normal(
-            0, 0.01, (DIM_CONSTANTS.N_ACTIONS, DIM_CONSTANTS.STATE_DIMENSION)
-        )
-        self.critic_weights = np.random.normal(
-            0, 0.01, (DIM_CONSTANTS.STATE_DIMENSION,)
-        )
+        self.actor_weights = np.random.normal(0, 0.01, (DIM_CONSTANTS.N_ACTIONS, DIM_CONSTANTS.STATE_DIMENSION))
+        self.critic_weights = np.random.normal(0, 0.01, (DIM_CONSTANTS.STATE_DIMENSION,))
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """Agent step with improved error handling"""
@@ -855,9 +794,7 @@ class StandardActorCriticAgent:
             # Handle dimension mismatch with actor weights
             if state.shape[0] != self.actor_weights.shape[1]:
                 if state.shape[0] < self.actor_weights.shape[1]:
-                    state = np.pad(
-                        state, (0, self.actor_weights.shape[1] - state.shape[0])
-                    )
+                    state = np.pad(state, (0, self.actor_weights.shape[1] - state.shape[0]))
                 else:
                     state = state[: self.actor_weights.shape[1]]
 
@@ -867,13 +804,9 @@ class StandardActorCriticAgent:
 
         except Exception as e:
             print(f"Warning: StandardActorCriticAgent step failed: {str(e)}")
-            return np.random.choice(
-                DIM_CONSTANTS.N_ACTIONS
-            )  # Random action as fallback
+            return np.random.choice(DIM_CONSTANTS.N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ) -> None:
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
         """Receive outcome with type hints"""
         pass
 
@@ -899,13 +832,9 @@ class AgentComparisonExperiment:
             "ThreatReward": lambda: _get_protocol2().ThreatRewardTradeoffEnvironment(),
         }
 
-    def _run_protocol_module(
-        self, protocol_num: int, protocol_path: str
-    ) -> Dict[str, Any]:
+    def _run_protocol_module(self, protocol_num: int, protocol_path: str) -> Dict[str, Any]:
         """Import and execute a protocol module with explicit error reporting."""
-        spec = importlib.util.spec_from_file_location(
-            f"Protocol_{protocol_num}", protocol_path
-        )
+        spec = importlib.util.spec_from_file_location(f"Protocol_{protocol_num}", protocol_path)
         if spec is None or spec.loader is None:
             raise ImportError(f"Failed to load spec for Protocol {protocol_num}")
 
@@ -919,13 +848,9 @@ class AgentComparisonExperiment:
         if hasattr(protocol_module, "run_falsification"):
             return protocol_module.run_falsification()
 
-        raise AttributeError(
-            f"Protocol {protocol_num} does not expose run_protocol/run_validation/run_falsification"
-        )
+        raise AttributeError(f"Protocol {protocol_num} does not expose run_protocol/run_validation/run_falsification")
 
-    def _evaluate_cross_protocol_consistency(
-        self, protocol_json_paths: Dict[str, Path]
-    ) -> Dict[str, Any]:
+    def _evaluate_cross_protocol_consistency(self, protocol_json_paths: Dict[str, Path]) -> Dict[str, Any]:
         """
         Enforce the FP-03 prerequisite gate using persisted FP-01/FP-02 JSON artifacts.
 
@@ -962,18 +887,14 @@ class AgentComparisonExperiment:
                 None
                 if gate_passed
                 else (
-                    "Missing prerequisite JSON artifacts"
-                    if missing
-                    else "Prerequisite protocol falsification detected"
+                    "Missing prerequisite JSON artifacts" if missing else "Prerequisite protocol falsification detected"
                 )
             ),
         }
 
     def run_full_experiment(self) -> Dict[str, Any]:
         """Run framework-level synthesis: load protocols 1-12 and apply aggregator logic"""
-        logger.info(
-            "Starting framework-level synthesis: loading protocols 1-12 and applying falsification"
-        )
+        logger.info("Starting framework-level synthesis: loading protocols 1-12 and applying falsification")
 
         # Define all 12 protocols for full framework synthesis
         protocol_files = {
@@ -1004,9 +925,7 @@ class AgentComparisonExperiment:
                 # Skip self to prevent recursion
                 continue
 
-            protocol_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), protocol_file)
-            )
+            protocol_path = os.path.abspath(os.path.join(os.path.dirname(__file__), protocol_file))
 
             if not os.path.exists(protocol_path):
                 message = f"Protocol {protocol_num} file not found: {protocol_path}"
@@ -1020,9 +939,7 @@ class AgentComparisonExperiment:
 
                 if protocol_num in (1, 2):
                     protocol_label = f"fp_{protocol_num:02d}"
-                    protocol_json_paths[protocol_label] = _persist_protocol_result(
-                        protocol_label, result
-                    )
+                    protocol_json_paths[protocol_label] = _persist_protocol_result(protocol_label, result)
                     logger.info(
                         "Persisted %s prerequisite result to %s",
                         protocol_label.upper(),
@@ -1041,9 +958,7 @@ class AgentComparisonExperiment:
                 "protocol_loading_errors": protocol_loading_errors,
             }
 
-        consistency_gate = self._evaluate_cross_protocol_consistency(
-            protocol_json_paths
-        )
+        consistency_gate = self._evaluate_cross_protocol_consistency(protocol_json_paths)
         if not consistency_gate["passed"]:
             logger.error(
                 "Cross-protocol consistency gate failed: %s",
@@ -1076,8 +991,8 @@ class AgentComparisonExperiment:
                 logger.info(f"Framework-level results saved to {output_file}")
             except (OSError, IOError) as e:
                 logger.error(f"Failed to save results to {output_file}: {e}")
-                # Try alternative location
-                alt_output_file = Path("/tmp") / (
+                # Try alternative location using secure temp directory
+                alt_output_file = Path(tempfile.gettempdir()) / (
                     f"framework_falsification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 )
                 try:
@@ -1085,13 +1000,9 @@ class AgentComparisonExperiment:
                     with tmp_alt.open("w", encoding="utf-8") as f:
                         json.dump(falsification, f, indent=2, default=_json_default)
                     os.replace(tmp_alt, alt_output_file)
-                    logger.info(
-                        f"Framework-level results saved to alternative location: {alt_output_file}"
-                    )
+                    logger.info(f"Framework-level results saved to alternative location: {alt_output_file}")
                 except (OSError, IOError) as e2:
-                    logger.error(
-                        f"Failed to save results to alternative location: {e2}"
-                    )
+                    logger.error(f"Failed to save results to alternative location: {e2}")
                     # Continue without saving - return results in memory
                     logger.warning("Continuing without saving results to file")
 
@@ -1165,9 +1076,7 @@ class AgentComparisonExperiment:
 
                 if agent.conscious_access and hasattr(agent, "ignition_history"):
                     last_ignition = agent.ignition_history[-1]
-                    data["intero_dominant_ignitions"].append(
-                        last_ignition["intero_dominant"]
-                    )
+                    data["intero_dominant_ignitions"].append(last_ignition["intero_dominant"])
 
             # Detect strategy changes
             if trial > 0:
@@ -1225,9 +1134,7 @@ class AgentComparisonExperiment:
     ) -> Dict[str, Any]:
         """Analyze P3a: Convergence trials with statistical testing"""
         analysis_p3a: Dict[str, Any] = {}
-        if "IGT" in results and self._validate_analysis_input(
-            results["IGT"], "P3a IGT data"
-        ):
+        if "IGT" in results and self._validate_analysis_input(results["IGT"], "P3a IGT data"):
             analysis_p3a["IGT"] = {}
 
         return analysis_p3a
@@ -1245,9 +1152,7 @@ class AgentComparisonExperiment:
         other_agents = [a for a in list(igt_results.keys()) if a != "APGI"]
         other_convergence: List[float] = []
         for other in other_agents:
-            if "convergence_trials" in igt_results[
-                other
-            ] and self._validate_analysis_input(
+            if "convergence_trials" in igt_results[other] and self._validate_analysis_input(
                 igt_results[other]["convergence_trials"],
                 f"P3a {other} convergence trials",
             ):
@@ -1257,18 +1162,14 @@ class AgentComparisonExperiment:
 
         if other_convergence and len(other_convergence) > 0:
             # Perform safe t-test
-            t_stat, p_value = self._safe_statistical_test(
-                stats.ttest_ind, convergence_data, other_convergence
-            )
+            t_stat, p_value = self._safe_statistical_test(stats.ttest_ind, convergence_data, other_convergence)
 
             if t_stat is not None:
                 # Calculate effect size (Cohen's d) safely
                 cohens_d = self._calculate_cohens_d(convergence_data, other_convergence)
 
                 # Power analysis
-                power_calc = self._calculate_power(
-                    abs(cohens_d), alpha, len(convergence_data)
-                )
+                power_calc = self._calculate_power(abs(cohens_d), alpha, len(convergence_data))
 
                 return {
                     "mean": float(np.mean(convergence_data)),
@@ -1286,19 +1187,14 @@ class AgentComparisonExperiment:
         """Analyze convergence for non-APGI agents (basic statistics only)"""
         return {
             "mean": (float(np.mean(convergence_data)) if convergence_data else None),
-            "std": (
-                float(np.std(convergence_data, ddof=1)) if convergence_data else None
-            ),
+            "std": (float(np.std(convergence_data, ddof=1)) if convergence_data else None),
         }
 
     def _calculate_cohens_d(self, group1: List, group2: List) -> float:
         """Calculate Cohen's d effect size between two groups"""
         try:
             pooled_std = np.sqrt(
-                (
-                    (len(group1) - 1) * np.var(group1, ddof=1)
-                    + (len(group2) - 1) * np.var(group2, ddof=1)
-                )
+                ((len(group1) - 1) * np.var(group1, ddof=1) + (len(group2) - 1) * np.var(group2, ddof=1))
                 / (len(group1) + len(group2) - 2)
             )
             if pooled_std > 0:
@@ -1312,9 +1208,7 @@ class AgentComparisonExperiment:
             logger.warning(f"Cohen's d calculation failed: {e}")
             return 0.0
 
-    def _analyze_p3b_interoceptive_dominance(
-        self, results: Dict[str, Any], stats: Any
-    ) -> Dict[str, Any]:
+    def _analyze_p3b_interoceptive_dominance(self, results: Dict[str, Any], stats: Any) -> Dict[str, Any]:
         """Analyze P3b: Interoceptive dominance in ignitions"""
         if (
             "IGT" in results
@@ -1337,18 +1231,14 @@ class AgentComparisonExperiment:
             intero_dominant_data: List[float] = []
 
             for agent_result in agent_results:
-                if not self._validate_analysis_input(
-                    agent_result, "P3b individual agent"
-                ):
+                if not self._validate_analysis_input(agent_result, "agent_result"):
                     continue
                 if "intero_dominant_ignitions" in agent_result:
                     if self._validate_analysis_input(
                         agent_result["intero_dominant_ignitions"],
                         "P3b intero_dominant_ignitions",
                     ):
-                        intero_dominant_data.extend(
-                            agent_result["intero_dominant_ignitions"]
-                        )
+                        intero_dominant_data.extend(agent_result["intero_dominant_ignitions"])
 
             if intero_dominant_data and len(intero_dominant_data) > 0:
                 # Test if proportion > 0.5 (null hypothesis: p = 0.5)
@@ -1359,9 +1249,7 @@ class AgentComparisonExperiment:
                 try:
                     from scipy.stats import binomtest
 
-                    binom_result = binomtest(
-                        n_successes, n_total, p=0.5, alternative="greater"
-                    )
+                    binom_result = binomtest(n_successes, n_total, p=0.5, alternative="greater")
                     p_value = binom_result.pvalue
                 except ImportError:
                     # Fallback: simple proportion test approximation
@@ -1407,9 +1295,7 @@ class AgentComparisonExperiment:
         stats = _get_stats()
 
         # P3a: Convergence trials with statistical testing
-        analysis["P3a"] = self._analyze_p3a_convergence(
-            results, alpha, effect_size_threshold, stats
-        )
+        analysis["P3a"] = self._analyze_p3a_convergence(results, alpha, effect_size_threshold, stats)
 
         # P3b: Interoceptive dominance in ignitions with proper testing
         analysis["P3b"] = self._analyze_p3b_interoceptive_dominance(results, stats)
@@ -1456,14 +1342,11 @@ class AgentComparisonExperiment:
 
             # Process individual agent results
             for agent_result in agent_results:
-                if not isinstance(agent_result, dict):
+                if agent_result is None:
                     continue
 
                 # Check required fields exist
-                if not all(
-                    key in agent_result
-                    for key in ["ignitions", "rewards", "strategy_changes"]
-                ):
+                if not all(key in agent_result for key in ["ignitions", "rewards", "strategy_changes"]):
                     continue
 
                 ignitions = agent_result["ignitions"]
@@ -1471,25 +1354,17 @@ class AgentComparisonExperiment:
                 strategy_changes = agent_result["strategy_changes"]
 
                 # Ensure we have matching lengths
-                min_length = min(
-                    len(ignitions), len(rewards), len(strategy_changes) + 1
-                )
+                min_length = min(len(ignitions), len(rewards), len(strategy_changes) + 1)
 
                 for t in range(1, min_length):
                     # Skip if any data is invalid
-                    if (
-                        t >= len(ignitions)
-                        or t >= len(rewards)
-                        or t - 1 >= len(strategy_changes)
-                    ):
+                    if t >= len(ignitions) or t >= len(rewards) or t - 1 >= len(strategy_changes):
                         continue
 
                     try:
                         X_data.append(
                             [
-                                int(
-                                    bool(ignitions[t])
-                                ),  # Ignition (ensure boolean/integer)
+                                int(bool(ignitions[t])),  # Ignition (ensure boolean/integer)
                                 float(abs(rewards[t])),  # Prediction error proxy
                                 t / len(ignitions),  # Time control
                             ]
@@ -1563,9 +1438,7 @@ class AgentComparisonExperiment:
             # Use liblinear solver which is more numerically stable for small datasets
             # and add strong regularization to prevent coefficient explosion
             with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", category=RuntimeWarning, message="overflow encountered"
-                )
+                warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered")
                 warnings.filterwarnings(
                     "ignore",
                     category=RuntimeWarning,
@@ -1607,15 +1480,9 @@ class AgentComparisonExperiment:
                     continue
 
                 with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore", category=RuntimeWarning, message="overflow"
-                    )
-                    warnings.filterwarnings(
-                        "ignore", category=RuntimeWarning, message="invalid"
-                    )
-                    warnings.filterwarnings(
-                        "ignore", category=RuntimeWarning, message="divide by zero"
-                    )
+                    warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow")
+                    warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid")
+                    warnings.filterwarnings("ignore", category=RuntimeWarning, message="divide by zero")
                     model_boot = LogisticRegression(
                         random_state=42,
                         max_iter=500,
@@ -1681,12 +1548,7 @@ class AgentComparisonExperiment:
                 # Compare against best other agent
                 other_means = []
                 for k, v in igt_rewards.items():
-                    if (
-                        k != "APGI"
-                        and isinstance(v, dict)
-                        and "mean" in v
-                        and v["mean"] > 0
-                    ):
+                    if k != "APGI" and isinstance(v, dict) and "mean" in v and v["mean"] > 0:
                         other_means.append(v["mean"])
 
                 if other_means:
@@ -1700,22 +1562,16 @@ class AgentComparisonExperiment:
                         valid_other_agents = [
                             k
                             for k in igt_rewards.keys()
-                            if k != "APGI"
-                            and isinstance(igt_rewards[k], dict)
-                            and "mean" in igt_rewards[k]
+                            if k != "APGI" and isinstance(igt_rewards[k], dict) and "mean" in igt_rewards[k]
                         ]
                         if valid_other_agents:
-                            other_agent = max(
-                                valid_other_agents, key=lambda k: igt_rewards[k]["mean"]
-                            )
+                            other_agent = max(valid_other_agents, key=lambda k: igt_rewards[k]["mean"])
                             other_std = igt_rewards[other_agent].get("std", 0.0)
                             other_n = igt_rewards[other_agent].get("n", 1)
 
                             if other_n > 1:
                                 # Pooled standard error
-                                pooled_se = np.sqrt(
-                                    (apgi_std**2 / apgi_n + other_std**2 / other_n)
-                                )
+                                pooled_se = np.sqrt((apgi_std**2 / apgi_n + other_std**2 / other_n))
                                 if pooled_se > 0:
                                     t_stat = (apgi_mean - best_other_mean) / pooled_se
                                     df = apgi_n + other_n - 2
@@ -1723,22 +1579,13 @@ class AgentComparisonExperiment:
 
                                     # Effect size
                                     pooled_std = np.sqrt(
-                                        (
-                                            (apgi_n - 1) * apgi_std**2
-                                            + (other_n - 1) * other_std**2
-                                        )
+                                        ((apgi_n - 1) * apgi_std**2 + (other_n - 1) * other_std**2)
                                         / (apgi_n + other_n - 2)
                                     )
-                                    cohens_d = (
-                                        (apgi_mean - best_other_mean) / pooled_std
-                                        if pooled_std > 0
-                                        else 0
-                                    )
+                                    cohens_d = (apgi_mean - best_other_mean) / pooled_std if pooled_std > 0 else 0
 
                                     # Falsify if no significant advantage AND small effect size
-                                    falsified["F3.1"] = (
-                                        p_value >= bonferroni_alpha
-                                    ) and (abs(cohens_d) < 0.3)
+                                    falsified["F3.1"] = (p_value >= bonferroni_alpha) and (abs(cohens_d) < 0.3)
                                 else:
                                     falsified["F3.1"] = apgi_mean <= best_other_mean
                             else:
@@ -1760,9 +1607,7 @@ class AgentComparisonExperiment:
             ignition_coef = analysis["P3c"].get("ignition_coefficient", 0)
 
             # Falsify if no significant predictive relationship
-            falsified["F3.2"] = (ignition_p >= bonferroni_alpha) or (
-                abs(ignition_coef) < 0.1
-            )
+            falsified["F3.2"] = (ignition_p >= bonferroni_alpha) or (abs(ignition_coef) < 0.1)
         else:
             falsified["F3.2"] = True  # No data available
 
@@ -1790,17 +1635,12 @@ class AgentComparisonExperiment:
 
                         # Effect size
                         pooled_std = np.sqrt(
-                            ((apgi_n - 1) * apgi_std**2 + (pp_n - 1) * pp_std**2)
-                            / (apgi_n + pp_n - 2)
+                            ((apgi_n - 1) * apgi_std**2 + (pp_n - 1) * pp_std**2) / (apgi_n + pp_n - 2)
                         )
-                        cohens_d = (
-                            (pp_mean - apgi_mean) / pooled_std if pooled_std > 0 else 0
-                        )
+                        cohens_d = (pp_mean - apgi_mean) / pooled_std if pooled_std > 0 else 0
 
                         # Falsify if PP significantly outperforms APGI
-                        falsified["F3.3"] = (pp_mean > apgi_mean) and (
-                            p_value < bonferroni_alpha
-                        )
+                        falsified["F3.3"] = (pp_mean > apgi_mean) and (p_value < bonferroni_alpha)
                     else:
                         falsified["F3.3"] = pp_mean > apgi_mean
                 else:
@@ -1843,9 +1683,7 @@ class AgentComparisonExperiment:
                 adaptation_scores = analysis["P3d"].get("adaptation_scores", {})
                 if adaptation_scores and "APGI" in adaptation_scores:
                     apgi_score = adaptation_scores["APGI"]
-                    other_scores = [
-                        v for k, v in adaptation_scores.items() if k != "APGI"
-                    ]
+                    other_scores = [v for k, v in adaptation_scores.items() if k != "APGI"]
                     if other_scores:
                         best_other = max(other_scores)
                         falsified["F3.6"] = apgi_score <= best_other
@@ -1890,15 +1728,11 @@ class AgentComparisonExperiment:
                 "threshold": "adaptation advantage",
             },
         }
-        falsified["all_criteria_passed"] = (
-            falsified_count == 0
-        )  # CRIT-03 FIX: All 6 must pass
+        falsified["all_criteria_passed"] = falsified_count == 0  # CRIT-03 FIX: All 6 must pass
 
         return falsified
 
-    def check_framework_falsification_conditions(
-        self, framework_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def check_framework_falsification_conditions(self, framework_results: Dict[str, Any]) -> Dict[str, Any]:
         """
         Check framework-level falsification conditions using the aggregator.
 
@@ -1944,9 +1778,7 @@ class AgentComparisonExperiment:
 
         # Count passing/failing predictions
         total_named = len(NAMED_PREDICTIONS)
-        failed_predictions = sum(
-            1 for r in apgi_predictions.values() if not r.get("passed", True)
-        )
+        failed_predictions = sum(1 for r in apgi_predictions.values() if not r.get("passed", True))
 
         return {
             "framework_falsified": bool(condition_a_met or condition_b_met),
@@ -2011,9 +1843,7 @@ class AgentComparisonExperiment:
         """Aggregate results across multiple agents with data integrity checks"""
 
         # Validate input
-        if not self._validate_analysis_input(
-            agent_results, "Agent results aggregation"
-        ):
+        if not self._validate_analysis_input(agent_results, "Agent results aggregation"):
             return {
                 "cumulative_rewards": [],
                 "error": "Invalid agent results data",
@@ -2041,9 +1871,7 @@ class AgentComparisonExperiment:
             rewards = [ep.get("cumulative_reward", 0) for ep in episode_data]
             final_rewards = [ep.get("final_reward", 0) for ep in episode_data]
             convergence_trials = [
-                ep.get("convergence_trial", None)
-                for ep in episode_data
-                if ep.get("convergence_trial") is not None
+                ep.get("convergence_trial", None) for ep in episode_data if ep.get("convergence_trial") is not None
             ]
             strategy_changes = [
                 ep.get("strategy_changes", [])
@@ -2079,9 +1907,7 @@ class AgentComparisonExperiment:
         power = 1 - stats.t.cdf(t_critical, df, ncp) + stats.t.cdf(-t_critical, df, ncp)
         return power
 
-    def _calculate_proportion_power(
-        self, prop_diff: float, alpha: float, n: int
-    ) -> float:
+    def _calculate_proportion_power(self, prop_diff: float, alpha: float, n: int) -> float:
         """Calculate statistical power for proportion test"""
         from scipy import stats
 
@@ -2099,11 +1925,7 @@ class AgentComparisonExperiment:
         z_stat = prop_diff / se
 
         # Power
-        power = (
-            1
-            - stats.norm.cdf(z_critical - z_stat)
-            + stats.norm.cdf(-z_critical - z_stat)
-        )
+        power = 1 - stats.norm.cdf(z_critical - z_stat) + stats.norm.cdf(-z_critical - z_stat)
         return power
 
     def _perform_anova(self, reward_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -2150,11 +1972,7 @@ class AgentComparisonExperiment:
 
         assumption_details["normality_test"] = {
             "p_values": normality_p_values,
-            "assumption_met": (
-                all(p >= 0.05 for p in normality_p_values)
-                if normality_p_values
-                else False
-            ),
+            "assumption_met": (all(p >= 0.05 for p in normality_p_values) if normality_p_values else False),
         }
 
         # Test for homogeneity of variances (Levene's test)
@@ -2180,9 +1998,7 @@ class AgentComparisonExperiment:
             grand_mean = np.mean(all_data)
 
             # Between-group sum of squares
-            ss_between = sum(
-                len(group) * (np.mean(group) - grand_mean) ** 2 for group in groups
-            )
+            ss_between = sum(len(group) * (np.mean(group) - grand_mean) ** 2 for group in groups)
 
             # Total sum of squares
             ss_total: float = float(np.sum((all_data - grand_mean) ** 2))
@@ -2212,9 +2028,7 @@ class AgentComparisonExperiment:
                 "error": f"ANOVA calculation failed: {str(e)}",
             }
 
-    def _perform_post_hoc_tests(
-        self, groups: list, group_names: list
-    ) -> Dict[str, Any]:
+    def _perform_post_hoc_tests(self, groups: list, group_names: list) -> Dict[str, Any]:
         """Perform pairwise t-tests with Bonferroni correction"""
         from scipy import stats
 
@@ -2244,11 +2058,7 @@ class AgentComparisonExperiment:
                         )
                         / (len(groups[i]) + len(groups[j]) - 2)
                     )
-                    cohens_d = (
-                        (np.mean(groups[i]) - np.mean(groups[j])) / pooled_std
-                        if pooled_std > 0
-                        else 0
-                    )
+                    cohens_d = (np.mean(groups[i]) - np.mean(groups[j])) / pooled_std if pooled_std > 0 else 0
 
                     pair_key = f"{group1_name}_vs_{group2_name}"
                     post_hoc_results[pair_key] = {
@@ -2268,9 +2078,7 @@ class AgentComparisonExperiment:
                     import logging
 
                     logger = logging.getLogger(__name__)
-                    logger.debug(
-                        f"Post-hoc comparison failed for {group1_name} vs {group2_name}: {e}"
-                    )
+                    logger.debug(f"Post-hoc comparison failed for {group1_name} vs {group2_name}: {e}")
                     continue
 
         return {
@@ -2291,9 +2099,7 @@ class AgentComparisonExperiment:
         else:
             return "large"
 
-    def _analyze_adaptation_speed(
-        self, foraging_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _analyze_adaptation_speed(self, foraging_results: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze adaptation speed in volatile foraging with proper statistics"""
         from scipy import stats
 
@@ -2313,9 +2119,7 @@ class AgentComparisonExperiment:
 
                     # Adaptation score = improvement + consistency
                     improvement = late_mean - early_mean
-                    consistency = 1 - (
-                        np.std(late_rewards) / (np.mean(late_rewards) + 1e-10)
-                    )
+                    consistency = 1 - (np.std(late_rewards) / (np.mean(late_rewards) + 1e-10))
 
                     adaptation_scores[agent_name] = improvement * max(0, consistency)
                 else:
@@ -2326,8 +2130,7 @@ class AgentComparisonExperiment:
         # Statistical comparison if multiple agents
         if len(adaptation_scores) > 2:
             scores_list = [
-                list(scores) if isinstance(scores, list) else [scores]
-                for scores in adaptation_scores.values()
+                list(scores) if isinstance(scores, list) else [scores] for scores in adaptation_scores.values()
             ]
             try:
                 f_stat, p_value = stats.f_oneway(*scores_list)
@@ -2385,9 +2188,7 @@ if __name__ == "__main__":
                         else:
                             status_colors.append(VISUAL_CONSTANTS.STATUS_UNKNOWN)
 
-                    bars = ax.bar(
-                        protocol_names, [1] * len(protocol_names), color=status_colors
-                    )
+                    bars = ax.bar(protocol_names, [1] * len(protocol_names), color=status_colors)
                     ax.set_title("Framework-Level Protocol Status Overview")
                     ax.set_ylabel("Status")
                     ax.set_ylim(0, 1.2)
@@ -2408,9 +2209,7 @@ if __name__ == "__main__":
                     return True
                 return False
 
-            success = add_standard_png_output(
-                3, results, fp03_custom_plot, "Framework Level"
-            )
+            success = add_standard_png_output(3, results, fp03_custom_plot, "Framework Level")
             if success:
                 print("Generated protocol03.png visualization")
             else:
@@ -2516,11 +2315,7 @@ def run_falsification():
             fp01_total_count = fp01_summary.get("total", 0)
 
             # Consider FP-01 passed if more than 60% of criteria passed
-            fp01_passed = (
-                (fp01_passed_count / max(fp01_total_count, 1)) > 0.6
-                if fp01_total_count > 0
-                else False
-            )
+            fp01_passed = (fp01_passed_count / max(fp01_total_count, 1)) > 0.6 if fp01_total_count > 0 else False
 
             fp02_passed = fp02_result.get("passed", False)
 
@@ -2544,9 +2339,7 @@ def run_falsification():
         falsification = experiment.check_falsification(analysis)
 
         # Explicitly map F3.1-F3.6 to standardized prediction names P3.1-P3.6
-        named_predictions = {
-            f"P3.{i}": falsification.get(f"F3.{i}", {}) for i in range(1, 7)
-        }
+        named_predictions = {f"P3.{i}": falsification.get(f"F3.{i}", {}) for i in range(1, 7)}
 
         print("=== Protocol completed successfully ===")
         return {
@@ -2748,9 +2541,7 @@ def check_falsification(
     ci_lower = (mean_apgi - mean_baseline) - 1.96 * se_diff
     ci_upper = (mean_apgi - mean_baseline) + 1.96 * se_diff
 
-    f3_1_pass = (
-        advantage_pct >= 12 and cohens_d >= 0.40 and p_value < 0.008 and ci_lower > 8
-    )
+    f3_1_pass = advantage_pct >= 12 and cohens_d >= 0.40 and p_value < 0.008 and ci_lower > 8
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "advantage_pct": advantage_pct,
@@ -2783,11 +2574,7 @@ def check_falsification(
         cohens_d = mean_adv / std_adv if std_adv > 0 else 0.0
         f3_2_status = "PASS"
         if not (
-            np.isfinite(mean_adv)
-            and np.isfinite(cohens_d)
-            and p_value < 0.01
-            and mean_adv >= 28
-            and cohens_d >= 0.70
+            np.isfinite(mean_adv) and np.isfinite(cohens_d) and p_value < 0.01 and mean_adv >= 28 and cohens_d >= 0.70
         ):
             f3_2_status = "FAIL"
     else:
@@ -2802,12 +2589,8 @@ def check_falsification(
         "passed": f3_2_pass,
         "status": f3_2_status,
         "specificity_advantage_pct": mean_adv,
-        "interoceptive_advantage_pct": (
-            float(np.mean(intero_array)) if intero_array.size else None
-        ),
-        "exteroceptive_advantage_pct": (
-            float(np.mean(extero_array)) if extero_array.size else None
-        ),
+        "interoceptive_advantage_pct": (float(np.mean(intero_array)) if intero_array.size else None),
+        "exteroceptive_advantage_pct": (float(np.mean(extero_array)) if extero_array.size else None),
         "cohens_d": cohens_d,
         "p_value": p_value,
         "t_statistic": t_stat,
@@ -2838,19 +2621,13 @@ def check_falsification(
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
     # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(threshold_reduction, (list, np.ndarray))
-        and len(threshold_reduction) >= 30
-    ):
+    if isinstance(threshold_reduction, (list, np.ndarray)) and len(threshold_reduction) >= 30:
         # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(threshold_reduction, 0)
         mean_red = float(np.mean(threshold_reduction))
         std_red = float(np.std(threshold_reduction, ddof=1))
         cohens_d = mean_red / std_red if std_red > 0 else 0.0
-    elif (
-        isinstance(threshold_reduction, (list, np.ndarray))
-        and len(threshold_reduction) >= 2
-    ):
+    elif isinstance(threshold_reduction, (list, np.ndarray)) and len(threshold_reduction) >= 2:
         # Use bootstrap test for small samples
         data_array = np.array(threshold_reduction)
         t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
@@ -2863,20 +2640,14 @@ def check_falsification(
         mean_red = (
             float(threshold_reduction)
             if not isinstance(threshold_reduction, (list, np.ndarray))
-            else (
-                float(threshold_reduction[0]) if len(threshold_reduction) > 0 else 0.0
-            )
+            else (float(threshold_reduction[0]) if len(threshold_reduction) > 0 else 0.0)
         )
         cohens_d = 0.0
 
     f3_3_pass = (
         np.isfinite(mean_red)
         and np.isfinite(cohens_d)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_red >= 25
-        )
+        and (p_value < 0.01 if np.isfinite(p_value) and p_value != 1.0 else mean_red >= 25)
         and mean_red >= 25
         and cohens_d >= 0.75
     )
@@ -2909,13 +2680,7 @@ def check_falsification(
         cohens_d_precision = precision_stats["cohens_d"]
         p_precision = precision_stats["p_value"]
         t_stat = precision_stats["t_statistic"]
-        f3_4_status = (
-            "PASS"
-            if mean_precision >= 20
-            and cohens_d_precision >= 0.65
-            and p_precision < 0.01
-            else "FAIL"
-        )
+        f3_4_status = "PASS" if mean_precision >= 20 and cohens_d_precision >= 0.65 and p_precision < 0.01 else "FAIL"
     else:
         mean_precision = float("nan")
         cohens_d_precision = 0.0
@@ -2953,23 +2718,17 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    efficiency_stats = _compute_wall_clock_efficiency(
-        performance_retention, efficiency_gain
-    )
+    efficiency_stats = _compute_wall_clock_efficiency(performance_retention, efficiency_gain)
     if efficiency_stats["valid"]:
         performance_retention_pct = efficiency_stats["performance_retention_pct"]
         efficiency_gain_pct = efficiency_stats["efficiency_gain_pct"]
         f3_5_status = (
             "PASS"
-            if performance_retention_pct >= 85
-            and efficiency_gain_pct >= 40
-            and efficiency_stats["p_value"] < 0.05
+            if performance_retention_pct >= 85 and efficiency_gain_pct >= 40 and efficiency_stats["p_value"] < 0.05
             else "FAIL"
         )
     else:
-        performance_retention_pct = efficiency_stats.get(
-            "performance_retention_pct", float("nan")
-        )
+        performance_retention_pct = efficiency_stats.get("performance_retention_pct", float("nan"))
         efficiency_gain_pct = float("nan")
         f3_5_status = "ERROR"
 
@@ -2982,8 +2741,7 @@ def check_falsification(
         "threshold": "≥85% performance retention and ≤60% baseline wall-clock time",
         "actual": (
             f"Performance: {performance_retention_pct:.2f}%, Efficiency: {efficiency_gain_pct:.2f}%"
-            if np.isfinite(performance_retention_pct)
-            and np.isfinite(efficiency_gain_pct)
+            if np.isfinite(performance_retention_pct) and np.isfinite(efficiency_gain_pct)
             else "Wall-clock timing evidence unavailable"
         ),
         "measurement": efficiency_stats,
@@ -2996,30 +2754,20 @@ def check_falsification(
     logger.info(
         "F3.5: %s - Performance: %s, Efficiency: %s",
         f3_5_status,
-        (
-            f"{performance_retention_pct:.2f}%"
-            if np.isfinite(performance_retention_pct)
-            else "N/A"
-        ),
+        (f"{performance_retention_pct:.2f}%" if np.isfinite(performance_retention_pct) else "N/A"),
         f"{efficiency_gain_pct:.2f}%" if np.isfinite(efficiency_gain_pct) else "N/A",
     )
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    sample_efficiency_stats = _compute_sample_efficiency(
-        apgi_time_to_criterion, baseline_time_to_criterion
-    )
+    sample_efficiency_stats = _compute_sample_efficiency(apgi_time_to_criterion, baseline_time_to_criterion)
     if sample_efficiency_stats["valid"]:
         mean_trials = sample_efficiency_stats["apgi_mean_trials"]
         hazard_ratio = sample_efficiency_stats["hazard_ratio"]
         p_value = sample_efficiency_stats["p_value"]
         t_stat = sample_efficiency_stats["t_statistic"]
         baseline_mean_trials = sample_efficiency_stats["baseline_mean_trials"]
-        f3_6_status = (
-            "PASS"
-            if mean_trials <= 200 and hazard_ratio >= 1.45 and p_value < 0.01
-            else "FAIL"
-        )
+        f3_6_status = "PASS" if mean_trials <= 200 and hazard_ratio >= 1.45 and p_value < 0.01 else "FAIL"
     else:
         mean_trials = float("nan")
         hazard_ratio = 0.0
@@ -3044,11 +2792,7 @@ def check_falsification(
             else "Measured RL baseline unavailable"
         ),
         "measurement": sample_efficiency_stats,
-        "error": (
-            None
-            if sample_efficiency_stats["valid"]
-            else sample_efficiency_stats["reason"]
-        ),
+        "error": (None if sample_efficiency_stats["valid"] else sample_efficiency_stats["reason"]),
     }
     if f3_6_pass:
         results["summary"]["passed"] += 1
@@ -3124,9 +2868,7 @@ def check_falsification(
     # Eta-squared
     timescales_arr = np.asarray(timescales, dtype=float)
     ss_total: float = float(np.sum((timescales_arr - np.mean(timescales_arr)) ** 2))
-    ss_between = sum(
-        len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
-    )
+    ss_between = sum(len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means)
     eta_squared = ss_between / ss_total
 
     f1_2_pass = silhouette >= 0.30 and eta_squared >= 0.50 and p_anova < 0.001
@@ -3152,16 +2894,12 @@ def check_falsification(
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
     level1_precision = np.array([pw[0] for pw in precision_weights])
     level3_precision = np.array([pw[1] for pw in precision_weights])
-    precision_diff_pct = (
-        (level1_precision - level3_precision) / level3_precision
-    ) * 100
+    precision_diff_pct = ((level1_precision - level3_precision) / level3_precision) * 100
     mean_diff = np.mean(precision_diff_pct)
 
     # Repeated-measures ANOVA (simplified as paired t-test for level comparison)
     t_stat, p_rm = stats.ttest_rel(level1_precision, level3_precision)
-    cohens_d_rm = np.mean(level1_precision - level3_precision) / np.std(
-        level1_precision - level3_precision, ddof=1
-    )
+    cohens_d_rm = np.mean(level1_precision - level3_precision) / np.std(level1_precision - level3_precision, ddof=1)
 
     f1_3_pass = mean_diff >= 15 and cohens_d_rm >= 0.35 and p_rm < 0.01
     results["criteria"]["F1.3"] = {
@@ -3233,9 +2971,7 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_pac = stats.ttest_rel(pac_ignition, pac_baseline)
-    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(
-        pac_ignition - pac_baseline, ddof=1
-    )
+    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(pac_ignition - pac_baseline, ddof=1)
 
     # Permutation test (simplified)
     n_permutations = 10000
@@ -3243,17 +2979,9 @@ def check_falsification(
     for _ in range(n_permutations):
         perm_ignition = np.random.permutation(pac_ignition)
         perm_diffs.append(np.mean(perm_ignition) - np.mean(pac_baseline))
-    perm_p = np.mean(
-        np.abs(np.array(perm_diffs))
-        >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline))
-    )
+    perm_p = np.mean(np.abs(np.array(perm_diffs)) >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline)))
 
-    f1_5_pass = (
-        mean_pac_increase >= 30
-        and cohens_d_pac >= 0.50
-        and p_pac < 0.01
-        and perm_p < 0.01
-    )
+    f1_5_pass = mean_pac_increase >= 30 and cohens_d_pac >= 0.50 and p_pac < 0.01 and perm_p < 0.01
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
         "pac_increase_pct": mean_pac_increase,
@@ -3282,9 +3010,7 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_slope = stats.ttest_rel(low_arousal_slopes, active_slopes)
-    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(
-        low_arousal_slopes - active_slopes, ddof=1
-    )
+    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(low_arousal_slopes - active_slopes, ddof=1)
 
     # Goodness of fit (R²)
     residuals = active_slopes - mean_active
@@ -3294,8 +3020,7 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal
-        >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
+        and mean_low_arousal >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85
@@ -3330,8 +3055,7 @@ def check_falsification(
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (len(apgi_advantageous_selection) - 1)
-            * np.var(apgi_advantageous_selection, ddof=1)
+            (len(apgi_advantageous_selection) - 1) * np.var(apgi_advantageous_selection, ddof=1)
             + (len(no_somatic_selection) - 1) * np.var(no_somatic_selection, ddof=1)
         )
         / (len(apgi_advantageous_selection) + len(no_somatic_selection) - 2)
@@ -3370,15 +3094,11 @@ def check_falsification(
     # Fisher's z-transformation for difference test
     z_apgi = np.arctanh(corr)
     z_no_somatic = np.arctanh(corr_no_somatic)
-    se_diff = np.sqrt(
-        1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3)
-    )
+    se_diff = np.sqrt(1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3))
     z_diff = (z_apgi - z_no_somatic) / se_diff
     p_diff = 2 * (1 - stats.norm.cdf(abs(z_diff)))
 
-    f2_2_pass = (
-        corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
-    )
+    f2_2_pass = corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
         "apgi_correlation": corr,
@@ -3422,12 +3142,7 @@ def check_falsification(
         rt_mean = float(np.mean(rt_array))
         corr_rt_cost, p_rt_cost = stats.pearsonr(rt_array, rt_cost_modulation)
 
-    f2_3_pass = (
-        rt_mean <= -50
-        and p_rt < 0.01
-        and abs(corr_rt_cost) >= 0.40
-        and p_rt_cost < 0.05
-    )
+    f2_3_pass = rt_mean <= -50 and p_rt < 0.01 and abs(corr_rt_cost) >= 0.40 and p_rt_cost < 0.05
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
         "rt_advantage_ms": rt_mean,
@@ -3470,9 +3185,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}"
-    )
+    logger.info(f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}")
 
     # F2.5: Beta Interaction Effects
     logger.info("Testing F2.5: Beta Interaction Effects")
@@ -3490,9 +3203,7 @@ def check_falsification(
         p_beta = 1.0
 
     # Effect size (eta-squared) - simplified for single value
-    ss_total = np.sum(
-        (np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2
-    )
+    ss_total = np.sum((np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2)
     ss_between = (np.mean([beta_interaction]) - np.mean([beta_interaction, 0])) ** 2
     eta_squared = ss_between / ss_total if ss_total > 0 else 0
 
@@ -3591,38 +3302,25 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.1f}, R²={r_squared:.3f}"
-    )
+    logger.info(f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.1f}, R²={r_squared:.3f}")
 
     # F5.6: Control Performance Difference
     logger.info("Testing F5.6: Control Performance Difference")
     # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 30
-    ):
+    if isinstance(control_performance_difference, (list, np.ndarray)) and len(control_performance_difference) >= 30:
         # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(control_performance_difference, 0)
         cohens_d = (
-            float(np.mean(control_performance_difference))
-            / np.std(control_performance_difference, ddof=1)
+            float(np.mean(control_performance_difference)) / np.std(control_performance_difference, ddof=1)
             if np.std(control_performance_difference, ddof=1) > 0
             else 0
         )
         mean_diff = float(np.mean(control_performance_difference))
-    elif (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 2
-    ):
+    elif isinstance(control_performance_difference, (list, np.ndarray)) and len(control_performance_difference) >= 2:
         # Use bootstrap test for small samples
         data_array = np.array(control_performance_difference)
         t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
-        cohens_d = (
-            float(np.mean(data_array)) / np.std(data_array, ddof=1)
-            if np.std(data_array, ddof=1) > 0
-            else 0
-        )
+        cohens_d = float(np.mean(data_array)) / np.std(data_array, ddof=1) if np.std(data_array, ddof=1) > 0 else 0
         mean_diff = float(np.mean(data_array))
     else:
         # Insufficient data - fail criterion
@@ -3673,10 +3371,7 @@ def check_falsification(
     # Cohen's d
     pooled_std = (
         np.sqrt(
-            (
-                (1 - 1) * np.var([ltcn_transition_time], ddof=1)
-                + (1 - 1) * np.var([rnn_transition_time], ddof=1)
-            )
+            ((1 - 1) * np.var([ltcn_transition_time], ddof=1) + (1 - 1) * np.var([rnn_transition_time], ddof=1))
             / (1 + 1 - 2)
         )
         if len([ltcn_transition_time]) > 1 and len([rnn_transition_time]) > 1
@@ -3684,11 +3379,7 @@ def check_falsification(
     )
     cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_1_pass = (
-        ltcn_transition_time < rnn_transition_time
-        and cohens_d <= -0.70
-        and p_value < 0.01
-    )
+    f6_1_pass = ltcn_transition_time < rnn_transition_time and cohens_d <= -0.70 and p_value < 0.01
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "ltcn_time": ltcn_transition_time,
@@ -3711,19 +3402,14 @@ def check_falsification(
     # F6.2: Sparsity Reduction Advantage
     logger.info("Testing F6.2: Sparsity Reduction Advantage")
     # Compare LTCN vs RNN sparsity reduction
-    t_stat, p_value = stats.ttest_ind(
-        [ltcn_sparsity_reduction], [rnn_sparsity_reduction]
-    )
+    t_stat, p_value = stats.ttest_ind([ltcn_sparsity_reduction], [rnn_sparsity_reduction])
     mean_ltcn = ltcn_sparsity_reduction
     mean_rnn = rnn_sparsity_reduction
 
     # Cohen's d
     pooled_std = (
         np.sqrt(
-            (
-                (1 - 1) * np.var([ltcn_sparsity_reduction], ddof=1)
-                + (1 - 1) * np.var([rnn_sparsity_reduction], ddof=1)
-            )
+            ((1 - 1) * np.var([ltcn_sparsity_reduction], ddof=1) + (1 - 1) * np.var([rnn_sparsity_reduction], ddof=1))
             / (1 + 1 - 2)
         )
         if len([ltcn_sparsity_reduction]) > 1 and len([rnn_sparsity_reduction]) > 1
@@ -3753,19 +3439,14 @@ def check_falsification(
     # F6.3: Integration Window Advantage
     logger.info("Testing F6.3: Integration Window Advantage")
     # Compare LTCN vs RNN integration windows
-    t_stat, p_value = stats.ttest_ind(
-        [ltcn_integration_window], [rnn_integration_window]
-    )
+    t_stat, p_value = stats.ttest_ind([ltcn_integration_window], [rnn_integration_window])
     mean_ltcn = ltcn_integration_window
     mean_rnn = rnn_integration_window
 
     # Cohen's d
     pooled_std = (
         np.sqrt(
-            (
-                (1 - 1) * np.var([ltcn_integration_window], ddof=1)
-                + (1 - 1) * np.var([rnn_integration_window], ddof=1)
-            )
+            ((1 - 1) * np.var([ltcn_integration_window], ddof=1) + (1 - 1) * np.var([rnn_integration_window], ddof=1))
             / (1 + 1 - 2)
         )
         if len([ltcn_integration_window]) > 1 and len([rnn_integration_window]) > 1
@@ -3773,11 +3454,7 @@ def check_falsification(
     )
     cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_3_pass = (
-        ltcn_integration_window > rnn_integration_window
-        and cohens_d >= 0.70
-        and p_value < 0.01
-    )
+    f6_3_pass = ltcn_integration_window > rnn_integration_window and cohens_d >= 0.70 and p_value < 0.01
     results["criteria"]["F6.3"] = {
         "passed": f6_3_pass,
         "ltcn_window": ltcn_integration_window,
@@ -3810,9 +3487,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {memory_decay_tau:.1f}s"
-    )
+    logger.info(f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {memory_decay_tau:.1f}s")
 
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
@@ -3825,11 +3500,7 @@ def check_falsification(
             "using scipy.optimize.brentq on model response function"
         )
 
-    f6_5_pass = (
-        abs(bifurcation_point - 0.15) <= 0.10
-        and hysteresis_width >= 0.08
-        and hysteresis_width <= 0.25
-    )
+    f6_5_pass = abs(bifurcation_point - 0.15) <= 0.10 and hysteresis_width >= 0.08 and hysteresis_width <= 0.25
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,
         "bifurcation_point": bifurcation_point,
@@ -3860,9 +3531,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Add-ons: {rnn_add_ons_needed}, gap: {performance_gap:.1f}%"
-    )
+    logger.info(f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Add-ons: {rnn_add_ons_needed}, gap: {performance_gap:.1f}%")
 
     logger.info(
         f"\nFalsification-Protocol-3 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
@@ -3903,11 +3572,7 @@ def run_protocol_main(config=None):
         )
 
     # Use StandardProtocolResult (Pydantic model) when schema is available
-    ResultClass = (
-        StandardProtocolResult
-        if HAS_SCHEMA and StandardProtocolResult
-        else ProtocolResult
-    )
+    ResultClass = StandardProtocolResult if HAS_SCHEMA and StandardProtocolResult else ProtocolResult
     return ResultClass(
         protocol_id="FP_03_FrameworkLevel_MultiProtocol",
         timestamp=datetime.now().isoformat(),
@@ -3937,9 +3602,7 @@ class ProtocolConfig:
 class ProtocolResult:
     """Result from running a protocol (test-compatible stub class)."""
 
-    def __init__(
-        self, protocol_name: str, success: bool, data: Dict[str, Any], errors: List[str]
-    ):
+    def __init__(self, protocol_name: str, success: bool, data: Dict[str, Any], errors: List[str]):
         self.protocol_name = protocol_name
         self.success = success
         self.data = data
@@ -3992,9 +3655,7 @@ class FrameworkValidator:
     def __init__(self):
         pass
 
-    def validate_consistency(
-        self, results: List[_LocalProtocolResult], tolerance: float = 0.1
-    ) -> Dict[str, Any]:
+    def validate_consistency(self, results: List[_LocalProtocolResult], tolerance: float = 0.1) -> Dict[str, Any]:
         """Validate consistency across protocol results."""
         if not results:
             return {"consistent": True, "reason": "No results to compare"}
@@ -4053,8 +3714,8 @@ def run_multi_protocol_framework(configs: List[ProtocolConfig]) -> Dict[str, Any
     if HAS_SCHEMA and StandardProtocolResult is not None:
         # Convert legacy format to standardized schema
         standardized_result = StandardProtocolResult.from_legacy_format(
-            protocol_name="FP_03_FrameworkLevel_MultiProtocol",
-            legacy_result=legacy_result,
+            "FP_03_FrameworkLevel_MultiProtocol",
+            legacy_result,
         )
         # Convert back to dict for consistent return type
         return dict(standardized_result)
@@ -4063,9 +3724,7 @@ def run_multi_protocol_framework(configs: List[ProtocolConfig]) -> Dict[str, Any
         return legacy_result
 
 
-def validate_framework_consistency(
-    results: Dict[str, Dict[str, Any]], tolerance: float = 0.1
-) -> Dict[str, Any]:
+def validate_framework_consistency(results: Dict[str, Dict[str, Any]], tolerance: float = 0.1) -> Dict[str, Any]:
     """Validate framework consistency from result dict."""
     # Convert dict results to _LocalProtocolResult objects
     protocol_results = []

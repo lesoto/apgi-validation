@@ -77,9 +77,7 @@ class TestSignalHandlerRestoration:
         try:
             with SignalHandler():
                 # Handlers should be installed
-                assert (
-                    signal.getsignal(signal.SIGINT) != original_handlers[signal.SIGINT]
-                )
+                assert signal.getsignal(signal.SIGINT) != original_handlers[signal.SIGINT]
                 raise ValueError("Test exception")
         except ValueError:
             pass  # Expected

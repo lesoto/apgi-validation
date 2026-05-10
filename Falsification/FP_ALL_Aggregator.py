@@ -84,14 +84,13 @@ class SurpriseIgnitionSystem:
 
     def simulate(self, duration=500, dt=0.1, **kwargs):
         """Mock simulation that runs the Hill Coefficient analysis."""
-        result = self.protocol.analyze()
+        self.protocol.analyze()
         n_steps = int(duration / dt)
         self.history = {
             "time": np.linspace(0, duration, n_steps),
             "S": np.zeros(n_steps),
             "theta": np.zeros(n_steps),
             "B": np.zeros(n_steps),
-            "DS-01_result": result.to_dict() if hasattr(result, "to_dict") else result,
         }
         return self.history
 
@@ -134,16 +133,12 @@ class Sergent2005Protocol:
         - Or standard FieldTrip/EEGlab format with trialinfo
         """
         if not os.path.exists(self.data_path):
-            logger.warning(
-                f"Data path {self.data_path} not found. Using synthetic fallback."
-            )
+            logger.warning(f"Data path {self.data_path} not found. Using synthetic fallback.")
             return self._generate_synthetic_sergent_data()
 
         mat_files = [f for f in os.listdir(self.data_path) if f.endswith(".mat")]
         if not mat_files:
-            logger.warning(
-                f"No .mat files found in {self.data_path}. Using synthetic fallback."
-            )
+            logger.warning(f"No .mat files found in {self.data_path}. Using synthetic fallback.")
             return self._generate_synthetic_sergent_data()
 
         all_data = []
@@ -163,19 +158,13 @@ class Sergent2005Protocol:
                 continue
 
         if not all_data:
-            logger.warning(
-                "No valid data extracted from .mat files. Using synthetic fallback."
-            )
+            logger.warning("No valid data extracted from .mat files. Using synthetic fallback.")
             return self._generate_synthetic_sergent_data()
 
-        logger.info(
-            f"Successfully loaded {len(all_data)} subjects from Sergent 2005 dataset"
-        )
+        logger.info(f"Successfully loaded {len(all_data)} subjects from Sergent 2005 dataset")
         return all_data
 
-    def _extract_sergent_data(
-        self, raw_data: Dict, filename: str
-    ) -> Optional[Dict[str, Any]]:
+    def _extract_sergent_data(self, raw_data: Dict, filename: str) -> Optional[Dict[str, Any]]:
         """Extract SOA and visibility ratings from Sergent 2005 .mat file.
 
         Handles multiple possible .mat file structures:
@@ -224,13 +213,9 @@ class Sergent2005Protocol:
                 soas = []
                 visibilities = []
                 for trial in trials:
-                    if isinstance(trial, dict) or (
-                        isinstance(trial, np.ndarray) and trial.dtype.names
-                    ):
+                    if isinstance(trial, dict) or (isinstance(trial, np.ndarray) and trial.dtype.names):
                         trial_dict = (
-                            trial
-                            if isinstance(trial, dict)
-                            else {name: trial[name] for name in trial.dtype.names}
+                            trial if isinstance(trial, dict) else {name: trial[name] for name in trial.dtype.names}
                         )
                         if "soa" in trial_dict and "visibility" in trial_dict:
                             soas.append(float(trial_dict["soa"]))
@@ -240,16 +225,12 @@ class Sergent2005Protocol:
                         Dict[str, Any],
                         {
                             "soa": np.array(soas),
-                            "visibility": np.array(
-                                [visibilities]
-                            ),  # 2D array like synthetic
+                            "visibility": np.array([visibilities]),  # 2D array like synthetic
                             "source_file": filename,
                         },
                     )
 
-            logger.warning(
-                f"Could not find soa/visibility in {filename}. Keys: {list(raw_data.keys())}"
-            )
+            logger.warning(f"Could not find soa/visibility in {filename}. Keys: {list(raw_data.keys())}")
             return None
 
         except Exception as e:
@@ -289,11 +270,9 @@ class Sergent2005Protocol:
             x_arr, y_arr = np.array(x_data), np.array(y_data)
             del x_arr, y_arr  # Not used; curve_fit uses lists directly
             try:
-                popt, _ = curve_fit(
-                    hill_function, x_data, y_data, p0=[10.0, 250.0], bounds=(0.1, 50.0)
-                )
+                popt, _ = curve_fit(hill_function, x_data, y_data, p0=[10.0, 250.0], bounds=(0.1, 50.0))
                 betas.append(popt[0])
-            except Exception:
+            except Exception:  # nosec - Intentionally continue on curve fitting failure
                 continue
 
         mean_beta = np.mean(betas) if betas else 0.0
@@ -504,15 +483,13 @@ def _extract_named_predictions(data: dict) -> dict:
 
         for crit_id, crit_result in criteria.items():
             if any(crit_id.startswith(pattern) for pattern in prediction_patterns):
-                if isinstance(crit_result, dict):
-                    # Map criterion to prediction ID
-                    pred_id = crit_id.replace("F", "P")
-                    extracted[pred_id] = {
-                        "passed": crit_result.get("passed", False),
-                        "value": crit_result.get("value"),
-                        "description": crit_result.get("description", ""),
-                        "evidence": crit_result,
-                    }
+                # Map criterion to prediction ID
+                pred_id = crit_id.replace("F", "P")
+                extracted[pred_id] = {
+                    "passed": crit_result.get("passed", False),
+                    "value": crit_result.get("value"),
+                    "description": crit_result.get("description", ""),
+                }
 
         if extracted:
             return extracted
@@ -538,8 +515,7 @@ def _extract_named_predictions(data: dict) -> dict:
     direct_predictions = {
         k: v
         for k, v in data.items()
-        if any(k.startswith(pattern) for pattern in prediction_patterns)
-        and isinstance(v, dict)
+        if any(k.startswith(pattern) for pattern in prediction_patterns) and isinstance(v, dict)
     }
 
     if direct_predictions:
@@ -558,8 +534,7 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
     from typing import Any, Dict
 
     tallies: Dict[str, Dict[str, Any]] = {
-        k: {"passed": False, "evidence": [], "sources": [], "value": None}
-        for k in NAMED_PREDICTIONS
+        k: {"passed": False, "evidence": [], "sources": [], "value": None} for k in NAMED_PREDICTIONS
     }
     audit_log = []
     missing_files = []
@@ -652,9 +627,7 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
                     "reason": "Empty result payload",
                 }
             )
-            extraction_errors.append(
-                {"source": source_name, "error": "Empty result payload"}
-            )
+            extraction_errors.append({"source": source_name, "error": "Empty result payload"})
             continue
 
         # FIX #1: Try standardized schema first, fall back to legacy extraction
@@ -663,9 +636,7 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
                 protocol_result = ProtocolResult.from_legacy_format(source_name, data)
                 audit_log[-1]["status"] = "LEGACY_CONVERTED"
             except Exception as e:
-                logger.debug(
-                    f"Could not convert {source_name} to standardized schema: {e}"
-                )
+                logger.debug(f"Could not convert {source_name} to standardized schema: {e}")
                 protocol_result = None
 
         # Extract named_predictions from protocol result or legacy format
@@ -693,15 +664,12 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
         for pred_id, result_info in named_predictions.items():
             if pred_id in tallies:
                 # Handle PredictionResult objects (standardized schema)
-                if PredictionResult is not None and isinstance(
-                    result_info, PredictionResult
-                ):
+                if PredictionResult is not None and isinstance(result_info, PredictionResult):
                     tallies[pred_id]["passed"] |= result_info.passed
                     if result_info.value is not None:
                         v = result_info.value
                         if tallies[pred_id]["value"] is None or (
-                            isinstance(v, (int, float))
-                            and v > tallies[pred_id]["value"]
+                            isinstance(v, (int, float)) and v > tallies[pred_id]["value"]
                         ):
                             tallies[pred_id]["value"] = v
                     # Add evidence from PredictionResult
@@ -714,8 +682,7 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
                         # Keep the max value for that prediction across sources
                         v = result_info["value"]
                         if tallies[pred_id]["value"] is None or (
-                            isinstance(v, (int, float))
-                            and v > tallies[pred_id]["value"]
+                            isinstance(v, (int, float)) and v > tallies[pred_id]["value"]
                         ):
                             tallies[pred_id]["value"] = v
                     evidence_item = source_name
@@ -755,11 +722,7 @@ def check_framework_falsification_condition_a(apgi_predictions: dict) -> bool:
         bool: True if Condition A is met (framework falsified), False otherwise
     """
     # Filter for the core 14 predictions (P1.1 through P5.b)
-    core_keys = [
-        k
-        for k in apgi_predictions
-        if k.startswith("P") and k[1].isdigit() and int(k[1]) <= 5
-    ]
+    core_keys = [k for k in apgi_predictions if k.startswith("P") and k[1].isdigit() and int(k[1]) <= 5]
 
     # Count predictions that passed (not falsified) among the core 14
     passing_count = sum(1 for k in core_keys if apgi_predictions[k].get("passed"))
@@ -841,11 +804,7 @@ def extract_apgi_bic_advantage(results_input) -> float:
             for env, agents in bic_values.items():
                 if "APGI" in agents:
                     apgi_bic = agents["APGI"]["bic"]
-                    alt_bics = [
-                        a_data["bic"]
-                        for a_name, a_data in agents.items()
-                        if a_name != "APGI"
-                    ]
+                    alt_bics = [a_data["bic"] for a_name, a_data in agents.items() if a_name != "APGI"]
                     if alt_bics:
                         best_alt_bic = min(alt_bics)
                         advantages.append(best_alt_bic - apgi_bic)
@@ -881,9 +840,7 @@ def extract_apgi_bic_advantage(results_input) -> float:
 
     # If no data and estimate is negative, raise error
     if audit["missing_files"] or audit["extraction_errors"]:
-        raise ValueError(
-            "Condition B evaluation requires BIC data; no results found in protocol outputs"
-        )
+        raise ValueError("Condition B evaluation requires BIC data; no results found in protocol outputs")
 
     raise ValueError(
         "Cannot evaluate Condition B: no BIC data in any protocol result. "
@@ -943,17 +900,13 @@ def check_framework_falsification_condition_b(
 
     # Fallback to prediction overlap method if BIC not available
     if apgi_predictions is None:
-        logger.warning(
-            "No APGI predictions provided; cannot evaluate Condition B fallback"
-        )
+        logger.warning("No APGI predictions provided; cannot evaluate Condition B fallback")
         return False
 
     apgi_passing = {k for k, v in apgi_predictions.items() if v.get("passed")}
 
     if not apgi_passing:
-        logger.warning(
-            "No passing predictions in APGI; Condition B not falsified by overlap"
-        )
+        logger.warning("No passing predictions in APGI; Condition B not falsified by overlap")
         return False
 
     for framework_name, alt_preds in [
@@ -970,15 +923,13 @@ def check_framework_falsification_condition_b(
         overlap_threshold = _derive_distinctiveness_threshold(apgi_predictions)
 
         logger.info(
-            f"Condition B (overlap): {framework_name} overlap = {overlap:.2f}, "
-            f"threshold = {overlap_threshold:.2f}"
+            f"Condition B (overlap): {framework_name} overlap = {overlap:.2f}, " f"threshold = {overlap_threshold:.2f}"
         )
 
         # If alternative passes same predictions, APGI loses distinctiveness
         if overlap >= overlap_threshold:
             logger.warning(
-                f"Condition B met (overlap): {framework_name} replicates "
-                f"{overlap:.1%} of APGI predictions"
+                f"Condition B met (overlap): {framework_name} replicates " f"{overlap:.1%} of APGI predictions"
             )
             return True
 
@@ -1012,11 +963,7 @@ def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict
     reference = apgi_predictions or aggregate_prediction_results(results_input)
 
     # Extract values for MLE fitting
-    values = [
-        info.get("value")
-        for info in reference.values()
-        if info.get("value") is not None
-    ]
+    values = [info.get("value") for info in reference.values() if info.get("value") is not None]
 
     if not values:
         pass
@@ -1037,15 +984,14 @@ def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict
 
         # FP-12 Fix 3: Use APGI_IGNITION_THRESHOLD for GNWT predictions
         # Assert consistency with APGI model threshold
-        assert APGI_IGNITION_THRESHOLD == 0.8, (
-            f"APGI_IGNITION_THRESHOLD={APGI_IGNITION_THRESHOLD} expected to be 0.8. "
-            f"GNWT predictions require consistent threshold with APGI model."
-        )
+        if APGI_IGNITION_THRESHOLD != 0.8:
+            raise ValueError(
+                f"APGI_IGNITION_THRESHOLD={APGI_IGNITION_THRESHOLD} expected to be 0.8. "
+                f"GNWT predictions require consistent threshold with APGI model."
+            )
 
         # GNWT-specific ignition probability using APGI threshold
-        ignition_prob = _gnwt_ignition_probability(
-            synchrony, APGI_IGNITION_THRESHOLD, pred_id
-        )
+        ignition_prob = _gnwt_ignition_probability(synchrony, APGI_IGNITION_THRESHOLD, pred_id)
         ignited = ignition_prob >= 0.5
 
         gnwt_preds[pred_id] = {
@@ -1109,12 +1055,8 @@ def _fit_gnwt_threshold_mle(values: np.ndarray) -> float:
         if N_low > 0 and N_high > 0:
             mu_low = np.sum(gamma_low * values) / N_low
             mu_high = np.sum(gamma_high * values) / N_high
-            sigma_low = max(
-                np.sqrt(np.sum(gamma_low * (values - mu_low) ** 2) / N_low), 0.01
-            )
-            sigma_high = max(
-                np.sqrt(np.sum(gamma_high * (values - mu_high) ** 2) / N_high), 0.01
-            )
+            sigma_low = max(np.sqrt(np.sum(gamma_low * (values - mu_low) ** 2) / N_low), 0.01)
+            sigma_high = max(np.sqrt(np.sum(gamma_high * (values - mu_high) ** 2) / N_high), 0.01)
 
     # Threshold θ is the intersection of the two Gaussians
     # Solve: (x - mu_low)^2 / sigma_low^2 = (x - mu_high)^2 / sigma_high^2
@@ -1199,11 +1141,7 @@ def generate_iit_predictions(results_input=None, apgi_predictions=None) -> dict:
     reference = apgi_predictions or aggregate_prediction_results(results_input)
 
     # Extract values for Φ calculation
-    values = [
-        info.get("value")
-        for info in reference.values()
-        if info.get("value") is not None
-    ]
+    values = [info.get("value") for info in reference.values() if info.get("value") is not None]
 
     if not values:
         phi_threshold = 0.55
@@ -1309,15 +1247,11 @@ def _compute_iit_phi(value: float, pred_id: str, all_values: list) -> float:
     if pred_id.startswith("P1"):
         factor = complexity_factors["P1"]
     elif pred_id.startswith("P2"):
-        factor = complexity_factors["P2"].get(
-            pred_id, complexity_factors["P2"]["default"]
-        )
+        factor = complexity_factors["P2"].get(pred_id, complexity_factors["P2"]["default"])
     elif pred_id.startswith("P3"):
         factor = complexity_factors["P3"]
     elif pred_id.startswith("P4"):
-        factor = complexity_factors["P4"].get(
-            pred_id, complexity_factors["P4"]["default"]
-        )
+        factor = complexity_factors["P4"].get(pred_id, complexity_factors["P4"]["default"])
     elif pred_id.startswith("P5"):
         factor = complexity_factors["P5"]
     else:
@@ -1344,12 +1278,8 @@ def run_framework_falsification(results_input) -> dict:  # noqa: F811
     apgi_predictions = aggregation["predictions"]
 
     # Generate alternative framework predictions
-    gnwt_predictions = generate_gnwt_predictions(
-        results_input=results_input, apgi_predictions=apgi_predictions
-    )
-    iit_predictions = generate_iit_predictions(
-        results_input=results_input, apgi_predictions=apgi_predictions
-    )
+    gnwt_predictions = generate_gnwt_predictions(results_input=results_input, apgi_predictions=apgi_predictions)
+    iit_predictions = generate_iit_predictions(results_input=results_input, apgi_predictions=apgi_predictions)
 
     # Check falsification conditions
 
@@ -1370,13 +1300,9 @@ def run_framework_falsification(results_input) -> dict:  # noqa: F811
         if pred_id.startswith("P") and pred_id[1].isdigit() and int(pred_id[1]) <= 5
     ]
     failed_core_predictions = [
-        pred_id
-        for pred_id in core_prediction_ids
-        if not apgi_predictions[pred_id].get("passed")
+        pred_id for pred_id in core_prediction_ids if not apgi_predictions[pred_id].get("passed")
     ]
-    partial_falsification = (
-        len(failed_core_predictions) >= PARTIAL_FALSIFICATION_THRESHOLD
-    )
+    partial_falsification = len(failed_core_predictions) >= PARTIAL_FALSIFICATION_THRESHOLD
     if condition_a or condition_b:
         status = "FRAMEWORK_FALSIFIED"
     elif partial_falsification:
@@ -1407,16 +1333,12 @@ def run_framework_falsification(results_input) -> dict:  # noqa: F811
         "missing_protocols": aggregation["missing_protocols"],
         "summary": {
             "total_predictions": len(NAMED_PREDICTIONS),
-            "apgi_passing": sum(
-                1 for r in apgi_predictions.values() if r.get("passed")
-            ),
+            "apgi_passing": sum(1 for r in apgi_predictions.values() if r.get("passed")),
             "apgi_failing_core_predictions": len(failed_core_predictions),
             "missing_protocol_files": aggregation["missing_files"],
             "missing_protocols_list": aggregation["missing_protocols"],
             "extraction_errors": aggregation["extraction_errors"],
-            "gnwt_passing": sum(
-                1 for r in gnwt_predictions.values() if r.get("passed")
-            ),
+            "gnwt_passing": sum(1 for r in gnwt_predictions.values() if r.get("passed")),
             "iit_passing": sum(1 for r in iit_predictions.values() if r.get("passed")),
             "threshold_a": "All Falsified",
             "threshold_b": ALTERNATIVE_PARSIMONY_THRESHOLD_B,
@@ -1465,9 +1387,7 @@ def run_falsification():
     return results
 
 
-def _generate_fp_all_visualization(
-    results: dict, output_path: str = "FP_ALL_results.png"
-) -> None:
+def _generate_fp_all_visualization(results: dict, output_path: str = "FP_ALL_results.png") -> None:
     """Generate PNG visualization of framework falsification results.
 
     Args:
@@ -1480,9 +1400,7 @@ def _generate_fp_all_visualization(
 
     try:
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-        fig.suptitle(
-            "FP-ALL Framework Falsification Aggregator", fontsize=14, fontweight="bold"
-        )
+        fig.suptitle("FP-ALL Framework Falsification Aggregator", fontsize=14, fontweight="bold")
 
         # Plot 1: Falsification conditions status
         ax1 = axes[0, 0]
@@ -1490,10 +1408,7 @@ def _generate_fp_all_visualization(
         condition_b = results.get("condition_b_met", False)
         conditions = ["Condition A\n(All 14 fail)", "Condition B\n(ΔBIC > 10)"]
         values = [1 if condition_a else 0, 1 if condition_b else 0]
-        colors = [
-            VISUAL_CONSTANTS.STATUS_FAIL if v else VISUAL_CONSTANTS.STATUS_PASS
-            for v in values
-        ]
+        colors = [VISUAL_CONSTANTS.STATUS_FAIL if v else VISUAL_CONSTANTS.STATUS_PASS for v in values]
         ax1.bar(conditions, values, color=colors)
         ax1.set_title("Falsification Conditions")
         ax1.set_ylabel("Triggered (1) / Safe (0)")
@@ -1519,14 +1434,8 @@ def _generate_fp_all_visualization(
         protocol_results = results.get("protocol_results", {})
         if protocol_results:
             proto_names = list(protocol_results.keys())[:8]
-            proto_passed = [
-                1 if protocol_results[p].get("passed", False) else 0
-                for p in proto_names
-            ]
-            colors = [
-                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
-                for v in proto_passed
-            ]
+            proto_passed = [1 if protocol_results[p].get("passed", False) else 0 for p in proto_names]
+            colors = [VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL for v in proto_passed]
             ax3.barh(proto_names, proto_passed, color=colors)
             ax3.set_title("Protocol Results (Sample)")
             ax3.set_xlabel("Pass (1) / Fail (0)")
@@ -1539,9 +1448,7 @@ def _generate_fp_all_visualization(
             metrics = {
                 "Total Passed": overall.get("total_passed", 0),
                 "Total Failed": overall.get("total_failed", 0),
-                "Framework Safe": (
-                    1 if not overall.get("framework_falsified", False) else 0
-                ),
+                "Framework Safe": (1 if not overall.get("framework_falsified", False) else 0),
             }
             names = list(metrics.keys())
             values = list(metrics.values())
@@ -1629,9 +1536,7 @@ def generate_framework_falsification_report(aggregated_results: dict) -> str:
         else:
             thresh_str = str(threshold)[:10]
 
-        pred_lines.append(
-            f"  {pred_id:15s} {status:8s}  Value: {value_str:10s}  Threshold: {thresh_str:10s}"
-        )
+        pred_lines.append(f"  {pred_id:15s} {status:8s}  Value: {value_str:10s}  Threshold: {thresh_str:10s}")
 
     # Check Condition A (core predictions only - P1.x to P5.x)
     core_prediction_ids = [
@@ -1831,9 +1736,7 @@ class FalsificationAggregator:
             iit_predictions=iit_predictions,
         )
 
-    def check_protocol_reconciliation(
-        self, fp06_results: dict, fp11_results: dict
-    ) -> dict:
+    def check_protocol_reconciliation(self, fp06_results: dict, fp11_results: dict) -> dict:
         """Check for protocol conflicts between FP-06 and FP-11 on F6.x criteria.
 
         FP-06 (Liquid Network Energy Benchmark) and FP-11 (Liquid Network Dynamics
@@ -1858,9 +1761,7 @@ class FalsificationAggregator:
         if "falsification_results" in fp06_results:
             for criterion in f6_criteria:
                 if criterion in fp06_results["falsification_results"]:
-                    fp06_f6[criterion] = fp06_results["falsification_results"][
-                        criterion
-                    ].get("passed", None)
+                    fp06_f6[criterion] = fp06_results["falsification_results"][criterion].get("passed", None)
 
         # Extract criterion results from FP-11
         fp11_f6 = {}
@@ -1890,9 +1791,7 @@ class FalsificationAggregator:
                             "criterion": criterion,
                             "fp06_result": "PASS" if fp06_pass else "FAIL",
                             "fp11_result": "PASS" if fp11_pass else "FAIL",
-                            "severity": (
-                                "HIGH" if criterion in ["F6.1", "F6.2"] else "MEDIUM"
-                            ),
+                            "severity": ("HIGH" if criterion in ["F6.1", "F6.2"] else "MEDIUM"),
                         }
                     )
                 else:
@@ -1992,15 +1891,9 @@ class FalsificationAggregator:
                     )
                 # Add summary row
                 summary = results.get("summary", {})
-                writer.writerow(
-                    ["total_predictions", summary.get("total_predictions", 0), "", ""]
-                )
-                writer.writerow(
-                    ["apgi_passing", summary.get("apgi_passing", 0), "", ""]
-                )
-                writer.writerow(
-                    ["apgi_failing", summary.get("apgi_failing", 0), "", ""]
-                )
+                writer.writerow(["total_predictions", summary.get("total_predictions", 0), "", ""])
+                writer.writerow(["apgi_passing", summary.get("apgi_passing", 0), "", ""])
+                writer.writerow(["apgi_failing", summary.get("apgi_failing", 0), "", ""])
             print(f"✓ Saved CSV results to {csv_file}")
         except Exception as e:
             print(f"⚠ Failed to save CSV: {e}")
@@ -2013,9 +1906,7 @@ if __name__ == "__main__":
     print("APGI Framework Falsification Aggregator (FP-12)")
     print("=" * 60)
     print(f"\nNamed Predictions: {len(NAMED_PREDICTIONS)}")
-    print(
-        f"Condition A Threshold: {FRAMEWORK_FALSIFICATION_THRESHOLD_A} predictions must fail"
-    )
+    print(f"Condition A Threshold: {FRAMEWORK_FALSIFICATION_THRESHOLD_A} predictions must fail")
     print(f"Condition B Threshold: ΔBIC > {ALTERNATIVE_PARSIMONY_THRESHOLD_B}")
     print("\nPrediction Mapping:")
     for pid, desc in NAMED_PREDICTIONS.items():
@@ -2031,9 +1922,7 @@ if __name__ == "__main__":
         print(f"\nFound {len(json_files)} result files in {results_dir}")
         if json_files:
             results = aggregator.aggregate_results([str(f) for f in json_files])
-            print(
-                "\nAggregation complete. Use aggregator.run_full_analysis() for full report."
-            )
+            print("\nAggregation complete. Use aggregator.run_full_analysis() for full report.")
     else:
         print(f"\nNo results directory found at {results_dir}")
         print("Run individual falsification protocols first to generate JSON results.")

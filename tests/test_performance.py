@@ -182,9 +182,7 @@ def test_large_scale_simulation():
     start_time = time.perf_counter()
 
     # Large simulation
-    generator = sample_data_generator.SampleDataGenerator(
-        sampling_rate=1000, duration=30
-    )
+    generator = sample_data_generator.SampleDataGenerator(sampling_rate=1000, duration=30)
     eeg_signal, p300_events = generator.generate_eeg_data()
 
     end_time = time.perf_counter()

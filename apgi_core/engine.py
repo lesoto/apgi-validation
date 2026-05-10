@@ -63,9 +63,7 @@ class APGIPrecisionSystem:
         """Eq 2.1: Pi = 1 / sigma^2"""
         return 1.0 / (sigma2 + 1e-9)
 
-    def effective_interoceptive_precision(
-        self, pi_baseline: float, beta: float, m_ca: float
-    ) -> float:
+    def effective_interoceptive_precision(self, pi_baseline: float, beta: float, m_ca: float) -> float:
         """Eq 2.2: Pi_eff = Pi_baseline * exp(beta * M(c,a))"""
         return float(pi_baseline * np.exp(beta * m_ca))
 
@@ -82,12 +80,7 @@ class APGIPrecisionSystem:
     ) -> float:
         """Eq 2.3: Precision Dynamics (ODE)"""
         # dPi/dt = -Pi/tau + alpha|epsilon| + C_down(Pi_l+1 - Pi_l) + C_up * psi(epsilon_l-1)
-        return (
-            (-pi / tau)
-            + (alpha * abs(epsilon))
-            + (c_down * (pi_next - pi))
-            + (c_up * pi_prev_psi)
-        )
+        return (-pi / tau) + (alpha * abs(epsilon)) + (c_down * (pi_next - pi)) + (c_up * pi_prev_psi)
 
 
 class APGICoreSignal:
@@ -156,9 +149,7 @@ class APGISystemDynamics:
     ) -> float:
         """Eq 5.2: Threshold Dynamics"""
         # dtheta/dt = gamma(theta_0 - theta_t) + delta * B_t-1 - lambda * |dS/dt|
-        dtheta_dt = (
-            gamma * (theta_0 - theta_t) + (delta * b_prev) - (lambda_urg * abs(ds_dt))
-        )
+        dtheta_dt = gamma * (theta_0 - theta_t) + (delta * b_prev) - (lambda_urg * abs(ds_dt))
         return theta_t + dtheta_dt * dt
 
 
@@ -166,9 +157,7 @@ class APGIAllostaticLayer:
     """Section 6 & 7: Discrete Allostatic and Energy Layer"""
 
     @staticmethod
-    def threshold_update(
-        theta_t: float, eta: float, c_met: float, v_inf: float
-    ) -> float:
+    def threshold_update(theta_t: float, eta: float, c_met: float, v_inf: float) -> float:
         """Eq 6.1: Cost-Value Threshold Update"""
         return theta_t + eta * (c_met - v_inf)
 
@@ -192,9 +181,7 @@ class APGILiquidNeuralNetwork:
         self.W_res = np.random.randn(size, size) * (1.0 / np.sqrt(size))
         self.W_in = np.random.randn(size, 1)
 
-    def reservoir_dynamics(
-        self, x: np.ndarray, u: float, tau_t: float, dt: float
-    ) -> np.ndarray:
+    def reservoir_dynamics(self, x: np.ndarray, u: float, tau_t: float, dt: float) -> np.ndarray:
         """Eq 9.1: Reservoir Dynamics"""
         # x_dot = -x/tau(t) + f(W_res x + W_in u)
         # Using tanh as f
@@ -236,16 +223,12 @@ class APGIHierarchy:
         return int(np.ceil(np.log(tau_max / tau_min) / np.log(overlap)))
 
     @staticmethod
-    def cross_level_modulation(
-        theta_0: float, pi_next: float, phi_next: float, kappa_down: float
-    ) -> float:
+    def cross_level_modulation(theta_0: float, pi_next: float, phi_next: float, kappa_down: float) -> float:
         """Eq 10.2: Cross-Level Threshold Modulation"""
         return float(theta_0 * (1 + kappa_down * pi_next * np.cos(phi_next)))
 
     @staticmethod
-    def bottom_up_cascade(
-        theta_l: float, s_prev: float, theta_prev: float, kappa_up: float
-    ) -> float:
+    def bottom_up_cascade(theta_l: float, s_prev: float, theta_prev: float, kappa_up: float) -> float:
         """Eq 10.3: Bottom-Up Cascade"""
         # H is Heaviside step function
         h_val = 1.0 if (s_prev - theta_prev) > 0 else 0.0
@@ -261,9 +244,7 @@ class APGIRecovery:
     """Section 12: Post-Ignition Reset"""
 
     @staticmethod
-    def reset_rule(
-        s_t: float, theta_t: float, rho: float, delta: float
-    ) -> Tuple[float, float]:
+    def reset_rule(s_t: float, theta_t: float, rho: float, delta: float) -> Tuple[float, float]:
         """Eq 12.1: Reset Rule"""
         return s_t * rho, theta_t + delta
 
@@ -272,9 +253,7 @@ class APGIValidationMetrics:
     """Section 13: Statistical Validation"""
 
     @staticmethod
-    def power_spectrum(
-        f: np.ndarray, sigma_l: np.ndarray, tau_l: np.ndarray
-    ) -> np.ndarray:
+    def power_spectrum(f: np.ndarray, sigma_l: np.ndarray, tau_l: np.ndarray) -> np.ndarray:
         """Eq 13.1: Power Spectrum (1/f)"""
         # S(f) = sum_l (sigma_l^2 * tau_l^2) / (1 + (2pi f tau_l)^2)
         spectrum = np.zeros_like(f)
@@ -336,9 +315,7 @@ class APGISystem:
         self.theta_t = self.cfg.theta_init
         self.b_t = 0.0
 
-    def step(
-        self, x: float, x_hat: float, x_i: float, x_hat_i: float, m_ca: float = 0.0
-    ) -> Dict[str, Any]:
+    def step(self, x: float, x_hat: float, x_i: float, x_hat_i: float, m_ca: float = 0.0) -> Dict[str, Any]:
         """
         Executes one time-step of the APGI pipeline.
         """
@@ -359,16 +336,10 @@ class APGISystem:
         pi_i_baseline = self.precision.compute_precision(sig2_i)
 
         # 5. Apply somatic bias
-        pi_i_eff = self.precision.effective_interoceptive_precision(
-            pi_i_baseline, self.cfg.beta_somatic, m_ca
-        )
+        pi_i_eff = self.precision.effective_interoceptive_precision(pi_i_baseline, self.cfg.beta_somatic, m_ca)
 
         # 6. Update system dynamics
-        ds_dt = (
-            (-self.s_t / self.cfg.tau_S)
-            + (pi_e * abs(ze))
-            + (self.cfg.beta_somatic * pi_i_eff * abs(zi))
-        )
+        ds_dt = (-self.s_t / self.cfg.tau_S) + (pi_e * abs(ze)) + (self.cfg.beta_somatic * pi_i_eff * abs(zi))
         self.s_t = self.dynamics.signal_dynamics(
             self.s_t,
             pi_e,
@@ -395,18 +366,14 @@ class APGISystem:
         self.theta_t = max(self.cfg.theta_min, new_theta)
 
         # 8. Compute ignition BEFORE reset
-        self.b_t = APGIIgnitionMechanism.logistic_ignition(
-            self.s_t, self.theta_t, self.cfg.alpha_ignition
-        )
+        self.b_t = APGIIgnitionMechanism.logistic_ignition(self.s_t, self.theta_t, self.cfg.alpha_ignition)
         ignited = APGIIgnitionMechanism.hard_ignition(self.s_t, self.theta_t)
         raw_s = self.s_t
 
         # 9. Apply reset if ignition
         if ignited:
             # rho=0.1 for signal reset, cfg.delta=0.5 for threshold increment
-            self.s_t, self.theta_t = self.recovery.reset_rule(
-                self.s_t, self.theta_t, 0.1, self.cfg.delta
-            )
+            self.s_t, self.theta_t = self.recovery.reset_rule(self.s_t, self.theta_t, 0.1, self.cfg.delta)
 
         return {
             "s_t": self.s_t,

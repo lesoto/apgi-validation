@@ -67,9 +67,7 @@ mock_root.columnconfigure = MagicMock()
 mock_root.rowconfigure = MagicMock()
 mock_root.destroy = MagicMock()
 mock_child_ids = MagicMock()
-mock_child_ids.get = MagicMock(
-    side_effect=lambda key, default=0: default if isinstance(default, int) else 0
-)
+mock_child_ids.get = MagicMock(side_effect=lambda key, default=0: default if isinstance(default, int) else 0)
 mock_root._last_child_ids = mock_child_ids
 mock_tkinter.Tk.return_value = mock_root
 
@@ -80,11 +78,7 @@ for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
         return_value=(
             0
             if var_type == "IntVar"
-            else (
-                0.0
-                if var_type == "DoubleVar"
-                else False if var_type == "BooleanVar" else ""
-            )
+            else (0.0 if var_type == "DoubleVar" else False if var_type == "BooleanVar" else "")
         )
     )
     mock_var.set = MagicMock()
@@ -296,11 +290,7 @@ class TestAPGIValidationGUI:
             filename_str = str(filename_arg)
 
             # The filename will be the mock object, so we need to check if it has the right attributes
-            assert (
-                "test.json" in filename_str
-                or "tmp" in filename_str
-                or hasattr(filename_arg, "return_value")
-            )
+            assert "test.json" in filename_str or "tmp" in filename_str or hasattr(filename_arg, "return_value")
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")
@@ -348,9 +338,7 @@ class TestAPGIValidationGUI:
             t.join(timeout=0.5)
 
         # Verify threads completed
-        assert (
-            len(threads_completed) == 3
-        ), f"Expected 3 threads, got {len(threads_completed)}"
+        assert len(threads_completed) == 3, f"Expected 3 threads, got {len(threads_completed)}"
 
         # Verify thread safety - no duplicate IDs
         assert len(set(threads_completed)) == 3, "Thread IDs should be unique"

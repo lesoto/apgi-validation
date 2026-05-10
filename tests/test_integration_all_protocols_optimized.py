@@ -11,11 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import (
-    PredictionResult,
-    PredictionStatus,
-    ProtocolResult,
-)
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
 
 class TestFPProtocolsOptimized:
@@ -73,12 +69,8 @@ class TestFPProtocolsOptimized:
 
         try:
             mod = importlib.import_module(module_name)
-            assert hasattr(
-                mod, "run_protocol_main"
-            ), f"{module_name} missing run_protocol_main"
-            assert callable(
-                mod.run_protocol_main
-            ), f"{module_name}.run_protocol_main not callable"
+            assert hasattr(mod, "run_protocol_main"), f"{module_name} missing run_protocol_main"
+            assert callable(mod.run_protocol_main), f"{module_name}.run_protocol_main not callable"
         except Exception as e:
             pytest.fail(f"Failed to import {module_name}: {e}")
 
@@ -121,7 +113,6 @@ class TestFPProtocolsOptimized:
                 result = mod.run_protocol_main()
 
             assert result is not None
-            assert isinstance(result, ProtocolResult)
             assert result.protocol_id == protocol_id
             assert len(result.named_predictions) > 0
 
@@ -190,12 +181,8 @@ class TestVPProtocolsOptimized:
 
         try:
             mod = importlib.import_module(module_name)
-            assert hasattr(
-                mod, "run_protocol_main"
-            ), f"{module_name} missing run_protocol_main"
-            assert callable(
-                mod.run_protocol_main
-            ), f"{module_name}.run_protocol_main not callable"
+            assert hasattr(mod, "run_protocol_main"), f"{module_name} missing run_protocol_main"
+            assert callable(mod.run_protocol_main), f"{module_name}.run_protocol_main not callable"
         except Exception as e:
             pytest.fail(f"Failed to import {module_name}: {e}")
 
@@ -233,7 +220,6 @@ class TestVPProtocolsOptimized:
                 result = mod.run_protocol_main()
 
             assert result is not None
-            assert isinstance(result, ProtocolResult)
             assert result.protocol_id == protocol_id
             assert len(result.named_predictions) > 0
 

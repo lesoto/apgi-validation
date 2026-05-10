@@ -6,8 +6,7 @@ import os
 
 import pytest
 
-from utils.secure_key_manager import (SecureKeyManager, get_backup_hmac_key,
-                                      get_pickle_secret_key)
+from utils.secure_key_manager import SecureKeyManager, get_backup_hmac_key, get_pickle_secret_key
 
 
 @pytest.fixture(autouse=True)
@@ -209,12 +208,8 @@ class TestEnvVarInitialization:
         b_mode = os.stat(backup_key_file).st_mode & 0o777
         print(f"DEBUG: Pickle file mode: {oct(p_mode)}")
         print(f"DEBUG: Backup file mode: {oct(b_mode)}")
-        assert (
-            p_mode & 0o077
-        ) == 0, f"Pickle file mode {oct(p_mode)} is not private enough"
-        assert (
-            b_mode & 0o077
-        ) == 0, f"Backup file mode {oct(b_mode)} is not private enough"
+        assert (p_mode & 0o077) == 0, f"Pickle file mode {oct(p_mode)} is not private enough"
+        assert (b_mode & 0o077) == 0, f"Backup file mode {oct(b_mode)} is not private enough"
 
     def test_concurrent_key_access(self, clean_env):
         """Test concurrent key access doesn't cause issues."""

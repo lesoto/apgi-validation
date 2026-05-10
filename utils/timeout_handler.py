@@ -7,7 +7,7 @@ Provides timeout handling for stuck operations and processes.
 """
 
 import multiprocessing
-import subprocess
+import subprocess  # nosec B404
 import threading
 import time
 from dataclasses import dataclass
@@ -50,9 +50,7 @@ class TimeoutHandler:
             return
 
         self._running = True
-        self._monitor_thread = threading.Thread(
-            target=self._monitor_timeouts, daemon=True
-        )
+        self._monitor_thread = threading.Thread(target=self._monitor_timeouts, daemon=True)
         self._monitor_thread.start()
 
     def stop_monitoring(self):
@@ -167,9 +165,7 @@ def with_timeout(timeout_seconds: float):
             result = manager.list()
             exception = manager.list()
 
-            process = multiprocessing.Process(
-                target=_timeout_target, args=(func, args, kwargs, result, exception)
-            )
+            process = multiprocessing.Process()
             process.start()
             process.join(timeout=timeout_seconds)
 
@@ -189,12 +185,8 @@ def with_timeout(timeout_seconds: float):
                         if process.is_alive():
                             # Process is still alive, log warning but continue
                             # On Windows, this can happen if the process doesn't respond to TerminateProcess
-                            print(
-                                f"Warning: Process {process.pid} could not be killed after timeout"
-                            )
-                    raise TimeoutError(
-                        f"Operation timed out after {timeout_seconds} seconds"
-                    )
+                            print(f"Warning: Process {process.pid} could not be killed after timeout")
+                    raise TimeoutError(f"Operation timed out after {timeout_seconds} seconds")
 
             if exception:
                 raise exception[0]
@@ -215,9 +207,7 @@ def _timeout_target(func, args, kwargs, result_list, exception_list):
         exception_list.append(e)
 
 
-def run_with_timeout(
-    func: Callable, args: tuple = (), kwargs: dict = None, timeout_seconds: float = 30.0
-) -> Any:
+def run_with_timeout(func: Callable, args: tuple = (), kwargs: dict = None, timeout_seconds: float = 30.0) -> Any:
     """Run a function with a timeout."""
     if kwargs is None:
         kwargs = {}
@@ -227,9 +217,7 @@ def run_with_timeout(
     result = manager.list()
     exception = manager.list()
 
-    process = multiprocessing.Process(
-        target=_timeout_target, args=(func, args, kwargs, result, exception)
-    )
+    process = multiprocessing.Process()
     process.start()
     process.join(timeout=timeout_seconds)
 
@@ -282,13 +270,11 @@ def run_subprocess_with_timeout(
             cwd=cwd,
             env=env,
             encoding=encoding,
-        )
+        )  # nosec B603
 
         stdout, stderr = process.communicate(timeout=timeout_seconds)
 
-        return subprocess.CompletedProcess(
-            args=command, returncode=process.returncode, stdout=stdout, stderr=stderr
-        )
+        return subprocess.CompletedProcess(args=command, returncode=process.returncode, stdout=stdout, stderr=stderr)
 
     except subprocess.TimeoutExpired:
         process.kill()

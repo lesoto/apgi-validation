@@ -55,17 +55,15 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    torch = None  # type: ignore[assignment]
-    nn = None  # type: ignore[assignment]
-    F = None  # type: ignore[assignment]
-    DataLoader = None  # type: ignore[assignment]
-    Dataset = None  # type: ignore[assignment]
-    random_split = None  # type: ignore[assignment]
+    torch = None  # type: ignore
+    nn = None  # type: ignore
+    F = None  # type: ignore
+    DataLoader = None  # type: ignore
+    Dataset = None  # type: ignore
+    random_split = None  # type: ignore
 
 if not HAS_TORCH:
-    raise ImportError(
-        "Protocol VP-01 requires PyTorch. Install with: pip install torch"
-    )
+    raise ImportError("Protocol VP-01 requires PyTorch. Install with: pip install torch")
 
 import sys
 from pathlib import Path
@@ -80,23 +78,13 @@ if str(project_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        P1_1_MAX_D_PRIME,
-        P1_1_MIN_D_PRIME,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, P1_1_MAX_D_PRIME, P1_1_MIN_D_PRIME
 except ImportError:
     P1_1_MIN_D_PRIME = 0.50
     P1_1_MAX_D_PRIME = 0.60
     DEFAULT_ALPHA = 0.05
 
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    roc_auc_score,
-)
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, roc_auc_score
 from tqdm import tqdm
 
 from utils.statistical_tests import safe_pearsonr
@@ -240,9 +228,7 @@ class APGIDynamicalSystem:
             S_trajectory[i] = S
 
             # Leaky integrator threshold adaptation
-            dtheta_dt = (
-                theta_t + self.eta * (C_metabolic - V_information) - theta_current
-            ) / self.tau_theta
+            dtheta_dt = (theta_t + self.eta * (C_metabolic - V_information) - theta_current) / self.tau_theta
             theta_current += dt * dtheta_dt
             theta_trajectory[i] = theta_current
 
@@ -277,9 +263,7 @@ class APGISyntheticSignalGenerator:
         """
         self.fs = fs
 
-    def generate_P3b_waveform(
-        self, S_t: float, theta_t: float, ignition: bool, duration: float = 0.8
-    ) -> np.ndarray:
+    def generate_P3b_waveform(self, S_t: float, theta_t: float, ignition: bool, duration: float = 0.8) -> np.ndarray:
         """
         Generate P3b component (350-600ms post-stimulus)
 
@@ -315,9 +299,7 @@ class APGISyntheticSignalGenerator:
 
         # Generate P3b gaussian in 350-600ms window
         p3b_sigma = 0.08  # 80ms width
-        p3b_component = p3b_amplitude * np.exp(
-            -((t - p3b_latency) ** 2) / (2 * p3b_sigma**2)
-        )
+        p3b_component = p3b_amplitude * np.exp(-((t - p3b_latency) ** 2) / (2 * p3b_sigma**2))
 
         # Start with P3b as the base (not empirical data that's the same for both)
         waveform = p3b_component.copy()
@@ -339,9 +321,7 @@ class APGISyntheticSignalGenerator:
 
         return waveform
 
-    def generate_HEP_waveform(
-        self, Pi_i: float, epsilon_i: float, duration: float = 0.6
-    ) -> np.ndarray:
+    def generate_HEP_waveform(self, Pi_i: float, epsilon_i: float, duration: float = 0.6) -> np.ndarray:
         """
         Generate Heartbeat-Evoked Potential (250-400ms post R-peak)
 
@@ -362,9 +342,7 @@ class APGISyntheticSignalGenerator:
 
         # ENHANCED modulation: stronger Pi_i dependence for clear distinction
         # Base amplitude scales significantly with Pi_i (0.5-2.5 range)
-        base_amp = (
-            0.8 + 0.6 * Pi_i
-        )  # Range: 1.1-2.3 μV (clearly different from GWTOnly's flat ~0.5)
+        base_amp = 0.8 + 0.6 * Pi_i  # Range: 1.1-2.3 μV (clearly different from GWTOnly's flat ~0.5)
 
         # Additional modulation from epsilon_i
         epsilon_mod = 0.3 * np.abs(epsilon_i)
@@ -386,9 +364,7 @@ class APGISyntheticSignalGenerator:
 
         return waveform
 
-    def generate_gamma_burst(
-        self, ignition: bool, S_t: float, duration: float = 1.0
-    ) -> np.ndarray:
+    def generate_gamma_burst(self, ignition: bool, S_t: float, duration: float = 1.0) -> np.ndarray:
         """
         Generate late gamma synchronization (30-100 Hz)
 
@@ -418,9 +394,7 @@ class APGISyntheticSignalGenerator:
 
             # Add multiple gamma frequencies for richer signal
             gamma = amplitude * envelope * np.sin(2 * np.pi * gamma_freq * t)
-            gamma += (
-                0.5 * amplitude * envelope * np.sin(2 * np.pi * (gamma_freq + 10) * t)
-            )
+            gamma += 0.5 * amplitude * envelope * np.sin(2 * np.pi * (gamma_freq + 10) * t)
         else:
             # Background gamma: very low amplitude ~0.3 μV
             gamma = 0.3 * np.sin(2 * np.pi * 40 * t)
@@ -468,9 +442,7 @@ class APGISyntheticSignalGenerator:
             base_dilation = 0.25
             dilation_magnitude = base_dilation + 0.25 * Pi_i  # Range: 0.38-0.88 mm
 
-            pupil = dilation_magnitude * np.exp(
-                -((t - peak_time) ** 2) / (2 * sigma**2)
-            )
+            pupil = dilation_magnitude * np.exp(-((t - peak_time) ** 2) / (2 * sigma**2))
         else:
             # Non-ignition: minimal dilation
             pupil = 0.05 * np.exp(-((t - 1.5) ** 2) / (2 * 0.5**2))
@@ -583,9 +555,7 @@ class APGISyntheticSignalGenerator:
             synthetic_norm = (synthetic_topography - np.mean(synthetic_topography)) / (
                 np.std(synthetic_topography) + 1e-10
             )
-            expected_norm = (expected_topography - np.mean(expected_topography)) / (
-                np.std(expected_topography) + 1e-10
-            )
+            expected_norm = (expected_topography - np.mean(expected_topography)) / (np.std(expected_topography) + 1e-10)
 
             # Compute Pearson correlation (should be ~1.0 since they're identical)
             correlation = np.corrcoef(synthetic_norm, expected_norm)[0, 1]
@@ -602,9 +572,7 @@ class APGISyntheticSignalGenerator:
         except Exception as e:
             logger.debug(f"Topography validation skipped: {e}")
 
-    def _pink_noise(
-        self, n_samples: int, amplitude: float, sfreq: float = 1000.0
-    ) -> np.ndarray:
+    def _pink_noise(self, n_samples: int, amplitude: float, sfreq: float = 1000.0) -> np.ndarray:
         """
         Generate 1/f pink noise using FFT-based power spectrum method.
 
@@ -647,9 +615,7 @@ class APGISyntheticSignalGenerator:
         try:
             from scipy import signal as sp_signal
 
-            freqs_welch, psd = sp_signal.welch(
-                pink, fs=sfreq, nperseg=min(256, n_samples)
-            )
+            freqs_welch, psd = sp_signal.welch(pink, fs=sfreq, nperseg=min(256, n_samples))
 
             # Fit log-log slope in frequency range [1, 100] Hz (typical EEG range)
             freq_mask = (freqs_welch >= 1.0) & (freqs_welch <= 100.0)
@@ -701,19 +667,12 @@ class RealisticNoiseGenerator:
                 if idx + blink_duration < n_samples:
                     blink_amp = np.random.uniform(50, 100)
                     blink = blink_amp * np.hanning(blink_duration)
-                    signal[idx : idx + blink_duration] += blink[
-                        : min(blink_duration, n_samples - idx)
-                    ]
+                    signal[idx : idx + blink_duration] += blink[: min(blink_duration, n_samples - idx)]
 
         # Muscle artifacts (EMG contamination)
         emg_freq = np.random.uniform(20, 60)
         emg_amp = np.random.uniform(10, 50)
-        signal += (
-            emg_amp
-            * np.sin(2 * np.pi * emg_freq * t)
-            * np.random.randn(n_samples)
-            * 0.3
-        )
+        signal += emg_amp * np.sin(2 * np.pi * emg_freq * t) * np.random.randn(n_samples) * 0.3
 
         # Line noise (50 Hz for Europe, 60 Hz for US)
         line_freq = 60.0  # Could parametrize by region
@@ -767,9 +726,7 @@ class StandardPredictiveProcessingGenerator:
         n1_amp = -response_amp * 0.5
         p2_amp = response_amp * 0.3
 
-        erp = n1_amp * np.exp(-((t - 0.10) ** 2) / (2 * 0.02**2)) + p2_amp * np.exp(
-            -((t - 0.20) ** 2) / (2 * 0.03**2)
-        )
+        erp = n1_amp * np.exp(-((t - 0.10) ** 2) / (2 * 0.02**2)) + p2_amp * np.exp(-((t - 0.20) ** 2) / (2 * 0.03**2))
 
         # Pink noise
         psd = 1.0 / (np.arange(1, n_samples // 2 + 1) ** 1.0)
@@ -840,9 +797,7 @@ class GlobalWorkspaceOnlyGenerator:
         # CRITICAL FIX: GWTOnly has NO interoceptive weighting, so HEP should be
         # flat baseline without Pi_i modulation (distinctly different from APGI)
         # Use minimal amplitude HEP without precision modulation
-        hep = self.signal_gen.generate_HEP_waveform(
-            Pi_i=0.3, epsilon_i=0.0, duration=duration  # Low, flat HEP
-        )
+        hep = self.signal_gen.generate_HEP_waveform(Pi_i=0.3, epsilon_i=0.0, duration=duration)  # Low, flat HEP
 
         # GWTOnly pupil: minimal dilation without interoceptive modulation
         # Use flat baseline instead of ignition-modulated response
@@ -915,9 +870,7 @@ class ContinuousIntegrationGenerator:
         for ch in range(n_channels):
             eeg[ch] += self._pink_noise_fft(n_samples, amplitude=1.0)
 
-        hep = self.signal_gen.generate_HEP_waveform(
-            Pi_i * response_strength, epsilon_i, duration=duration
-        )
+        hep = self.signal_gen.generate_HEP_waveform(Pi_i * response_strength, epsilon_i, duration=duration)
         pupil = np.random.normal(0.2 * response_strength, 0.02, n_samples)
 
         return {
@@ -1028,9 +981,7 @@ class SyntheticDataGenerator:
             model_name="APGI",
         )
 
-    def _generate_trial(
-        self, params: TrialParameters, duration: float
-    ) -> Dict[str, Any]:
+    def _generate_trial(self, params: TrialParameters, duration: float) -> Dict[str, Any]:
         """Generate a single trial"""
         S_traj, B_traj, ignition, _ = self.apgi_system.simulate_surprise_accumulation(
             epsilon_e=params.epsilon_e,
@@ -1044,9 +995,7 @@ class SyntheticDataGenerator:
         )
 
         S_final = S_traj[-1]
-        eeg = self.signal_gen.generate_multi_channel_eeg(
-            S_final, params.theta_t, ignition, duration=duration
-        )
+        eeg = self.signal_gen.generate_multi_channel_eeg(S_final, params.theta_t, ignition, duration=duration)
 
         return {
             "eeg": eeg,
@@ -1195,9 +1144,7 @@ class APGIDatasetGenerator:
             Pi_e=np.random.gamma(2.0, 0.5),  # Typically 0.5-3.0
             Pi_i=np.random.gamma(2.0, 0.5),
             beta=np.random.normal(1.15, 0.25),
-            theta_t=np.random.normal(
-                0.15, 0.08
-            ),  # Lower threshold for ~30-40% ignition balance
+            theta_t=np.random.normal(0.15, 0.08),  # Lower threshold for ~30-40% ignition balance
             model_name="",
         )
 
@@ -1223,9 +1170,7 @@ class APGIDatasetGenerator:
         S_final = S_traj[int(0.5 / dt)]
 
         # Generate signals
-        eeg = self.apgi_gen.generate_multi_channel_eeg(
-            S_final, params.theta_t, ignition
-        )
+        eeg = self.apgi_gen.generate_multi_channel_eeg(S_final, params.theta_t, ignition)
 
         # CRITICAL FIX: Add distinctive theta-band signature to APGI EEG
         # Theta (4-8 Hz) is linked to interoceptive processing
@@ -1240,13 +1185,9 @@ class APGIDatasetGenerator:
         for ch in range(16):
             eeg[ch] += theta_amp * np.sin(2 * np.pi * theta_freq * t)
 
-        hep = self.apgi_gen.generate_HEP_waveform(
-            params.Pi_i, params.epsilon_i, duration=1.0
-        )
+        hep = self.apgi_gen.generate_HEP_waveform(params.Pi_i, params.epsilon_i, duration=1.0)
 
-        pupil = self.apgi_gen.generate_pupil_response(
-            params.Pi_i, ignition, duration=1.0
-        )
+        pupil = self.apgi_gen.generate_pupil_response(params.Pi_i, ignition, duration=1.0)
 
         return {
             "eeg": eeg,
@@ -1289,12 +1230,8 @@ class APGIDatasetGenerator:
         feature_vectors = []
 
         # Generate systematic parameter combinations
-        beta_values = parameter_ranges.get(
-            "beta", parameter_ranges.get("β", [0.5, 1.0, 1.5, 2.0])
-        )
-        pi_i_values = parameter_ranges.get(
-            "Pi_i", parameter_ranges.get("Πⁱ", [0.1, 0.5, 1.0, 1.5, 2.0])
-        )
+        beta_values = parameter_ranges.get("beta", parameter_ranges.get("β", [0.5, 1.0, 1.5, 2.0]))
+        pi_i_values = parameter_ranges.get("Pi_i", parameter_ranges.get("Πⁱ", [0.1, 0.5, 1.0, 1.5, 2.0]))
 
         param_combinations = []
         for beta in beta_values:
@@ -1354,9 +1291,7 @@ class APGIDatasetGenerator:
                     eeg_trial = eeg_trial + noise
 
                 # Extract features from this EEG trial
-                features = self._extract_eeg_features_for_parameter_recovery(
-                    eeg_trial, S_final, theta_final, ignition
-                )
+                features = self._extract_eeg_features_for_parameter_recovery(eeg_trial, S_final, theta_final, ignition)
 
                 eeg_data.append(eeg_trial)
                 parameter_labels.append(regime_label)
@@ -1410,9 +1345,7 @@ class APGIDatasetGenerator:
         features.append(p3b_amplitude)
 
         # P3b latency (time of max amplitude)
-        p3b_latency = (
-            np.argmax(eeg[pz_channel, p3b_window_start:p3b_window_end]) / fs + 0.35
-        )
+        p3b_latency = np.argmax(eeg[pz_channel, p3b_window_start:p3b_window_end]) / fs + 0.35
         features.append(p3b_latency)
 
         # Compute power spectral density for frequency bands
@@ -1448,12 +1381,8 @@ class APGIDatasetGenerator:
         actual_topo = np.max(eeg[:, p3b_window_start:p3b_window_end], axis=1)
 
         # Normalize for correlation
-        expected_norm = (expected_topo - np.mean(expected_topo)) / (
-            np.std(expected_topo) + 1e-10
-        )
-        actual_norm = (actual_topo - np.mean(actual_topo)) / (
-            np.std(actual_topo) + 1e-10
-        )
+        expected_norm = (expected_topo - np.mean(expected_topo)) / (np.std(expected_topo) + 1e-10)
+        actual_norm = (actual_topo - np.mean(actual_topo)) / (np.std(actual_topo) + 1e-10)
         topo_correlation = np.corrcoef(expected_norm, actual_norm)[0, 1]
         features.append(topo_correlation)
 
@@ -1494,10 +1423,7 @@ class APGIDatasetGenerator:
             except ImportError:
                 logger.warning("torch not available, seed not set for torch")
                 pass
-        print(
-            f"Generating dataset: {n_trials_per_model} trials × 4 models = "
-            f"{4 * n_trials_per_model} total trials"
-        )
+        print(f"Generating dataset: {n_trials_per_model} trials × 4 models = " f"{4 * n_trials_per_model} total trials")
         print(f"Using {n_subjects} synthetic subjects with subject-level splitting")
 
         dataset: Dict[str, List[Any]] = {
@@ -1570,9 +1496,7 @@ class APGIDatasetGenerator:
         print(f"  HEP shape: {dataset_arr['hep'].shape}")
         print(f"  Pupil shape: {dataset_arr['pupil'].shape}")
         print(f"  Ignition distribution: {np.bincount(dataset_arr['ignition_labels'])}")
-        print(
-            f"  Subject IDs range: {dataset_arr['subject_ids'].min()} - {dataset_arr['subject_ids'].max()}"
-        )
+        print(f"  Subject IDs range: {dataset_arr['subject_ids'].min()} - {dataset_arr['subject_ids'].max()}")
 
         if save_path:
             np.savez_compressed(save_path, **dataset_arr)  # type: ignore[arg-type]
@@ -1605,9 +1529,7 @@ class Protocol1Psychophysics:
         """
         np.random.seed(seed)
         self.n_participants = n_participants
-        self.significance_level = get_significance_level(
-            0.01
-        )  # Bonferroni-corrected threshold
+        self.significance_level = get_significance_level(0.01)  # Bonferroni-corrected threshold
 
     def simulate_heartbeat_discrimination(
         self, participant_id: int, interoceptive_precision: float
@@ -1671,9 +1593,7 @@ class Protocol1Psychophysics:
         else:
             arousal_effect = 0.0
 
-        threshold = np.clip(
-            base_threshold + arousal_effect + np.random.normal(0, 0.02), 0.1, 0.6
-        )
+        threshold = np.clip(base_threshold + arousal_effect + np.random.normal(0, 0.02), 0.1, 0.6)
 
         # Detection performance at threshold
         detection_accuracy = 0.75 + np.random.normal(0, 0.05)
@@ -1687,9 +1607,7 @@ class Protocol1Psychophysics:
             "arousal_level": arousal_level,
         }
 
-    def classify_sd_split_groups(
-        self, heartbeat_data: List[Dict]
-    ) -> Tuple[List[int], List[int]]:
+    def classify_sd_split_groups(self, heartbeat_data: List[Dict]) -> Tuple[List[int], List[int]]:
         """
         Classify participants into SD-split groups following Garfinkel et al. (2015)
 
@@ -1743,9 +1661,7 @@ class Protocol1Psychophysics:
             "precision_increase": precision_increase,
         }
 
-    def test_prediction_P1_1(
-        self, high_awareness_data: List[Dict], low_awareness_data: List[Dict]
-    ) -> Dict[str, Any]:
+    def test_prediction_P1_1(self, high_awareness_data: List[Dict], low_awareness_data: List[Dict]) -> Dict[str, Any]:
         """
         P1.1: High interoceptive awareness participants have lower detection thresholds
 
@@ -1762,9 +1678,7 @@ class Protocol1Psychophysics:
         low_thresholds = [d["detection_threshold"] for d in low_awareness_data]
 
         # Calculate Cohen's d
-        pooled_std = np.sqrt(
-            (np.std(high_thresholds) ** 2 + np.std(low_thresholds) ** 2) / 2
-        )
+        pooled_std = np.sqrt((np.std(high_thresholds) ** 2 + np.std(low_thresholds) ** 2) / 2)
         cohens_d = (np.mean(low_thresholds) - np.mean(high_thresholds)) / pooled_std
 
         # T-test with Bonferroni correction
@@ -1789,9 +1703,7 @@ class Protocol1Psychophysics:
             "prediction_supported": effect_size_met and significance_met,
         }
 
-    def test_prediction_P1_2(
-        self, detection_data: List[Dict], heartbeat_data: List[Dict]
-    ) -> Dict[str, Any]:
+    def test_prediction_P1_2(self, detection_data: List[Dict], heartbeat_data: List[Dict]) -> Dict[str, Any]:
         """
         P1.2: Detection threshold correlates with heartbeat discrimination accuracy
 
@@ -1805,9 +1717,7 @@ class Protocol1Psychophysics:
             Dictionary with test results
         """
         # Match participants by ID
-        thresholds_by_id = {
-            d["participant_id"]: d["detection_threshold"] for d in detection_data
-        }
+        thresholds_by_id = {d["participant_id"]: d["detection_threshold"] for d in detection_data}
         accuracies_by_id = {d["participant_id"]: d["accuracy"] for d in heartbeat_data}
 
         common_ids = set(thresholds_by_id.keys()) & set(accuracies_by_id.keys())
@@ -1835,9 +1745,7 @@ class Protocol1Psychophysics:
             "prediction_supported": correlation_met and significance_met,
         }
 
-    def test_prediction_P1_3(
-        self, normal_arousal_data: List[Dict], high_arousal_data: List[Dict]
-    ) -> Dict[str, Any]:
+    def test_prediction_P1_3(self, normal_arousal_data: List[Dict], high_arousal_data: List[Dict]) -> Dict[str, Any]:
         """
         P1.3: High arousal increases detection thresholds
 
@@ -1854,9 +1762,7 @@ class Protocol1Psychophysics:
         high_thresholds = [d["detection_threshold"] for d in high_arousal_data]
 
         # Calculate Cohen's d
-        pooled_std = np.sqrt(
-            (np.std(normal_thresholds) ** 2 + np.std(high_thresholds) ** 2) / 2
-        )
+        pooled_std = np.sqrt((np.std(normal_thresholds) ** 2 + np.std(high_thresholds) ** 2) / 2)
         cohens_d = (np.mean(high_thresholds) - np.mean(normal_thresholds)) / pooled_std
 
         # Paired t-test (within-subjects design)
@@ -1902,9 +1808,7 @@ class Protocol1Psychophysics:
 
         # Run heartbeat discrimination task
         for i in range(self.n_participants):
-            hb_result = self.simulate_heartbeat_discrimination(
-                i, interoceptive_precisions[i]
-            )
+            hb_result = self.simulate_heartbeat_discrimination(i, interoceptive_precisions[i])
             results["heartbeat_discrimination"].append(hb_result)  # type: ignore[index]
 
         # Classify SD-split groups
@@ -1914,9 +1818,7 @@ class Protocol1Psychophysics:
 
         # Run detection threshold task (normal arousal)
         for i in range(self.n_participants):
-            det_result = self.simulate_detection_threshold_task(
-                i, interoceptive_precisions[i], arousal_level="normal"
-            )
+            det_result = self.simulate_detection_threshold_task(i, interoceptive_precisions[i], arousal_level="normal")
             results["detection_normal_arousal"].append(det_result)
 
         # Run arousal manipulation and detection task (high arousal)
@@ -1925,13 +1827,9 @@ class Protocol1Psychophysics:
             results["arousal_manipulation"].append(arousal_result)
 
             # Adjust precision based on arousal
-            adjusted_precision = (
-                interoceptive_precisions[i] + arousal_result["precision_increase"]
-            )
+            adjusted_precision = interoceptive_precisions[i] + arousal_result["precision_increase"]
 
-            det_result = self.simulate_detection_threshold_task(
-                i, adjusted_precision, arousal_level="high"
-            )
+            det_result = self.simulate_detection_threshold_task(i, adjusted_precision, arousal_level="high")
             results["detection_high_arousal"].append(det_result)
 
         # Test P1.1: SD-split group comparison
@@ -1956,9 +1854,7 @@ class Protocol1Psychophysics:
         )  # type: ignore[index]
 
         # Overall support
-        all_supported = all(
-            p["prediction_supported"] for p in results["predictions"].values()
-        )
+        all_supported = all(p["prediction_supported"] for p in results["predictions"].values())
         results["overall_protocol1_supported"] = all_supported
 
         return results
@@ -2074,9 +1970,7 @@ def subject_level_leave_one_out_split(
     folds = []
     indices = np.arange(len(labels))
 
-    for train_subject_idx, test_subject_idx in sgkf.split(
-        unique_subjects, subject_labels, groups=unique_subjects
-    ):
+    for train_subject_idx, test_subject_idx in sgkf.split(unique_subjects, subject_labels, groups=unique_subjects):
         train_subjects = unique_subjects[train_subject_idx]
         test_subjects = unique_subjects[test_subject_idx]
 
@@ -2216,9 +2110,7 @@ class IgnitionClassifier(nn.Module):
         - Binary classification head
     """
 
-    def __init__(
-        self, n_channels: int = 64, n_timepoints: int = 1000, dropout: float = 0.5
-    ):
+    def __init__(self, n_channels: int = 64, n_timepoints: int = 1000, dropout: float = 0.5):
         super().__init__()
 
         self.n_channels = n_channels
@@ -2237,9 +2129,7 @@ class IgnitionClassifier(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Attention mechanism
-        self.attention = nn.Sequential(
-            nn.Linear(256, 128), nn.Tanh(), nn.Linear(128, 1)
-        )
+        self.attention = nn.Sequential(nn.Linear(256, 128), nn.Tanh(), nn.Linear(128, 1))
 
         # Classification head
         self.fc = nn.Sequential(
@@ -2414,9 +2304,7 @@ def train_ignition_classifier(
     # Use higher learning rate for faster convergence on small synthetic dataset
     effective_lr = lr * 5 if lr < 0.001 else lr
     optimizer = torch.optim.Adam(model.parameters(), lr=effective_lr, weight_decay=1e-5)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="max", factor=0.5, patience=3
-    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
 
     # Use class weights if provided, otherwise standard CrossEntropyLoss
     if class_weights is not None:
@@ -2499,16 +2387,12 @@ def train_ignition_classifier(
                 val_auc = roc_auc_score(all_labels, all_probs)
             else:
                 val_auc = 0.5
-                logger.warning(
-                    "AUC could not be calculated: only one class present in validation batch"
-                )
+                logger.warning("AUC could not be calculated: only one class present in validation batch")
         except (ValueError, RuntimeError) as e:
             val_auc = 0.5  # Random performance baseline
             logger.error(f"Error calculating AUC: {e}")
             # Explicitly log that we're using a baseline value due to computation failure
-            logger.warning(
-                f"Using baseline AUC value (0.5) due to computation error: {e}"
-            )
+            logger.warning(f"Using baseline AUC value (0.5) due to computation error: {e}")
 
         # Update history
         history["train_loss"].append(train_loss)
@@ -2554,9 +2438,7 @@ def train_model_identifier(
     # Use higher learning rate for faster convergence
     effective_lr = lr * 10 if lr < 0.001 else lr
     optimizer = torch.optim.Adam(model.parameters(), lr=effective_lr, weight_decay=1e-5)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="max", factor=0.5, patience=3
-    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
     criterion = nn.CrossEntropyLoss()
 
     history: Dict[str, List[float]] = {
@@ -2690,9 +2572,7 @@ def evaluate_ignition_classifier(
             auc = roc_auc_score(all_labels_arr, all_probs_arr)
         else:
             auc = 0.5
-            logger.warning(
-                "AUC could not be calculated: only one class present in test set"
-            )
+            logger.warning("AUC could not be calculated: only one class present in test set")
     except (ValueError, RuntimeError) as e:
         auc = 0.5  # Random performance baseline
         logger.error(f"Error calculating AUC: {e}")
@@ -2850,9 +2730,7 @@ class FalsificationChecker:
         falsified = avg_confusion > self.criteria["F1.2"]["threshold"]
         return falsified, avg_confusion
 
-    def check_F1_3(
-        self, high_arousal_ignition: float, low_arousal_ignition: float
-    ) -> Tuple[bool, float]:
+    def check_F1_3(self, high_arousal_ignition: float, low_arousal_ignition: float) -> Tuple[bool, float]:
         """F1.3: Arousal interaction test - ignition probability difference between high and low arousal"""
         arousal_effect = high_arousal_ignition - low_arousal_ignition
         falsified = arousal_effect < self.criteria["F1.3"]["threshold"]
@@ -2863,9 +2741,7 @@ class FalsificationChecker:
     ) -> Tuple[bool, Tuple[float, float, float, float]]:
         """F1.4: APGI outperforms StandardPP across full task battery"""
         # Task 1A: Ignition classification - Use Balanced Accuracy to neutralize single-class bias
-        apgi_acc_1a = results_task_1a["APGI"].get(
-            "balanced_accuracy", results_task_1a["APGI"]["accuracy"]
-        )
+        apgi_acc_1a = results_task_1a["APGI"].get("balanced_accuracy", results_task_1a["APGI"]["accuracy"])
 
         # If StandardPP has only one class, its trivial accuracy (1.0) is ignored, compared to chance (0.5)
         if results_task_1a["StandardPP"].get("skipped", False):
@@ -2884,9 +2760,7 @@ class FalsificationChecker:
         falsified = (apgi_acc_1a <= pp_acc_1a) or (apgi_f1_1b <= pp_f1_1b)
         return falsified, (apgi_acc_1a, pp_acc_1a, apgi_f1_1b, pp_f1_1b)
 
-    def check_F2_1(
-        self, apgi_advantageous_selection: List[float]
-    ) -> Tuple[bool, float]:
+    def check_F2_1(self, apgi_advantageous_selection: List[float]) -> Tuple[bool, float]:
         """F2.1: Somatic Marker Advantage Quantification
 
         Args:
@@ -2900,20 +2774,14 @@ class FalsificationChecker:
         mean_apgi = np.mean(apgi_advantageous_selection)
         # Use proper statistical test against null hypothesis of 50% (chance level)
         try:
-            _, p_value, significant = safe_ttest_1samp(
-                apgi_advantageous_selection, popmean=50.0, alpha=0.01, min_n=30
-            )
-            falsified = (
-                significant and mean_apgi >= 70
-            )  # Supports model if significantly above chance
+            _, p_value, significant = safe_ttest_1samp(apgi_advantageous_selection, popmean=50.0, alpha=0.01, min_n=30)
+            falsified = significant and mean_apgi >= 70  # Supports model if significantly above chance
         except (ValueError, TypeError):
             # Fallback for insufficient data
             falsified = mean_apgi >= 70
         return bool(falsified), float(mean_apgi)
 
-    def check_F2_2(
-        self, apgi_cost_correlation: float, cost_correlation_std: float = None
-    ) -> Tuple[bool, float]:
+    def check_F2_2(self, apgi_cost_correlation: float, cost_correlation_std: float = None) -> Tuple[bool, float]:
         """F2.2: Interoceptive Cost Sensitivity
 
         Args:
@@ -2934,9 +2802,7 @@ class FalsificationChecker:
             falsified = -0.65 <= apgi_cost_correlation <= -0.30
         return falsified, apgi_cost_correlation
 
-    def check_F2_3(
-        self, rt_advantage_ms: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F2_3(self, rt_advantage_ms: Union[float, List[float]]) -> Tuple[bool, float]:
         """F2.3: vmPFC-Like Anticipatory Bias
 
         Args:
@@ -2951,9 +2817,7 @@ class FalsificationChecker:
             rt_array = np.array(rt_advantage_ms)
             rt_mean = np.mean(rt_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    rt_array, popmean=0.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(rt_array, popmean=0.0, alpha=0.01, min_n=30)
                 falsified = p_value < 0.01 and rt_mean >= 50
             except (ValueError, TypeError):
                 falsified = rt_mean >= 50
@@ -2962,9 +2826,7 @@ class FalsificationChecker:
             falsified = rt_mean >= 50
         return falsified, rt_mean
 
-    def check_F2_4(
-        self, confidence_effect: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F2_4(self, confidence_effect: Union[float, List[float]]) -> Tuple[bool, float]:
         """F2.4: Precision-Weighted Integration
 
         Args:
@@ -2979,9 +2841,7 @@ class FalsificationChecker:
             effect_array = np.array(confidence_effect)
             effect_mean = np.mean(effect_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    effect_array, popmean=0.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(effect_array, popmean=0.0, alpha=0.01, min_n=30)
                 falsified = significant and effect_mean >= 40
             except (ValueError, TypeError):
                 falsified = effect_mean >= 40
@@ -2990,9 +2850,7 @@ class FalsificationChecker:
             falsified = effect_mean >= 40
         return falsified, effect_mean
 
-    def check_F2_5(
-        self, apgi_time_to_criterion: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F2_5(self, apgi_time_to_criterion: Union[float, List[float]]) -> Tuple[bool, float]:
         """F2.5: Learning Trajectory Discrimination
 
         Args:
@@ -3008,9 +2866,7 @@ class FalsificationChecker:
             time_mean = np.mean(time_array)
             # Test if APGI learns significantly faster than baseline (assumed 100 trials)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    time_array, popmean=100.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(time_array, popmean=100.0, alpha=0.01, min_n=30)
                 falsified = significant and time_mean <= 60
             except (ValueError, TypeError):
                 falsified = time_mean <= 60
@@ -3019,9 +2875,7 @@ class FalsificationChecker:
             falsified = time_mean <= 60
         return falsified, time_mean
 
-    def check_F3_1(
-        self, apgi_rewards: List[float], baseline_rewards: List[float]
-    ) -> Tuple[bool, float]:
+    def check_F3_1(self, apgi_rewards: List[float], baseline_rewards: List[float]) -> Tuple[bool, float]:
         """F3.1: Overall Performance Advantage
 
         Args:
@@ -3040,9 +2894,7 @@ class FalsificationChecker:
         falsified = advantage_pct >= cumulative_reward_threshold
         return falsified, float(advantage_pct)  # type: ignore[return-value]
 
-    def check_F3_2(
-        self, interoceptive_advantage: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F3_2(self, interoceptive_advantage: Union[float, List[float]]) -> Tuple[bool, float]:
         """F3.2: Interoceptive Task Specificity
 
         Args:
@@ -3057,9 +2909,7 @@ class FalsificationChecker:
             advantage_array = np.array(interoceptive_advantage)
             advantage_mean = np.mean(advantage_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    advantage_array, popmean=0.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(advantage_array, popmean=0.0, alpha=0.01, min_n=30)
                 falsified = significant and advantage_mean >= 25
             except (ValueError, TypeError):
                 falsified = advantage_mean >= 25
@@ -3068,9 +2918,7 @@ class FalsificationChecker:
             falsified = advantage_mean >= 25
         return falsified, advantage_mean
 
-    def check_F3_3(
-        self, performance_reduction: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F3_3(self, performance_reduction: Union[float, List[float]]) -> Tuple[bool, float]:
         """F3.3: Threshold Gating Necessity
 
         Args:
@@ -3085,9 +2933,7 @@ class FalsificationChecker:
             reduction_array = np.array(performance_reduction)
             reduction_mean = np.mean(reduction_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    reduction_array, popmean=0.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(reduction_array, popmean=0.0, alpha=0.01, min_n=30)
                 falsified = significant and reduction_mean >= 20
             except (ValueError, TypeError):
                 falsified = reduction_mean >= 20
@@ -3096,9 +2942,7 @@ class FalsificationChecker:
             falsified = reduction_mean >= 20
         return falsified, reduction_mean
 
-    def check_F3_4(
-        self, precision_reduction: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F3_4(self, precision_reduction: Union[float, List[float]]) -> Tuple[bool, float]:
         """F3.4: Precision Weighting Necessity
 
         Args:
@@ -3113,9 +2957,7 @@ class FalsificationChecker:
             reduction_array = np.array(precision_reduction)
             reduction_mean = np.mean(reduction_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    reduction_array, popmean=0.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(reduction_array, popmean=0.0, alpha=0.01, min_n=30)
                 falsified = significant and reduction_mean >= 15
             except (ValueError, TypeError):
                 falsified = reduction_mean >= 15
@@ -3144,9 +2986,7 @@ class FalsificationChecker:
             efficiency_array = np.array(efficiency_ratio)
             efficiency_mean = np.mean(efficiency_array)
             try:
-                t_stat, p_value, significant = safe_ttest_1samp(
-                    efficiency_array, popmean=1.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, significant = safe_ttest_1samp(efficiency_array, popmean=1.0, alpha=0.01, min_n=30)
                 efficiency_pass = p_value < 0.01 and efficiency_mean <= 0.6
             except (ValueError, TypeError):
                 efficiency_pass = efficiency_mean <= 0.6
@@ -3158,9 +2998,7 @@ class FalsificationChecker:
             performance_array = np.array(performance_retention)
             performance_mean = np.mean(performance_array)
             try:
-                _, p_value, significant = safe_ttest_1samp(
-                    performance_array, popmean=80.0, alpha=0.01, min_n=30
-                )
+                _, p_value, significant = safe_ttest_1samp(performance_array, popmean=80.0, alpha=0.01, min_n=30)
                 performance_pass = significant and performance_mean >= 85
             except (ValueError, TypeError):
                 performance_pass = performance_mean >= 85
@@ -3171,9 +3009,7 @@ class FalsificationChecker:
         falsified = efficiency_pass and performance_pass
         return falsified, (efficiency_mean, performance_mean)
 
-    def check_F3_6(
-        self, trials_to_80pct: Union[float, List[float]]
-    ) -> Tuple[bool, float]:
+    def check_F3_6(self, trials_to_80pct: Union[float, List[float]]) -> Tuple[bool, float]:
         """F3.6: Sample Efficiency in Learning
 
         Args:
@@ -3189,9 +3025,7 @@ class FalsificationChecker:
             trials_mean = np.mean(trials_array)
             # Test if APGI learns significantly faster than baseline (assumed 200 trials)
             try:
-                t_stat, p_value, _ = safe_ttest_1samp(
-                    trials_array, popmean=200.0, alpha=0.01, min_n=30
-                )
+                t_stat, p_value, _ = safe_ttest_1samp(trials_array, popmean=200.0, alpha=0.01, min_n=30)
                 falsified = p_value < 0.01 and trials_mean <= 150
             except (ValueError, TypeError):
                 falsified = trials_mean <= 150
@@ -3242,11 +3076,7 @@ class FalsificationChecker:
             mean_correlation_r = 0.5  # Example value
         if binomial_p_f5_2 is None:
             binomial_p_f5_2 = 0.005  # Example value
-        falsified = (
-            proportion_precision_agents >= 0.50
-            and mean_correlation_r >= 0.35
-            and binomial_p_f5_2 < 0.01
-        )
+        falsified = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
         return falsified, (
             proportion_precision_agents,
             mean_correlation_r,
@@ -3296,9 +3126,7 @@ class FalsificationChecker:
         if binomial_p_f5_4 is None:
             binomial_p_f5_4 = 0.005  # Example value
         falsified = (
-            proportion_multiscale_agents >= 0.45
-            and peak_separation_ratio_f5_4 >= 2.0
-            and binomial_p_f5_4 < 0.01
+            proportion_multiscale_agents >= 0.45 and peak_separation_ratio_f5_4 >= 2.0 and binomial_p_f5_4 < 0.01
         )
         return falsified, (
             proportion_multiscale_agents,
@@ -3330,11 +3158,7 @@ class FalsificationChecker:
             cohen_d_performance = 0.9  # Example value
         if ttest_p_f5_6 is None:
             ttest_p_f5_6 = 0.005  # Example value
-        falsified = (
-            performance_difference >= 0.25
-            and cohen_d_performance >= 0.55
-            and ttest_p_f5_6 < 0.01
-        )
+        falsified = performance_difference >= 0.25 and cohen_d_performance >= 0.55 and ttest_p_f5_6 < 0.01
         return falsified, (performance_difference, cohen_d_performance, ttest_p_f5_6)
 
     def check_F6_1(
@@ -3353,11 +3177,7 @@ class FalsificationChecker:
             cliffs_delta = 0.7  # Example value
         if mann_whitney_p is None:
             mann_whitney_p = 0.005  # Example value
-        falsified = (
-            ltcn_transition_time <= 50.0
-            and cliffs_delta >= 0.45
-            and mann_whitney_p < 0.01
-        )
+        falsified = ltcn_transition_time <= 50.0 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
         return falsified, (
             ltcn_transition_time,
             feedforward_transition_time,
@@ -3414,15 +3234,11 @@ class FalsificationChecker:
                 # V1.2: Multi-Timescale Temporal Clustering
                 # Extract actual cluster count from results
                 if "cluster_labels" in results_task_1a.get("APGI", {}):
-                    n_clusters = len(
-                        np.unique(results_task_1a["APGI"]["cluster_labels"])
-                    )
+                    n_clusters = len(np.unique(results_task_1a["APGI"]["cluster_labels"]))
                 else:
                     # Fallback: cluster_labels not generated in current implementation
                     n_clusters = 3  # Default to 3 clusters for falsification
-                    logger.warning(
-                        "cluster_labels not found in results, using default value"
-                    )
+                    logger.warning("cluster_labels not found in results, using default value")
 
                 # Use actual cluster count in falsification logic
                 passed = n_clusters >= criterion.get("target_clusters", 3)
@@ -3466,12 +3282,8 @@ class FalsificationChecker:
             else:
                 falsification_report["falsified_criteria"].append(result)
 
-        falsification_report["overall_falsified"] = (
-            len(falsification_report["falsified_criteria"]) > 0
-        )
-        falsification_report["protocol_score"] = (
-            len(falsification_report["passed_criteria"]) / len(self.criteria) * 100
-        )
+        falsification_report["overall_falsified"] = len(falsification_report["falsified_criteria"]) > 0
+        falsification_report["protocol_score"] = len(falsification_report["passed_criteria"]) / len(self.criteria) * 100
 
         return falsification_report
 
@@ -3700,9 +3512,7 @@ class FalsificationChecker:
         }
         falsification_report["passed_criteria"].append(criterion_result)
 
-        falsification_report["overall_falsified"] = (
-            len(falsification_report["falsified_criteria"]) > 0
-        )
+        falsification_report["overall_falsified"] = len(falsification_report["falsified_criteria"]) > 0
 
         # Add power analysis computation (N=80 for primary tests)
         falsification_report["power_analysis"] = self.compute_power_analysis()
@@ -3809,9 +3619,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         "learning_curves": [],
     }
 
-    for fold_idx, (train_idx, test_idx) in enumerate(
-        outer_cv.split(dataset["eeg"], dataset["ignition_labels"])
-    ):
+    for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(dataset["eeg"], dataset["ignition_labels"])):
         # Inner loop: hyperparameter tuning
         # Outer loop: performance estimation
         # This prevents optimistic bias
@@ -3844,19 +3652,13 @@ def enhanced_cross_validation(dataset, n_folds=5):
             ):
                 # Create inner datasets
                 inner_train_eeg = dataset["eeg"][train_idx][inner_train_idx]
-                inner_train_labels = dataset["ignition_labels"][train_idx][
-                    inner_train_idx
-                ]
+                inner_train_labels = dataset["ignition_labels"][train_idx][inner_train_idx]
                 inner_val_eeg = dataset["eeg"][train_idx][inner_val_idx]
                 inner_val_labels = dataset["ignition_labels"][train_idx][inner_val_idx]
 
                 # Create datasets and loaders
-                inner_train_dataset = IgnitionClassificationDataset(
-                    inner_train_eeg, inner_train_labels
-                )
-                inner_val_dataset = IgnitionClassificationDataset(
-                    inner_val_eeg, inner_val_labels
-                )
+                inner_train_dataset = IgnitionClassificationDataset(inner_train_eeg, inner_train_labels)
+                inner_val_dataset = IgnitionClassificationDataset(inner_val_eeg, inner_val_labels)
 
                 inner_train_loader = DataLoader(
                     inner_train_dataset,
@@ -3870,9 +3672,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
                 )
 
                 # Train model with these parameters
-                model = IgnitionClassifier(
-                    n_channels=64, n_timepoints=1000, dropout=param_dict["dropout"]
-                )
+                model = IgnitionClassifier(n_channels=64, n_timepoints=1000, dropout=param_dict["dropout"])
                 trained_model, _ = train_ignition_classifier(
                     model,
                     inner_train_loader,
@@ -3883,9 +3683,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
                 )
 
                 # Evaluate
-                val_results = evaluate_ignition_classifier(
-                    trained_model, inner_val_loader, device="cpu"
-                )
+                val_results = evaluate_ignition_classifier(trained_model, inner_val_loader, device="cpu")
                 scores.append(val_results["accuracy"])
 
             # Average score across inner folds
@@ -3895,18 +3693,12 @@ def enhanced_cross_validation(dataset, n_folds=5):
                 best_params = param_dict
 
         # Train final model with best parameters on full outer train set
-        final_model = IgnitionClassifier(
-            n_channels=64, n_timepoints=1000, dropout=best_params["dropout"]
-        )
+        final_model = IgnitionClassifier(n_channels=64, n_timepoints=1000, dropout=best_params["dropout"])
         train_dataset_full = IgnitionClassificationDataset(
             dataset["eeg"][train_idx], dataset["ignition_labels"][train_idx]
         )
-        train_loader_full = DataLoader(
-            train_dataset_full, batch_size=best_params["batch_size"], shuffle=True
-        )
-        val_loader_dummy = DataLoader(
-            train_dataset_full, batch_size=best_params["batch_size"], shuffle=False
-        )  # Dummy
+        train_loader_full = DataLoader(train_dataset_full, batch_size=best_params["batch_size"], shuffle=True)
+        val_loader_dummy = DataLoader(train_dataset_full, batch_size=best_params["batch_size"], shuffle=False)  # Dummy
 
         final_trained_model, _ = train_ignition_classifier(
             final_model,
@@ -3918,15 +3710,9 @@ def enhanced_cross_validation(dataset, n_folds=5):
         )
 
         # Evaluate on outer test set
-        test_dataset = IgnitionClassificationDataset(
-            dataset["eeg"][test_idx], dataset["ignition_labels"][test_idx]
-        )
-        test_loader = DataLoader(
-            test_dataset, batch_size=best_params["batch_size"], shuffle=False
-        )
-        test_results = evaluate_ignition_classifier(
-            final_trained_model, test_loader, device="cpu"
-        )
+        test_dataset = IgnitionClassificationDataset(dataset["eeg"][test_idx], dataset["ignition_labels"][test_idx])
+        test_loader = DataLoader(test_dataset, batch_size=best_params["batch_size"], shuffle=False)
+        test_results = evaluate_ignition_classifier(final_trained_model, test_loader, device="cpu")
 
         results[f"fold_{fold_idx}"] = {  # type: ignore[index]
             "best_params": best_params,
@@ -3959,9 +3745,7 @@ def bootstrap_confidence_intervals(predictions, labels, n_bootstrap=1000):
             logger.warning(f"Error calculating AUC (using 0.5 baseline): {e}")
             metrics["auc"].append(0.5)  # Random performance baseline
             # Explicitly log that we're using a baseline value due to computation failure
-            logger.warning(
-                f"Using baseline AUC value (0.5) due to computation error: {e}"
-            )
+            logger.warning(f"Using baseline AUC value (0.5) due to computation error: {e}")
 
     ci_results = {}
     for metric, values in metrics.items():
@@ -3988,9 +3772,7 @@ def calculate_effect_sizes(results_task_1a):
             # Cohen's d = (mean1 - mean2) / pooled_std
             # For accuracy difference
             if baseline_model in results_task_1a:
-                mean_diff = (
-                    results["accuracy"] - results_task_1a[baseline_model]["accuracy"]
-                )
+                mean_diff = results["accuracy"] - results_task_1a[baseline_model]["accuracy"]
                 # Assuming we have standard deviations from multiple runs
                 std_pooled = np.sqrt(
                     (
@@ -4300,9 +4082,7 @@ def compare_models_with_statistics(results_task_1a):
             i_correct_j_wrong = np.sum(correct_i & ~correct_j)
             i_wrong_j_correct = np.sum(~correct_i & correct_j)
             both_wrong = np.sum(~correct_i & ~correct_j)
-            contingency_table = np.array(
-                [[both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]]
-            )
+            contingency_table = np.array([[both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]])
             if i_correct_j_wrong + i_wrong_j_correct > 0:
                 mcnemar_stat = (abs(i_correct_j_wrong - i_wrong_j_correct) - 1) ** 2 / (
                     i_correct_j_wrong + i_wrong_j_correct
@@ -4323,9 +4103,9 @@ def compare_models_with_statistics(results_task_1a):
                 perm_i_wrong_j_correct = np.sum(~correct_i & perm_correct_j)
 
                 if perm_i_correct_j_wrong + perm_i_wrong_j_correct > 0:
-                    perm_stat = (
-                        abs(perm_i_correct_j_wrong - perm_i_wrong_j_correct) - 1
-                    ) ** 2 / (perm_i_correct_j_wrong + perm_i_wrong_j_correct)
+                    perm_stat = (abs(perm_i_correct_j_wrong - perm_i_wrong_j_correct) - 1) ** 2 / (
+                        perm_i_correct_j_wrong + perm_i_wrong_j_correct
+                    )
                 else:
                     perm_stat = 0.0
                 perm_stats.append(perm_stat)
@@ -4335,10 +4115,7 @@ def compare_models_with_statistics(results_task_1a):
             mcnemar_significant = mcnemar_perm_p < alpha
 
             # DeLong's test for AUC comparison
-            auc_diff = (
-                results_task_1a[model_i]["auc_roc"]
-                - results_task_1a[model_j]["auc_roc"]
-            )
+            auc_diff = results_task_1a[model_i]["auc_roc"] - results_task_1a[model_j]["auc_roc"]
 
             # Permutation test for AUC differences
             perm_auc_diffs = []
@@ -4388,7 +4165,7 @@ def main(progress_callback=None):
         if progress_callback is not None:
             try:
                 progress_callback(percent)
-            except Exception:
+            except Exception:  # nosec - Intentionally suppress progress callback errors
                 pass  # Ignore callback errors
         if message:
             print(message)
@@ -4442,9 +4219,7 @@ def main(progress_callback=None):
 
     for model_idx, model_name in enumerate(model_names):
         progress_start = base_progress + model_idx * progress_per_model
-        report_progress(
-            progress_start, f"\n--- Training classifier for {model_name} ---"
-        )
+        report_progress(progress_start, f"\n--- Training classifier for {model_name} ---")
 
         # Filter data for this model
         model_mask = dataset["model_labels"] == model_idx
@@ -4464,23 +4239,13 @@ def main(progress_callback=None):
         val_labels = np.array([labels_model[i] for i in val_dataset.indices])
         test_labels = np.array([labels_model[i] for i in test_dataset.indices])
 
-        print(
-            f"  Train: {len(train_dataset)} samples, ignition: {np.bincount(train_labels)}"
-        )
+        print(f"  Train: {len(train_dataset)} samples, ignition: {np.bincount(train_labels)}")
         print(f"  Val: {len(val_dataset)} samples, ignition: {np.bincount(val_labels)}")
-        print(
-            f"  Test: {len(test_dataset)} samples, ignition: {np.bincount(test_labels)}"
-        )
+        print(f"  Test: {len(test_dataset)} samples, ignition: {np.bincount(test_labels)}")
 
-        train_loader = DataLoader(
-            train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
-        )
-        val_loader = DataLoader(
-            val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
-        )
-        test_loader = DataLoader(
-            test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
-        )
+        train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+        test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
 
         # Calculate class weights for imbalanced data
         class_counts = np.bincount(train_labels)
@@ -4525,19 +4290,13 @@ def main(progress_callback=None):
             device=config["device"],
             class_weights=class_weights,
         )
-        report_progress(
-            progress_start + progress_per_model - 3, f"{model_name} training complete"
-        )
+        report_progress(progress_start + progress_per_model - 3, f"{model_name} training complete")
 
         # Evaluate on test set
-        results = evaluate_ignition_classifier(
-            trained_model, test_loader, device=config["device"]
-        )
+        results = evaluate_ignition_classifier(trained_model, test_loader, device=config["device"])
 
         results_task_1a[model_name] = results
-        report_progress(
-            progress_start + progress_per_model - 1, f"{model_name} evaluation complete"
-        )
+        report_progress(progress_start + progress_per_model - 1, f"{model_name} evaluation complete")
 
         # Memory optimization: free up model and data
         del trained_model
@@ -4562,9 +4321,7 @@ def main(progress_callback=None):
     report_progress(76, "Starting Task 1B - Multi-modal model identification...")
 
     # Create multi-modal dataset
-    full_dataset = ModelIdentificationDataset(
-        dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"]
-    )
+    full_dataset = ModelIdentificationDataset(dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"])
 
     # Split
     n_total = len(full_dataset)
@@ -4572,19 +4329,11 @@ def main(progress_callback=None):
     n_val = int(0.2 * n_total)
     n_test = n_total - n_train - n_val
 
-    train_dataset, val_dataset, test_dataset = random_split(
-        full_dataset, [n_train, n_val, n_test]
-    )
+    train_dataset, val_dataset, test_dataset = random_split(full_dataset, [n_train, n_val, n_test])
 
-    train_loader = DataLoader(
-        train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
-    )
-    val_loader = DataLoader(
-        val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
-    )
-    test_loader = DataLoader(
-        test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
-    )
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
 
     # Train model identifier
     report_progress(78, "Training multi-modal fusion network...")
@@ -4607,9 +4356,7 @@ def main(progress_callback=None):
     report_progress(88, "Task 1B training complete")
 
     # Evaluate
-    results_task_1b = evaluate_model_identifier(
-        trained_identifier, test_loader, device=config["device"]
-    )
+    results_task_1b = evaluate_model_identifier(trained_identifier, test_loader, device=config["device"])
     report_progress(90, "Task 1B evaluation complete")
 
     # Memory optimization
@@ -4634,9 +4381,7 @@ def main(progress_callback=None):
     print("STEP 4: FALSIFICATION ANALYSIS")
     print("=" * 80)
 
-    real_data_path = config.get(
-        "real_data_path", "data_repository/apgi_real_dataset.npz"
-    )
+    real_data_path = config.get("real_data_path", "data_repository/apgi_real_dataset.npz")
     real_data_accuracy = 0.60
     if os.path.exists(real_data_path):
         import logging
@@ -4783,9 +4528,7 @@ def test_noise_amplitude_sensitivity(
 
             for trial in range(n_trials_per_amplitude):
                 # Generate ignition and non-ignition trials
-                ignition_eeg = signal_gen.generate_multi_channel_eeg(
-                    S_t=2.0, theta_t=1.0, ignition=True, duration=1.0
-                )
+                ignition_eeg = signal_gen.generate_multi_channel_eeg(S_t=2.0, theta_t=1.0, ignition=True, duration=1.0)
                 non_ignition_eeg = signal_gen.generate_multi_channel_eeg(
                     S_t=0.5, theta_t=1.0, ignition=False, duration=1.0
                 )
@@ -4823,10 +4566,7 @@ def test_noise_amplitude_sensitivity(
                 f"across noise amplitudes (threshold: {sens_thresh:.1%})"
             )
         else:
-            logger.info(
-                f"Accuracy variation {acc_range:.1%} within threshold "
-                f"({sens_thresh:.1%})"
-            )
+            logger.info(f"Accuracy variation {acc_range:.1%} within threshold " f"({sens_thresh:.1%})")
 
         return results
 
@@ -4862,18 +4602,14 @@ def run_validation(progress_callback=None, **kwargs) -> ProtocolResult:
                 passed=v1_1_passed,
                 value=results_summary["task_1a"].get("APGI", {}).get("accuracy", 0),
                 threshold=0.80,
-                status=(
-                    PredictionStatus.PASSED if v1_1_passed else PredictionStatus.FAILED
-                ),
+                status=(PredictionStatus.PASSED if v1_1_passed else PredictionStatus.FAILED),
                 name="V1.1_ML_Accuracy",
             ),
             "V1.2": PredictionResult(
                 passed=v1_2_passed,
                 value=results_summary["task_1b"].get("accuracy", 0),
                 threshold=0.50,
-                status=(
-                    PredictionStatus.PASSED if v1_2_passed else PredictionStatus.FAILED
-                ),
+                status=(PredictionStatus.PASSED if v1_2_passed else PredictionStatus.FAILED),
                 name="V1.2_Task_Accuracy",
             ),
         }
@@ -4978,11 +4714,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
             evidence=[str(pred_data.get("actual", ""))],
             sources=["VP_01_SyntheticEEG_MLClassification"],
         )
@@ -5142,13 +4874,9 @@ def check_falsification(
         and len(degraded_accuracy_distribution) >= 30
         and len(baseline_accuracy_distribution) >= 30
     ):
-        _, p_degradation, _ = safe_ttest_ind(
-            degraded_accuracy_distribution, baseline_accuracy_distribution, alpha=0.05
-        )
+        _, p_degradation, _ = safe_ttest_ind(degraded_accuracy_distribution, baseline_accuracy_distribution, alpha=0.05)
     else:
-        logger.warning(
-            "V1.2: Insufficient data for statistical test, using placeholder p=1.0"
-        )
+        logger.warning("V1.2: Insufficient data for statistical test, using placeholder p=1.0")
         p_degradation = 1.0  # Non-significant when data insufficient
     results["criteria"]["V1.2"] = {
         "passed": v1_2_pass,
@@ -5168,11 +4896,7 @@ def check_falsification(
 
     p_binomial = binomtest(successes, n_trials, p=0.5, alternative="greater").pvalue
 
-    v1_3_pass = (
-        median_cross_correlation >= 0.70
-        and proportion_matching_trials >= 0.75
-        and p_binomial < 0.01
-    )
+    v1_3_pass = median_cross_correlation >= 0.70 and proportion_matching_trials >= 0.75 and p_binomial < 0.01
     results["criteria"]["V1.3"] = {
         "passed": v1_3_pass,
         "median_cross_correlation": median_cross_correlation,
@@ -5195,9 +4919,7 @@ def check_falsification(
     chi2_stat = -2 * np.log(interaction_p_value) if interaction_p_value > 0 else 0
     p_lr = stats.chi2.sf(chi2_stat, 1)
 
-    v1_4_pass = (
-        multimodal_advantage >= 30 and odds_ratio >= 1.8 and interaction_p_value < 0.01
-    )
+    v1_4_pass = multimodal_advantage >= 30 and odds_ratio >= 1.8 and interaction_p_value < 0.01
     results["criteria"]["V1.4"] = {
         "passed": v1_4_pass,
         "multimodal_advantage_pct": multimodal_advantage,
@@ -5299,9 +5021,7 @@ class EEGPipeline:
         epochs_arr: np.ndarray = np.array(epochs)
 
         # Baseline correction
-        baseline_mean = np.mean(
-            epochs_arr[:, :, baseline_start:baseline_end], axis=2, keepdims=True
-        )
+        baseline_mean = np.mean(epochs_arr[:, :, baseline_start:baseline_end], axis=2, keepdims=True)
         epochs_corrected = epochs_arr - baseline_mean
 
         # Average across epochs
@@ -5359,9 +5079,7 @@ class EEGPipeline:
                     }
                 )
 
-                anova_results = self.pingouin.rm_anova(
-                    data=df, dv="amplitude", within="condition", subject="subject"
-                )
+                anova_results = self.pingouin.rm_anova(data=df, dv="amplitude", within="condition", subject="subject")
 
                 results["anova"] = anova_results
             except Exception as e:
@@ -5469,9 +5187,7 @@ class EEGPipeline:
                     }
                 )
 
-                partial_corr = self.pingouin.partial_corr(
-                    data=df, x="HEP", y="P3b", covar="pupil"
-                )
+                partial_corr = self.pingouin.partial_corr(data=df, x="HEP", y="P3b", covar="pupil")
 
                 return {
                     "r": partial_corr["r"].values[0],
@@ -5487,13 +5203,11 @@ class EEGPipeline:
             # Residualize HEP and P3b for pupil
             hep_resid = (
                 stats.linregress(pupil_diameters, hep_amplitudes).intercept
-                + stats.linregress(pupil_diameters, hep_amplitudes).slope
-                * pupil_diameters
+                + stats.linregress(pupil_diameters, hep_amplitudes).slope * pupil_diameters
             )
             p3b_resid = (
                 stats.linregress(pupil_diameters, p3b_amplitudes).intercept
-                + stats.linregress(pupil_diameters, p3b_amplitudes).slope
-                * pupil_diameters
+                + stats.linregress(pupil_diameters, p3b_amplitudes).slope * pupil_diameters
             )
 
             hep_residuals = hep_amplitudes - hep_resid
@@ -5525,9 +5239,7 @@ class EEGPipeline:
 
         tertile_labels = np.zeros_like(heartbeat_scores)
         tertile_labels[heartbeat_scores <= tertiles[0]] = 0  # Low
-        tertile_labels[
-            (heartbeat_scores > tertiles[0]) & (heartbeat_scores <= tertiles[1])
-        ] = 1  # Medium
+        tertile_labels[(heartbeat_scores > tertiles[0]) & (heartbeat_scores <= tertiles[1])] = 1  # Medium
         tertile_labels[heartbeat_scores > tertiles[1]] = 2  # High
 
         results = {
@@ -5701,9 +5413,7 @@ class EEGPipeline:
                         group2_amp = cond_amp
 
                 # Cohen's d between first two conditions
-                pooled_std = np.sqrt(
-                    (np.var(group1_amp, ddof=1) + np.var(group2_amp, ddof=1)) / 2
-                )
+                pooled_std = np.sqrt((np.var(group1_amp, ddof=1) + np.var(group2_amp, ddof=1)) / 2)
                 if pooled_std > 0:
                     d = (np.mean(group1_amp) - np.mean(group2_amp)) / pooled_std
                     effect_sizes: Dict[str, float] = results["effect_sizes"]  # type: ignore[assignment]
@@ -5721,16 +5431,10 @@ class EEGPipeline:
                 # Bayesian t-test if pingouin available
                 if self.has_pingouin:
                     try:
-                        bf_result = self.pingouin.bayesfactor_ttest(
-                            group1_amp, group2_amp, paired=False
-                        )
+                        bf_result = self.pingouin.bayesfactor_ttest(group1_amp, group2_amp, paired=False)
                         stat_tests["bayesian_ttest"] = {
                             "bf10": float(bf_result),
-                            "interpretation": (
-                                "moderate_evidence_h1"
-                                if bf_result > 3
-                                else "no_conclusive_evidence"
-                            ),
+                            "interpretation": ("moderate_evidence_h1" if bf_result > 3 else "no_conclusive_evidence"),
                         }
                     except Exception as e:
                         logger.warning(f"Bayesian t-test failed: {e}")
@@ -5742,14 +5446,11 @@ class EEGPipeline:
 
         effect_sizes = results["effect_sizes"]  # type: ignore[assignment]
         effect_valid = (
-            "cohens_d" in effect_sizes
-            and abs(float(effect_sizes["cohens_d"])) > 0.2  # type: ignore[arg-type]
+            "cohens_d" in effect_sizes and abs(float(effect_sizes["cohens_d"])) > 0.2  # type: ignore[arg-type]
         )
 
         stat_tests = results["statistical_tests"]  # type: ignore[assignment]
-        stat_valid = "t_test" in stat_tests and bool(
-            stat_tests["t_test"]["significant"]
-        )  # type: ignore[index]
+        stat_valid = "t_test" in stat_tests and bool(stat_tests["t_test"]["significant"])  # type: ignore[index]
 
         results["passed"] = p3b_valid and (effect_valid or stat_valid)
 
@@ -5802,12 +5503,8 @@ class EEGPipeline:
             # from scipy.stats import circmean  # Currently unused
             # 1. Filter for phase (theta: 4-12 Hz)
             phase_low, phase_high = phase_freq_range
-            phase_filter = sp_signal.butter(
-                4, [phase_low / (self.fs / 2), phase_high / (self.fs / 2)], btype="band"
-            )
-            phase_signal = sp_signal.filtfilt(
-                phase_filter[0], phase_filter[1], eeg_data, axis=-1
-            )
+            phase_filter = sp_signal.butter(4, [phase_low / (self.fs / 2), phase_high / (self.fs / 2)], btype="band")
+            phase_signal = sp_signal.filtfilt(phase_filter[0], phase_filter[1], eeg_data, axis=-1)
 
             # Extract phase using Hilbert transform
             phase_analytic = sp_signal.hilbert(phase_signal, axis=-1)
@@ -5815,12 +5512,8 @@ class EEGPipeline:
 
             # 2. Filter for amplitude (gamma: 30-80 Hz)
             amp_low, amp_high = amp_freq_range
-            amp_filter = sp_signal.butter(
-                4, [amp_low / (self.fs / 2), amp_high / (self.fs / 2)], btype="band"
-            )
-            amp_signal = sp_signal.filtfilt(
-                amp_filter[0], amp_filter[1], eeg_data, axis=-1
-            )
+            amp_filter = sp_signal.butter(4, [amp_low / (self.fs / 2), amp_high / (self.fs / 2)], btype="band")
+            amp_signal = sp_signal.filtfilt(amp_filter[0], amp_filter[1], eeg_data, axis=-1)
 
             # Extract amplitude using Hilbert transform
             amp_analytic = sp_signal.hilbert(amp_signal, axis=-1)
@@ -5836,9 +5529,7 @@ class EEGPipeline:
             amp_flat = amplitude.flatten()
 
             # Compute mean amplitude per phase bin
-            mean_amp_per_bin = np.array(
-                [np.mean(amp_flat[phase_digitized == i]) for i in range(n_bins)]
-            )
+            mean_amp_per_bin = np.array([np.mean(amp_flat[phase_digitized == i]) for i in range(n_bins)])
 
             # Normalize to get probability distribution
             p = mean_amp_per_bin / np.sum(mean_amp_per_bin)
@@ -5860,13 +5551,9 @@ class EEGPipeline:
                 amp_shuffled = rng.permutation(amp_flat)
 
                 # Compute MI for shuffled data
-                mean_amp_shuffled = np.array(
-                    [np.mean(amp_shuffled[phase_digitized == i]) for i in range(n_bins)]
-                )
+                mean_amp_shuffled = np.array([np.mean(amp_shuffled[phase_digitized == i]) for i in range(n_bins)])
                 p_shuffled = mean_amp_shuffled / np.sum(mean_amp_shuffled)
-                kl_shuffled = np.sum(
-                    p_shuffled * np.log((p_shuffled + 1e-12) / uniform)
-                )
+                kl_shuffled = np.sum(p_shuffled * np.log((p_shuffled + 1e-12) / uniform))
                 mi_shuffled = kl_shuffled / np.log(n_bins)
                 surrogate_mis.append(mi_shuffled)
 
@@ -5881,10 +5568,7 @@ class EEGPipeline:
             # Criterion: MI >= 0.012 with p < 0.05
             results["passed"] = bool((mi >= 0.012) and (p_value < 0.05))
 
-            logger.info(
-                f"Cross-frequency coupling: MI={mi:.4f}, p={p_value:.4f}, "
-                f"passed={results['passed']}"
-            )
+            logger.info(f"Cross-frequency coupling: MI={mi:.4f}, p={p_value:.4f}, " f"passed={results['passed']}")
 
         except ImportError as e:
             logger.warning(f"Cross-frequency coupling requires scipy: {e}")
@@ -5933,9 +5617,7 @@ def validate() -> Dict[str, Any]:
         # Test 1: Generate synthetic data
         try:
             generator = SyntheticDataGenerator()
-            data = generator.generate_realistic_eeg(
-                n_trials=100, n_channels=64, duration=2.0, fs=1000
-            )
+            data = generator.generate_realistic_eeg(n_trials=100, n_channels=64, duration=2.0, fs=1000)
             results["metrics"]["data_generation"] = "completed"  # type: ignore[index]
         except Exception as e:
             logger.error(f"Data generation failed: {e}")
@@ -5953,16 +5635,12 @@ def validate() -> Dict[str, Any]:
         # Test 3: Statistical analysis
         try:
             analyzer = StatisticalAnalyzer()
-            stats = analyzer.analyze_classification_results(
-                data.get("eeg", []), data.get("labels", []), accuracy
-            )
+            stats = analyzer.analyze_classification_results(data.get("eeg", []), data.get("labels", []), accuracy)
             results.get("metrics", {}).setdefault("statistical_analysis", "completed")
             logger.info(f"Statistical analysis completed: {stats}")
         except Exception as e:
             logger.error(f"Statistical analysis failed: {e}")
-            results.get("metrics", {}).setdefault(
-                "statistical_analysis", f"failed: {e}"
-            )
+            results.get("metrics", {}).setdefault("statistical_analysis", f"failed: {e}")
 
         # Overall validation result
         results["summary"]["primary_predictions_passed"] = 1

@@ -131,9 +131,7 @@ class SecurityTestSuite:
 
         print(f"  Tested {len(test_cases)} input validation scenarios")
 
-    def _test_type_validation(
-        self, expected_type: str, input_value: Any
-    ) -> SecurityTestResult:
+    def _test_type_validation(self, expected_type: str, input_value: Any) -> SecurityTestResult:
         """Test that invalid types are properly rejected."""
         try:
             # Attempt to use the invalid input where a specific type is expected
@@ -169,27 +167,17 @@ class SecurityTestSuite:
         print("\n[2/7] Testing injection resistance...")
 
         # Test SQL injection patterns in string inputs
-        sql_results = self._test_payloads_against_module(
-            self.SQL_INJECTION_PAYLOADS, "sql_injection"
-        )
+        sql_results = self._test_payloads_against_module(self.SQL_INJECTION_PAYLOADS, "sql_injection")
         self.results.extend(sql_results)
 
         # Test command injection
-        cmd_results = self._test_payloads_against_module(
-            self.COMMAND_INJECTION_PAYLOADS, "command_injection"
-        )
+        cmd_results = self._test_payloads_against_module(self.COMMAND_INJECTION_PAYLOADS, "command_injection")
         self.results.extend(cmd_results)
 
-        print(
-            f"  SQL injection: {sum(1 for r in sql_results if r.passed)}/{len(sql_results)} passed"
-        )
-        print(
-            f"  Command injection: {sum(1 for r in cmd_results if r.passed)}/{len(cmd_results)} passed"
-        )
+        print(f"  SQL injection: {sum(1 for r in sql_results if r.passed)}/{len(sql_results)} passed")
+        print(f"  Command injection: {sum(1 for r in cmd_results if r.passed)}/{len(cmd_results)} passed")
 
-    def _test_payloads_against_module(
-        self, payloads: List[str], injection_type: str
-    ) -> List[SecurityTestResult]:
+    def _test_payloads_against_module(self, payloads: List[str], injection_type: str) -> List[SecurityTestResult]:
         """Test injection payloads against target modules."""
         results = []
 
@@ -226,9 +214,7 @@ class SecurityTestSuite:
             results.append(result)
 
         self.results.extend(results)
-        print(
-            f"  Path traversal: {sum(1 for r in results if r.passed)}/{len(results)} passed"
-        )
+        print(f"  Path traversal: {sum(1 for r in results if r.passed)}/{len(results)} passed")
 
     def _is_path_safe(self, path: str) -> bool:
         """Check if a path is safe (no traversal attempts)."""
@@ -261,9 +247,7 @@ class SecurityTestSuite:
             results.append(result)
 
         self.results.extend(results)
-        print(
-            f"  XSS prevention: {sum(1 for r in results if r.passed)}/{len(results)} passed"
-        )
+        print(f"  XSS prevention: {sum(1 for r in results if r.passed)}/{len(results)} passed")
 
     def test_file_operations(self) -> None:
         """Test secure file operations."""
@@ -299,9 +283,7 @@ class SecurityTestSuite:
                 results.append(result)
 
             self.results.extend(results)
-            print(
-                f"  File operations: {sum(1 for r in results if r.passed)}/{len(results)} passed"
-            )
+            print(f"  File operations: {sum(1 for r in results if r.passed)}/{len(results)} passed")
 
     def test_environment_variables(self) -> None:
         """Test secure handling of environment variables."""
@@ -332,9 +314,7 @@ class SecurityTestSuite:
             del os.environ[env_var_name]
 
         self.results.extend(results)
-        print(
-            f"  Environment variables: {sum(1 for r in results if r.passed)}/{len(results)} passed"
-        )
+        print(f"  Environment variables: {sum(1 for r in results if r.passed)}/{len(results)} passed")
 
     def _check_sensitive_data_protection(self, env_var_name: str) -> bool:
         """Check if sensitive data is properly protected."""
@@ -373,9 +353,7 @@ class SecurityTestSuite:
             results.append(result)
 
         self.results.extend(results)
-        print(
-            f"  Logging safety: {sum(1 for r in results if r.passed)}/{len(results)} passed"
-        )
+        print(f"  Logging safety: {sum(1 for r in results if r.passed)}/{len(results)} passed")
 
     def _simulate_log_output(self, data: str) -> str:
         """Simulate logging output for testing."""
@@ -430,20 +408,16 @@ class SecurityTestSuite:
 
         if by_severity["high"] > 0:
             recommendations.append(
-                f"HIGH: {by_severity['high']} high-severity issues found. "
-                "Address before production deployment."
+                f"HIGH: {by_severity['high']} high-severity issues found. " "Address before production deployment."
             )
 
         if by_severity["medium"] > 0:
             recommendations.append(
-                f"MEDIUM: {by_severity['medium']} medium-severity issues found. "
-                "Schedule remediation in next sprint."
+                f"MEDIUM: {by_severity['medium']} medium-severity issues found. " "Schedule remediation in next sprint."
             )
 
         if not recommendations:
-            recommendations.append(
-                "No security issues found. Maintain current practices."
-            )
+            recommendations.append("No security issues found. Maintain current practices.")
 
         return recommendations
 

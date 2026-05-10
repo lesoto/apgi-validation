@@ -113,9 +113,7 @@ class MemoizationCache:
 _global_cache = MemoizationCache()
 
 
-def memoize(
-    max_size: int = 1000, ttl_seconds: float = 3600, cache_key: Optional[str] = None
-):
+def memoize(max_size: int = 1000, ttl_seconds: float = 3600, cache_key: Optional[str] = None):
     """
     Decorator for memoizing function results.
 
@@ -129,11 +127,7 @@ def memoize(
     """
 
     def decorator(func: Callable) -> Callable:
-        cache = (
-            _global_cache
-            if cache_key is None
-            else MemoizationCache(max_size, ttl_seconds)
-        )
+        cache = _global_cache if cache_key is None else MemoizationCache(max_size, ttl_seconds)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -191,9 +185,7 @@ class ProtocolOptimizer:
         return data
 
     @memoize(max_size=500, ttl_seconds=1800)
-    def cached_statistical_computation(
-        self, data: Tuple, computation_type: str
-    ) -> Dict[str, float]:
+    def cached_statistical_computation(self, data: Tuple, computation_type: str) -> Dict[str, float]:
         """
         Cached statistical computations to avoid recomputation.
 
@@ -224,9 +216,7 @@ class ProtocolOptimizer:
         else:
             return {"mean": float(np.mean(arr))}
 
-    def parallel_protocol_execution(
-        self, protocols: List[Callable], *args, **kwargs
-    ) -> List[Any]:
+    def parallel_protocol_execution(self, protocols: List[Callable], *args, **kwargs) -> List[Any]:
         """
         Execute multiple protocols in parallel using thread pool.
 
@@ -255,9 +245,7 @@ class ProtocolOptimizer:
                 return result
             except Exception as e:
                 if apgi_logger:
-                    apgi_logger.logger.error(
-                        f"Protocol {protocol.__name__} failed: {e}"
-                    )
+                    apgi_logger.logger.error(f"Protocol {protocol.__name__} failed: {e}")
                 return None
 
         # Submit all protocols to thread pool
@@ -287,30 +275,18 @@ class ProtocolOptimizer:
         Returns:
             Combined results from all chunks
         """
-        adaptive_chunk_size = max(
-            25, min(chunk_size, max(1, len(data) // max(1, self.max_workers)))
-        )
-        chunks = [
-            data[i : i + adaptive_chunk_size]
-            for i in range(0, len(data), adaptive_chunk_size)
-        ]
+        adaptive_chunk_size = max(25, min(chunk_size, max(1, len(data) // max(1, self.max_workers))))
+        chunks = [data[i : i + adaptive_chunk_size] for i in range(0, len(data), adaptive_chunk_size)]
 
         if parallel and len(chunks) > 1:
             if cpu_bound:
                 if self._process_pool is None:
-                    self._process_pool = ProcessPoolExecutor(
-                        max_workers=self.max_workers
-                    )
+                    self._process_pool = ProcessPoolExecutor(max_workers=self.max_workers)
                 futures = [
-                    self._process_pool.submit(
-                        self._process_chunk_static, chunk, process_func
-                    )
-                    for chunk in chunks
+                    self._process_pool.submit(self._process_chunk_static, chunk, process_func) for chunk in chunks
                 ]
             else:
-                futures = [
-                    self._thread_pool.submit(process_func, chunk) for chunk in chunks
-                ]
+                futures = [self._thread_pool.submit(process_func, chunk) for chunk in chunks]
             results = [f.result() for f in futures]
         else:
             # Process sequentially
@@ -326,9 +302,7 @@ class ProtocolOptimizer:
         """Static helper for process-pool compatibility."""
         return process_func(chunk)
 
-    def lazy_evaluation(
-        self, computation_chain: List[Callable], initial_data: Any
-    ) -> Any:
+    def lazy_evaluation(self, computation_chain: List[Callable], initial_data: Any) -> Any:
         """
         Execute computation chain with lazy evaluation.
 
@@ -353,15 +327,9 @@ class ProtocolOptimizer:
             "avg_execution_time": sum(execution_times) / len(execution_times),
             "min_execution_time": min(execution_times),
             "max_execution_time": max(execution_times),
-            "p50_latency": (
-                float(np.percentile(execution_times, 50)) if execution_times else 0.0
-            ),
-            "p95_latency": (
-                float(np.percentile(execution_times, 95)) if execution_times else 0.0
-            ),
-            "p99_latency": (
-                float(np.percentile(execution_times, 99)) if execution_times else 0.0
-            ),
+            "p50_latency": (float(np.percentile(execution_times, 50)) if execution_times else 0.0),
+            "p95_latency": (float(np.percentile(execution_times, 95)) if execution_times else 0.0),
+            "p99_latency": (float(np.percentile(execution_times, 99)) if execution_times else 0.0),
             "cache_stats": _global_cache.get_stats(),
         }
 
@@ -382,13 +350,21 @@ class ProtocolOptimizer:
         self._shutdown = True
         try:
             self._thread_pool.shutdown(wait=True)
-        except Exception:
-            pass
+        except Exception as e:
+            # Log shutdown errors but don't crash cleanup
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Thread pool shutdown error: {e}")
         if self._process_pool:
             try:
                 self._process_pool.shutdown(wait=True)
-            except Exception:
-                pass
+            except Exception as e:
+                # Log shutdown errors but don't crash cleanup
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Process pool shutdown error: {e}")
 
 
 class FastProtocolRunner:
@@ -449,7 +425,6 @@ class FastProtocolRunner:
             **kwargs: Keyword arguments for the protocol
 
         Returns:
-            Tuple of (result, performance_metrics)
         """
         import psutil
 
@@ -490,13 +465,15 @@ class FastProtocolRunner:
             mem_after = process.memory_info().rss / (1024 * 1024)
             cache_hits_after = _global_cache._hits
 
-            return result, PerformanceMetrics(
+            performance_metrics = PerformanceMetrics(
                 execution_time=execution_time,
                 memory_used_mb=mem_after - mem_before,
                 cpu_percent=process.cpu_percent(),
                 cache_hits=cache_hits_after - cache_hits_before,
                 cache_misses=1 if use_cache else 0,
             )
+
+            return result, performance_metrics
 
         except Exception as e:
             if apgi_logger:
@@ -524,13 +501,21 @@ def _cleanup_all():
     for runner in _runners:
         try:
             runner.shutdown()
-        except Exception:
-            pass
+        except Exception as e:
+            # Log shutdown errors but don't crash cleanup
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Runner shutdown error: {e}")
     for optimizer in _optimizers:
         try:
             optimizer.shutdown()
-        except Exception:
-            pass
+        except Exception as e:
+            # Log shutdown errors but don't crash cleanup
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Optimizer shutdown error: {e}")
 
 
 # Register cleanup on exit
@@ -613,9 +598,7 @@ def timed_execution(func: Callable) -> Callable:
             execution_time = end_time - start_time
             # Log timing info if logger available
             if apgi_logger and hasattr(apgi_logger, "debug"):
-                apgi_logger.debug(
-                    f"Function '{func.__name__}' executed in {execution_time:.4f}s"
-                )
+                apgi_logger.debug(f"Function '{func.__name__}' executed in {execution_time:.4f}s")
 
     return wrapper
 
@@ -646,9 +629,7 @@ if __name__ == "__main__":
     def process_chunk(chunk):
         return [x * 2 for x in chunk]
 
-    results = optimizer.batch_process_with_chunking(
-        large_data, process_chunk, chunk_size=1000, parallel=True
-    )
+    results = optimizer.batch_process_with_chunking(large_data, process_chunk, chunk_size=1000, parallel=True)
     print(f"   Processed {len(results)} items")
 
     # Performance report

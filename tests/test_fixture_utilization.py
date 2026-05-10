@@ -255,9 +255,7 @@ class TestExceptionTestCases:
 class TestCombinedFixtureUsage:
     """Test combined usage of multiple fixtures."""
 
-    def test_raises_with_exception_test_cases(
-        self, raises_fixture, exception_test_cases
-    ):
+    def test_raises_with_exception_test_cases(self, raises_fixture, exception_test_cases):
         """Test raises_fixture with exception_test_cases."""
         error = exception_test_cases["value_error"]
 
@@ -345,9 +343,7 @@ class TestSampleDataFixture:
         """Test that sample_data contains valid values."""
         # Timestamps should be increasing
         timestamps = sample_data["timestamps"]
-        assert all(
-            timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1)
-        )
+        assert all(timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1))
 
         # All values should be numeric
         for key in ["surprise", "threshold", "metabolic", "arousal"]:
@@ -447,6 +443,10 @@ class TestPerformanceUtilities:
 
     def test_assert_performance_within_tolerance(self):
         """Test performance assertion utility."""
+        import os
+        import sys
+
+        sys.path.insert(0, os.path.dirname(__file__))
         from conftest import assert_performance_within_tolerance
 
         # Test within tolerance

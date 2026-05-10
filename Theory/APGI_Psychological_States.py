@@ -1,4 +1,5 @@
 """
+
 =============================================================================
 APGI Psychological State Parameter Library
 =============================================================================
@@ -83,9 +84,7 @@ class APGIParameters:
         if not 0.1 <= self.Pi_e <= 15.0:
             raise ValueError(f"Pi_e must be in [0.1, 15], got {self.Pi_e}")
         if not 0.1 <= self.Pi_i_baseline <= 15.0:
-            raise ValueError(
-                f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}"
-            )
+            raise ValueError(f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}")
         if not 0.1 <= self.Pi_i_eff <= 15.0:
             raise ValueError(f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}")
         if not -2.0 <= self.M_ca <= 2.0:
@@ -906,19 +905,13 @@ STATE_CATEGORIES: Dict[str, StateCategory] = {
 def get_state(name: str) -> APGIParameters:
     """Retrieve parameters for a named psychological state"""
     if name not in PSYCHOLOGICAL_STATES:
-        raise KeyError(
-            f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}"
-        )
+        raise KeyError(f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}")
     return PSYCHOLOGICAL_STATES[name]
 
 
 def get_states_by_category(category: StateCategory) -> Dict[str, APGIParameters]:
     """Retrieve all states belonging to a category"""
-    return {
-        name: params
-        for name, params in PSYCHOLOGICAL_STATES.items()
-        if STATE_CATEGORIES.get(name) == category
-    }
+    return {name: params for name, params in PSYCHOLOGICAL_STATES.items() if STATE_CATEGORIES.get(name) == category}
 
 
 def compare_states(state1: str, state2: str) -> Dict[str, Tuple[float, float, float]]:
@@ -1032,9 +1025,7 @@ def compute_transition_cost(from_state: str, to_state: str) -> Dict[str, float]:
     return costs
 
 
-def validate_transition_plausibility(
-    from_state: str, to_state: str, pathway: List[str]
-) -> Dict[str, Any]:
+def validate_transition_plausibility(from_state: str, to_state: str, pathway: List[str]) -> Dict[str, Any]:
     """
     Validate psychological plausibility of a transition pathway.
 
@@ -1063,25 +1054,17 @@ def validate_transition_plausibility(
         }
 
         if param_changes["_e"] > 4.0:
-            issues.append(
-                f"Large _e jump: {current}  {next_state} (={param_changes['_e']:.1f})"
-            )
+            issues.append(f"Large _e jump: {current}  {next_state} (={param_changes['_e']:.1f})")
             score -= 15
         elif param_changes["_e"] > 2.5:
-            warnings.append(
-                f"Moderate _e jump: {current}  {next_state} (={param_changes['_e']:.1f})"
-            )
+            warnings.append(f"Moderate _e jump: {current}  {next_state} (={param_changes['_e']:.1f})")
             score -= 5
 
         if param_changes["_t"] > 2.0:
-            issues.append(
-                f"Large _t jump: {current}  {next_state} (={param_changes['_t']:.1f})"
-            )
+            issues.append(f"Large _t jump: {current}  {next_state} (={param_changes['_t']:.1f})")
             score -= 10
         elif param_changes["_t"] > 1.5:
-            warnings.append(
-                f"Moderate _t jump: {current}  {next_state} (={param_changes['_t']:.1f})"
-            )
+            warnings.append(f"Moderate _t jump: {current}  {next_state} (={param_changes['_t']:.1f})")
             score -= 3
 
         # Check valence compatibility
@@ -1096,9 +1079,7 @@ def validate_transition_plausibility(
 
         for cat1, cat2 in incompatible_transitions:
             if current_cat == cat1 and next_cat == cat2:
-                warnings.append(
-                    f"Direct aversiveoptimal transition: {current}  {next_state}"
-                )
+                warnings.append(f"Direct aversiveoptimal transition: {current}  {next_state}")
                 score -= 8
 
     return {
@@ -1109,9 +1090,7 @@ def validate_transition_plausibility(
     }
 
 
-def get_transition_pathway(
-    from_state: str, to_state: str, validate: bool = True
-) -> Tuple[List[str], Dict]:
+def get_transition_pathway(from_state: str, to_state: str, validate: bool = True) -> Tuple[List[str], Dict]:
     """
     Suggest intermediate states for gradual transition.
 
@@ -1130,8 +1109,7 @@ def get_transition_pathway(
     for alpha in [0.33, 0.66]:
         interpolated = create_apgi_params(
             Pi_e=p1.Pi_e + alpha * (p2.Pi_e - p1.Pi_e),
-            Pi_i_baseline=p1.Pi_i_baseline
-            + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
+            Pi_i_baseline=p1.Pi_i_baseline + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
             M_ca=p1.M_ca + alpha * (p2.M_ca - p1.M_ca),
             beta=np.clip(p1.beta + alpha * (p2.beta - p1.beta), 0.3, 0.8),
             z_e=p1.z_e + alpha * (p2.z_e - p1.z_e),
@@ -1230,15 +1208,11 @@ def generate_state_comparison_table(states: List[str]) -> str:
 
     lines = []
     lines.append("" + "".join("" * w for w in col_widths) + "")
-    lines.append(
-        "" + "".join(headers[i].ljust(col_widths[i]) for i in range(len(headers))) + ""
-    )
+    lines.append("" + "".join(headers[i].ljust(col_widths[i]) for i in range(len(headers))) + "")
     lines.append("" + "".join("" * w for w in col_widths) + "")
 
     for row in rows:
-        lines.append(
-            "" + "".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))) + ""
-        )
+        lines.append("" + "".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))) + "")
 
     lines.append("" + "".join("" * w for w in col_widths) + "")
 
@@ -1367,18 +1341,12 @@ if __name__ == "__main__":
 
     # 5. Comparison table
     print("\n5. AVERSIVE STATES COMPARISON TABLE")
-    print(
-        generate_state_comparison_table(
-            ["fear", "anxiety", "anger", "guilt", "shame", "loneliness", "overwhelm"]
-        )
-    )
+    print(generate_state_comparison_table(["fear", "anxiety", "anger", "guilt", "shame", "loneliness", "overwhelm"]))
 
     # 6. Find nearest state
     print("\n6. NEAREST STATE DETECTION")
     print("-" * 40)
-    test_params = create_apgi_params(
-        Pi_e=7.0, Pi_i_baseline=3.0, M_ca=1.6, beta=0.7, z_e=2.2, z_i=1.8, theta_t=-2.0
-    )
+    test_params = create_apgi_params(Pi_e=7.0, Pi_i_baseline=3.0, M_ca=1.6, beta=0.7, z_e=2.2, z_i=1.8, theta_t=-2.0)
     nearest, distance = find_nearest_state(test_params)
     print(f"Test parameters most similar to: {nearest} (distance: {distance:.3f})")
 
@@ -1392,9 +1360,7 @@ if __name__ == "__main__":
     # Display validation results
     if validation:
         print(f"\n  Plausibility Score: {validation['score']:.0f}/100")
-        print(
-            f"  Status: {' PLAUSIBLE' if validation['plausible'] else ' QUESTIONABLE'}"
-        )
+        print(f"  Status: {' PLAUSIBLE' if validation['plausible'] else ' QUESTIONABLE'}")
 
         if validation["issues"]:
             print("\n  Issues:")
@@ -1411,9 +1377,7 @@ if __name__ == "__main__":
     print("-" * 40)
     costs = compute_transition_cost("anxiety", "calm")
     print("Cost to transition from 'anxiety' to 'calm':")
-    for param, cost in sorted(
-        costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0
-    ):
+    for param, cost in sorted(costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0):
         if param != "total":
             print(f"  {param:<15}: {cost:.2f}")
     print(f"  {'TOTAL':<15}: {costs['total']:.2f}")
@@ -1429,23 +1393,13 @@ if __name__ == "__main__":
     all_pi_e = [p.Pi_e for p in PSYCHOLOGICAL_STATES.values()]
     all_theta = [p.theta_t for p in PSYCHOLOGICAL_STATES.values()]
     all_m_ca = [p.M_ca for p in PSYCHOLOGICAL_STATES.values()]
-    all_ignition = [
-        p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()
-    ]
+    all_ignition = [p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()]
 
     print(f"Total states: {len(PSYCHOLOGICAL_STATES)}")
-    print(
-        f"\n_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
-    )
-    print(
-        f"_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
-    )
-    print(
-        f"M_ca range: {min(all_m_ca):+.1f} - {max(all_m_ca):+.1f} (mean: {np.mean(all_m_ca):+.2f})"
-    )
-    print(
-        f"P(ignition) range: {min(all_ignition):.0%} - {max(all_ignition):.0%} (mean: {np.mean(all_ignition):.0%})"
-    )
+    print(f"\n_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})")
+    print(f"_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})")
+    print(f"M_ca range: {min(all_m_ca):+.1f} - {max(all_m_ca):+.1f} (mean: {np.mean(all_m_ca):+.2f})")
+    print(f"P(ignition) range: {min(all_ignition):.0%} - {max(all_ignition):.0%} (mean: {np.mean(all_ignition):.0%})")
 
     # 11. States by category count
     print("\n11. STATES BY CATEGORY")

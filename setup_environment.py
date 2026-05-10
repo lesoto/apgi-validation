@@ -18,9 +18,6 @@ Quick Start
 3. Set environment variables (see README.md)
 4. Launch GUI: python Theory_GUI.py
 
-For protocol-specific dependencies:
-   pip install -r requirements-protocols.txt
-
 Security Setup Required
 -----------------------
 Before running the framework, set these environment variables:
@@ -28,7 +25,7 @@ Before running the framework, set these environment variables:
    export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")
 """
 
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -163,7 +160,7 @@ def create_virtual_environment() -> Optional[Path]:
 
     print("Creating virtual environment...")
     try:
-        subprocess.run([sys.executable, "-m", "venv", str(venv_path)], check=True)
+        subprocess.run([sys.executable, "-m", "venv", str(venv_path)], check=True, shell=False)
         print(f"✓ Virtual environment created at {venv_path}")
         return venv_path
     except subprocess.CalledProcessError as e:
@@ -196,11 +193,7 @@ def install_dependencies(venv_python: Path) -> bool:
                 print("✗ requirements.txt is empty")
                 return False
             # Basic validation: check for common requirement patterns
-            lines = [
-                line.strip()
-                for line in content.split("\n")
-                if line.strip() and not line.strip().startswith("#")
-            ]
+            lines = [line.strip() for line in content.split("\n") if line.strip() and not line.strip().startswith("#")]
             if not lines:
                 print("✗ requirements.txt contains no valid package specifications")
                 return False
@@ -209,9 +202,7 @@ def install_dependencies(venv_python: Path) -> bool:
         return False
 
     try:
-        subprocess.run(
-            [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True
-        )
+        subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "-r", str(requirements_file)],
             check=True,
@@ -253,6 +244,7 @@ def install_core_dependencies(venv_python: Path) -> bool:
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
             check=True,
+            shell=False,
         )
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "-r", str(requirements_file)],
@@ -275,6 +267,7 @@ def install_dev_dependencies(venv_python: Path) -> bool:
             subprocess.run(
                 [str(venv_python), "-m", "pip", "install", dep],
                 check=True,
+                shell=False,
             )
         print("✓ Development dependencies installed successfully")
         return True
@@ -296,6 +289,7 @@ def install_protocol_dependencies(venv_python: Path) -> bool:
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "-r", str(req_protocols)],
             check=True,
+            shell=False,
         )
         print("✓ Protocol dependencies installed successfully")
         return True
@@ -325,6 +319,7 @@ except ImportError as e:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
+            shell=False,
         )
         if result.returncode == 0:
             print("✓ Installation test passed")
@@ -440,12 +435,8 @@ def display_env_var_instructions() -> None:
     print("SECURITY SETUP REQUIRED")
     print("=" * 80)
     print("\nBefore running the framework, set these environment variables:\n")
-    print(
-        '  export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")'
-    )
-    print(
-        '  export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")'
-    )
+    print('  export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
+    print('  export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
     print("\nOr add them to your .env file in the project root.")
     print()
 
@@ -524,12 +515,8 @@ def main() -> bool:
 
     if missing_env:
         print("\n2. Set required environment variables:")
-        print(
-            '   export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")'
-        )
-        print(
-            '   export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")'
-        )
+        print('   export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
+        print('   export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
         base_step = 3
     else:
         base_step = 2

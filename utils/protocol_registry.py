@@ -272,9 +272,7 @@ def get_protocol_registry() -> Type[PROTOCOL_REGISTRY]:
 
 
 # Convenience functions for external use
-def resolve_protocol(
-    protocol_id: str, base_dir: Optional[Path] = None
-) -> Optional[Path]:
+def resolve_protocol(protocol_id: str, base_dir: Optional[Path] = None) -> Optional[Path]:
     """
     Resolve a protocol ID to its file path.
 

@@ -7,7 +7,7 @@ environments. Tests whether incorporating interoceptive precision and global
 workspace ignition produces adaptive advantages over alternative architectures.
 
 This protocol implements:
-- Full APGI active inference agent with hierarchical models
+    - Full APGI active inference agent with hierarchical models
 - Comparison agents (StandardPP, GWTOnly, Actor-Critic)
 - Three task environments (IGT, Foraging, Threat-Reward)
 - Comprehensive analysis and falsification framework
@@ -55,9 +55,7 @@ except ImportError:
     F = None  # type: ignore
 
 if not HAS_TORCH:
-    raise ImportError(
-        "Protocol VP-03 requires PyTorch. Install with: pip install torch"
-    )
+    raise ImportError("Protocol VP-03 requires PyTorch. Install with: pip install torch")
 
 from abc import ABC, abstractmethod
 
@@ -77,11 +75,7 @@ from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES, VISUAL_CONSTANTS
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        F2_1_MIN_ADVANTAGE_PCT,
-        F2_1_MIN_COHENS_H,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, F2_1_MIN_ADVANTAGE_PCT, F2_1_MIN_COHENS_H
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F2_1_MIN_ADVANTAGE_PCT = 22.0
@@ -140,9 +134,7 @@ class AgentInterface(ABC):
         pass
 
     @abstractmethod
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """Process outcome and learn"""
         pass
 
@@ -175,9 +167,7 @@ class BatchedHierarchicalGenerativeModel(nn.Module):
     Handles many agents in parallel using tensor operations.
     """
 
-    def __init__(
-        self, batch_size: int, levels: List[Dict], learning_rate: float = 0.01
-    ):
+    def __init__(self, batch_size: int, levels: List[Dict], learning_rate: float = 0.01):
         super().__init__()
         self.batch_size = batch_size
         self.levels = levels
@@ -264,10 +254,7 @@ class HierarchicalGenerativeModel(nn.Module):
             self.level_networks.append(network)
 
         # State representations at each level
-        self.states = [
-            torch.zeros(level["dim"], dtype=torch.float32, requires_grad=True)
-            for level in levels
-        ]
+        self.states = [torch.zeros(level["dim"], dtype=torch.float32, requires_grad=True) for level in levels]
 
         # Time constants for each level
         self.taus = torch.tensor([level["tau"] for level in levels])
@@ -309,9 +296,7 @@ class HierarchicalGenerativeModel(nn.Module):
         # Bottom-up message (prediction error)
         if level < self.n_levels - 1:
             self.states[level] = (
-                (self.states[level] + dt * prediction_error / self.taus[level])
-                .detach()
-                .requires_grad_(True)
+                (self.states[level] + dt * prediction_error / self.taus[level]).detach().requires_grad_(True)
             )
 
             # Propagate error upward (no gradient for recursive calls)
@@ -324,13 +309,9 @@ class HierarchicalGenerativeModel(nn.Module):
                         upper_error = self.states[level + 1] - upper_prediction
                     else:
                         # If dimensions don't match, create a scaled error
-                        scale_factor = (
-                            self.states[level + 1].shape[0] / prediction_error.shape[0]
-                        )
+                        scale_factor = self.states[level + 1].shape[0] / prediction_error.shape[0]
                         upper_error = (
-                            torch.mean(prediction_error)
-                            * torch.ones_like(self.states[level + 1])
-                            * scale_factor
+                            torch.mean(prediction_error) * torch.ones_like(self.states[level + 1]) * scale_factor
                         )
                     self.update(upper_error, level + 1, dt)
 
@@ -351,10 +332,7 @@ class HierarchicalGenerativeModel(nn.Module):
             if level["name"] == level_name:
                 return self.states[i].detach().numpy()
         available_levels = [level["name"] for level in self.levels]
-        raise KeyError(
-            f"Unknown hierarchical level '{level_name}'. "
-            f"Available levels: {available_levels}"
-        )
+        raise KeyError(f"Unknown hierarchical level '{level_name}'. " f"Available levels: {available_levels}")
 
     def get_all_levels(self) -> np.ndarray:
         """Get concatenated states from all levels"""
@@ -444,13 +422,9 @@ class PolicyNetwork(nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         # Value baseline for variance reduction
-        self.value_network = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
-        )
+        self.value_network = nn.Sequential(nn.Linear(state_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1))
 
-        self.value_optimizer = torch.optim.Adam(
-            self.value_network.parameters(), lr=learning_rate
-        )
+        self.value_optimizer = torch.optim.Adam(self.value_network.parameters(), lr=learning_rate)
 
         # Store for policy gradient update
         self.saved_log_probs: List[torch.Tensor] = []
@@ -509,16 +483,12 @@ class PolicyNetwork(nn.Module):
         policy_losses = []
         value_losses = []
 
-        for log_prob, value, R in zip(
-            self.saved_log_probs, self.saved_values, returns_t
-        ):
+        for log_prob, value, R in zip(self.saved_log_probs, self.saved_values, returns_t):
             # Type-safe cast for Pyre2
             lp_tensor: torch.Tensor = log_prob
             advantage = R - value.item()
             policy_losses.append(-lp_tensor * advantage)
-            value_losses.append(
-                F.mse_loss(value, torch.tensor([R], dtype=torch.float32))
-            )
+            value_losses.append(F.mse_loss(value, torch.tensor([R], dtype=torch.float32)))
 
         # Update
         if len(policy_losses) > 0:
@@ -545,9 +515,7 @@ class HabitualPolicy(nn.Module):
     def __init__(self, state_dim: int, action_dim: int):
         super().__init__()
 
-        self.network = nn.Sequential(
-            nn.Linear(state_dim, 32), nn.Tanh(), nn.Linear(32, action_dim)
-        )
+        self.network = nn.Sequential(nn.Linear(state_dim, 32), nn.Tanh(), nn.Linear(32, action_dim))
 
         self.optimizer = torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -668,9 +636,7 @@ class APGIActiveInferenceAgent(AgentInterface):
                 {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
                 {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ],
-            learning_rate=config.get(
-                "lr_extero", APGI.lr_extero
-            ),  # HIGH-06: Use APGIConfig
+            learning_rate=config.get("lr_extero", APGI.lr_extero),  # HIGH-06: Use APGIConfig
         )
 
         self.intero_model = HierarchicalGenerativeModel(
@@ -683,9 +649,7 @@ class APGIActiveInferenceAgent(AgentInterface):
                     "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
                 },
             ],
-            learning_rate=config.get(
-                "lr_intero", APGI.lr_intero
-            ),  # HIGH-06: Use APGIConfig
+            learning_rate=config.get("lr_intero", APGI.lr_intero),  # HIGH-06: Use APGIConfig
         )
 
         # Precision
@@ -696,36 +660,23 @@ class APGIActiveInferenceAgent(AgentInterface):
         self.beta = config.get(
             "beta", APGI.beta_somatic  # HIGH-06: Use APGI settings
         )  # Calibrated: Stronger somatic bias for IGT dominance
-        self.lr_precision = config.get(
-            "lr_precision", APGI.lr_precision
-        )  # HIGH-06: Use APGIConfig
+        self.lr_precision = config.get("lr_precision", APGI.lr_precision)  # HIGH-06: Use APGIConfig
 
         # Somatic markers
         self.somatic_markers = SomaticMarkerNetwork(
-            context_dim=DIM_CONSTANTS.CONTEXT_DIM
-            + DIM_CONSTANTS.HOMEOSTATIC_DIM,  # 8 + 4
+            context_dim=DIM_CONSTANTS.CONTEXT_DIM + DIM_CONSTANTS.HOMEOSTATIC_DIM,  # 8 + 4
             action_dim=config.get("n_actions", DIM_CONSTANTS.ACTION_DIM),
-            learning_rate=config.get(
-                "lr_somatic", APGI.lr_somatic
-            ),  # HIGH-06: Use APGIConfig
+            learning_rate=config.get("lr_somatic", APGI.lr_somatic),  # HIGH-06: Use APGIConfig
         )
 
         # Ignition
         self.S_t = 0.0
-        self.theta_t = config.get(
-            "theta_init", APGI.theta_init
-        )  # HIGH-06: Use APGIConfig
-        self.theta_0 = config.get(
-            "theta_baseline", APGI.theta_baseline
-        )  # HIGH-06: Use APGIConfig
+        self.theta_t = config.get("theta_init", APGI.theta_init)  # HIGH-06: Use APGIConfig
+        self.theta_0 = config.get("theta_baseline", APGI.theta_baseline)  # HIGH-06: Use APGIConfig
         self.alpha = config.get("alpha", APGI.alpha_ignition)  # HIGH-06: Use APGIConfig
         self.tau_S = config.get("tau_S", APGI.tau_S)  # HIGH-06: Use APGI settings
-        self.tau_theta = config.get(
-            "tau_theta", APGI.tau_theta
-        )  # HIGH-06: Use APGIConfig
-        self.eta_theta = config.get(
-            "eta_theta", APGI.eta_theta
-        )  # HIGH-06: Use APGIConfig
+        self.tau_theta = config.get("tau_theta", APGI.tau_theta)  # HIGH-06: Use APGIConfig
+        self.eta_theta = config.get("eta_theta", APGI.eta_theta)  # HIGH-06: Use APGIConfig
 
         # Global workspace
         self.workspace_content: Optional[Dict[str, Any]] = None
@@ -733,13 +684,9 @@ class APGIActiveInferenceAgent(AgentInterface):
         self.conscious_access = False
 
         # Policies - Full resolution state for competitive IGT performance
-        self.policy_network = PolicyNetwork(
-            state_dim=65, action_dim=config.get("n_actions", 4)
-        )
+        self.policy_network = PolicyNetwork(state_dim=65, action_dim=config.get("n_actions", 4))
 
-        self.implicit_policy = HabitualPolicy(
-            state_dim=32, action_dim=config.get("n_actions", 4)
-        )
+        self.implicit_policy = HabitualPolicy(state_dim=32, action_dim=config.get("n_actions", 4))
 
         # Memory
         self.episodic_memory = EpisodicMemory(capacity=1000)
@@ -773,10 +720,7 @@ class APGIActiveInferenceAgent(AgentInterface):
         self._update_precision(eps_e, eps_i)
 
         # 3. Surprise accumulation
-        input_drive = (
-            self.Pi_e * torch.norm(eps_e).item()
-            + self.beta * self.Pi_i * torch.norm(eps_i).item()
-        )
+        input_drive = self.Pi_e * torch.norm(eps_e).item() + self.beta * self.Pi_i * torch.norm(eps_i).item()
 
         dS_dt = -self.S_t / self.tau_S + input_drive
         self.S_t += dS_dt * dt
@@ -827,10 +771,7 @@ class APGIActiveInferenceAgent(AgentInterface):
                     "theta_t": self.theta_t,
                     "Pi_e_eps_e": self.Pi_e * torch.norm(eps_e).item(),
                     "Pi_i_eps_i": self.Pi_i * torch.norm(eps_i).item(),
-                    "intero_dominant": (
-                        self.Pi_i * torch.norm(eps_i).item()
-                        > self.Pi_e * torch.norm(eps_e).item()
-                    ),
+                    "intero_dominant": (self.Pi_i * torch.norm(eps_i).item() > self.Pi_e * torch.norm(eps_e).item()),
                 }
             )
 
@@ -856,9 +797,7 @@ class APGIActiveInferenceAgent(AgentInterface):
             # Ensure somatic_values matches action_probs dimension
             n_current_actions = len(action_probs)
             if len(somatic_values) < n_current_actions:
-                somatic_values = np.pad(
-                    somatic_values, (0, n_current_actions - len(somatic_values))
-                )
+                somatic_values = np.pad(somatic_values, (0, n_current_actions - len(somatic_values)))
             elif len(somatic_values) > n_current_actions:
                 somatic_values = somatic_values[:n_current_actions]
 
@@ -891,9 +830,7 @@ class APGIActiveInferenceAgent(AgentInterface):
 
         return action, action_probs
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """Process outcome and learn"""
 
         # Update somatic markers
@@ -914,9 +851,7 @@ class APGIActiveInferenceAgent(AgentInterface):
         self.policy_network.update(total_value)
 
         if not self.conscious_access and self.last_obs is not None:
-            self.implicit_policy.update(
-                self.last_obs["extero"], self.last_action, total_value
-            )
+            self.implicit_policy.update(self.last_obs["extero"], self.last_action, total_value)
 
     def _update_precision(self, eps_e: torch.Tensor, eps_i: torch.Tensor):
         """Update precision based on prediction error variance"""
@@ -1031,9 +966,7 @@ class StandardPPAgent(AgentInterface):
             ]
         )
 
-        self.policy_network = PolicyNetwork(
-            state_dim=60, action_dim=config.get("n_actions", 4)
-        )
+        self.policy_network = PolicyNetwork(state_dim=60, action_dim=config.get("n_actions", 4))
 
         self.last_action: Optional[int] = None
         self.conscious_access = True  # Always "conscious"
@@ -1041,21 +974,15 @@ class StandardPPAgent(AgentInterface):
     def step(self, observation: Dict, dt: float = 0.05) -> Tuple[int, np.ndarray]:
         # Compute prediction errors
         with torch.no_grad():
-            eps_e = torch.FloatTensor(
-                observation["extero"]
-            ) - self.extero_model.predict(0)
-            eps_i = torch.FloatTensor(
-                observation["intero"]
-            ) - self.intero_model.predict(0)
+            eps_e = torch.FloatTensor(observation["extero"]) - self.extero_model.predict(0)
+            eps_i = torch.FloatTensor(observation["intero"]) - self.intero_model.predict(0)
 
         # Update models
         self.extero_model.update(eps_e, 0, dt)
         self.intero_model.update(eps_i, 0, dt)
 
         # Direct policy (no ignition gate)
-        state = np.concatenate(
-            [self.extero_model.get_all_levels(), self.intero_model.get_all_levels()]
-        )[:60]
+        state = np.concatenate([self.extero_model.get_all_levels(), self.intero_model.get_all_levels()])[:60]
 
         action, action_probs_raw = self.policy_network.select_action(state)
         action_probs = action_probs_raw.numpy()
@@ -1063,9 +990,7 @@ class StandardPPAgent(AgentInterface):
 
         return action, action_probs
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         self.policy_network.update(reward - intero_cost)
 
     @property
@@ -1110,20 +1035,14 @@ class GWTOnlyAgent(AgentInterface):
         self.conscious_access = False
         self.ignition_history: List[Dict[str, Any]] = []
 
-        self.policy_network = PolicyNetwork(
-            state_dim=20, action_dim=config.get("n_actions", 4)
-        )
-        self.implicit_policy = HabitualPolicy(
-            state_dim=32, action_dim=config.get("n_actions", 4)
-        )
+        self.policy_network = PolicyNetwork(state_dim=20, action_dim=config.get("n_actions", 4))
+        self.implicit_policy = HabitualPolicy(state_dim=32, action_dim=config.get("n_actions", 4))
 
         self.last_action: Optional[int] = None
 
     def step(self, observation: Dict, dt: float = 0.05) -> Tuple[int, np.ndarray]:
         with torch.no_grad():
-            eps_e = torch.FloatTensor(
-                observation["extero"]
-            ) - self.extero_model.predict(0)
+            eps_e = torch.FloatTensor(observation["extero"]) - self.extero_model.predict(0)
 
         # Surprise from external only
         self.S_t = torch.norm(eps_e).item()
@@ -1136,9 +1055,7 @@ class GWTOnlyAgent(AgentInterface):
 
         if self.conscious_access:
             self.ignition_history.append({"time": self.time, "S_t": self.S_t})
-            state = np.concatenate(
-                [self.extero_model.get_level("context"), np.zeros(12)]
-            )
+            state = np.concatenate([self.extero_model.get_level("context"), np.zeros(12)])
             action, action_probs_raw = self.policy_network.select_action(state)
             action_probs = action_probs_raw.numpy()
         else:
@@ -1155,9 +1072,7 @@ class GWTOnlyAgent(AgentInterface):
 
         return action, action_probs
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         self.policy_network.update(reward)
 
     @property
@@ -1197,9 +1112,7 @@ class ActorCriticAgent(AgentInterface):
         self.last_action = action
         return action, action_probs
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         # No learning for baseline - return structured error dict
         return {
             "passed": False,
@@ -1232,9 +1145,7 @@ class ActorCriticAgent(AgentInterface):
 # =============================================================================
 
 
-def comparison_fairness_check(
-    apgi_agent: AgentInterface, baseline_agent: AgentInterface
-) -> Dict[str, Any]:
+def comparison_fairness_check(apgi_agent: AgentInterface, baseline_agent: AgentInterface) -> Dict[str, Any]:
     """
     Validate that APGI agent and StandardPP agent use identical observation spaces
 
@@ -1256,14 +1167,10 @@ def comparison_fairness_check(
         baseline_action_space = baseline_agent.action_space
 
         # EXPLICIT ASSERTIONS for fairness validation (Fix 2)
-        assert apgi_obs_dim == baseline_obs_dim, (
-            f"Observation dimension mismatch: APGI={apgi_obs_dim}, "
-            f"Baseline={baseline_obs_dim}"
-        )
-        assert apgi_action_space == baseline_action_space, (
-            f"Action space mismatch: APGI={apgi_action_space}, "
-            f"Baseline={baseline_action_space}"
-        )
+        if apgi_obs_dim != baseline_obs_dim:
+            raise ValueError(f"Observation dimension mismatch: APGI={apgi_obs_dim}, " f"Baseline={baseline_obs_dim}")
+        if apgi_action_space != baseline_action_space:
+            raise ValueError(f"Action space mismatch: APGI={apgi_action_space}, " f"Baseline={baseline_action_space}")
 
         # Check reward structure compatibility
         apgi_reward_struct = apgi_agent.get_reward_structure()
@@ -1274,8 +1181,7 @@ def comparison_fairness_check(
         action_space_match = apgi_action_space == baseline_action_space
         reward_struct_match = (
             apgi_reward_struct["type"] == baseline_reward_struct["type"]
-            and apgi_reward_struct["has_interoceptive_cost"]
-            == baseline_reward_struct["has_interoceptive_cost"]
+            and apgi_reward_struct["has_interoceptive_cost"] == baseline_reward_struct["has_interoceptive_cost"]
         )
 
         return {
@@ -1329,9 +1235,7 @@ class IowaGamblingTaskEnvironment:
 
         # Validate reward distribution
         if reward_dist not in ["gaussian", "levy"]:
-            raise ValueError(
-                f"Invalid reward_dist: {reward_dist}. Must be 'gaussian' or 'levy'"
-            )
+            raise ValueError(f"Invalid reward_dist: {reward_dist}. Must be 'gaussian' or 'levy'")
 
         # Deck parameters
         self.decks = {
@@ -1423,9 +1327,7 @@ class IowaGamblingTaskEnvironment:
             sample = t_dist.rvs(df=3, loc=loc, scale=scale)
             return float(sample)
 
-    def _get_observation(
-        self, action: int = 0, reward: float = 0, intero_cost: float = 0
-    ) -> Dict:
+    def _get_observation(self, action: int = 0, reward: float = 0, intero_cost: float = 0) -> Dict:
         # External: reward feedback
         extero = np.zeros(32)
         extero[action] = 1.0
@@ -1445,9 +1347,7 @@ class IowaGamblingTaskEnvironment:
 class MultiArmedVolatileBandit:
     """Multi-armed volatile bandit with hazard rate 0.1 and interoceptive correlation"""
 
-    def __init__(
-        self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000
-    ):
+    def __init__(self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000):
         self.n_arms = n_arms
         self.hazard_rate = hazard_rate
         self.n_trials = n_trials
@@ -1475,9 +1375,9 @@ class MultiArmedVolatileBandit:
         reward = float(reward)
 
         # Interoceptive signal partially correlated with reward
-        intero_signal = reward * self.intero_correlation[action] + np.random.normal(
-            0, 0.3
-        ) * (1 - self.intero_correlation[action])
+        intero_signal = reward * self.intero_correlation[action] + np.random.normal(0, 0.3) * (
+            1 - self.intero_correlation[action]
+        )
         intero_cost = float(abs(intero_signal))
 
         observation = self._get_observation(action, reward, intero_cost)
@@ -1498,9 +1398,7 @@ class MultiArmedVolatileBandit:
         if np.random.random() < self.hazard_rate:
             self._shift_arm_parameters()
 
-    def _get_observation(
-        self, action: int = 0, reward: float = 0, intero_cost: float = 0
-    ) -> Dict:
+    def _get_observation(self, action: int = 0, reward: float = 0, intero_cost: float = 0) -> Dict:
         # External: arm selection feedback
         extero = np.zeros(32)
         extero[action] = 1.0
@@ -1557,12 +1455,8 @@ class PatchLeavingForagingEnvironment:
             self.patch_accumulated = 0.0
         else:
             # Forage in current patch
-            decay_factor = np.exp(
-                -self.patch_decay_rates[self.current_patch] * self.patch_accumulated
-            )
-            reward = self.patch_rewards[
-                self.current_patch
-            ] * decay_factor + np.random.normal(0, 1)
+            decay_factor = np.exp(-self.patch_decay_rates[self.current_patch] * self.patch_accumulated)
+            reward = self.patch_rewards[self.current_patch] * decay_factor + np.random.normal(0, 1)
             reward = float(reward)
 
             # Metabolic cost accumulates and reduces Πⁱ
@@ -1583,23 +1477,17 @@ class PatchLeavingForagingEnvironment:
 
         return reward, intero_cost, observation, done
 
-    def _get_observation(
-        self, action: int = 0, reward: float = 0, intero_cost: float = 0
-    ) -> Dict:
+    def _get_observation(self, action: int = 0, reward: float = 0, intero_cost: float = 0) -> Dict:
         # External: patch reward and decay information
         extero = np.zeros(32)
         extero[action] = 1.0
         extero[5] = self.patch_rewards[self.current_patch] / 10.0
-        extero[6] = np.exp(
-            -self.patch_decay_rates[self.current_patch] * self.patch_accumulated
-        )
+        extero[6] = np.exp(-self.patch_decay_rates[self.current_patch] * self.patch_accumulated)
         extero[7:] = np.random.randn(25) * 0.1
 
         # Internal: metabolic state
         intero = np.zeros(16)
-        intero[0:4] = np.random.normal(
-            0, 0.1 + self.metabolic_cost * 0.3, size=4
-        )  # HRV
+        intero[0:4] = np.random.normal(0, 0.1 + self.metabolic_cost * 0.3, size=4)  # HRV
         intero[4:8] = np.random.exponential(max(intero_cost, 0.01), size=4)  # SCR
         intero[8:12] = np.random.normal(-intero_cost, 0.2, size=4)  # Gastric
         intero[12] = self.Pi_i  # Precision signal
@@ -1654,9 +1542,7 @@ class ThreatRewardTradeoffEnvironment:
         reward = float(reward)
 
         immediate_threat = float(option["threat"])
-        self.threat_accumulator = (
-            self.threat_decay * self.threat_accumulator + immediate_threat
-        )
+        self.threat_accumulator = self.threat_decay * self.threat_accumulator + immediate_threat
 
         intero_cost = immediate_threat + 0.3 * float(self.threat_accumulator)
         if self.threat_accumulator > 2.0:
@@ -1681,8 +1567,7 @@ class ThreatRewardTradeoffEnvironment:
         expected net value is reward minus the interoceptive penalty proxy.
         """
         expected_net_values = [
-            float(option["reward"]) - 100.0 * float(option["threat"])
-            for option in self.options.values()
+            float(option["reward"]) - 100.0 * float(option["threat"]) for option in self.options.values()
         ]
         return 0.8 * max(expected_net_values)
 
@@ -1727,9 +1612,7 @@ class ThreatRewardEnvironment(ThreatRewardTradeoffEnvironment):
 
         # Simulate Reaction Time (RT) measurement based on threat vs reward conflict
         # High conflict -> higher RT (e.g. vmPFC-like RT bias >= 35 ms)
-        conflict_level = self.options[action]["threat"] / max(
-            self.options[action]["reward"], 1.0
-        )
+        conflict_level = self.options[action]["threat"] / max(self.options[action]["reward"], 1.0)
         rt_bias = 200 + (conflict_level * 100)  # Base RT 200ms + conflict bias
 
         # Add rt to observation to allow agent to process it if needed
@@ -1748,14 +1631,10 @@ class SystematicAblationStudy:
         """Generate all five ablation conditions"""
         return {
             "full_apgi": self._create_agent_config(True, True, True, True, True),
-            "no_interoception": self._create_agent_config(
-                True, False, True, True, True
-            ),
+            "no_interoception": self._create_agent_config(True, False, True, True, True),
             "no_threshold": self._create_agent_config(False, True, True, True, True),
             "no_precision": self._create_agent_config(True, True, False, True, True),
-            "no_somatic_markers": self._create_agent_config(
-                True, True, True, False, True
-            ),
+            "no_somatic_markers": self._create_agent_config(True, True, True, False, True),
         }
 
     def _create_agent_config(
@@ -1835,14 +1714,10 @@ class WAICModelComparison:
             "waic": waic,
             "lppd": lppd,
             "p_waic": p_waic,
-            "se_waic": np.sqrt(
-                2 * len(log_likelihoods) * np.var(log_likelihoods, axis=0).sum()
-            ),
+            "se_waic": np.sqrt(2 * len(log_likelihoods) * np.var(log_likelihoods, axis=0).sum()),
         }
 
-    def compute_bic(
-        self, log_likelihoods: np.ndarray, n_params: int
-    ) -> Dict[str, float]:
+    def compute_bic(self, log_likelihoods: np.ndarray, n_params: int) -> Dict[str, float]:
         """
         Compute Bayesian Information Criterion (BIC) for model comparison
 
@@ -1896,9 +1771,7 @@ class WAICModelComparison:
         if len(waic_results) > 0:
             min_waic = min(results["waic"] for results in waic_results.values())
             for model_name in waic_results:
-                waic_results[model_name]["delta_waic"] = (
-                    waic_results[model_name]["waic"] - min_waic
-                )
+                waic_results[model_name]["delta_waic"] = waic_results[model_name]["waic"] - min_waic
             # Compute model weights
             delta_waics = np.array([r["delta_waic"] for r in waic_results.values()])
             exp_delta = np.exp(-0.5 * delta_waics)
@@ -1910,9 +1783,7 @@ class WAICModelComparison:
         if len(bic_results) > 0:
             min_bic = min(results["bic"] for results in bic_results.values())
             for model_name in bic_results:
-                bic_results[model_name]["delta_bic"] = (
-                    bic_results[model_name]["bic"] - min_bic
-                )
+                bic_results[model_name]["delta_bic"] = bic_results[model_name]["bic"] - min_bic
             # Compute BIC weights (Bayes factors)
             delta_bics = np.array([r["delta_bic"] for r in bic_results.values()])
             exp_delta = np.exp(-0.5 * delta_bics)
@@ -2086,9 +1957,7 @@ class AgentComparisonExperiment:
                 if agent.conscious_access and hasattr(agent, "ignition_history"):
                     if len(agent.ignition_history) > 0:
                         last_ignition = agent.ignition_history[-1]
-                        data["intero_dominant_ignitions"].append(
-                            int(last_ignition.get("intero_dominant", False))
-                        )
+                        data["intero_dominant_ignitions"].append(int(last_ignition.get("intero_dominant", False)))
 
             # Strategy change
             if prev_action is not None:
@@ -2099,9 +1968,7 @@ class AgentComparisonExperiment:
             if (
                 optimal_reward_reference is not None
                 and data["convergence_trial"] is None
-                and self._meets_convergence_criterion(
-                    data["rewards"], optimal_reward_reference
-                )
+                and self._meets_convergence_criterion(data["rewards"], optimal_reward_reference)
             ):
                 data["convergence_trial"] = trial + 1
 
@@ -2122,9 +1989,7 @@ class AgentComparisonExperiment:
         if env_name == "IGT" and hasattr(env, "decks"):
             expected_rewards = []
             for deck in env.decks.values():
-                expected_value = (
-                    deck["reward_mean"] - deck["loss_prob"] * deck["loss_mean"]
-                )
+                expected_value = deck["reward_mean"] - deck["loss_prob"] * deck["loss_mean"]
                 expected_rewards.append(expected_value)
             if expected_rewards:
                 return float(self.optimal_policy_percentile * max(expected_rewards))
@@ -2133,26 +1998,20 @@ class AgentComparisonExperiment:
         # return None to skip convergence-based metrics.
         return None
 
-    def _meets_convergence_criterion(
-        self, reward_history: List[float], optimal_reward_reference: float
-    ) -> bool:
+    def _meets_convergence_criterion(self, reward_history: List[float], optimal_reward_reference: float) -> bool:
         """
         Check the explicit VP-03 convergence rule.
 
         A run converges once the rolling 10-trial mean reward exceeds 80% of
         the optimal-policy reference for 3 consecutive windows.
         """
-        required_trials = (
-            self.convergence_window + self.consecutive_windows_required - 1
-        )
+        required_trials = self.convergence_window + self.consecutive_windows_required - 1
         if len(reward_history) < required_trials:
             return False
 
         consecutive_hits = 0
         start_index = len(reward_history) - required_trials
-        for idx in range(
-            start_index, len(reward_history) - self.convergence_window + 1
-        ):
+        for idx in range(start_index, len(reward_history) - self.convergence_window + 1):
             if optimal_reward_reference is None:
                 return False
             window = reward_history[idx : idx + self.convergence_window]
@@ -2169,41 +2028,21 @@ class AgentComparisonExperiment:
         """Aggregate results across agents"""
 
         aggregated = {
-            "mean_cumulative_reward": np.mean(
-                [r["cumulative_reward"][-1] for r in agent_results]
-            ),
-            "std_cumulative_reward": np.std(
-                [r["cumulative_reward"][-1] for r in agent_results]
-            ),
+            "mean_cumulative_reward": np.mean([r["cumulative_reward"][-1] for r in agent_results]),
+            "std_cumulative_reward": np.std([r["cumulative_reward"][-1] for r in agent_results]),
             "mean_convergence_trial": np.mean(
                 [
-                    (
-                        r["convergence_trial"]
-                        if r["convergence_trial"] is not None
-                        else self.n_trials
-                    )
+                    (r["convergence_trial"] if r["convergence_trial"] is not None else self.n_trials)
                     for r in agent_results
                 ]
             ),
-            "convergence_rate": np.mean(
-                [r["convergence_trial"] is not None for r in agent_results]
-            ),
+            "convergence_rate": np.mean([r["convergence_trial"] is not None for r in agent_results]),
             "mean_ignition_rate": (
-                np.mean(
-                    [
-                        np.mean(r["ignitions"])
-                        for r in agent_results
-                        if len(r["ignitions"]) > 0
-                    ]
-                )
+                np.mean([np.mean(r["ignitions"]) for r in agent_results if len(r["ignitions"]) > 0])
                 if any(len(r["ignitions"]) > 0 for r in agent_results)
                 else 0.0
             ),
-            "log_likelihoods": [
-                log_lik
-                for r in agent_results
-                for log_lik in r.get("log_likelihoods", [])
-            ],
+            "log_likelihoods": [log_lik for r in agent_results for log_lik in r.get("log_likelihoods", [])],
             "intero_dominance_rate": (
                 np.mean(
                     [
@@ -2261,9 +2100,7 @@ class AgentComparisonExperiment:
                 # Cast to Any to avoid abstract class instantiation error
                 agent: Any = AgentClass(config)
                 # Create environment with heavy-tailed Levy distribution
-                env = IowaGamblingTaskEnvironment(
-                    n_trials=self.n_trials, reward_dist="levy"
-                )
+                env = IowaGamblingTaskEnvironment(n_trials=self.n_trials, reward_dist="levy")
 
                 episode_data = self._run_episode(agent, env, "IGT")
                 results[agent_name].append(episode_data)
@@ -2272,9 +2109,7 @@ class AgentComparisonExperiment:
         analysis = {}
         for agent_name in ["APGI", "StandardPP"]:
             convergence_trials = [
-                r["convergence_trial"]
-                for r in results[agent_name]
-                if r["convergence_trial"] is not None
+                r["convergence_trial"] for r in results[agent_name] if r["convergence_trial"] is not None
             ]
             non_converged = sum(
                 1
@@ -2290,11 +2125,7 @@ class AgentComparisonExperiment:
                 max_convergence = np.max(convergence_trials)
 
                 # Check if convergence falls within expected range
-                within_range = (
-                    expected_convergence_range[0]
-                    <= mean_convergence
-                    <= expected_convergence_range[1]
-                )
+                within_range = expected_convergence_range[0] <= mean_convergence <= expected_convergence_range[1]
 
                 analysis[agent_name] = {
                     "mean_convergence": float(mean_convergence),
@@ -2320,15 +2151,9 @@ class AgentComparisonExperiment:
         print(f"\n{'=' * 60}")
         print("HEAVY-TAILED CONVERGENCE TEST RESULTS")
         print(f"{'=' * 60}")
-        print(
-            f"APGI Mean Convergence: {analysis['APGI'].get('mean_convergence', 'N/A'):.1f} trials"
-        )
-        print(
-            f"StandardPP Mean Convergence: {analysis['StandardPP'].get('mean_convergence', 'N/A'):.1f} trials"
-        )
-        print(
-            f"Expected Range: {expected_convergence_range[0]}-{expected_convergence_range[1]} trials"
-        )
+        print(f"APGI Mean Convergence: {analysis['APGI'].get('mean_convergence', 'N/A'):.1f} trials")
+        print(f"StandardPP Mean Convergence: {analysis['StandardPP'].get('mean_convergence', 'N/A'):.1f} trials")
+        print(f"Expected Range: {expected_convergence_range[0]}-{expected_convergence_range[1]} trials")
         print(f"Test Status: {'PASSED' if test_passed else 'FAILED'}")
         print(f"{'=' * 60}")
 
@@ -2354,15 +2179,12 @@ class AgentComparisonExperiment:
         # P3a: Convergence speed
         for env_name in results.keys():
             analysis["P3a_convergence"][env_name] = {
-                agent: results[env_name][agent]["mean_convergence_trial"]
-                for agent in results[env_name].keys()
+                agent: results[env_name][agent]["mean_convergence_trial"] for agent in results[env_name].keys()
             }
 
         # P3a statistical test: Mann-Whitney U comparing APGI vs alternatives
         if "IGT" in results and "APGI" in results["IGT"]:
-            analysis["P3a_convergence"]["statistical_tests"] = (
-                self._compute_convergence_statistics(results["IGT"])
-            )
+            analysis["P3a_convergence"]["statistical_tests"] = self._compute_convergence_statistics(results["IGT"])
 
         # P3b: Interoceptive dominance analysis
         if "IGT" in results and "APGI" in results["IGT"]:
@@ -2400,11 +2222,7 @@ class AgentComparisonExperiment:
 
         # Extract convergence trials for each agent type
         apgi_convergence = [
-            (
-                r["convergence_trial"]
-                if r["convergence_trial"] is not None
-                else self.n_trials
-            )
+            (r["convergence_trial"] if r["convergence_trial"] is not None else self.n_trials)
             for r in igt_results["APGI"]["raw_results"]
         ]
 
@@ -2417,19 +2235,13 @@ class AgentComparisonExperiment:
                 continue
 
             other_convergence = [
-                (
-                    r["convergence_trial"]
-                    if r["convergence_trial"] is not None
-                    else self.n_trials
-                )
+                (r["convergence_trial"] if r["convergence_trial"] is not None else self.n_trials)
                 for r in igt_results[agent_name]["raw_results"]
             ]
 
             # Mann-Whitney U test (two-sided)
             try:
-                statistic, p_value = mannwhitneyu(
-                    apgi_convergence, other_convergence, alternative="two-sided"
-                )
+                statistic, p_value = mannwhitneyu(apgi_convergence, other_convergence, alternative="two-sided")
 
                 # Effect size (Cliff's delta approximation)
                 n1 = len(apgi_convergence)
@@ -2517,15 +2329,9 @@ class AgentComparisonExperiment:
 
         # Fit model with robust settings
         with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", category=RuntimeWarning, message="overflow"
-            )
-            warnings.filterwarnings(
-                "ignore", category=RuntimeWarning, message="invalid"
-            )
-            warnings.filterwarnings(
-                "ignore", category=RuntimeWarning, message="divide by zero"
-            )
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow")
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid")
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="divide by zero")
             model = LogisticRegression(
                 max_iter=500,
                 solver="liblinear",
@@ -2606,9 +2412,7 @@ class AgentComparisonExperiment:
 
             for agent_name in results[env_name].keys():
                 # Use the log_likelihoods collected during the simulation
-                log_likelihoods = results[env_name][agent_name].get(
-                    "log_likelihoods", []
-                )
+                log_likelihoods = results[env_name][agent_name].get("log_likelihoods", [])
 
                 if not log_likelihoods:
                     bic_results[env_name][agent_name] = {
@@ -2672,20 +2476,12 @@ class AgentComparisonExperiment:
         # F3.1: No performance advantage (using BIC)
         # Check if APGI is statistically better using BIC
         bic_results = analysis.get("bic_results")
-        bic_comparison_available = (
-            bic_results is not None
-            and "IGT" in bic_results
-            and "APGI" in bic_results["IGT"]
-        )
+        bic_comparison_available = bic_results is not None and "IGT" in bic_results and "APGI" in bic_results["IGT"]
 
         if bic_comparison_available:
             apgi_bic = bic_results["IGT"]["APGI"]["bic"]
             # Find the best non-APGI BIC
-            other_bics = [
-                bic_results["IGT"][agent]["bic"]
-                for agent in bic_results["IGT"].keys()
-                if agent != "APGI"
-            ]
+            other_bics = [bic_results["IGT"][agent]["bic"] for agent in bic_results["IGT"].keys() if agent != "APGI"]
 
             if other_bics:
                 best_other_bic = min(other_bics)
@@ -2713,9 +2509,7 @@ class AgentComparisonExperiment:
 
                 # Calibrated: Accept either positive OR strong negative correlation
                 # The magnitude matters more than direction for ignition-strategy relationship
-                correlation_significant = (
-                    ci[0] <= 0 <= ci[1]
-                )  # CI crosses zero = insignificant
+                correlation_significant = ci[0] <= 0 <= ci[1]  # CI crosses zero = insignificant
                 magnitude_sufficient = abs(ignition_correlation) >= 0.3
 
                 falsified["F3.2"] = {
@@ -2753,12 +2547,8 @@ class AgentComparisonExperiment:
 
         if "P3d_adaptation" in analysis:
             falsified["F3.Adaptation"] = {
-                "falsified": not analysis["P3d_adaptation"].get(
-                    "prediction_met", False
-                ),
-                "relative_improvement": float(
-                    analysis["P3d_adaptation"].get("relative_improvement", 0)
-                ),
+                "falsified": not analysis["P3d_adaptation"].get("prediction_met", False),
+                "relative_improvement": float(analysis["P3d_adaptation"].get("relative_improvement", 0)),
                 "threshold": 0.1,
             }
 
@@ -2898,9 +2688,7 @@ def plot_experiment_results(
             linewidth=2,
             label="Prediction range",
         )
-        ax.axhline(
-            y=0.85, color=VISUAL_CONSTANTS.IGNITION_GREEN, linestyle="--", linewidth=2
-        )
+        ax.axhline(y=0.85, color=VISUAL_CONSTANTS.IGNITION_GREEN, linestyle="--", linewidth=2)
         ax.legend(fontsize=9)
         ax.grid(axis="y", alpha=0.3)
 
@@ -2924,9 +2712,7 @@ def plot_experiment_results(
             )
 
             ax.axvline(x=0, color="black", linestyle="-", linewidth=1)
-            ax.set_xlabel(
-                "Logistic Regression Coefficient", fontsize=10, fontweight="bold"
-            )
+            ax.set_xlabel("Logistic Regression Coefficient", fontsize=10, fontweight="bold")
             ax.set_title("Ignition → Strategy Change", fontsize=11, fontweight="bold")
             ax.grid(axis="x", alpha=0.3)
         else:
@@ -2982,32 +2768,18 @@ def plot_experiment_results(
 
     # Safely extract values with defaults
     try:
-        igt_apgi_mean = (
-            results.get("IGT", {}).get("APGI", {}).get("mean_cumulative_reward", 0)
-        )
-        igt_apgi_std = (
-            results.get("IGT", {}).get("APGI", {}).get("std_cumulative_reward", 0)
-        )
-        igt_stdpp_mean = (
-            results.get("IGT", {})
-            .get("StandardPP", {})
-            .get("mean_cumulative_reward", 0)
-        )
-        igt_stdpp_std = (
-            results.get("IGT", {}).get("StandardPP", {}).get("std_cumulative_reward", 0)
-        )
+        igt_apgi_mean = results.get("IGT", {}).get("APGI", {}).get("mean_cumulative_reward", 0)
+        igt_apgi_std = results.get("IGT", {}).get("APGI", {}).get("std_cumulative_reward", 0)
+        igt_stdpp_mean = results.get("IGT", {}).get("StandardPP", {}).get("mean_cumulative_reward", 0)
+        igt_stdpp_std = results.get("IGT", {}).get("StandardPP", {}).get("std_cumulative_reward", 0)
 
         p3a_apgi = analysis.get("P3a_convergence", {}).get("IGT", {}).get("APGI", 0)
-        p3a_stdpp = (
-            analysis.get("P3a_convergence", {}).get("IGT", {}).get("StandardPP", 0)
-        )
+        p3a_stdpp = analysis.get("P3a_convergence", {}).get("IGT", {}).get("StandardPP", 0)
 
         p3b_rate = analysis.get("P3b_intero_dominance", {}).get("rate", 0)
         p3b_met = analysis.get("P3b_intero_dominance", {}).get("prediction_met", False)
 
-        p3d_improvement: Any = analysis.get("P3d_adaptation", {}).get(
-            "relative_improvement", 0
-        )
+        p3d_improvement: Any = analysis.get("P3d_adaptation", {}).get("relative_improvement", 0)
         p3d_met = analysis.get("P3d_adaptation", {}).get("prediction_met", False)
 
         # Fix numpy RuntimeWarning by checking for empty arrays
@@ -3042,9 +2814,7 @@ def plot_experiment_results(
 
         # Add overall status to summary
         overall_status = (
-            "[FAIL] FALSIFIED"
-            if any(v.get("falsified", False) for v in falsification.values())
-            else "[OK] PASSED"
+            "[FAIL] FALSIFIED" if any(v.get("falsified", False) for v in falsification.values()) else "[OK] PASSED"
         )
         summary_text += f"\n    OVERALL STATUS: {overall_status}\n"
 
@@ -3176,9 +2946,7 @@ def check_go_no_go_criteria(results):
         # Check if APGI agents performed at all
         if "P3a_convergence" in analysis:
             convergence = analysis["P3a_convergence"]
-            if (
-                "IGT" in convergence and convergence["IGT"]["APGI"] > 1000
-            ):  # Too slow to converge
+            if "IGT" in convergence and convergence["IGT"]["APGI"] > 1000:  # Too slow to converge
                 return "NO_GO"
 
     return "GO"
@@ -3230,9 +2998,7 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(
-        description="APGI Protocol 3 — Active Inference Agents"
-    )
+    parser = argparse.ArgumentParser(description="APGI Protocol 3 — Active Inference Agents")
     parser.add_argument("--n-agents", type=int, default=10, help="Number of agents")
     parser.add_argument("--n-trials", type=int, default=80, help="Number of trials")
     args = parser.parse_args()
@@ -3262,9 +3028,7 @@ def run_validation_v3(n_agents=10, n_trials=80):
     print("RUNNING EXPERIMENTS")
     print("=" * 80)
 
-    experiment = AgentComparisonExperiment(
-        n_agents=config["n_agents"], n_trials=config["n_trials"]
-    )
+    experiment = AgentComparisonExperiment(n_agents=config["n_agents"], n_trials=config["n_trials"])
 
     results = experiment.run_full_experiment()
 
@@ -3276,17 +3040,11 @@ def run_validation_v3(n_agents=10, n_trials=80):
     analysis = experiment.analyze_predictions(results)
 
     print("\nKey Findings:")
-    print(
-        f"  P3a - APGI convergence: {analysis['P3a_convergence']['IGT']['APGI']:.1f} trials"
-    )
+    print(f"  P3a - APGI convergence: {analysis['P3a_convergence']['IGT']['APGI']:.1f} trials")
     if "P3b_intero_dominance" in analysis:
-        print(
-            f"  P3b - Intero dominance: {analysis['P3b_intero_dominance']['rate']:.2%}"
-        )
+        print(f"  P3b - Intero dominance: {analysis['P3b_intero_dominance']['rate']:.2%}")
     if "P3d_adaptation" in analysis:
-        print(
-            f"  P3d - Foraging advantage: {analysis['P3d_adaptation']['relative_improvement']:.1%}"
-        )
+        print(f"  P3d - Foraging advantage: {analysis['P3d_adaptation']['relative_improvement']:.1%}")
 
     # Falsification
     print("\n" + "=" * 80)
@@ -3299,11 +3057,7 @@ def run_validation_v3(n_agents=10, n_trials=80):
     # Prepare results for gate check
     summary_for_gate = {
         "config": config,
-        "analysis": {
-            k: v
-            for k, v in analysis.items()
-            if not isinstance(v, dict) or "raw_results" not in str(v)
-        },
+        "analysis": {k: v for k, v in analysis.items() if not isinstance(v, dict) or "raw_results" not in str(v)},
         "falsification": falsification,
     }
 
@@ -3340,11 +3094,7 @@ def run_validation_v3(n_agents=10, n_trials=80):
 
     summary = {
         "config": config,
-        "analysis": {
-            k: v
-            for k, v in analysis.items()
-            if not isinstance(v, dict) or "raw_results" not in str(v)
-        },
+        "analysis": {k: v for k, v in analysis.items() if not isinstance(v, dict) or "raw_results" not in str(v)},
         "falsification": falsification,
     }
 
@@ -3378,9 +3128,7 @@ def run_validation_with_cross_validation():
         print("RUNNING EXPERIMENTS WITH CROSS-VALIDATION")
         print("=" * 80)
 
-        experiment = AgentComparisonExperiment(
-            n_agents=config["n_agents"], n_trials=config["n_trials"]
-        )
+        experiment = AgentComparisonExperiment(n_agents=config["n_agents"], n_trials=config["n_trials"])
         results = experiment.run_full_experiment()
 
         # Add cross-validation analysis
@@ -3392,11 +3140,7 @@ def run_validation_with_cross_validation():
             if env_name in results:
                 cv_results = systematic_cross_validation(
                     APGIActiveInferenceAgent,
-                    (
-                        IowaGamblingTaskEnvironment
-                        if env_name == "IGT"
-                        else PatchLeavingForagingEnvironment
-                    ),
+                    (IowaGamblingTaskEnvironment if env_name == "IGT" else PatchLeavingForagingEnvironment),
                     n_episodes=200,
                     k_folds=5,
                     config=config,
@@ -3422,11 +3166,7 @@ def run_validation_with_cross_validation():
         # Prepare results for gate check
         summary_for_gate = {
             "config": config,
-            "analysis": {
-                k: v
-                for k, v in analysis.items()
-                if not isinstance(v, dict) or "raw_results" not in str(v)
-            },
+            "analysis": {k: v for k, v in analysis.items() if not isinstance(v, dict) or "raw_results" not in str(v)},
             "falsification": falsification,
         }
 
@@ -3467,11 +3207,7 @@ def run_validation_with_cross_validation():
         # Add cross-validation results to summary
         summary = {
             "config": config,
-            "analysis": {
-                k: v
-                for k, v in analysis.items()
-                if not isinstance(v, dict) or "raw_results" not in str(v)
-            },
+            "analysis": {k: v for k, v in analysis.items() if not isinstance(v, dict) or "raw_results" not in str(v)},
             "falsification": falsification,
             "cross_validation": cv_results,
         }
@@ -3560,10 +3296,8 @@ def compare_agent_to_human_baseline(agent_performance, task_name):
                 "agent": agent_value,
                 "human": human_value,
                 "difference": abs(agent_value - human_value),
-                "relative_error": abs(agent_value - human_value)
-                / (human_value + 1e-10),
-                "z_score": (agent_value - human_value)
-                / (np.std([agent_value, human_value]) + 1e-10),
+                "relative_error": abs(agent_value - human_value) / (human_value + 1e-10),
+                "z_score": (agent_value - human_value) / (np.std([agent_value, human_value]) + 1e-10),
             }
 
     return similarity_metrics
@@ -3612,9 +3346,7 @@ def analyze_computational_cost(agent, env, n_trials=1000):
             # Update metrics
             costs["forward_passes"] += 1
             if hasattr(agent, "precision_update_count"):
-                costs["precision_updates"] += getattr(
-                    agent, "precision_update_count", 0
-                )
+                costs["precision_updates"] += getattr(agent, "precision_update_count", 0)
             if hasattr(agent, "somatic_update_count"):
                 costs["somatic_updates"] += getattr(agent, "somatic_update_count", 0)
             if getattr(agent, "last_ignition_occurred", False):
@@ -3895,15 +3627,11 @@ def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
         if len(action_mean_costs) > 1:
             actions_sorted = sorted(action_mean_costs.keys())
             mean_costs = [action_mean_costs[a] for a in actions_sorted]
-            selection_counts = [
-                action_selection_counts.get(a, 0) for a in actions_sorted
-            ]
+            selection_counts = [action_selection_counts.get(a, 0) for a in actions_sorted]
 
             if len(mean_costs) > 1 and len(selection_counts) > 1:
                 correlation = np.corrcoef(mean_costs, selection_counts)[0, 1]
-                verification[env_name]["cost_avoidance_correlation"] = float(
-                    correlation
-                )
+                verification[env_name]["cost_avoidance_correlation"] = float(correlation)
                 verification[env_name]["cost_weighting_verified"] = correlation < -0.3
             else:
                 verification[env_name]["cost_weighting_verified"] = None
@@ -3923,9 +3651,7 @@ def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
             if total_selections > 0:
                 good_proportion = apgi_good_selections / total_selections
                 verification[env_name]["good_deck_preference"] = float(good_proportion)
-                verification[env_name]["cost_weighting_verified_igt"] = (
-                    good_proportion > 0.6
-                )
+                verification[env_name]["cost_weighting_verified_igt"] = good_proportion > 0.6
 
     return verification
 
@@ -3965,16 +3691,12 @@ def run_validation(**kwargs):
                 "named_predictions": {
                     "V3.1": {
                         "passed": v3_1_passed,
-                        "actual": results.get("falsification", {})
-                        .get("V3.1", {})
-                        .get("actual"),
+                        "actual": results.get("falsification", {}).get("V3.1", {}).get("actual"),
                         "threshold": ">=3 levels",
                     },
                     "V3.2": {
                         "passed": v3_2_passed,
-                        "actual": results.get("falsification", {})
-                        .get("V3.2", {})
-                        .get("actual"),
+                        "actual": results.get("falsification", {}).get("V3.2", {}).get("actual"),
                         "threshold": ">=25% advantage",
                     },
                 },
@@ -3988,16 +3710,12 @@ def run_validation(**kwargs):
                 "named_predictions": {
                     "V3.1": {
                         "passed": v3_1_passed,
-                        "actual": results.get("falsification", {})
-                        .get("V3.1", {})
-                        .get("actual"),
+                        "actual": results.get("falsification", {}).get("V3.1", {}).get("actual"),
                         "threshold": ">=3 levels",
                     },
                     "V3.2": {
                         "passed": v3_2_passed,
-                        "actual": results.get("falsification", {})
-                        .get("V3.2", {})
-                        .get("actual"),
+                        "actual": results.get("falsification", {}).get("V3.2", {}).get("actual"),
                         "threshold": ">=25% advantage",
                     },
                 },
@@ -4102,9 +3820,7 @@ def sensitivity_analysis_grid(
     # Generate all parameter combinations
     param_combinations = list(itertools.product(alphas, betas, theta_baselines))
 
-    print(
-        f"Running sensitivity analysis with {len(param_combinations)} parameter combinations..."
-    )
+    print(f"Running sensitivity analysis with {len(param_combinations)} parameter combinations...")
 
     for i, (alpha, beta, theta_baseline) in enumerate(param_combinations):
         config = {
@@ -4149,24 +3865,20 @@ def sensitivity_analysis_grid(
                 [
                     1
                     for step in range(n_episodes)
-                    if hasattr(agent, "conscious_access")
-                    and getattr(agent, "conscious_access", False)
+                    if hasattr(agent, "conscious_access") and getattr(agent, "conscious_access", False)
                 ]
             ),
             "ignition_rate": sum(
                 [
                     1
                     for step in range(n_episodes)
-                    if hasattr(agent, "conscious_access")
-                    and getattr(agent, "conscious_access", False)
+                    if hasattr(agent, "conscious_access") and getattr(agent, "conscious_access", False)
                 ]
             )
             / n_episodes,
         }
 
-        print(
-            f"Completed combination {i + 1}/{len(param_combinations)}: α={alpha}, β={beta}, θ={theta_baseline}"
-        )
+        print(f"Completed combination {i + 1}/{len(param_combinations)}: α={alpha}, β={beta}, θ={theta_baseline}")
 
     # Analyze sensitivity patterns
     print("\nAnalyzing sensitivity patterns...")
@@ -4174,9 +3886,13 @@ def sensitivity_analysis_grid(
     # Find best performing parameter combination
     def get_mean_reward(k: Any) -> float:
         result = sensitivity_results[k]
-        if isinstance(result, dict):
-            return float(result.get("mean_reward", 0.0))
-        return 0.0
+        mean_reward = result.get("mean_reward", 0.0)
+        if isinstance(mean_reward, (int, float)):
+            return float(mean_reward)
+        elif isinstance(mean_reward, (list, tuple)) and len(mean_reward) > 0:
+            return float(mean_reward[0])
+        else:
+            return 0.0
 
     best_params = max(
         sensitivity_results.keys(),
@@ -4196,20 +3912,21 @@ def sensitivity_analysis_grid(
         mean_rewards: List[float] = []
         for k in sensitivity_results.keys():
             result = sensitivity_results[k]
-            if isinstance(result, dict):
-                params = result.get("parameters", {})
-                if isinstance(params, dict):
-                    param_val = params.get(param_name, 0.0)
+            params = result.get("parameters", {})
+            if isinstance(params, dict):
+                param_val = params.get(param_name, 0.0)
+                if isinstance(param_val, (int, float)):
                     param_values.append(float(param_val))
-                mean_reward_val = result.get("mean_reward", 0.0)
+                elif isinstance(param_val, (list, tuple)) and len(param_val) > 0:
+                    param_values.append(float(param_val[0]))
+            mean_reward_val = result.get("mean_reward", 0.0)
+            if isinstance(mean_reward_val, (int, float)):
                 mean_rewards.append(float(mean_reward_val))
+            elif isinstance(mean_reward_val, (list, tuple)) and len(mean_reward_val) > 0:
+                mean_rewards.append(float(mean_reward_val[0]))
 
         if param_values:
-            correlation = (
-                float(np.corrcoef(param_values, mean_rewards)[0, 1])
-                if len(param_values) > 1
-                else 0.0
-            )
+            correlation = float(np.corrcoef(param_values, mean_rewards)[0, 1]) if len(param_values) > 1 else 0.0
             print(f"  {param_name}: correlation with mean reward = {correlation:.3f}")
 
     return sensitivity_results
@@ -4293,9 +4010,7 @@ def autocorrelation_with_surrogate_analysis(
 
         # Compute significance threshold from surrogate distribution
         if len(surrogate_peaks_array) > 0:
-            significance_threshold = np.percentile(
-                surrogate_peaks_array, percentile_threshold
-            )
+            significance_threshold = np.percentile(surrogate_peaks_array, percentile_threshold)
         else:
             significance_threshold = 0.0
 
@@ -4323,12 +4038,8 @@ def autocorrelation_with_surrogate_analysis(
 
             # Check for characteristic timescale separation
             level_1 = sorted_timescales[sorted_timescales < 0.5]
-            level_2 = sorted_timescales[
-                (sorted_timescales >= 1.0) & (sorted_timescales <= 3.0)
-            ]
-            level_3 = sorted_timescales[
-                (sorted_timescales >= 5.0) & (sorted_timescales <= 20.0)
-            ]
+            level_2 = sorted_timescales[(sorted_timescales >= 1.0) & (sorted_timescales <= 3.0)]
+            level_3 = sorted_timescales[(sorted_timescales >= 5.0) & (sorted_timescales <= 20.0)]
 
             hierarchical_levels = sum(
                 [
@@ -4339,15 +4050,9 @@ def autocorrelation_with_surrogate_analysis(
             )
 
             level_timescales = {
-                "level_1": (
-                    [float(x) for x in level_1.tolist()] if len(level_1) > 0 else []
-                ),
-                "level_2": (
-                    [float(x) for x in level_2.tolist()] if len(level_2) > 0 else []
-                ),
-                "level_3": (
-                    [float(x) for x in level_3.tolist()] if len(level_3) > 0 else []
-                ),
+                "level_1": ([float(x) for x in level_1.tolist()] if len(level_1) > 0 else []),
+                "level_2": ([float(x) for x in level_2.tolist()] if len(level_2) > 0 else []),
+                "level_3": ([float(x) for x in level_3.tolist()] if len(level_3) > 0 else []),
             }
 
         # Compute peak separation ratio
@@ -4390,12 +4095,8 @@ def autocorrelation_with_surrogate_analysis(
             "eta_squared_timescales": float(eta_squared),
             "n_surrogates": n_surrogates,
             "percentile_threshold": percentile_threshold,
-            "surrogate_distribution_mean": (
-                float(np.mean(surrogate_peaks)) if len(surrogate_peaks) > 0 else 0.0
-            ),
-            "surrogate_distribution_std": (
-                float(np.std(surrogate_peaks)) if len(surrogate_peaks) > 0 else 0.0
-            ),
+            "surrogate_distribution_mean": (float(np.mean(surrogate_peaks)) if len(surrogate_peaks) > 0 else 0.0),
+            "surrogate_distribution_std": (float(np.std(surrogate_peaks)) if len(surrogate_peaks) > 0 else 0.0),
         }
 
     except Exception as e:
@@ -4594,11 +4295,7 @@ def check_falsification(
 
     # V3.1: Hierarchical Policy Emergence
     logger.info("Testing V3.1: Hierarchical Policy Emergence")
-    v3_1_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
-    )
+    v3_1_pass = hierarchical_levels_detected >= 3 and peak_separation_ratio >= 1.5 and eta_squared_timescales >= 0.45
     results["criteria"]["V3.1"] = {
         "passed": v3_1_pass,
         "hierarchical_levels_detected": hierarchical_levels_detected,
@@ -4618,10 +4315,7 @@ def check_falsification(
     # V3.2: Active Inference Convergence
     logger.info("Testing V3.2: Active Inference Convergence")
     v3_2_pass = (
-        reward_advantage >= 15
-        and entropy_reduction >= 28
-        and cohens_d_reward >= 0.48
-        and cohens_d_entropy >= 0.48
+        reward_advantage >= 15 and entropy_reduction >= 28 and cohens_d_reward >= 0.48 and cohens_d_entropy >= 0.48
     )
     results["criteria"]["V3.2"] = {
         "passed": v3_2_pass,
@@ -4645,10 +4339,7 @@ def check_falsification(
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -4669,11 +4360,7 @@ def check_falsification(
 
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
+    f5_2_pass = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
     results["criteria"]["F5.2"] = {
         "passed": f5_2_pass,
         "proportion_precision_agents": proportion_precision_agents,
@@ -4717,11 +4404,7 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
+    f5_4_pass = proportion_multiscale_agents >= 0.45 and peak_separation_ratio_f5_4 >= 2.0 and binomial_p_f5_4 < 0.01
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "proportion_multiscale_agents": proportion_multiscale_agents,
@@ -4758,11 +4441,7 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
-    )
+    f5_6_pass = performance_difference >= 0.25 and cohen_d_performance >= 0.55 and ttest_p_f5_6 < 0.01
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
@@ -4824,12 +4503,8 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    f6_1_pass = (
-        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
-    )
+    f6_1_pass = ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    status, power, underpowered = check_power_and_apply_gating("F6.1", f6_1_pass, cliffs_delta, 80, 0.01)
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "status": status,
@@ -4848,9 +4523,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
-    )
+    logger.info(f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}")
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
@@ -4860,14 +4533,8 @@ def check_falsification(
         and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
-    integration_ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
-    )
+    integration_ratio = ltcn_integration_window / rnn_integration_window if rnn_integration_window > 0 else 0
+    status, power, underpowered = check_power_and_apply_gating("F6.2", f6_2_pass, integration_ratio, 80, 0.01)
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "status": status,
@@ -4938,9 +4605,7 @@ class APGIValidationProtocol3:
         self.tau_S = APGI.tau_S
         self.Pi_e = APGI.Pi_e_init
 
-    def step(
-        self, extero_obs: torch.Tensor, dt: float = 0.05
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def step(self, extero_obs: torch.Tensor, dt: float = 0.05) -> Tuple[torch.Tensor, torch.Tensor]:
         """Execute one parallelized step for all batch agents."""
         extero_obs = extero_obs.to(self.device)
 
@@ -5107,13 +4772,13 @@ class APGIValidationProtocol3:
             # and comparing performance metrics
 
             return {
-                "pass": True,
+                "pass": True,  # nosec B105
                 "details": "P2.1 test implemented - adaptive advantage emergence",
                 "performance_improvement": "≥15% over alternatives",
             }
         except Exception as e:
             logger.error(f"P2.1 test failed: {e}")
-            return {"pass": False, "error": str(e)}
+            return {"pass": False, "error": str(e)}  # nosec B105
 
     def _test_hierarchical_integration(self) -> Dict[str, Any]:
         """Test P2.2: Hierarchical model integration"""
@@ -5131,7 +4796,7 @@ class APGIValidationProtocol3:
             }
         except Exception as e:
             logger.error(f"P2.2 test failed: {e}")
-            return {"pass": False, "error": str(e)}
+            return {"pass": False, "error": str(e)}  # nosec B105
 
     def _test_parameter_sensitivity(self) -> Dict[str, Any]:
         """Test P2.3: APGI parameter sensitivity"""
@@ -5149,7 +4814,7 @@ class APGIValidationProtocol3:
             }
         except Exception as e:
             logger.error(f"P2.3 test failed: {e}")
-            return {"pass": False, "error": str(e)}
+            return {"pass": False, "error": str(e)}  # nosec B105
 
     def _test_scalability(self) -> Dict[str, Any]:
         """Test P2.4: Scalability analysis"""
@@ -5167,7 +4832,7 @@ class APGIValidationProtocol3:
             }
         except Exception as e:
             logger.error(f"P2.4 test failed: {e}")
-            return {"pass": False, "error": str(e)}
+            return {"pass": False, "error": str(e)}  # nosec B105
 
     def _test_emergent_dynamics(self) -> Dict[str, Any]:
         """Test P2.5: Emergent dynamics validation"""
@@ -5185,7 +4850,7 @@ class APGIValidationProtocol3:
             }
         except Exception as e:
             logger.error(f"P2.5 test failed: {e}")
-            return {"pass": False, "error": str(e)}
+            return {"pass": False, "error": str(e)}  # nosec B105
 
 
 class BatchedAPGIActiveInferenceAgent(nn.Module):

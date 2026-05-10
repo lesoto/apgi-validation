@@ -61,10 +61,7 @@ class TestCrossProtocolDataFlow:
         invalid_data = {"subject_id": None, "measurements": []}
 
         # Validation should fail for missing required fields
-        is_valid = (
-            invalid_data.get("subject_id") is not None
-            and len(invalid_data.get("measurements", [])) > 0
-        )
+        is_valid = invalid_data.get("subject_id") is not None and len(invalid_data.get("measurements", [])) > 0
         assert not is_valid
 
 
@@ -126,10 +123,7 @@ class TestSharedResourceManagement:
                 shared_resource["data"].append(protocol_id)
 
         # Simulate multiple protocols accessing resource
-        threads = [
-            threading.Thread(target=increment_counter, args=(f"FP-{i}",))
-            for i in range(1, 6)
-        ]
+        threads = [threading.Thread(target=increment_counter, args=(f"FP-{i}",)) for i in range(1, 6)]
 
         for t in threads:
             t.start()
@@ -207,9 +201,7 @@ class TestEndToEndWorkflows:
 
         # Aggregate results
         total_passed = sum(1 for r in protocol_results.values() if r["passed"])
-        avg_score = sum(r["score"] for r in protocol_results.values()) / len(
-            protocol_results
-        )
+        avg_score = sum(r["score"] for r in protocol_results.values()) / len(protocol_results)
 
         assert total_passed == 3
         assert 0.8 < avg_score < 0.9
@@ -229,9 +221,7 @@ class TestEndToEndWorkflows:
 
         while remaining:
             # Find protocols with all dependencies satisfied
-            ready = {
-                p for p in remaining if all(d in executed for d in dependencies[p])
-            }
+            ready = {p for p in remaining if all(d in executed for d in dependencies[p])}
             assert ready, "Circular dependency detected"
             executed.extend(sorted(ready))
             remaining -= ready
@@ -270,9 +260,7 @@ class TestProtocolInteractionPatterns:
 
         # Aggregate metrics
         total_duration = sum(m["duration"] for m in protocol_metrics.values())
-        avg_memory = sum(m["memory_mb"] for m in protocol_metrics.values()) / len(
-            protocol_metrics
-        )
+        avg_memory = sum(m["memory_mb"] for m in protocol_metrics.values()) / len(protocol_metrics)
 
         assert total_duration > 0
         assert avg_memory > 100
@@ -286,11 +274,7 @@ class TestProtocolInteractionPatterns:
         }
 
         # Identify timed out protocols
-        timed_out = [
-            p
-            for p, t in protocol_timeouts.items()
-            if t["actual_duration"] > t["max_duration"]
-        ]
+        timed_out = [p for p, t in protocol_timeouts.items() if t["actual_duration"] > t["max_duration"]]
 
         assert "FP-2" in timed_out
         assert "FP-1" not in timed_out
@@ -394,8 +378,7 @@ class TestCrossProtocolWorkflowIntegration:
 
             # Simulate falsification criteria check
             falsification_passed = (
-                loaded_results["metrics"]["accuracy"] >= 0.90
-                and loaded_results["metrics"]["convergence"] is True
+                loaded_results["metrics"]["accuracy"] >= 0.90 and loaded_results["metrics"]["convergence"] is True
             )
             assert falsification_passed, "Falsification criteria not met"
 
@@ -504,10 +487,7 @@ class TestCrossProtocolWorkflowIntegration:
                 # Wait for resources
                 while True:
                     with lock:
-                        if (
-                            len(resource_pool["active_protocols"])
-                            < resource_pool["cpu_cores"]
-                        ):
+                        if len(resource_pool["active_protocols"]) < resource_pool["cpu_cores"]:
                             resource_pool["active_protocols"].add(protocol_id)
                             break
                     time.sleep(0.01)
@@ -657,9 +637,7 @@ class TestCrossProtocolWorkflowIntegration:
             if protocol in failed:
                 return False
             deps = dependencies.get(protocol, [])
-            return all(d in completed for d in deps) and not any(
-                d in failed for d in deps
-            )
+            return all(d in completed for d in deps) and not any(d in failed for d in deps)
 
         completed = set()
         runnable = set()

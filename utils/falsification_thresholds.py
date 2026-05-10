@@ -17,12 +17,19 @@ Usage::
     )
 """
 
+from typing import Any
+
 try:
     import numpy as np
     from scipy.optimize import curve_fit
+
+    # Use numpy types for type annotations
+    NDArray = np.ndarray  # type: ignore
 except ImportError as e:
     np = None
     curve_fit = None
+    # Use typing.Any as fallback when numpy is not available
+    NDArray = Any  # type: ignore
     print(f"Warning: NumPy/SciPy not available in falsification_thresholds.py: {e}")
 
 # ---------------------------------------------------------------------------
@@ -212,15 +219,11 @@ F6_6_MIN_PERFORMANCE_GAP: float = 15.0  # ≥15% performance gap without add-ons
 # ---------------------------------------------------------------------------
 # LNN AUROC superiority threshold
 # ---------------------------------------------------------------------------
-F6_DELTA_AUROC_MIN: float = (
-    0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
-)
+F6_DELTA_AUROC_MIN: float = 0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
 
 # ---------------------------------------------------------------------------
 # VP-7: TMS Causal Interventions Parameters
-VP7_BASELINE_ESTIMATION_MIN_TRIALS: int = (
-    50  # Minimum trials for reliable baseline estimation
-)
+VP7_BASELINE_ESTIMATION_MIN_TRIALS: int = 50  # Minimum trials for reliable baseline estimation
 # Used in VP_07_TMS_CausalInterventions.py and VP_10_CausalManipulations_Priority2.py
 # Ensures test-retest reliability for threshold determination
 # Based on psychometric measurement best practicesholds
@@ -253,12 +256,8 @@ V11_MIN_COHENS_D: float = 0.45  # d ≥ 0.45
 # ---------------------------------------------------------------------------
 # V12.1 – Clinical Gradient Prediction
 # ---------------------------------------------------------------------------
-V12_1_MIN_P3B_REDUCTION_PCT: float = (
-    50.0  # ≥50 % reduction (Rosanova et al., 2018 estimate)
-)
-V12_1_MIN_IGNITION_REDUCTION_PCT: float = (
-    50.0  # ≥50 % reduction (Casali et al., 2013 estimate)
-)
+V12_1_MIN_P3B_REDUCTION_PCT: float = 50.0  # ≥50 % reduction (Rosanova et al., 2018 estimate)
+V12_1_MIN_IGNITION_REDUCTION_PCT: float = 50.0  # ≥50 % reduction (Casali et al., 2013 estimate)
 V12_1_MIN_COHENS_D: float = 0.80  # d ≥ 0.80  (spec)
 V12_1_MIN_ETA_SQUARED: float = 0.30  # η² ≥ 0.30  (spec)
 V12_1_ALPHA: float = 0.05
@@ -280,24 +279,18 @@ V17_ALPHA: float = 0.05  # significance level
 # requires PET/fMRS and is out of scope for this protocol.
 V21_MMN_MIN_R2: float = 0.60  # R² for exteroceptive PE (MMN) monotone decline
 V21_HEP_MIN_R2: float = 0.50  # R² for interoceptive PE (HEP) monotone decline
-V21_IGNITION_TRANSIENT_RATIO: float = (
-    1.20  # ignition-window PE ≥ 1.20× pre-ignition mean
-)
+V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # ignition-window PE ≥ 1.20× pre-ignition mean
 
 # ---------------------------------------------------------------------------
 # V20 – Empirical iEEG Pipeline (BIDS-iEEG, P6a + P6c)
 # ---------------------------------------------------------------------------
 # P6a: GMM bimodality — high-gamma mode occupancy advantage (conscious > unconscious)
-V20_HG_BIMODALITY_COEFF_MIN: float = (
-    0.55  # bimodality coefficient ≥ 0.55 (mode separation)
-)
+V20_HG_BIMODALITY_COEFF_MIN: float = 0.55  # bimodality coefficient ≥ 0.55 (mode separation)
 V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50  # Cohen's d ≥ 0.50 (medium effect)
 
 # P6c: Critical slowing — AC1 and variance advantage (hits-near-threshold > misses)
 V20_AC1_ADVANTAGE_MIN: float = 0.05  # raw AC1 difference (hits − misses) ≥ 0.05
-V20_VARIANCE_ADVANTAGE_MIN: float = (
-    0.10  # raw variance difference (hits − misses) ≥ 0.10
-)
+V20_VARIANCE_ADVANTAGE_MIN: float = 0.10  # raw variance difference (hits − misses) ≥ 0.10
 
 # ---------------------------------------------------------------------------
 # V19 – Information Erasure Protocol (MVPA)
@@ -434,15 +427,11 @@ F2_4_ALPHA: float = 0.01
 F2_5_MAX_TRIALS: float = 55.0
 F2_5_MIN_HAZARD_RATIO: float = 1.65
 F2_5_MIN_TRIAL_ADVANTAGE: float = 12.0
-F2_5_MIN_ADVANTAGE_PCT: float = (
-    70.0  # % advantageous selections criterion for IGT convergence
-)
+F2_5_MIN_ADVANTAGE_PCT: float = 70.0  # % advantageous selections criterion for IGT convergence
 F2_5_ALPHA: float = 0.01
 
 # Cardiac Phase-Dependent Detection threshold
-F2_CARDIAC_DETECTION_ADVANTAGE_MIN: float = (
-    0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
-)
+F2_CARDIAC_DETECTION_ADVANTAGE_MIN: float = 0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
 
 # ---------------------------------------------------------------------------
 # F3 family (Advantages)
@@ -551,9 +540,7 @@ VP4_CALIBRATED_THETA_0: float = 0.12
 VP4_CALIBRATED_ALPHA: float = 35.0
 
 # VP-04 transfer entropy threshold for Level 2 phase transition analysis
-TRANSFER_ENTROPY_THRESHOLD: float = (
-    0.1  # Critical threshold for information flow (aligned with F4_TE_THRESHOLD)
-)
+TRANSFER_ENTROPY_THRESHOLD: float = 0.1  # Critical threshold for information flow (aligned with F4_TE_THRESHOLD)
 
 # Liquid / echo-state threshold gates
 LIQUID_IGNITION_DETECTION_THRESHOLD: float = 0.50
@@ -564,37 +551,25 @@ P11_MIN_R2: float = 0.70  # R² ≥ 0.70 for fatigue threshold linear model
 # ---------------------------------------------------------------------------
 # ALPHA Configuration Keys - Model Dynamics
 # ---------------------------------------------------------------------------
-ALPHA_SIGMOID: float = (
-    5.0  # Sigmoid steepness; used ONLY in ignition probability P(B=1|S,θ)
-)
+ALPHA_SIGMOID: float = 5.0  # Sigmoid steepness; used ONLY in ignition probability P(B=1|S,θ)
 ALPHA_EMA: float = 0.05  # EMA smoothing rate for variance estimation; must be in (0,1)
-ALPHA_FEP: float = (
-    None  # FEP bridge sensitivity [AU/nat]; unspecified — pending P4 calibration
-)
+ALPHA_FEP: float = None  # FEP bridge sensitivity [AU/nat]; unspecified — pending P4 calibration
 
 # ---------------------------------------------------------------------------
 # BETA Parameters - Canonical Names (Manuscript-Aligned)
 # BETA_SM and BETA_SOMATIC are distinct parameters. See P1 §Somatic Bias,
 # P1 §Equation 1, and Notation Appendix §Model Parameters for canonical definitions.
 # ---------------------------------------------------------------------------
-BETA_SM: float = (
-    0.6  # somatic marker exponential gain; eq. Pi_eff = Pi_base * exp(BETA_SM * M)
-)
-BETA_SOMATIC: float = (
-    1.2  # somatic bias weighting; multiplies interoceptive branch in accumulation
-)
+BETA_SM: float = 0.6  # somatic marker exponential gain; eq. Pi_eff = Pi_base * exp(BETA_SM * M)
+BETA_SOMATIC: float = 1.2  # somatic bias weighting; multiplies interoceptive branch in accumulation
 
 # ---------------------------------------------------------------------------
 # Depression Hyperconnectivity Tiered Criteria
 # Evidence-anchored tiered criteria (replaces overspecified absolute threshold)
 # ---------------------------------------------------------------------------
-DEPRESSION_HYPERCONNECTIVITY_CONSISTENT: float = (
-    0.15  # d ≈ 0.4; minimum consistent with literature
-)
+DEPRESSION_HYPERCONNECTIVITY_CONSISTENT: float = 0.15  # d ≈ 0.4; minimum consistent with literature
 DEPRESSION_HYPERCONNECTIVITY_MODERATE: float = 0.25  # d ≈ 0.6; moderate effect
-DEPRESSION_HYPERCONNECTIVITY_STRONG: float = (
-    0.40  # d ≈ 0.8; strong effect (upper range)
-)
+DEPRESSION_HYPERCONNECTIVITY_STRONG: float = 0.40  # d ≈ 0.8; strong effect (upper range)
 # Note: ≥50% threshold is 2-3× meta-analytic estimates; retain as "exceptional" tier only
 
 # ---------------------------------------------------------------------------
@@ -604,9 +579,7 @@ ALPHA_PER_TEST_BONFERRONI: float = 0.008  # Bonferroni-corrected alpha per test
 
 # Additional constants for VP_02 Behavioral Bayesian Comparison
 N_PARTICIPANTS: int = 40  # Default number of participants for behavioral studies
-N_STATISTICAL_TESTS: int = (
-    6  # Number of statistical tests for multiple comparison correction
-)
+N_STATISTICAL_TESTS: int = 6  # Number of statistical tests for multiple comparison correction
 RANDOM_SEED: int = 42  # Random seed for reproducibility
 
 # =============================================================================
@@ -711,8 +684,8 @@ BIC_FRAMEWORK_THRESHOLD_B = 10.0  # ΔBIC ≥ 10 indicates framework-level advan
 
 
 def test_f6_1_intrinsic_threshold_behavior(
-    ltcn_transition_times: np.ndarray,
-    feedforward_transition_times: np.ndarray,
+    ltcn_transition_times: NDArray,
+    feedforward_transition_times: NDArray,
     ltcn_max_transition_ms: float = F6_1_LTCN_MAX_TRANSITION_MS,
     cliffs_delta_min: float = F6_1_CLIFFS_DELTA_MIN,
     mann_whitney_alpha: float = F6_1_MANN_WHITNEY_ALPHA,
@@ -737,29 +710,21 @@ def test_f6_1_intrinsic_threshold_behavior(
 
     # Input validation: require minimum sample size for statistical tests
     if len(ltcn_transition_times) < 2:
-        raise ValueError(
-            f"ltcn_transition_times must have at least 2 elements, got {len(ltcn_transition_times)}"
-        )
+        raise ValueError(f"ltcn_transition_times must have at least 2 elements, got {len(ltcn_transition_times)}")
     if len(feedforward_transition_times) < 2:
         raise ValueError(
             f"feedforward_transition_times must have at least 2 elements, got {len(feedforward_transition_times)}"
         )
 
     # NaN/Inf validation
-    if np.any(np.isnan(ltcn_transition_times)) or np.any(
-        np.isinf(ltcn_transition_times)
-    ):
+    if np.any(np.isnan(ltcn_transition_times)) or np.any(np.isinf(ltcn_transition_times)):
         raise ValueError("ltcn_transition_times contains NaN or Inf values")
-    if np.any(np.isnan(feedforward_transition_times)) or np.any(
-        np.isinf(feedforward_transition_times)
-    ):
+    if np.any(np.isnan(feedforward_transition_times)) or np.any(np.isinf(feedforward_transition_times)):
         raise ValueError("feedforward_transition_times contains NaN or Inf values")
 
     # Mann-Whitney U test for non-normal distributions
     try:
-        u_stat, p_value = mannwhitneyu(
-            ltcn_transition_times, feedforward_transition_times
-        )
+        u_stat, p_value = mannwhitneyu(ltcn_transition_times, feedforward_transition_times)
     except ValueError:
         # Handle edge case with insufficient data
         p_value = 1.0
@@ -797,8 +762,8 @@ def test_f6_1_intrinsic_threshold_behavior(
 
 
 def test_f6_2_intrinsic_temporal_integration(
-    ltcn_integration_window: np.ndarray,
-    rnn_integration_window: np.ndarray,
+    ltcn_integration_window: NDArray,
+    rnn_integration_window: NDArray,
     ltcn_min_window_ms: float = F6_2_LTCN_MIN_WINDOW_MS,
     min_integration_ratio: float = F6_2_MIN_INTEGRATION_RATIO,
     falsification_ratio: float = F6_2_FALSIFICATION_RATIO,
@@ -827,22 +792,14 @@ def test_f6_2_intrinsic_temporal_integration(
 
     # Input validation: require minimum sample size for statistical tests
     if len(ltcn_integration_window) < 2:
-        raise ValueError(
-            f"ltcn_integration_window must have at least 2 elements, got {len(ltcn_integration_window)}"
-        )
+        raise ValueError(f"ltcn_integration_window must have at least 2 elements, got {len(ltcn_integration_window)}")
     if len(rnn_integration_window) < 2:
-        raise ValueError(
-            f"rnn_integration_window must have at least 2 elements, got {len(rnn_integration_window)}"
-        )
+        raise ValueError(f"rnn_integration_window must have at least 2 elements, got {len(rnn_integration_window)}")
 
     # NaN/Inf validation
-    if np.any(np.isnan(ltcn_integration_window)) or np.any(
-        np.isinf(ltcn_integration_window)
-    ):
+    if np.any(np.isnan(ltcn_integration_window)) or np.any(np.isinf(ltcn_integration_window)):
         raise ValueError("ltcn_integration_window contains NaN or Inf values")
-    if np.any(np.isnan(rnn_integration_window)) or np.any(
-        np.isinf(rnn_integration_window)
-    ):
+    if np.any(np.isnan(rnn_integration_window)) or np.any(np.isinf(rnn_integration_window)):
         raise ValueError("rnn_integration_window contains NaN or Inf values")
 
     # Calculate ratio using median values
@@ -857,11 +814,7 @@ def test_f6_2_intrinsic_temporal_integration(
         # Handle edge case with insufficient data
         p_value = 1.0
 
-    f6_2_pass = (
-        ltcn_median >= ltcn_min_window_ms
-        and ratio >= min_integration_ratio
-        and p_value < wilcoxon_alpha
-    )
+    f6_2_pass = ltcn_median >= ltcn_min_window_ms and ratio >= min_integration_ratio and p_value < wilcoxon_alpha
 
     return {
         "passed": f6_2_pass,
@@ -874,8 +827,8 @@ def test_f6_2_intrinsic_temporal_integration(
 
 
 def test_f6_3_metabolic_selectivity(
-    ltcn_sparsity_reductions: np.ndarray,
-    standard_sparsity_reductions: np.ndarray,
+    ltcn_sparsity_reductions: NDArray,
+    standard_sparsity_reductions: NDArray,
     min_reduction_pct: float = 30.0,
     max_standard_reduction_pct: float = 10.0,
     min_cohens_d: float = 0.70,
@@ -902,42 +855,31 @@ def test_f6_3_metabolic_selectivity(
 
     # Input validation: require minimum sample size for statistical tests
     if len(ltcn_sparsity_reductions) < 2:
-        raise ValueError(
-            f"ltcn_sparsity_reductions must have at least 2 elements, got {len(ltcn_sparsity_reductions)}"
-        )
+        raise ValueError(f"ltcn_sparsity_reductions must have at least 2 elements, got {len(ltcn_sparsity_reductions)}")
     if len(standard_sparsity_reductions) < 2:
         raise ValueError(
             f"standard_sparsity_reductions must have at least 2 elements, got {len(standard_sparsity_reductions)}"
         )
 
     # NaN/Inf validation
-    if np.any(np.isnan(ltcn_sparsity_reductions)) or np.any(
-        np.isinf(ltcn_sparsity_reductions)
-    ):
+    if np.any(np.isnan(ltcn_sparsity_reductions)) or np.any(np.isinf(ltcn_sparsity_reductions)):
         raise ValueError("ltcn_sparsity_reductions contains NaN or Inf values")
-    if np.any(np.isnan(standard_sparsity_reductions)) or np.any(
-        np.isinf(standard_sparsity_reductions)
-    ):
+    if np.any(np.isnan(standard_sparsity_reductions)) or np.any(np.isinf(standard_sparsity_reductions)):
         raise ValueError("standard_sparsity_reductions contains NaN or Inf values")
 
     # Paired t-test
-    t_stat, p_value = stats.ttest_rel(
-        ltcn_sparsity_reductions, standard_sparsity_reductions
-    )
+    t_stat, p_value = stats.ttest_rel(ltcn_sparsity_reductions, standard_sparsity_reductions)
 
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (len(ltcn_sparsity_reductions) - 1)
-            * np.var(ltcn_sparsity_reductions, ddof=1)
-            + (len(standard_sparsity_reductions) - 1)
-            * np.var(standard_sparsity_reductions, ddof=1)
+            (len(ltcn_sparsity_reductions) - 1) * np.var(ltcn_sparsity_reductions, ddof=1)
+            + (len(standard_sparsity_reductions) - 1) * np.var(standard_sparsity_reductions, ddof=1)
         )
         / (len(ltcn_sparsity_reductions) + len(standard_sparsity_reductions) - 2)
     )
     cohens_d = (
-        (np.mean(ltcn_sparsity_reductions) - np.mean(standard_sparsity_reductions))
-        / pooled_std
+        (np.mean(ltcn_sparsity_reductions) - np.mean(standard_sparsity_reductions)) / pooled_std
         if pooled_std > 0
         else 0
     )
@@ -1076,7 +1018,7 @@ def test_f6_5_bifurcation_structure(
     ignition_probs_array = np.array(ignition_probs)
 
     # Fit sigmoid
-    def sigmoid(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
+    def sigmoid(x: NDArray, a: float, b: float, c: float) -> NDArray:
         return a / (1 + np.exp(-b * (x - c)))
 
     try:
@@ -1102,9 +1044,7 @@ def test_f6_5_bifurcation_structure(
         bifurcation_point = theta_t
         hysteresis_width = 0.1  # Conservative default width
 
-    f6_5_pass = (
-        hysteresis_width >= hysteresis_min and hysteresis_width <= hysteresis_max
-    )
+    f6_5_pass = hysteresis_width >= hysteresis_min and hysteresis_width <= hysteresis_max
 
     return {
         "passed": f6_5_pass,
@@ -1180,17 +1120,13 @@ V12_2_ALPHA = 0.05
 # V14 – fMRI Anticipation Experience (vmPFC-SCR Correlation)
 # ---------------------------------------------------------------------------
 # VP-14 vmPFC-SCR correlation threshold for anticipatory processing
-V14_MIN_VMPFC_SCR_CORRELATION: float = (
-    0.30  # Minimum correlation between vmPFC activity and skin conductance response
-)
+V14_MIN_VMPFC_SCR_CORRELATION: float = 0.30  # Minimum correlation between vmPFC activity and skin conductance response
 
 # ---------------------------------------------------------------------------
 # V15 – fMRI vmPFC Anticipation Paradigm
 # ---------------------------------------------------------------------------
 # VP-15 connectivity and anticipatory window thresholds
-V15_ANTICIPATORY_CORRELATION_MIN: float = (
-    0.40  # vmPFC–posterior insula connectivity r > 0.40
-)
+V15_ANTICIPATORY_CORRELATION_MIN: float = 0.40  # vmPFC–posterior insula connectivity r > 0.40
 V15_ANTICIPATORY_WINDOW_MS: tuple = (
     -500,
     0,

@@ -42,8 +42,13 @@ if np is not None and not hasattr(np.lib, "array_utils"):
             array_utils.normalize_axis_tuple = normalize_axis_tuple
         except (ImportError, AttributeError):
             pass
-    except Exception:
+    except Exception as e:
         # If anything fails during monkey-patching, we still want to continue
+        # Log error for debugging purposes
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Monkey-patching failed: {e}")
         pass
 
 # Note: Standard dependency-handling logic follows
@@ -215,9 +220,7 @@ from .config_manager import ConfigManager
 def __getattr__(name: str) -> Any:
     if name == "BatchProcessor":
         try:
-            from .batch_processor import (
-                BatchProcessor as _BatchProcessor,
-            )  # type: ignore
+            from .batch_processor import BatchProcessor as _BatchProcessor  # type: ignore
 
             globals()["BatchProcessor"] = _BatchProcessor
             globals()["BATCH_PROCESSOR_AVAILABLE"] = True

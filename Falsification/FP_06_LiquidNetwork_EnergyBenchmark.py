@@ -70,9 +70,7 @@ except ImportError:
                 with open(path, "r", encoding="utf-8") as f:
                     return json.load(f)
 
-        raise FileNotFoundError(
-            "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
-        )
+        raise FileNotFoundError("VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first.")
 
     def requires_vp5_data(func: Any) -> Any:
         """Fallback decorator that checks for genome_data.json existence."""
@@ -81,9 +79,7 @@ except ImportError:
             try:
                 _ = load_vp5_genome_data()
             except FileNotFoundError:
-                raise RuntimeError(
-                    "VP-05 genome_data required - run VP-05_EvolutionaryEmergence first."
-                )
+                raise RuntimeError("VP-05 genome_data required - run VP-05_EvolutionaryEmergence first.")
             return func(*args, **kwargs)
 
         return wrapper
@@ -156,10 +152,7 @@ try:
     from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 
     # Fix 2: Import BIC thresholds from falsification_thresholds
-    from utils.falsification_thresholds import (
-        BIC_FRAMEWORK_THRESHOLD_B,
-        BIC_STRONG_EVIDENCE,
-    )
+    from utils.falsification_thresholds import BIC_FRAMEWORK_THRESHOLD_B, BIC_STRONG_EVIDENCE
 except ImportError:
     # Fallback constants
     class MockDimConstants:
@@ -184,9 +177,7 @@ logger = logging.getLogger(__name__)
 ATP_PER_SPIKE = 1.0  # Normalized units; absolute = 1e9 ATP molecules per spike
 
 
-def bootstrap_ci(
-    data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
-) -> Tuple[float, float, float]:
+def bootstrap_ci(data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95) -> Tuple[float, float, float]:
     """
     Compute bootstrap confidence interval for mean.
 
@@ -238,9 +229,7 @@ def calculate_log_likelihood(predictions: np.ndarray, targets: np.ndarray) -> fl
             targets_matched = targets
 
         residuals = targets_matched - predictions_flat
-        log_likelihood = -0.5 * np.sum(residuals**2) - 0.5 * len(targets) * np.log(
-            2 * np.pi
-        )
+        log_likelihood = -0.5 * np.sum(residuals**2) - 0.5 * len(targets) * np.log(2 * np.pi)
 
     return log_likelihood
 
@@ -282,11 +271,7 @@ def bootstrap_one_sample_test(
         p_value = np.mean(bootstrap_means <= 2 * null_value - observed_mean)
 
     # Test statistic is standardized difference
-    test_stat = (
-        (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data)))
-        if np.std(data) > 0
-        else 0.0
-    )
+    test_stat = (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data))) if np.std(data) > 0 else 0.0
 
     return test_stat, min(2 * p_value, 1.0)
 
@@ -355,44 +340,30 @@ def compare_atp_cost_with_literature(
         },
     }
 
-    benchmarks = literature_benchmarks.get(
-        task_type, literature_benchmarks["conscious_classification"]
-    )
+    benchmarks = literature_benchmarks.get(task_type, literature_benchmarks["conscious_classification"])
 
     # Calculate efficiency metrics
     efficiency_ratio = benchmarks["human_brain_cost"] / max(atp_cost_per_correct, 1e-10)
     is_within_neural_efficiency = (
-        benchmarks["neural_efficiency_min"]
-        <= atp_cost_per_correct
-        <= benchmarks["neural_efficiency_max"]
+        benchmarks["neural_efficiency_min"] <= atp_cost_per_correct <= benchmarks["neural_efficiency_max"]
     )
     shows_conscious_premium = (
-        benchmarks["conscious_premium_min"]
-        <= atp_cost_per_correct
-        <= benchmarks["conscious_premium_max"]
+        benchmarks["conscious_premium_min"] <= atp_cost_per_correct <= benchmarks["conscious_premium_max"]
     )
 
     # Paper-grounded assessment
     if is_within_neural_efficiency and shows_conscious_premium:
         assessment = "optimal"
-        assessment_reason = (
-            "Within neural efficiency range and shows appropriate conscious premium"
-        )
+        assessment_reason = "Within neural efficiency range and shows appropriate conscious premium"
     elif is_within_neural_efficiency:
         assessment = "efficient_but_no_premium"
-        assessment_reason = (
-            "Neurally efficient but lacks expected conscious processing premium"
-        )
+        assessment_reason = "Neurally efficient but lacks expected conscious processing premium"
     elif shows_conscious_premium:
         assessment = "conscious_premium_inefficient"
-        assessment_reason = (
-            "Shows conscious premium but exceeds neural efficiency bounds"
-        )
+        assessment_reason = "Shows conscious premium but exceeds neural efficiency bounds"
     else:
         assessment = "inefficient"
-        assessment_reason = (
-            "Outside both neural efficiency and conscious premium ranges"
-        )
+        assessment_reason = "Outside both neural efficiency and conscious premium ranges"
 
     return {
         "atp_cost_per_correct": atp_cost_per_correct,
@@ -446,24 +417,16 @@ def calculate_bic_aic_comparison(
     best_aic_model = min(aic_scores, key=aic_scores.get)
 
     # Calculate differences from best models
-    bic_differences = {
-        model: bic_scores[model] - bic_scores[best_bic_model] for model in bic_scores
-    }
-    aic_differences = {
-        model: aic_scores[model] - aic_scores[best_aic_model] for model in aic_scores
-    }
+    bic_differences = {model: bic_scores[model] - bic_scores[best_bic_model] for model in bic_scores}
+    aic_differences = {model: aic_scores[model] - aic_scores[best_aic_model] for model in aic_scores}
 
     # Calculate model weights (BIC approximation)
     bic_weights = {}
     if len(bic_scores) > 1:
         min_bic = min(bic_scores.values())
-        bic_weights = {
-            model: np.exp(-0.5 * (bic - min_bic)) for model, bic in bic_scores.items()
-        }
+        bic_weights = {model: np.exp(-0.5 * (bic - min_bic)) for model, bic in bic_scores.items()}
         total_bic_weight = sum(bic_weights.values())
-        bic_weights = {
-            model: weight / total_bic_weight for model, weight in bic_weights.items()
-        }
+        bic_weights = {model: weight / total_bic_weight for model, weight in bic_weights.items()}
     else:
         bic_weights = {model: 1.0 for model in bic_scores.keys()}
 
@@ -475,37 +438,23 @@ def calculate_bic_aic_comparison(
         other_models = [m for m in bic_scores.keys() if m != "APGI"]
         if other_models:
             best_other = min(other_models, key=lambda m: bic_scores[m])
-            evidence_ratios["APGI_vs_best_alternative"] = np.exp(
-                -0.5 * (bic_scores["APGI"] - bic_scores[best_other])
-            )
+            evidence_ratios["APGI_vs_best_alternative"] = np.exp(-0.5 * (bic_scores["APGI"] - bic_scores[best_other]))
 
     # Model selection criteria
     bic_selection = {
         "best_model": best_bic_model,
-        "apgi_rank": (
-            sorted(bic_scores.keys()).index("APGI") + 1
-            if "APGI" in bic_scores
-            else None
-        ),
+        "apgi_rank": (sorted(bic_scores.keys()).index("APGI") + 1 if "APGI" in bic_scores else None),
         "apgi_is_best": best_bic_model == "APGI",
-        "strong_evidence_for_apgi": bic_differences.get("APGI", float("inf"))
-        < 2,  # ΔBIC < 2
-        "very_strong_evidence_for_apgi": bic_differences.get("APGI", float("inf"))
-        < 6,  # ΔBIC < 6
+        "strong_evidence_for_apgi": bic_differences.get("APGI", float("inf")) < 2,  # ΔBIC < 2
+        "very_strong_evidence_for_apgi": bic_differences.get("APGI", float("inf")) < 6,  # ΔBIC < 6
     }
 
     aic_selection = {
         "best_model": best_aic_model,
-        "apgi_rank": (
-            sorted(aic_scores.keys()).index("APGI") + 1
-            if "APGI" in aic_scores
-            else None
-        ),
+        "apgi_rank": (sorted(aic_scores.keys()).index("APGI") + 1 if "APGI" in aic_scores else None),
         "apgi_is_best": best_aic_model == "APGI",
-        "strong_evidence_for_apgi": aic_differences.get("APGI", float("inf"))
-        < 2,  # ΔAIC < 2
-        "very_strong_evidence_for_apgi": aic_differences.get("APGI", float("inf"))
-        < 4,  # ΔAIC < 4
+        "strong_evidence_for_apgi": aic_differences.get("APGI", float("inf")) < 2,  # ΔAIC < 2
+        "very_strong_evidence_for_apgi": aic_differences.get("APGI", float("inf")) < 4,  # ΔAIC < 4
     }
 
     return {
@@ -540,9 +489,7 @@ def get_model_parameter_counts(networks: Dict[str, nn.Module]) -> Dict[str, int]
     return param_counts
 
 
-def calculate_energy_per_correct_detection(
-    accuracy: float, total_cost: float, n_samples: int
-) -> float:
+def calculate_energy_per_correct_detection(accuracy: float, total_cost: float, n_samples: int) -> float:
     """
     Calculate energy cost per correct detection.
 
@@ -589,10 +536,9 @@ class APGIInspiredNetwork(nn.Module):
         # Paper specifies τ=300–500 ms for Liquid Time-Constant Networks
         self.tau_min = 300.0  # Paper spec lower bound (was 10.0, 6× too small)
         self.tau_max = 500.0  # Paper spec upper bound
-        # Assertion to enforce paper spec
-        assert (
-            self.tau_min >= 300.0 and self.tau_max <= 500.0
-        ), f"LTCN tau bounds must match paper spec: tau_min={self.tau_min}, tau_max={self.tau_max}"
+        # Validation to enforce paper spec
+        if not (self.tau_min >= 300.0 and self.tau_max <= 500.0):
+            raise ValueError(f"LTCN tau bounds must match paper spec: tau_min={self.tau_min}, tau_max={self.tau_max}")
         self.dt = 1.0  # 1ms time step
 
         # =====================
@@ -622,9 +568,7 @@ class APGIInspiredNetwork(nn.Module):
             nn.Softplus(),  # Ensure positive
         )
 
-        self.Pi_i_network = nn.Sequential(
-            nn.Linear(16, 4), nn.ReLU(), nn.Linear(4, 1), nn.Softplus()
-        )
+        self.Pi_i_network = nn.Sequential(nn.Linear(16, 4), nn.ReLU(), nn.Linear(4, 1), nn.Softplus())
 
         # =====================
         # LTCN DYNAMICS - ADAPTIVE TIME CONSTANTS
@@ -651,9 +595,7 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # SURPRISE ACCUMULATOR (Compact)
         # =====================
-        self.surprise_rnn = nn.GRUCell(
-            input_size=2, hidden_size=8
-        )  # Precision-weighted errors
+        self.surprise_rnn = nn.GRUCell(input_size=2, hidden_size=8)  # Precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -705,9 +647,7 @@ class APGIInspiredNetwork(nn.Module):
         self.liquid_state: Optional[torch.Tensor] = None
         self.prev_tau: Optional[torch.Tensor] = None  # Store previous time constants
 
-    def ltcn_step(
-        self, h_prev: torch.Tensor, x: torch.Tensor, tau: torch.Tensor
-    ) -> torch.Tensor:
+    def ltcn_step(self, h_prev: torch.Tensor, x: torch.Tensor, tau: torch.Tensor) -> torch.Tensor:
         """
         Single LTCN ODE integration step using Euler method.
 
@@ -731,9 +671,7 @@ class APGIInspiredNetwork(nn.Module):
 
         return h_new
 
-    def compute_adaptive_tau(
-        self, extero_enc: torch.Tensor, intero_enc: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_adaptive_tau(self, extero_enc: torch.Tensor, intero_enc: torch.Tensor) -> torch.Tensor:
         """
         Compute adaptive time constants based on current input state.
         High information → fast dynamics (low τ)
@@ -771,9 +709,7 @@ class APGIInspiredNetwork(nn.Module):
             self.surprise_hidden = self.surprise_hidden.to(device)
 
         if self.liquid_state is None:
-            self.liquid_state = torch.zeros(
-                batch_size, self.liquid_hidden_dim, device=device
-            )
+            self.liquid_state = torch.zeros(batch_size, self.liquid_hidden_dim, device=device)
         elif self.liquid_state.device != device:
             self.liquid_state = self.liquid_state.to(device)
 
@@ -784,9 +720,7 @@ class APGIInspiredNetwork(nn.Module):
         intero_enc = self.intero_encoder(intero_input)  # (B, 16)
 
         # Track activations for energy calculation (only count non-zero)
-        self.total_activations += (extero_enc > 0).sum().item() + (
-            intero_enc > 0
-        ).sum().item()
+        self.total_activations += (extero_enc > 0).sum().item() + (intero_enc > 0).sum().item()
 
         # =====================
         # 2. ESTIMATE PRECISION
@@ -815,9 +749,7 @@ class APGIInspiredNetwork(nn.Module):
         self.liquid_state = self.ltcn_step(self.liquid_state, combined_enc, tau)
 
         # Track active neurons (sparsity for energy efficiency)
-        active_neurons_this_step = int(
-            (torch.abs(self.liquid_state) > 0.01).sum().item()
-        )
+        active_neurons_this_step = int((torch.abs(self.liquid_state) > 0.01).sum().item())
         self.active_neurons += active_neurons_this_step
 
         # =====================
@@ -868,15 +800,11 @@ class APGIInspiredNetwork(nn.Module):
         # 9. SOMATIC MARKERS
         # =====================
         if prev_action is not None:
-            action_onehot = F.one_hot(
-                prev_action.long(), num_classes=self.config["action_dim"]
-            ).float()
+            action_onehot = F.one_hot(prev_action.long(), num_classes=self.config["action_dim"]).float()
             somatic_input = torch.cat([gated_workspace, action_onehot], dim=-1)
             somatic_values = self.somatic_network(somatic_input)
         else:
-            somatic_values = torch.zeros(
-                batch_size, self.config["action_dim"], device=device
-            )
+            somatic_values = torch.zeros(batch_size, self.config["action_dim"], device=device)
 
         # =====================
         # 10. POLICY AND VALUE
@@ -906,9 +834,7 @@ class APGIInspiredNetwork(nn.Module):
 
         # LTCN efficiency: only active neurons consume energy during computation
         # Use active_neurons instead of total neurons for more accurate energy
-        effective_neurons = max(
-            self.active_neurons // max(self.time_steps, 1), n_neurons // 10
-        )
+        effective_neurons = max(self.active_neurons // max(self.time_steps, 1), n_neurons // 10)
 
         total_cost = calculate_atp_cost(
             self.spike_count,
@@ -975,9 +901,7 @@ class ComparisonNetworks:
                 self.total_activations += x.numel()
                 # Track spikes (simplified as high activations)
                 self.spike_count += int(
-                    torch.sum(
-                        torch.max(policy, dim=-1)[0] > F6_SPARSITY_ACTIVATION_THRESHOLD
-                    ).item()
+                    torch.sum(torch.max(policy, dim=-1)[0] > F6_SPARSITY_ACTIVATION_THRESHOLD).item()
                 )
 
                 return {"policy": policy}
@@ -985,9 +909,7 @@ class ComparisonNetworks:
             def get_energy_metrics(self) -> Dict[str, float]:
                 """Calculate energy usage metrics"""
                 n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
-                total_cost = calculate_atp_cost(
-                    self.spike_count, n_neurons, self.time_steps
-                )
+                total_cost = calculate_atp_cost(self.spike_count, n_neurons, self.time_steps)
                 return {
                     "spike_count": self.spike_count,
                     "total_activations": self.total_activations,
@@ -1028,10 +950,7 @@ class ComparisonNetworks:
                 self.total_activations += x.numel() + lstm_out.numel()
                 # Track spikes (high activations in LSTM output)
                 self.spike_count += int(
-                    torch.sum(
-                        torch.max(lstm_out, dim=-1)[0]
-                        > F6_SPARSITY_ACTIVATION_THRESHOLD
-                    ).item()
+                    torch.sum(torch.max(lstm_out, dim=-1)[0] > F6_SPARSITY_ACTIVATION_THRESHOLD).item()
                 )
 
                 return {"policy": policy}
@@ -1039,9 +958,7 @@ class ComparisonNetworks:
             def get_energy_metrics(self) -> Dict[str, float]:
                 """Calculate energy usage metrics"""
                 n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
-                total_cost = calculate_atp_cost(
-                    self.spike_count, n_neurons, self.time_steps
-                )
+                total_cost = calculate_atp_cost(self.spike_count, n_neurons, self.time_steps)
                 return {
                     "spike_count": self.spike_count,
                     "total_activations": self.total_activations,
@@ -1085,10 +1002,7 @@ class ComparisonNetworks:
                 self.total_activations += e.numel() + i.numel() + attn_out.numel()
                 # Track spikes (high attention weights)
                 self.spike_count += int(
-                    torch.sum(
-                        torch.max(attn_out, dim=-1)[0]
-                        > F6_SPARSITY_ACTIVATION_THRESHOLD
-                    ).item()
+                    torch.sum(torch.max(attn_out, dim=-1)[0] > F6_SPARSITY_ACTIVATION_THRESHOLD).item()
                 )
 
                 return {"policy": policy}
@@ -1096,9 +1010,7 @@ class ComparisonNetworks:
             def get_energy_metrics(self) -> Dict[str, float]:
                 """Calculate energy usage metrics"""
                 n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
-                total_cost = calculate_atp_cost(
-                    self.spike_count, n_neurons, self.time_steps
-                )
+                total_cost = calculate_atp_cost(self.spike_count, n_neurons, self.time_steps)
                 return {
                     "spike_count": self.spike_count,
                     "total_activations": self.total_activations,
@@ -1121,9 +1033,7 @@ class NetworkComparisonExperiment:
 
     def __init__(self, config: Dict):
         # Ensure required dimensions are present with centralized defaults
-        dim_constants = (
-            DIM_CONSTANTS if "DIM_CONSTANTS" in globals() else FALLBACK_DIM_CONSTANTS
-        )
+        dim_constants = DIM_CONSTANTS if "DIM_CONSTANTS" in globals() else FALLBACK_DIM_CONSTANTS
         if "extero_dim" not in config:
             config["extero_dim"] = dim_constants.EXTERO_DIM
         if "intero_dim" not in config:
@@ -1194,9 +1104,7 @@ class NetworkComparisonExperiment:
 
                 with torch.no_grad():
                     for batch in val_loader:
-                        outputs = network(
-                            batch["extero"], batch["intero"], batch["context"]
-                        )
+                        outputs = network(batch["extero"], batch["intero"], batch["context"])
 
                         pred = outputs["policy"].argmax(dim=-1)
                         correct += (pred == batch["target_action"]).sum().item()
@@ -1248,9 +1156,7 @@ class NetworkComparisonExperiment:
 
                 with torch.no_grad():
                     for batch in dataset:
-                        outputs = net_instance(
-                            batch["extero"], batch["intero"], batch["context"]
-                        )
+                        outputs = net_instance(batch["extero"], batch["intero"], batch["context"])
 
                         if task_name == "conscious_classification":
                             # Use ignition probability as prediction
@@ -1284,9 +1190,7 @@ class NetworkComparisonExperiment:
                         unique_targets = torch.unique(targets)
                         if len(unique_targets) > 1:
                             auc = roc_auc_score(targets.numpy(), predictions.numpy())
-                            accuracy = (
-                                auc  # Use AUC as proxy for accuracy in classification
-                            )
+                            accuracy = auc  # Use AUC as proxy for accuracy in classification
                         else:
                             auc = float("nan")
                             accuracy = float("nan")
@@ -1300,9 +1204,7 @@ class NetworkComparisonExperiment:
                             accuracy, energy_metrics["atp_cost"], n_task_samples
                         )
                         # Add paper-grounded ATP cost comparison
-                        atp_comparison = compare_atp_cost_with_literature(
-                            energy_per_correct, task_name
-                        )
+                        atp_comparison = compare_atp_cost_with_literature(energy_per_correct, task_name)
                     else:
                         energy_per_correct = float("inf")
                         atp_comparison = {
@@ -1320,9 +1222,7 @@ class NetworkComparisonExperiment:
                         "atp_comparison": atp_comparison,
                     }
                 else:
-                    if isinstance(predictions, torch.Tensor) and isinstance(
-                        targets, torch.Tensor
-                    ):
+                    if isinstance(predictions, torch.Tensor) and isinstance(targets, torch.Tensor):
                         accuracy = (predictions == targets).float().mean().item()
                     else:
                         # Handle numpy arrays
@@ -1334,9 +1234,7 @@ class NetworkComparisonExperiment:
                             accuracy, energy_metrics["atp_cost"], n_task_samples
                         )
                         # Add paper-grounded ATP cost comparison
-                        atp_comparison = compare_atp_cost_with_literature(
-                            energy_per_correct, task_name
-                        )
+                        atp_comparison = compare_atp_cost_with_literature(energy_per_correct, task_name)
                     else:
                         energy_per_correct = float("inf")
                         atp_comparison = {
@@ -1434,9 +1332,7 @@ class NetworkComparisonExperiment:
                     )
                 else:
                     accuracy = metrics.get("accuracy", float("nan"))
-                    energy_per_correct = metrics.get(
-                        "energy_per_correct_detection", 0.0
-                    )
+                    energy_per_correct = metrics.get("energy_per_correct_detection", 0.0)
                     atp_cost = metrics.get("atp_cost", 0.0)
                     print(
                         f"  {net_name}: Accuracy = {accuracy:.3f}, Energy/Correct = {energy_per_correct:.2e}, ATP Cost = {atp_cost:.2f}"
@@ -1455,14 +1351,8 @@ class NetworkComparisonExperiment:
             **falsification_results,  # Falsification criteria (F6.1, F6.2, etc.)
             "criteria": falsification_results,  # Explicit criteria key for compatibility
             "summary": {
-                "passed": sum(
-                    1 for r in falsification_results.values() if r.get("passed", False)
-                ),
-                "failed": sum(
-                    1
-                    for r in falsification_results.values()
-                    if not r.get("passed", False)
-                ),
+                "passed": sum(1 for r in falsification_results.values() if r.get("passed", False)),
+                "failed": sum(1 for r in falsification_results.values() if not r.get("passed", False)),
                 "total": len(falsification_results),
             },
         }
@@ -1493,12 +1383,8 @@ class NetworkComparisonExperiment:
         apgi_n_neurons = 0
         apgi_n_correct_total = 0
 
-        baseline_energies: Dict[str, List[float]] = {
-            name: [] for name in ["MLP", "LSTM", "Attention"]
-        }
-        baseline_performances: Dict[str, List[float]] = {
-            name: [] for name in ["MLP", "LSTM", "Attention"]
-        }
+        baseline_energies: Dict[str, List[float]] = {name: [] for name in ["MLP", "LSTM", "Attention"]}
+        baseline_performances: Dict[str, List[float]] = {name: [] for name in ["MLP", "LSTM", "Attention"]}
         baseline_spike_counts = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
         baseline_n_neurons = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
         baseline_n_correct = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
@@ -1513,9 +1399,7 @@ class NetworkComparisonExperiment:
 
             # Get APGI metrics
             apgi_data = task_results["APGI"]
-            apgi_energy_list.append(
-                apgi_data.get("energy_per_correct_detection", float("inf"))
-            )
+            apgi_energy_list.append(apgi_data.get("energy_per_correct_detection", float("inf")))
             apgi_perf = apgi_data.get("accuracy", apgi_data.get("auc", 0))
             apgi_performance_list.append(apgi_perf if not np.isnan(apgi_perf) else 0)
             apgi_spike_count += apgi_data.get("spike_count", 0)
@@ -1530,24 +1414,14 @@ class NetworkComparisonExperiment:
             for net_name in ["MLP", "LSTM", "Attention"]:
                 if net_name in task_results:
                     baseline_data = task_results[net_name]
-                    baseline_energies[net_name].append(
-                        baseline_data.get("energy_per_correct_detection", float("inf"))
-                    )
+                    baseline_energies[net_name].append(baseline_data.get("energy_per_correct_detection", float("inf")))
                     perf = baseline_data.get("accuracy", baseline_data.get("auc", 0))
-                    baseline_performances[net_name].append(
-                        perf if not np.isnan(perf) else 0
-                    )
-                    baseline_spike_counts[net_name] += baseline_data.get(
-                        "spike_count", 0
-                    )
-                    baseline_n_neurons[net_name] = max(
-                        baseline_n_neurons[net_name], baseline_data.get("n_neurons", 0)
-                    )
+                    baseline_performances[net_name].append(perf if not np.isnan(perf) else 0)
+                    baseline_spike_counts[net_name] += baseline_data.get("spike_count", 0)
+                    baseline_n_neurons[net_name] = max(baseline_n_neurons[net_name], baseline_data.get("n_neurons", 0))
                     if "accuracy" in baseline_data and baseline_data["accuracy"] > 0:
                         n_samples = 200
-                        baseline_n_correct[net_name] += int(
-                            baseline_data["accuracy"] * n_samples
-                        )
+                        baseline_n_correct[net_name] += int(baseline_data["accuracy"] * n_samples)
 
             # Collect BIC/AIC scores
             if "bic_aic_comparison" in task_results:
@@ -1746,9 +1620,7 @@ class NetworkComparisonExperiment:
             hysteresis_width_ratio = 0.18  # Within 0.08-0.25 threshold
 
             f6_5_pass = (
-                bifurcation_detected
-                and bifurcation_point_error <= 0.15
-                and 0.08 <= hysteresis_width_ratio <= 0.25
+                bifurcation_detected and bifurcation_point_error <= 0.15 and 0.08 <= hysteresis_width_ratio <= 0.25
             )
 
             falsification_results["F6.5"] = {
@@ -1839,12 +1711,8 @@ class NetworkComparisonExperiment:
                 elif step > 100 and step < 150:
                     # Gradual decay period
                     decay_factor = 1.0 - (step - 100) / 50.0
-                    extero = torch.randn(batch_size, extero_dim) * (
-                        0.5 + 1.5 * decay_factor
-                    )
-                    intero = torch.randn(batch_size, intero_dim) * (
-                        0.5 + 1.5 * decay_factor
-                    )
+                    extero = torch.randn(batch_size, extero_dim) * (0.5 + 1.5 * decay_factor)
+                    intero = torch.randn(batch_size, intero_dim) * (0.5 + 1.5 * decay_factor)
                 else:
                     # Low baseline input for stable low-info measurement
                     extero = torch.randn(batch_size, extero_dim) * 0.2
@@ -1859,10 +1727,7 @@ class NetworkComparisonExperiment:
                     tau_values.append(outputs["tau"].mean().item())
                 if "ignition_prob" in outputs:
                     ignition_probs.append(outputs["ignition_prob"].mean().item())
-                if (
-                    hasattr(network, "liquid_state")
-                    and network.liquid_state is not None
-                ):
+                if hasattr(network, "liquid_state") and network.liquid_state is not None:
                     liquid_states.append(network.liquid_state.clone())  # type: ignore[operator]
                     # Count active neurons for sparsity
                     active = (torch.abs(network.liquid_state) > 0.01).sum().item()  # type: ignore[arg-type]
@@ -1903,9 +1768,7 @@ class NetworkComparisonExperiment:
         # This requires the extended 5s simulation window
         if len(liquid_states) > 100:
             # Compute autocorrelation of liquid state norm
-            state_norms = torch.stack(
-                [s.norm().squeeze() for s in liquid_states]
-            ).numpy()
+            state_norms = torch.stack([s.norm().squeeze() for s in liquid_states]).numpy()
 
             # Compute autocorrelation
             autocorr = np.correlate(
@@ -1930,9 +1793,7 @@ class NetworkComparisonExperiment:
             # Fit only positive lags where autocorr > 0.1
             valid_idx = np.where(autocorr[:usable_lags] > 0.1)[0]
             if len(valid_idx) > 10:
-                popt, _ = curve_fit(
-                    exp_decay, lags[valid_idx], autocorr[valid_idx], p0=[1.0]
-                )
+                popt, _ = curve_fit(exp_decay, lags[valid_idx], autocorr[valid_idx], p0=[1.0])
                 fitted_tau = popt[0]
             else:
                 fitted_tau = 2.0  # Default LTCN characteristic
@@ -1950,12 +1811,8 @@ class NetworkComparisonExperiment:
         # Calculate integration window: time for autocorr to decay to 1/e ≈ 0.37
         if len(liquid_states) > 50:
             # Integration window is related to τ
-            integration_window = (
-                fitted_tau * 1000.0 * 0.5
-            )  # Convert to ms, scale factor
-            integration_window = max(
-                200.0, min(500.0, integration_window)
-            )  # Clamp to 200-500ms
+            integration_window = fitted_tau * 1000.0 * 0.5  # Convert to ms, scale factor
+            integration_window = max(200.0, min(500.0, integration_window))  # Clamp to 200-500ms
         else:
             integration_window = 350.0
 
@@ -1973,15 +1830,12 @@ class NetworkComparisonExperiment:
             low_info_end = min(450, len(active_neurons) - 50)
             low_info_active = (
                 np.mean(active_neurons[low_info_start:low_info_end])
-                if low_info_start < low_info_end
-                and low_info_start < len(active_neurons)
+                if low_info_start < low_info_end and low_info_start < len(active_neurons)
                 else np.mean(active_neurons[-min(50, len(active_neurons)) :])
             )
 
             if high_info_active > 0:
-                sparsity_reduction = float(
-                    ((high_info_active - low_info_active) / high_info_active) * 100
-                )
+                sparsity_reduction = float(((high_info_active - low_info_active) / high_info_active) * 100)
                 # Ensure minimum 30% reduction for valid LTCN dynamics
                 sparsity_reduction = max(30.0, min(100.0, sparsity_reduction))
             else:
@@ -2041,9 +1895,7 @@ class NetworkComparisonExperiment:
         full_accuracy: float = 0.0
         with torch.no_grad():
             for batch in test_data:
-                outputs = full_network(
-                    batch["extero"], batch["intero"], batch["context"]
-                )
+                outputs = full_network(batch["extero"], batch["intero"], batch["context"])
                 pred = outputs["policy"].argmax(dim=-1)
                 full_accuracy += (pred == batch["target"]).float().mean().item()
         full_accuracy /= len(test_data)
@@ -2068,9 +1920,7 @@ class NetworkComparisonExperiment:
                 acc = 0.0
                 with torch.no_grad():
                     for batch in test_data:
-                        outputs = network(
-                            batch["extero"], batch["intero"], batch["context"]
-                        )
+                        outputs = network(batch["extero"], batch["intero"], batch["context"])
                         pred = outputs["policy"].argmax(dim=-1)
                         acc += (pred == batch["target"]).float().mean().item()
                 acc /= len(test_data)
@@ -2182,12 +2032,8 @@ def run_falsification():
 
             from utils.protocol_visualization import ProtocolVisualizer
 
-            visualizer = ProtocolVisualizer(
-                6, output_dir="validation_results/visualizations"
-            )
-            success = visualizer.create_custom_plot(
-                fp06_custom_plot, "Energy Benchmark"
-            )
+            visualizer = ProtocolVisualizer(6, output_dir="validation_results/visualizations")
+            success = visualizer.create_custom_plot(fp06_custom_plot, "Energy Benchmark")
             # Rename to match expected filename
             if success:
                 if os.path.exists("validation_results/visualizations/protocol06.png"):
@@ -2195,9 +2041,7 @@ def run_falsification():
                         "validation_results/visualizations/protocol06.png",
                         "validation_results/visualizations/protocol06_results.png",
                     )
-                print(
-                    "✓ Generated validation_results/visualizations/protocol06_results.png"
-                )
+                print("✓ Generated validation_results/visualizations/protocol06_results.png")
             else:
                 print("⚠ Failed to generate protocol06_results.png visualization")
         except ImportError:
@@ -2285,9 +2129,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 passed=pred_data.get("passed", False),
                 value=pred_data.get("effect_size"),
                 threshold=pred_data.get("threshold"),
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
+                status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("description", "")],
                 sources=["FP_06_LiquidNetwork_EnergyBenchmark"],
                 metadata=pred_data,
@@ -2458,10 +2300,7 @@ def check_falsification(
 
     # Cohen's d
     pooled_std = np.sqrt(
-        (
-            (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
-            + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
-        )
+        ((len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1) + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1))
         / (len(apgi_rewards) + len(pp_rewards) - 2)
     )
     cohens_d = (mean_apgi - mean_pp) / pooled_std
@@ -2500,9 +2339,7 @@ def check_falsification(
 
     # Eta-squared
     ss_total = np.sum((timescales_array - np.mean(timescales_array)) ** 2)
-    ss_between = sum(
-        len(cm) * (np.mean(cm) - np.mean(timescales_array)) ** 2 for cm in cluster_means
-    )
+    ss_between = sum(len(cm) * (np.mean(cm) - np.mean(timescales_array)) ** 2 for cm in cluster_means)
     eta_squared = ss_between / ss_total
 
     f1_2_pass = silhouette >= 0.30 and eta_squared >= 0.50 and p_anova < 0.001
@@ -2545,12 +2382,7 @@ def check_falsification(
     df = n - 1 if n > 1 else 1
     partial_eta_sq = (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
 
-    f1_3_pass = (
-        mean_diff >= 15
-        and cohens_d_rm >= 0.35
-        and p_rm < 0.01
-        and partial_eta_sq >= 0.15
-    )
+    f1_3_pass = mean_diff >= 15 and cohens_d_rm >= 0.35 and p_rm < 0.01 and partial_eta_sq >= 0.15
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "mean_precision_diff_pct": mean_diff,
@@ -2621,9 +2453,7 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_pac = stats.ttest_rel(pac_ignition, pac_baseline)
-    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(
-        pac_ignition - pac_baseline, ddof=1
-    )
+    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(pac_ignition - pac_baseline, ddof=1)
 
     # Permutation test (simplified)
     n_permutations = 10000
@@ -2631,17 +2461,9 @@ def check_falsification(
     for _ in range(n_permutations):
         perm_ignition = np.random.permutation(pac_ignition)
         perm_diffs.append(np.mean(perm_ignition) - np.mean(pac_baseline))
-    perm_p = np.mean(
-        np.abs(np.array(perm_diffs))
-        >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline))
-    )
+    perm_p = np.mean(np.abs(np.array(perm_diffs)) >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline)))
 
-    f1_5_pass = (
-        mean_pac_increase >= 30
-        and cohens_d_pac >= 0.50
-        and p_pac < 0.01
-        and perm_p < 0.01
-    )
+    f1_5_pass = mean_pac_increase >= 30 and cohens_d_pac >= 0.50 and p_pac < 0.01 and perm_p < 0.01
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
         "pac_increase_pct": mean_pac_increase,
@@ -2670,9 +2492,7 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_slope = stats.ttest_rel(low_arousal_slopes, active_slopes)
-    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(
-        low_arousal_slopes - active_slopes, ddof=1
-    )
+    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(low_arousal_slopes - active_slopes, ddof=1)
 
     # Goodness of fit (R²)
     residuals = active_slopes - mean_active
@@ -2682,8 +2502,7 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal
-        >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
+        and mean_low_arousal >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85
@@ -2718,8 +2537,7 @@ def check_falsification(
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (len(apgi_advantageous_selection) - 1)
-            * np.var(apgi_advantageous_selection, ddof=1)
+            (len(apgi_advantageous_selection) - 1) * np.var(apgi_advantageous_selection, ddof=1)
             + (len(no_somatic_selection) - 1) * np.var(no_somatic_selection, ddof=1)
         )
         / (len(apgi_advantageous_selection) + len(no_somatic_selection) - 2)
@@ -2758,15 +2576,11 @@ def check_falsification(
     # Fisher's z-transformation for difference test
     z_apgi = np.arctanh(corr)
     z_no_somatic = np.arctanh(corr_no_somatic)
-    se_diff = np.sqrt(
-        1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3)
-    )
+    se_diff = np.sqrt(1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3))
     z_diff = (z_apgi - z_no_somatic) / se_diff
     p_diff = 2 * (1 - stats.norm.cdf(abs(z_diff)))
 
-    f2_2_pass = (
-        corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
-    )
+    f2_2_pass = corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
         "apgi_correlation": corr,
@@ -2869,9 +2683,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}"
-    )
+    logger.info(f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}")
 
     # F2.5: Beta Interaction Effects
     logger.info("Testing F2.5: Beta Interaction Effects")
@@ -2889,9 +2701,7 @@ def check_falsification(
         p_beta = 1.0
 
     # Effect size (eta-squared) - simplified for single value
-    ss_total = np.sum(
-        (np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2
-    )
+    ss_total = np.sum((np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2)
     ss_between = (np.mean([beta_interaction]) - np.mean([beta_interaction, 0])) ** 2
     eta_squared = ss_between / ss_total if ss_total > 0 else 0
 
@@ -2965,9 +2775,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Advantage: {interoceptive_advantage:.1f}%"
-    )
+    logger.info(f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Advantage: {interoceptive_advantage:.1f}%")
 
     # F3.3: Exteroceptive Task Advantage
     logger.info("Testing F3.3: Exteroceptive Task Advantage")
@@ -2982,9 +2790,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Advantage: {exteroceptive_advantage:.1f}%"
-    )
+    logger.info(f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Advantage: {exteroceptive_advantage:.1f}%")
 
     # F3.4: Threshold Reduction
     logger.info("Testing F3.4: Threshold Reduction")
@@ -2999,9 +2805,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {threshold_reduction:.1f}%"
-    )
+    logger.info(f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {threshold_reduction:.1f}%")
 
     # F3.5: Precision Reduction
     logger.info("Testing F3.5: Precision Reduction")
@@ -3016,21 +2820,12 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Reduction: {precision_reduction:.1f}%"
-    )
+    logger.info(f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Reduction: {precision_reduction:.1f}%")
 
     # F3.6: Performance Retention
     logger.info("Testing F3.6: Performance Retention")
-    trial_advantage = (
-        (apgi_time_to_criterion - baseline_time_to_criterion)
-        / baseline_time_to_criterion
-    ) * 100
-    hazard_ratio = (
-        baseline_time_to_criterion / apgi_time_to_criterion
-        if apgi_time_to_criterion > 0
-        else np.inf
-    )
+    trial_advantage = ((apgi_time_to_criterion - baseline_time_to_criterion) / baseline_time_to_criterion) * 100
+    hazard_ratio = baseline_time_to_criterion / apgi_time_to_criterion if apgi_time_to_criterion > 0 else np.inf
 
     # Log-rank test (simplified as proportion test)
     f3_6_pass = performance_retention >= 80 and hazard_ratio >= 1.5
@@ -3172,38 +2967,25 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.1f}, R²={r_squared:.3f}"
-    )
+    logger.info(f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.1f}, R²={r_squared:.3f}")
 
     # F5.6: Control Performance Difference
     logger.info("Testing F5.6: Control Performance Difference")
     # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 30
-    ):
+    if isinstance(control_performance_difference, (list, np.ndarray)) and len(control_performance_difference) >= 30:
         # Use standard t-test with sufficient sample size
         t_stat, p_value, _ = safe_ttest_1samp(control_performance_difference, 0)
         cohens_d = (
-            float(np.mean(control_performance_difference))
-            / np.std(control_performance_difference, ddof=1)
+            float(np.mean(control_performance_difference)) / np.std(control_performance_difference, ddof=1)
             if np.std(control_performance_difference, ddof=1) > 0
             else 0
         )
         mean_diff = float(np.mean(control_performance_difference))
-    elif (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 2
-    ):
+    elif isinstance(control_performance_difference, (list, np.ndarray)) and len(control_performance_difference) >= 2:
         # Use bootstrap test for small samples
         data_array = np.array(control_performance_difference)
         t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
-        cohens_d = (
-            float(np.mean(data_array)) / np.std(data_array, ddof=1)
-            if np.std(data_array, ddof=1) > 0
-            else 0
-        )
+        cohens_d = float(np.mean(data_array)) / np.std(data_array, ddof=1) if np.std(data_array, ddof=1) > 0 else 0
         mean_diff = float(np.mean(data_array))
     else:
         # Insufficient data - fail criterion
@@ -3242,9 +3024,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     # Mann-Whitney U test
-    u_stat, p_mw = stats.mannwhitneyu(
-        [ltcn_transition_time], [feedforward_transition_time], alternative="less"
-    )
+    u_stat, p_mw = stats.mannwhitneyu([ltcn_transition_time], [feedforward_transition_time], alternative="less")
 
     # Cliff's delta (simplified)
     n1, n2 = 100, 100
@@ -3274,16 +3054,10 @@ def check_falsification(
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
-    integration_ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
+    integration_ratio = ltcn_integration_window / rnn_integration_window if rnn_integration_window > 0 else 0
 
     # Wilcoxon signed-rank test
-    w_stat, p_wilcoxon = stats.wilcoxon(
-        [ltcn_integration_window], [rnn_integration_window]
-    )
+    w_stat, p_wilcoxon = stats.wilcoxon([ltcn_integration_window], [rnn_integration_window])
 
     f6_2_pass = (
         ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
@@ -3312,10 +3086,7 @@ def check_falsification(
     # F6.3: Metabolic Selectivity Without Training
     logger.info("Testing F6.3: Metabolic Selectivity Without Training")
     # Paired t-test for LTCN
-    if (
-        isinstance(ltcn_sparsity_reduction, (list, np.ndarray))
-        and len(ltcn_sparsity_reduction) >= 2
-    ):
+    if isinstance(ltcn_sparsity_reduction, (list, np.ndarray)) and len(ltcn_sparsity_reduction) >= 2:
         _, p_lt, _ = safe_ttest_1samp(ltcn_sparsity_reduction, 0)
         mean_reduction = float(np.mean(ltcn_sparsity_reduction))
     else:
@@ -3373,11 +3144,7 @@ def check_falsification(
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
     # CRITICAL FIX: bifurcation point error threshold corrected to ±0.15 (from 0.30)
     # hysteresis width corrected to 0.08-0.25 θ_t (from 0.05-0.30)
-    f6_5_pass = (
-        bifurcation_detected
-        and bifurcation_point_error <= 0.15
-        and 0.08 <= hysteresis_width_ratio <= 0.25
-    )
+    f6_5_pass = bifurcation_detected and bifurcation_point_error <= 0.15 and 0.08 <= hysteresis_width_ratio <= 0.25
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,
         "bifurcation_detected": bifurcation_detected,
@@ -3416,9 +3183,7 @@ def check_falsification(
 
     # Explicitly map F1.1-F1.3 to standardized prediction names P6.1-P6.3
     # Note: FP-06 implements core F1.x criteria via its Liquid Network architecture
-    results["named_predictions"] = {
-        f"P6.{i}": results["criteria"].get(f"F1.{i}", {}) for i in range(1, 4)
-    }
+    results["named_predictions"] = {f"P6.{i}": results["criteria"].get(f"F1.{i}", {}) for i in range(1, 4)}
 
     # Add mandatory fields for integration
     results["status"] = "success" if results["summary"]["passed"] > 0 else "failed"

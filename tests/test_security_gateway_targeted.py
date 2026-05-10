@@ -9,9 +9,7 @@ def test_security_gateway_check_and_require(monkeypatch):
     from utils.auth_adapter import Role, get_auth_manager
     from utils.security_gateway import SecurityGateway
 
-    token = get_auth_manager().generate_token(
-        "gw-user", Role.RESEARCHER, expiration_hours=1
-    )
+    token = get_auth_manager().generate_token("gw-user", Role.RESEARCHER, expiration_hours=1)
     gw = SecurityGateway()
 
     assert gw.check_access(token, [Role.RESEARCHER]) is True

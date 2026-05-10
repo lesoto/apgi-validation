@@ -33,9 +33,7 @@ def enforce_secret_policy():
     # 1. Mandatory env checks
     master_key = os.environ.get("APGI_MASTER_KEY")
     if not master_key:
-        allow_ephemeral = os.environ.get(
-            "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
-        ).strip().lower() in {
+        allow_ephemeral = os.environ.get("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "").strip().lower() in {
             "1",
             "true",
             "yes",

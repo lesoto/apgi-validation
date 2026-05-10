@@ -192,10 +192,7 @@ def check_imports_in_file(file_path: Path) -> Tuple[bool, List[str]]:
         return True, []
 
     # Skip this script itself (it contains the pattern as a string literal)
-    if (
-        "scripts/threshold_lint.py" in str(file_path)
-        or file_path.name == "threshold_lint.py"
-    ):
+    if "scripts/threshold_lint.py" in str(file_path) or file_path.name == "threshold_lint.py":
         return True, []
 
     # Check for old import pattern
@@ -225,14 +222,10 @@ def find_hardcoded_thresholds(file_path: Path) -> Tuple[bool, List[str]]:
     for i, line in enumerate(lines, 1):
         # Skip comments and docstrings
         stripped = line.strip()
-        if (
-            stripped.startswith("#")
-            or stripped.startswith('"""')
-            or stripped.startswith("'''")
-        ):
+        if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
             continue
 
-        # Look for float literals in comparisons
+        # Look for float literals in comparisons - more specific pattern to avoid false positives
         if re.search(r"[=<>!]+\s*\d+\.\d+", line):
             # Exclude common patterns that are not thresholds
             if any(

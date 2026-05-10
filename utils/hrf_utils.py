@@ -26,12 +26,7 @@ import numpy as np
 
 # Import APGI constants for HRF parameters
 try:
-    from utils.constants import (
-        HRF_DISPERSION,
-        HRF_PEAK1_SECONDS,
-        HRF_UNDERSHOOT_RATIO,
-        HRF_UNDERSHOOT_SECONDS,
-    )
+    from utils.constants import HRF_DISPERSION, HRF_PEAK1_SECONDS, HRF_UNDERSHOOT_RATIO, HRF_UNDERSHOOT_SECONDS
 except ImportError:
     # Fallback defaults if constants not available
     HRF_PEAK1_SECONDS = 6.0
@@ -78,17 +73,11 @@ def double_gamma_hrf(
     hrf = (
         t_safe ** (response_peak_delay_s - 1)
         * np.exp(-t_safe / response_dispersion_s)
-        / (
-            response_dispersion_s**response_peak_delay_s
-            * math.factorial(int(response_peak_delay_s) - 1)
-        )
+        / (response_dispersion_s**response_peak_delay_s * math.factorial(int(response_peak_delay_s) - 1))
     ) - undershoot_ratio * (
         t_safe ** (undershoot_delay_s - 1)
         * np.exp(-t_safe / undershoot_dispersion_s)
-        / (
-            undershoot_dispersion_s**undershoot_delay_s
-            * math.factorial(int(undershoot_delay_s) - 1)
-        )
+        / (undershoot_dispersion_s**undershoot_delay_s * math.factorial(int(undershoot_delay_s) - 1))
     )
     hrf[t <= 0] = 0.0
     return hrf / np.max(hrf)

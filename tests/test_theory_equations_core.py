@@ -110,21 +110,15 @@ def test_somatic_marker_dynamics():
 
 def test_arousal_dynamics():
     rng = np.random.default_rng(42)
-    A_new = DynamicalSystemEquations.arousal_dynamics(
-        A=0.5, A_target=0.8, tau_A=10.0, sigma_A=0.05, dt=0.01, rng=rng
-    )
+    A_new = DynamicalSystemEquations.arousal_dynamics(A=0.5, A_target=0.8, tau_A=10.0, sigma_A=0.05, dt=0.01, rng=rng)
     assert 0.0 <= A_new <= 1.0
 
 
 def test_compute_arousal_target():
-    A_target = DynamicalSystemEquations.compute_arousal_target(
-        t=10.0, max_eps=2.0, eps_i_history=[0.5, 1.0, 1.5]
-    )
+    A_target = DynamicalSystemEquations.compute_arousal_target(t=10.0, max_eps=2.0, eps_i_history=[0.5, 1.0, 1.5])
     assert 0.0 <= A_target <= 1.0
 
-    A_target_empty = DynamicalSystemEquations.compute_arousal_target(
-        t=10.0, max_eps=2.0, eps_i_history=[]
-    )
+    A_target_empty = DynamicalSystemEquations.compute_arousal_target(t=10.0, max_eps=2.0, eps_i_history=[])
     assert 0.0 <= A_target_empty <= 1.0
 
 
@@ -153,15 +147,11 @@ def test_latency_to_ignition():
     assert t_star >= 0.0
 
     # No ignition possible
-    t_star_inf = DerivedQuantities.latency_to_ignition(
-        S_0=1.0, theta=2.0, I=3.0, tau_S=0.5
-    )
+    t_star_inf = DerivedQuantities.latency_to_ignition(S_0=1.0, theta=2.0, I=3.0, tau_S=0.5)
     assert t_star_inf == float("inf")
 
     # Already at steady state
-    t_star_zero = DerivedQuantities.latency_to_ignition(
-        S_0=2.5, theta=2.0, I=5.0, tau_S=0.5
-    )
+    t_star_zero = DerivedQuantities.latency_to_ignition(S_0=2.5, theta=2.0, I=5.0, tau_S=0.5)
     assert t_star_zero == 0.0
 
 

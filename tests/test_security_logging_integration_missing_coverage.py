@@ -94,9 +94,7 @@ class TestSecurityLoggingIntegrationMissingCoverage:
             log_file = Path(temp_dir) / "auth_fail.log"
 
             logger = SecurityAuditLogger(str(log_file))
-            logger.log_authentication(
-                "login", "user123", False, "192.168.1.1", "Invalid password"
-            )
+            logger.log_authentication("login", "user123", False, "192.168.1.1", "Invalid password")
 
             content = log_file.read_text()
             assert "login" in content
@@ -128,9 +126,7 @@ class TestSecurityLoggingIntegrationMissingCoverage:
             log_file = Path(temp_dir) / "perm_denied.log"
 
             logger = SecurityAuditLogger(str(log_file))
-            logger.log_permission_check(
-                "delete_file", "user123", "/important/file.txt", False
-            )
+            logger.log_permission_check("delete_file", "user123", "/important/file.txt", False)
 
             content = log_file.read_text()
             assert "delete_file" in content

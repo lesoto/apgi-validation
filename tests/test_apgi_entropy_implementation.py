@@ -29,9 +29,7 @@ try:
     VariationalFreeEnergyCalculator = _entropy_module.VariationalFreeEnergyCalculator
     MultiLevelEntropyModule = _entropy_module.MultiLevelEntropyModule
     LTCNeuron = _entropy_module.LTCNeuron
-    HierarchicalPredictiveCodingLayer = (
-        _entropy_module.HierarchicalPredictiveCodingLayer
-    )
+    HierarchicalPredictiveCodingLayer = _entropy_module.HierarchicalPredictiveCodingLayer
     PrecisionEstimator = _entropy_module.PrecisionEstimator
     PredictionErrorModule = _entropy_module.PredictionErrorModule
     EnhancedMetabolicCostModule = _entropy_module.EnhancedMetabolicCostModule
@@ -444,9 +442,7 @@ class TestMultiLevelEntropyModule:
     def test_module_initialization(self):
         """Test MultiLevelEntropyModule initialization."""
         try:
-            module = MultiLevelEntropyModule(
-                input_dims=100, hidden_dims=[128, 64, 32], output_dims=50
-            )
+            module = MultiLevelEntropyModule(input_dims=100, hidden_dims=[128, 64, 32], output_dims=50)
 
             assert module.input_dims == 100
             assert module.hidden_dims == [128, 64, 32]
@@ -459,9 +455,7 @@ class TestMultiLevelEntropyModule:
     def test_forward_pass(self):
         """Test forward pass through multi-level entropy."""
         try:
-            module = MultiLevelEntropyModule(
-                input_dims=50, hidden_dims=[32, 16], output_dims=10
-            )
+            module = MultiLevelEntropyModule(input_dims=50, hidden_dims=[32, 16], output_dims=10)
 
             # Create mock input
             mock_input = MagicMock()
@@ -477,9 +471,7 @@ class TestMultiLevelEntropyModule:
     def test_level_integration(self):
         """Test integration of different entropy levels."""
         try:
-            module = MultiLevelEntropyModule(
-                input_dims=64, hidden_dims=[64, 32, 16], output_dims=32
-            )
+            module = MultiLevelEntropyModule(input_dims=64, hidden_dims=[64, 32, 16], output_dims=32)
 
             # Test that different levels are integrated
             assert hasattr(module, "thermodynamic")
@@ -551,9 +543,7 @@ class TestHierarchicalPredictiveCoding:
     def test_layer_initialization(self):
         """Test HierarchicalPredictiveCodingLayer initialization."""
         try:
-            layer = HierarchicalPredictiveCodingLayer(
-                input_size=64, hidden_size=128, future_horizon=10
-            )
+            layer = HierarchicalPredictiveCodingLayer(input_size=64, hidden_size=128, future_horizon=10)
 
             assert layer.input_size == 64
             assert layer.hidden_size == 128
@@ -566,9 +556,7 @@ class TestHierarchicalPredictiveCoding:
     def test_prediction_computation(self):
         """Test predictive coding computation."""
         try:
-            layer = HierarchicalPredictiveCodingLayer(
-                input_size=32, hidden_size=64, future_horizon=5
-            )
+            layer = HierarchicalPredictiveCodingLayer(input_size=32, hidden_size=64, future_horizon=5)
 
             # Create mock inputs
             mock_input = MagicMock()
@@ -586,9 +574,7 @@ class TestHierarchicalPredictiveCoding:
     def test_temporal_consistency(self):
         """Test temporal consistency in predictions."""
         try:
-            layer = HierarchicalPredictiveCodingLayer(
-                input_size=50, hidden_size=100, future_horizon=8
-            )
+            layer = HierarchicalPredictiveCodingLayer(input_size=50, hidden_size=100, future_horizon=8)
 
             # Should maintain temporal consistency
             assert hasattr(layer, "temporal_consistency")
@@ -608,9 +594,7 @@ class TestPrecisionEstimator:
     def test_estimator_initialization(self):
         """Test PrecisionEstimator initialization."""
         try:
-            estimator = PrecisionEstimator(
-                input_dims=50, hidden_dims=[64, 32], output_dims=4
-            )
+            estimator = PrecisionEstimator(input_dims=50, hidden_dims=[64, 32], output_dims=4)
 
             assert estimator.input_dims == 50
             assert estimator.hidden_dims == [64, 32]
@@ -623,9 +607,7 @@ class TestPrecisionEstimator:
     def test_precision_estimation(self):
         """Test precision estimation computation."""
         try:
-            estimator = PrecisionEstimator(
-                input_dims=32, hidden_dims=[64, 32], output_dims=2
-            )
+            estimator = PrecisionEstimator(input_dims=32, hidden_dims=[64, 32], output_dims=2)
 
             # Create mock context
             mock_context = MagicMock()
@@ -642,9 +624,7 @@ class TestPrecisionEstimator:
     def test_uncertainty_quantification(self):
         """Test uncertainty quantification."""
         try:
-            estimator = PrecisionEstimator(
-                input_dims=40, hidden_dims=[80, 40], output_dims=3
-            )
+            estimator = PrecisionEstimator(input_dims=40, hidden_dims=[80, 40], output_dims=3)
 
             # Should quantify uncertainty
             assert hasattr(estimator, "quantify_uncertainty")
@@ -664,9 +644,7 @@ class TestPredictionErrorModule:
     def test_module_initialization(self):
         """Test PredictionErrorModule initialization."""
         try:
-            module = PredictionErrorModule(
-                input_dims=64, hidden_dims=[128, 64], output_dims=1
-            )
+            module = PredictionErrorModule(input_dims=64, hidden_dims=[128, 64], output_dims=1)
 
             assert module.input_dims == 64
             assert module.hidden_dims == [128, 64]
@@ -679,9 +657,7 @@ class TestPredictionErrorModule:
     def test_error_computation(self):
         """Test prediction error computation."""
         try:
-            module = PredictionErrorModule(
-                input_dims=32, hidden_dims=[64, 32], output_dims=1
-            )
+            module = PredictionErrorModule(input_dims=32, hidden_dims=[64, 32], output_dims=1)
 
             # Create mock inputs
             mock_intero = MagicMock()
@@ -699,9 +675,7 @@ class TestPredictionErrorModule:
     def test_precision_weighted_errors(self):
         """Test precision-weighted error computation."""
         try:
-            module = PredictionErrorModule(
-                input_dims=50, hidden_dims=[100, 50], output_dims=1
-            )
+            module = PredictionErrorModule(input_dims=50, hidden_dims=[100, 50], output_dims=1)
 
             # Should compute precision-weighted errors
             assert hasattr(module, "compute_precision_weighted_error")
@@ -721,9 +695,7 @@ class TestEnhancedMetabolicCost:
     def test_cost_module_initialization(self):
         """Test EnhancedMetabolicCostModule initialization."""
         try:
-            module = EnhancedMetabolicCostModule(
-                input_dims=32, hidden_dims=[64, 32], output_dims=2
-            )
+            module = EnhancedMetabolicCostModule(input_dims=32, hidden_dims=[64, 32], output_dims=2)
 
             assert module.input_dims == 32
             assert module.hidden_dims == [64, 32]
@@ -736,9 +708,7 @@ class TestEnhancedMetabolicCost:
     def test_cost_computation(self):
         """Test metabolic cost computation."""
         try:
-            module = EnhancedMetabolicCostModule(
-                input_dims=40, hidden_dims=[80, 40], output_dims=2
-            )
+            module = EnhancedMetabolicCostModule(input_dims=40, hidden_dims=[80, 40], output_dims=2)
 
             # Create mock inputs
             mock_activation = MagicMock()
@@ -755,9 +725,7 @@ class TestEnhancedMetabolicCost:
     def test_cost_efficiency_optimization(self):
         """Test cost-efficiency optimization."""
         try:
-            module = EnhancedMetabolicCostModule(
-                input_dims=30, hidden_dims=[60, 30], output_dims=2
-            )
+            module = EnhancedMetabolicCostModule(input_dims=30, hidden_dims=[60, 30], output_dims=2)
 
             # Should optimize cost-efficiency
             assert hasattr(module, "optimize_efficiency")
@@ -777,9 +745,7 @@ class TestAdaptiveThreshold:
     def test_threshold_initialization(self):
         """Test AdaptiveThreshold initialization."""
         try:
-            threshold = AdaptiveThreshold(
-                input_dims=20, initial_threshold=3.0, learning_rate=0.01
-            )
+            threshold = AdaptiveThreshold(input_dims=20, initial_threshold=3.0, learning_rate=0.01)
 
             assert threshold.input_dims == 20
             assert threshold.initial_threshold == 3.0
@@ -792,9 +758,7 @@ class TestAdaptiveThreshold:
     def test_threshold_adaptation(self):
         """Test threshold adaptation."""
         try:
-            threshold = AdaptiveThreshold(
-                input_dims=25, initial_threshold=2.5, learning_rate=0.02
-            )
+            threshold = AdaptiveThreshold(input_dims=25, initial_threshold=2.5, learning_rate=0.02)
 
             # Create mock inputs
             mock_activation = MagicMock()
@@ -810,9 +774,7 @@ class TestAdaptiveThreshold:
     def test_cost_benefit_analysis(self):
         """Test cost-benefit analysis."""
         try:
-            threshold = AdaptiveThreshold(
-                input_dims=15, initial_threshold=4.0, learning_rate=0.005
-            )
+            threshold = AdaptiveThreshold(input_dims=15, initial_threshold=4.0, learning_rate=0.005)
 
             # Should analyze cost-benefit
             assert hasattr(threshold, "analyze_cost_benefit")
@@ -832,9 +794,7 @@ class TestNeuromodulation:
     def test_modulation_initialization(self):
         """Test NeuromodulationModule initialization."""
         try:
-            module = NeuromodulationModule(
-                input_dims=40, hidden_dims=[80, 40], output_dims=4
-            )
+            module = NeuromodulationModule(input_dims=40, hidden_dims=[80, 40], output_dims=4)
 
             assert module.input_dims == 40
             assert module.hidden_dims == [80, 40]
@@ -847,9 +807,7 @@ class TestNeuromodulation:
     def test_neuromodulation_effects(self):
         """Test neuromodulation on precision."""
         try:
-            module = NeuromodulationModule(
-                input_dims=35, hidden_dims=[70, 35], output_dims=3
-            )
+            module = NeuromodulationModule(input_dims=35, hidden_dims=[70, 35], output_dims=3)
 
             # Create mock inputs
             mock_baseline = MagicMock()
@@ -866,9 +824,7 @@ class TestNeuromodulation:
         """Test different neuromodulator types."""
         try:
             # Test acetylcholine effects
-            module = NeuromodulationModule(
-                input_dims=30, hidden_dims=[60, 30], output_dims=2
-            )
+            module = NeuromodulationModule(input_dims=30, hidden_dims=[60, 30], output_dims=2)
 
             # Should support different neuromodulators
             assert hasattr(module, "apply_acetylcholine")
@@ -889,9 +845,7 @@ class TestGlobalWorkspace:
     def test_workspace_initialization(self):
         """Test GlobalWorkspaceModule initialization."""
         try:
-            workspace = GlobalWorkspaceModule(
-                input_dims=100, hidden_dims=[200, 100], output_dims=50
-            )
+            workspace = GlobalWorkspaceModule(input_dims=100, hidden_dims=[200, 100], output_dims=50)
 
             assert workspace.input_dims == 100
             assert workspace.hidden_dims == [200, 100]
@@ -904,9 +858,7 @@ class TestGlobalWorkspace:
     def test_workspace_dynamics(self):
         """Test global workspace dynamics."""
         try:
-            workspace = GlobalWorkspaceModule(
-                input_dims=80, hidden_dims=[160, 80], output_dims=40
-            )
+            workspace = GlobalWorkspaceModule(input_dims=80, hidden_dims=[160, 80], output_dims=40)
 
             # Create mock inputs
             mock_inputs = MagicMock()
@@ -930,9 +882,7 @@ class TestAPGILiquidNetwork:
     def test_network_initialization(self):
         """Test APGILiquidNetwork initialization."""
         try:
-            network = APGILiquidNetwork(
-                input_dims=128, hidden_dims=[256, 128, 64], output_dims=32
-            )
+            network = APGILiquidNetwork(input_dims=128, hidden_dims=[256, 128, 64], output_dims=32)
 
             assert network.input_dims == 128
             assert network.hidden_dims == [256, 128, 64]
@@ -945,9 +895,7 @@ class TestAPGILiquidNetwork:
     def test_network_components(self):
         """Test network component integration."""
         try:
-            network = APGILiquidNetwork(
-                input_dims=64, hidden_dims=[128, 64, 32], output_dims=16
-            )
+            network = APGILiquidNetwork(input_dims=64, hidden_dims=[128, 64, 32], output_dims=16)
 
             # Should have all required components
             assert hasattr(network, "entropy_modules")
@@ -962,9 +910,7 @@ class TestAPGILiquidNetwork:
     def test_forward_pass(self):
         """Test complete forward pass."""
         try:
-            network = APGILiquidNetwork(
-                input_dims=96, hidden_dims=[192, 96, 48], output_dims=24
-            )
+            network = APGILiquidNetwork(input_dims=96, hidden_dims=[192, 96, 48], output_dims=24)
 
             # Create mock inputs
             mock_eeg = MagicMock()
@@ -982,9 +928,7 @@ class TestAPGILiquidNetwork:
     def test_training_integration(self):
         """Test training integration."""
         try:
-            network = APGILiquidNetwork(
-                input_dims=80, hidden_dims=[160, 80, 40], output_dims=20
-            )
+            network = APGILiquidNetwork(input_dims=80, hidden_dims=[160, 80, 40], output_dims=20)
 
             # Should be trainable
             assert hasattr(network, "train")

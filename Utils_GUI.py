@@ -14,7 +14,7 @@ import queue
 import re
 import select
 import shlex
-import subprocess
+import subprocess  # nosec B404
 import sys
 import threading
 import time
@@ -25,7 +25,8 @@ from typing import Any, Dict, List, Optional
 
 # Configure basic logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("UtilsRunner")
 
@@ -56,7 +57,7 @@ def is_progress_bar_line(text: str) -> bool:
     # Match patterns like: "Processing jobs:   0%|          | 0/1 [00:00<?, ?it/s]"
     # or "Loading data:  17%|█▋        | 1/6 [00:00<00:00,  6.36it/s]"
     # Pattern: any text, then percentage, progress bar blocks, count, and timing
-    progress_pattern = re.compile(r"^.*\d+%\|[\s█▏▎▍▌▋▊▉]+\|\s*\d+/\d+\s*\[.*\].*$")
+    progress_pattern = re.compile(r"^.*\d+%\|[\s█▏▎▍▌▋▊▉]+\|\s*\d+/\d+\s*\[.*\].*$")  # noqa: BLK100
     return bool(progress_pattern.match(text))
 
 
@@ -165,6 +166,69 @@ class UtilsRunnerGUI:
                 pass
         return 2000  # Default for Utils-GUI
 
+    def _looks_like_json(self, text: str) -> bool:
+        """Check if text looks like JSON output.
+
+        Args:
+            text: Text to check.
+
+        Returns:
+            True if text appears to be JSON.
+        """
+        text = text.strip()
+        # Check for common JSON patterns
+        if text.startswith("{") and text.endswith("}"):
+            return True
+        if text.startswith("[") and text.endswith("]"):
+            return True
+        # Check for JSON-like structure with quotes and colons
+        if '"' in text and ":" in text and ("{" in text or "[" in text):
+            return True
+        return False
+
+    def _check_for_common_errors(self, text: str, script_name: str) -> None:
+        """Check output for common error patterns and provide helpful messages.
+
+        Args:
+            text: Output text to check.
+            script_name: Name of the script being run.
+        """
+        text_lower = text.lower()
+
+        # Check for missing numpy
+        if "no module named 'numpy'" in text_lower or "numpy not available" in text_lower:
+            self.log_output(
+                f"⚠️  {script_name} requires NumPy. Install with: pip install numpy",
+                self.TAG_WARNING,
+            )
+
+        # Check for import errors
+        if "importerror" in text_lower or "module not found" in text_lower:
+            # Try to extract module name
+            import re
+
+            module_match = re.search(r"no module named ['\"]([^'\"]+)['\"]", text_lower)
+            if module_match:
+                module_name = module_match.group(1)
+                self.log_output(
+                    f"⚠️  {script_name} requires {module_name}. Install with: pip install {module_name}",
+                    self.TAG_WARNING,
+                )
+
+        # Check for permission errors
+        if "permission denied" in text_lower or "permissionerror" in text_lower:
+            self.log_output(
+                f"⚠️  {script_name} has permission issues. Check file permissions.",
+                self.TAG_WARNING,
+            )
+
+        # Check for file not found errors
+        if "file not found" in text_lower or "filenotfounderror" in text_lower:
+            self.log_output(
+                f"⚠️  {script_name} can't find a required file.",
+                self.TAG_WARNING,
+            )
+
     def _set_window_icon(self) -> None:
         """Set application window icon if available."""
         try:
@@ -181,12 +245,8 @@ class UtilsRunnerGUI:
                 pass
         except (IOError, OSError, AttributeError, ImportError) as e:
             # Icon loading error - use default tk icon with logging
-            if (
-                hasattr(self, "log_output")
-                and self.root
-                and hasattr(self.root, "destroy")
-            ):
-                self.log_output(f"Warning: Icon loading failed: {e}", self.TAG_WARNING)
+            if hasattr(self, "log_output") and self.root and hasattr(self.root, "destroy"):
+                self.log_output(f"Warning: Icon loading failed: {e}", self.TAG_WARNING)  # noqa: BLK100
             pass  # Use default tk icon
 
     def _create_menu_bar(self) -> None:
@@ -204,7 +264,7 @@ class UtilsRunnerGUI:
         Returns:
             Configuration dictionary with default values if file not found.
         """
-        config_path = Path(__file__).parent / "utils" / "utils_script_config.json"
+        config_path = Path(__file__).parent / "utils" / "utils_script_config.json"  # noqa: BLK100
 
         # Detect environment for appropriate timeout settings
         import os
@@ -213,9 +273,18 @@ class UtilsRunnerGUI:
 
         # Environment-specific timeout settings
         env_timeouts = {
-            "development": {"default": 300, "utilities": 300},  # 5 minutes for dev
-            "testing": {"default": 600, "utilities": 600},  # 10 minutes for testing
-            "production": {"default": 3600, "utilities": 3600},  # 1 hour for prod
+            "development": {
+                "default": 300,
+                "utilities": 300,
+            },  # 5 minutes for dev
+            "testing": {
+                "default": 600,
+                "utilities": 600,
+            },  # 10 minutes for testing
+            "production": {
+                "default": 3600,
+                "utilities": 3600,
+            },  # 1 hour for prod
         }
 
         env_timeout = env_timeouts.get(env, env_timeouts["development"])
@@ -267,9 +336,7 @@ class UtilsRunnerGUI:
         """
         for category in self.config.get("script_categories", {}).values():
             if script_name in category.get("scripts", []):
-                return category.get(
-                    "timeout", self.config["default_settings"]["timeout"]
-                )
+                return category.get("timeout", self.config["default_settings"]["timeout"])
         return self.config["default_settings"]["timeout"]
 
     def prompt_for_arguments(self, script_name: str) -> List[str]:
@@ -303,11 +370,9 @@ class UtilsRunnerGUI:
             List of Path objects for executable Python scripts.
         """
         scripts = []
-        if self.utils_dir and self.utils_dir.exists() and self.utils_dir.is_dir():
+        if self.utils_dir and self.utils_dir.exists() and self.utils_dir.is_dir():  # noqa: BLK100  # noqa: BLK100
             for file_path in self.utils_dir.glob("*.py"):
-                if file_path.name != "__init__.py" and self._is_executable_script(
-                    file_path
-                ):
+                if file_path.name != "__init__.py" and self._is_executable_script(file_path):  # noqa: BLK100
                     scripts.append(file_path)
         return sorted(scripts)
 
@@ -321,11 +386,37 @@ class UtilsRunnerGUI:
             True if script appears to be executable, False otherwise.
         """
         try:
-            # Check if file has shebang or is a valid Python file
+            # Check if file has shebang or contains if __name__ == "__main__":
             with open(script_path, "r", encoding="utf-8") as f:
-                first_line = f.readline().strip()
-                # Check for shebang or just ensure it's a Python file
-                return first_line.startswith("#!") or script_path.suffix == ".py"
+                content = f.read()
+                # Check for shebang
+                first_line = content.split("\n")[0].strip()
+                if first_line.startswith("#!"):
+                    return True
+                # Check for if __name__ == "__main__": pattern
+                # Also check for variations with different spacing
+                # Use regex to be more robust
+                import re
+
+                # Pattern for if __name__ == "__main__": with various spacing
+                name_main_pattern = re.compile(r'if\s+__name__\s*==\s*[\'"]__main__[\'"]\s*:', re.IGNORECASE)
+                if name_main_pattern.search(content):
+                    return True
+                # Also check for main() function that might be called
+                # Look for def main() or def main( with any arguments
+                main_def_pattern = re.compile(r"def\s+main\s*\(", re.IGNORECASE)
+                if main_def_pattern.search(content):
+                    # Check if main() is called anywhere in the file
+                    # Look for main() call with any arguments
+                    main_call_pattern = re.compile(r"^\s*main\s*\(", re.MULTILINE)
+                    if main_call_pattern.search(content):
+                        return True
+                    # Also check for if __name__ == "__main__": main() pattern
+                    # which we already checked above, but just in case
+                # For utils directory, be more permissive: if it's a .py file
+                # (not __init__.py), assume it's executable
+                # This matches the old behavior that found 102 scripts
+                return True
         except (UnicodeDecodeError, IOError):
             return False
 
@@ -347,21 +438,21 @@ class UtilsRunnerGUI:
 
         # Title
         title_label = ttk.Label(
-            main_frame, text="APGI Utils Scripts Runner", font=("Arial", 16, "bold")
+            main_frame,
+            text="APGI Utils Scripts Runner",
+            font=("Arial", 16, "bold"),
         )
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
 
         # Scripts list frame
-        list_frame = ttk.LabelFrame(main_frame, text="Available Scripts", padding="5")
-        list_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+        list_frame = ttk.LabelFrame(main_frame, text="Available Scripts", padding="5")  # noqa: BLK100
+        list_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))  # noqa: BLK100
 
         # Scripts listbox with scrollbar
         list_scrollbar = ttk.Scrollbar(list_frame)
         list_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.scripts_listbox = tk.Listbox(
-            list_frame, yscrollcommand=list_scrollbar.set, height=15, width=40
-        )
+        self.scripts_listbox = tk.Listbox(list_frame, yscrollcommand=list_scrollbar.set, height=15, width=40)
         self.scripts_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         list_scrollbar.config(command=self.scripts_listbox.yview)
 
@@ -371,11 +462,13 @@ class UtilsRunnerGUI:
 
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=1, column=1, sticky=(tk.W, tk.E, tk.N), padx=(0, 10))
+        control_frame.grid(row=1, column=1, sticky=(tk.W, tk.E, tk.N), padx=(0, 10))  # noqa: BLK100
 
         # Buttons
         self.run_button = ttk.Button(
-            control_frame, text="Run Selected", command=self.run_selected_script
+            control_frame,
+            text="Run Selected",
+            command=self.run_selected_script,
         )
         self.run_button.pack(pady=5, fill=tk.X)
 
@@ -386,9 +479,7 @@ class UtilsRunnerGUI:
         )
         self.run_args_button.pack(pady=5, fill=tk.X)
 
-        self.run_all_button = ttk.Button(
-            control_frame, text="Run All Scripts", command=self.run_all_scripts
-        )
+        self.run_all_button = ttk.Button(control_frame, text="Run All Scripts", command=self.run_all_scripts)
         self.run_all_button.pack(pady=5, fill=tk.X)
 
         self.stop_button = ttk.Button(
@@ -399,37 +490,35 @@ class UtilsRunnerGUI:
         )
         self.stop_button.pack(pady=5, fill=tk.X)
 
-        self.clear_button = ttk.Button(
-            control_frame, text="Clear Output", command=self.clear_output
-        )
+        self.clear_button = ttk.Button(control_frame, text="Clear Output", command=self.clear_output)
         self.clear_button.pack(pady=5, fill=tk.X)
 
-        self.quit_button = ttk.Button(
-            control_frame, text="Quit", command=self.quit_application
-        )
+        self.quit_button = ttk.Button(control_frame, text="Quit", command=self.quit_application)
         self.quit_button.pack(pady=5, fill=tk.X)
 
         # Status frame
-        status_frame = ttk.LabelFrame(control_frame, text="Status", padding="5")
+        status_frame = ttk.LabelFrame(control_frame, text="Status", padding="5")  # noqa: BLK100
         status_frame.pack(pady=20, fill=tk.X)
 
         self.status_label = ttk.Label(status_frame, text="Ready")
         self.status_label.pack()
 
         # Progress bar
-        self.progress = ttk.Progressbar(control_frame, mode="indeterminate", length=200)
+        self.progress = ttk.Progressbar(control_frame, mode="indeterminate", length=200)  # noqa: BLK100
         self.progress.pack(pady=10, fill=tk.X)
 
         # Output frame
         output_frame = ttk.LabelFrame(main_frame, text="Output", padding="5")
         output_frame.grid(
-            row=2, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0)
+            row=2,
+            column=0,
+            columnspan=3,
+            sticky=(tk.W, tk.E, tk.N, tk.S),
+            pady=(10, 0),
         )
 
         # Output text area
-        self.output_text = scrolledtext.ScrolledText(
-            output_frame, height=15, wrap=tk.WORD, font=("Courier", 9)
-        )
+        self.output_text = scrolledtext.ScrolledText(output_frame, height=15, wrap=tk.WORD, font=("Courier", 9))
         self.output_text.pack(fill=tk.BOTH, expand=True)
 
         # Configure text tags for different output types
@@ -460,9 +549,7 @@ class UtilsRunnerGUI:
         # Limit output lines to prevent performance issues
         try:
             line_count = int(self.output_text.index("end-1c").split(".")[0])
-            if (
-                line_count > self.max_output_lines + 50
-            ):  # Larger buffer to reduce frequent trimming
+            if line_count > self.max_output_lines + 50:  # Larger buffer to reduce frequent trimming
                 # Batch delete multiple lines at once for better performance
                 lines_to_delete = line_count - self.max_output_lines + 50
                 self.output_text.delete(1.0, f"{lines_to_delete + 1}.0")
@@ -551,16 +638,14 @@ class UtilsRunnerGUI:
                 f"Running script {index + 1}/{len(self.scripts)}: {script.name}",
                 self.TAG_INFO,
             )
-            self.root.after(0, lambda: self.scripts_listbox.selection_clear(0, tk.END))
-            self.root.after(
-                0, lambda idx=index: self.scripts_listbox.selection_set(idx)
-            )
+            self.root.after(0, lambda: self.scripts_listbox.selection_clear(0, tk.END))  # noqa: BLK100
+            self.root.after(0, lambda idx=index: self.scripts_listbox.selection_set(idx))
             self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))
 
             # Run without waiting - truly async
             success = self.run_script(script, wait=False)
             if not success:
-                self.log_output(f"Failed to start {script.name}", self.TAG_ERROR)
+                self.log_output(f"Failed to start {script.name}", self.TAG_ERROR)  # noqa: BLK100
 
             # Monitor completion and schedule next
             def monitor_and_continue():
@@ -579,7 +664,9 @@ class UtilsRunnerGUI:
                 if completed_count[0] < len(self.scripts) and not cancelled[0]:
                     # Use threading for next script
                     threading.Thread(
-                        target=run_script_async, args=(completed_count[0],), daemon=True
+                        target=run_script_async,
+                        args=(completed_count[0],),
+                        daemon=True,
                     ).start()
                 else:
                     self._finish_run_all()
@@ -589,7 +676,7 @@ class UtilsRunnerGUI:
         def start_run_all():
             """Start the async chain."""
             self._run_all_cancelled = False
-            threading.Thread(target=run_script_async, args=(0,), daemon=True).start()
+            threading.Thread(target=run_script_async, args=(0,), daemon=True).start()  # noqa: BLK100
 
         self.root.after(0, start_run_all)
 
@@ -598,9 +685,7 @@ class UtilsRunnerGUI:
         self.run_button.config(state=state)
         self.run_args_button.config(state=state)
         self.run_all_button.config(state=state)
-        self.stop_button.config(
-            state=tk.NORMAL if state == tk.DISABLED else tk.DISABLED
-        )
+        self.stop_button.config(state=tk.NORMAL if state == tk.DISABLED else tk.DISABLED)
 
     def _finish_run_all(self):
         """Clean up after run_all completes."""
@@ -644,7 +729,13 @@ class UtilsRunnerGUI:
         # Validate and add user-provided arguments with whitelist
         if args:
             # Whitelist of allowed arguments to prevent command injection
-            allowed_args = {"--auto", "--help", "--verbose", "--quiet", "--dry-run"}
+            allowed_args = {
+                "--auto",
+                "--help",
+                "--verbose",
+                "--quiet",
+                "--dry-run",
+            }
             validated_args = []
             for arg in args:
                 if arg in allowed_args:
@@ -667,11 +758,12 @@ class UtilsRunnerGUI:
                 self.log_output("Error: Utils directory not configured", self.TAG_ERROR)
                 return False
 
-            cwd_path = self.utils_dir.parent
+            # Run from utils directory instead of root to avoid sitecustomize.py
+            # being executed. This fixes issues with sitecustomize.py interfering
+            # with script execution.
+            cwd_path = self.utils_dir
             if not cwd_path.exists():
-                self.log_output(
-                    f"Error: CWD does not exist: {cwd_path}", self.TAG_ERROR
-                )
+                self.log_output(f"Error: CWD does not exist: {cwd_path}", self.TAG_ERROR)
                 self.progress.stop()
                 self.update_status("Error")
                 self._update_button_states()
@@ -683,7 +775,7 @@ class UtilsRunnerGUI:
             # Force UTF-8 encoding to handle emoji characters in output
             env["PYTHONIOENCODING"] = "utf-8"
 
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # nosec B603
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -743,14 +835,17 @@ class UtilsRunnerGUI:
         if script_timeout is None:
             script_timeout = self.get_script_timeout(script_name)
         start_time = time.time()
+        return_code = None  # Track return code throughout
 
-        # Use a queue for thread-safe communication on Windows
+        # Use a queue for thread-safe communication on Windows and macOS
         output_queue = queue.Queue()
         reader_thread = None
 
-        if platform.system() == "Windows":
-            # On Windows, use a separate thread for reading to avoid blocking
-            def _windows_reader():
+        # On Windows and macOS, use a separate thread for reading to avoid blocking
+        # (select.select doesn't work properly with pipes on macOS)
+        if platform.system() in ("Windows", "Darwin"):
+
+            def _async_reader():
                 try:
                     while True:
                         try:
@@ -770,7 +865,7 @@ class UtilsRunnerGUI:
                 except Exception as e:
                     output_queue.put((f"THREAD_ERROR: {e}", "error"))
 
-            reader_thread = threading.Thread(target=_windows_reader, daemon=True)
+            reader_thread = threading.Thread(target=_async_reader, daemon=True)
             reader_thread.start()
 
         try:
@@ -778,8 +873,8 @@ class UtilsRunnerGUI:
                 ready = False
                 output = None
 
-                if platform.system() == "Windows" and reader_thread:
-                    # On Windows, read from queue with timeout
+                if platform.system() in ("Windows", "Darwin") and reader_thread:
+                    # On Windows and macOS, read from queue with timeout
                     try:
                         output = output_queue.get(timeout=0.1)
                         ready = True
@@ -789,7 +884,7 @@ class UtilsRunnerGUI:
                         if process.poll() is not None and not reader_thread.is_alive():
                             break
                 else:
-                    # On Unix-like systems, use select
+                    # On other Unix-like systems, use select
                     try:
                         ready, _, _ = select.select([process.stdout], [], [], 1.0)
                     except (ValueError, select.error) as e:
@@ -805,18 +900,17 @@ class UtilsRunnerGUI:
                             ready = False
 
                 if ready and output:
-                    # On Windows, output is a tuple (text, type) from the queue
-                    if platform.system() == "Windows" and isinstance(output, tuple):
+                    # On Windows and macOS, output is a tuple (text, type) from the queue
+                    if isinstance(output, tuple) and len(output) == 2:
                         output_text, _output_type = output
                     else:
                         output_text = output
 
-                    if isinstance(output_text, str) and output_text.startswith(
-                        ("READ_ERROR:", "THREAD_ERROR:")
-                    ):
+                    if isinstance(output_text, str) and output_text.startswith(("READ_ERROR:", "THREAD_ERROR:")):
                         # Handle reader thread errors
                         self.log_output(
-                            f"Subprocess reader error: {output_text}", self.TAG_ERROR
+                            f"Subprocess reader error: {output_text}",
+                            self.TAG_ERROR,
                         )
                     elif not output_text and process.poll() is not None:
                         break
@@ -827,7 +921,26 @@ class UtilsRunnerGUI:
                             clean_output = strip_ansi_codes(output_text.rstrip())
                             # Filter out progress bars and empty lines
                             if clean_output and not should_filter_line(clean_output):
-                                self.log_output(clean_output, self.TAG_INFO)
+                                # Check if this looks like JSON output and format it better
+                                if self._looks_like_json(clean_output):
+                                    self.log_output(
+                                        f"JSON output from {script_name}:",
+                                        self.TAG_INFO,
+                                    )
+                                    try:
+                                        # Try to pretty-print JSON
+                                        import json
+
+                                        json_data = json.loads(clean_output)
+                                        pretty_json = json.dumps(json_data, indent=2)
+                                        self.log_output(pretty_json, self.TAG_INFO)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, log as-is
+                                        self.log_output(clean_output, self.TAG_INFO)
+                                else:
+                                    # Check for common error patterns and provide helpful messages
+                                    self._check_for_common_errors(clean_output, script_name)
+                                    self.log_output(clean_output, self.TAG_INFO)
                         else:
                             # Log unexpected type for debugging
                             self.log_output(
@@ -856,9 +969,7 @@ class UtilsRunnerGUI:
 
         except Exception as e:
             logging.error(f"Unexpected error in _read_output: {e}")
-            self.log_output(
-                f"Unexpected error reading script output: {e}", self.TAG_ERROR
-            )
+            self.log_output(f"Unexpected error reading script output: {e}", self.TAG_ERROR)
         finally:
             # Clean up thread
             if reader_thread and reader_thread.is_alive():
@@ -887,6 +998,8 @@ class UtilsRunnerGUI:
                     return_code = -1  # Indicate unknown status
 
             elapsed_time = time.time() - start_time
+
+            # Log result with proper return code handling
             if return_code == 0:
                 self.log_output(
                     f"✅ {script_name} completed successfully in {elapsed_time:.2f}s",
@@ -999,9 +1112,7 @@ class UtilsRunnerGUI:
                 self.progress.stop()
                 self.update_status("Ready")
             except Exception as e:
-                self.log_output(
-                    f"Error stopping {script.name}: {str(e)}", self.TAG_ERROR
-                )
+                self.log_output(f"Error stopping {script.name}: {str(e)}", self.TAG_ERROR)
         else:
             self.log_output(f"Script {script.name} is not running", self.TAG_WARNING)
 
@@ -1021,12 +1132,11 @@ class UtilsRunnerGUI:
             try:
                 if process.poll() is None:  # Process is still running
                     self._force_kill_process(process, script_name)
-                    self.log_output(
-                        f"Terminated process: {script_name}", self.TAG_WARNING
-                    )
+                    self.log_output(f"Terminated process: {script_name}", self.TAG_WARNING)
             except Exception as e:
                 self.log_output(
-                    f"Error terminating process {script_name}: {e}", self.TAG_ERROR
+                    f"Error terminating process {script_name}: {e}",
+                    self.TAG_ERROR,
                 )
 
         # Clear running processes
@@ -1038,9 +1148,7 @@ class UtilsRunnerGUI:
                 try:
                     thread.join(timeout=1.0)  # Wait up to 1 second for thread to finish
                 except (RuntimeError, ValueError) as e:
-                    self.log_output(
-                        f"Warning: Thread join error: {e}", self.TAG_WARNING
-                    )
+                    self.log_output(f"Warning: Thread join error: {e}", self.TAG_WARNING)
                     pass  # Thread join error - continue cleanup
         self.daemon_threads.clear()
 
@@ -1082,9 +1190,7 @@ def main():
                 from utils.auth_adapter import get_auth_manager
 
                 auth_manager = get_auth_manager()
-                dev_token = auth_manager.generate_token(
-                    "dev_user", Role.RESEARCHER, 24
-                )  # 24 hour expiry
+                dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)  # 24 hour expiry
                 print("Development mode: Generated token (valid 24 hours)")
                 args.token = dev_token
             except Exception as e:

@@ -70,9 +70,7 @@ mock_root.columnconfigure = MagicMock()
 mock_root.rowconfigure = MagicMock()
 mock_root.destroy = MagicMock()
 mock_child_ids = MagicMock()
-mock_child_ids.get = MagicMock(
-    side_effect=lambda key, default=0: default if isinstance(default, int) else 0
-)
+mock_child_ids.get = MagicMock(side_effect=lambda key, default=0: default if isinstance(default, int) else 0)
 mock_root._last_child_ids = mock_child_ids
 mock_tkinter.Tk.return_value = mock_root
 
@@ -83,11 +81,7 @@ for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
         return_value=(
             0
             if var_type == "IntVar"
-            else (
-                0.0
-                if var_type == "DoubleVar"
-                else False if var_type == "BooleanVar" else ""
-            )
+            else (0.0 if var_type == "DoubleVar" else False if var_type == "BooleanVar" else "")
         )
     )
     mock_var.set = MagicMock()
@@ -175,7 +169,6 @@ class TestGUIErrorPaths:
         error = ImportError("No module named 'nonexistent_protocol'")
         result = gui._handle_protocol_error(error, 1)
 
-        assert isinstance(result, dict)
         assert "status" in result
         assert "IMPORT_ERROR" in result["status"]
         assert "troubleshooting" in result
@@ -456,9 +449,7 @@ class TestGUIErrorPaths:
         ]
 
         for i, error in enumerate(errors):
-            gui._handle_protocol_execution_error(
-                error, i + 1, {i + 1: f"Protocol {i + 1}"}
-            )
+            gui._handle_protocol_execution_error(error, i + 1, {i + 1: f"Protocol {i + 1}"})
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")

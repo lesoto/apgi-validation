@@ -25,8 +25,7 @@ import numpy as np
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -130,38 +129,40 @@ try:
 except NameError:
     DIM_CONSTANTS_EXPORT = MockDIM_CONSTANTS()  # type: ignore[misc]
 
-from utils.falsification_thresholds import (F2_1_MIN_ADVANTAGE_PCT,
-                                            F2_3_MIN_RT_ADVANTAGE_MS,
-                                            F2_4_MIN_CONFIDENCE_EFFECT_PCT,
-                                            F2_5_MAX_TRIALS,
-                                            F3_1_MIN_ADVANTAGE_PCT,
-                                            F3_1_MIN_COHENS_D,
-                                            F3_2_MIN_INTERO_ADVANTAGE_PCT,
-                                            F3_3_MIN_COHENS_D,
-                                            F3_3_MIN_REDUCTION_PCT,
-                                            F3_4_MIN_COHENS_D,
-                                            F3_4_MIN_REDUCTION_PCT,
-                                            F3_6_MAX_TRIALS,
-                                            F3_6_MIN_HAZARD_RATIO,
-                                            F5_1_MIN_ALPHA,
-                                            F5_1_MIN_PROPORTION,
-                                            F5_2_MIN_CORRELATION,
-                                            F5_2_MIN_PROPORTION,
-                                            F5_3_MIN_GAIN_RATIO,
-                                            F5_3_MIN_PROPORTION,
-                                            F5_4_MIN_PEAK_SEPARATION,
-                                            F5_4_MIN_PROPORTION,
-                                            F5_5_MIN_LOADING,
-                                            F5_5_PCA_MIN_VARIANCE,
-                                            F5_6_MIN_COHENS_D,
-                                            F6_1_CLIFFS_DELTA_MIN,
-                                            F6_1_LTCN_MAX_TRANSITION_MS,
-                                            F6_2_LTCN_MIN_WINDOW_MS,
-                                            F6_2_MIN_CURVE_FIT_R2,
-                                            F6_2_MIN_INTEGRATION_RATIO,
-                                            F6_5_BIFURCATION_ERROR_MAX,
-                                            F6_5_HYSTERESIS_MAX,
-                                            F6_5_HYSTERESIS_MIN)
+from utils.falsification_thresholds import (
+    F2_1_MIN_ADVANTAGE_PCT,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+    F2_5_MAX_TRIALS,
+    F3_1_MIN_ADVANTAGE_PCT,
+    F3_1_MIN_COHENS_D,
+    F3_2_MIN_INTERO_ADVANTAGE_PCT,
+    F3_3_MIN_COHENS_D,
+    F3_3_MIN_REDUCTION_PCT,
+    F3_4_MIN_COHENS_D,
+    F3_4_MIN_REDUCTION_PCT,
+    F3_6_MAX_TRIALS,
+    F3_6_MIN_HAZARD_RATIO,
+    F5_1_MIN_ALPHA,
+    F5_1_MIN_PROPORTION,
+    F5_2_MIN_CORRELATION,
+    F5_2_MIN_PROPORTION,
+    F5_3_MIN_GAIN_RATIO,
+    F5_3_MIN_PROPORTION,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_4_MIN_PROPORTION,
+    F5_5_MIN_LOADING,
+    F5_5_PCA_MIN_VARIANCE,
+    F5_6_MIN_COHENS_D,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_CURVE_FIT_R2,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_5_BIFURCATION_ERROR_MAX,
+    F6_5_HYSTERESIS_MAX,
+    F6_5_HYSTERESIS_MIN,
+)
 
 try:
     import matplotlib
@@ -178,9 +179,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def bootstrap_ci(
-    data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
-) -> Tuple[float, float, float]:
+def bootstrap_ci(data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95) -> Tuple[float, float, float]:
     """
     Compute bootstrap confidence interval for mean.
 
@@ -277,8 +276,7 @@ def bootstrap_one_sample_test(
 
     # Test statistic
     test_stat = (
-        (observed_mean - null_value)
-        / (np.std(data_arr, ddof=1) / np.sqrt(len(data_arr)))
+        (observed_mean - null_value) / (np.std(data_arr, ddof=1) / np.sqrt(len(data_arr)))
         if np.std(data_arr, ddof=1) > 0
         else 0.0
     )
@@ -286,9 +284,7 @@ def bootstrap_one_sample_test(
     return test_stat, p_value
 
 
-def holm_bonferroni_correction(
-    p_values: List[float], alpha: float = 0.01
-) -> Tuple[List[bool], List[float]]:
+def holm_bonferroni_correction(p_values: List[float], alpha: float = 0.01) -> Tuple[List[bool], List[float]]:
     """
     Apply Holm-Bonferroni correction for multiple comparisons.
 
@@ -390,9 +386,7 @@ def check_F5_family(
             size=n_samples,
         )
         reference_alpha_values = np.full(n_samples, 3.0)
-        cohens_d = compute_cohens_d(
-            evolved_alpha_values, reference_alpha_values, min_n=2
-        )
+        cohens_d = compute_cohens_d(evolved_alpha_values, reference_alpha_values, min_n=2)
 
     f5_1_pass = (
         threshold_proportion >= f5_thresholds["F5_1_MIN_PROPORTION"]
@@ -411,15 +405,9 @@ def check_F5_family(
 
     # F5.2: Precision-Weighted Coding Emergence
     precision_proportion = f5_data.get("precision_emergence_proportion", 0.0)
-    correlation = (
-        f5_data.get("precision_correlation", 0.0)
-        if genome_data
-        else f5_thresholds["F5_2_MIN_CORRELATION"]
-    )
+    correlation = f5_data.get("precision_correlation", 0.0) if genome_data else f5_thresholds["F5_2_MIN_CORRELATION"]
 
-    result = binomtest(
-        int(precision_proportion * 100), 100, f5_thresholds["F5_2_MIN_PROPORTION"]
-    )
+    result = binomtest(int(precision_proportion * 100), 100, f5_thresholds["F5_2_MIN_PROPORTION"])
 
     f5_2_pass = (
         precision_proportion >= f5_thresholds["F5_2_MIN_PROPORTION"]
@@ -444,9 +432,7 @@ def check_F5_family(
         else f5_thresholds["F5_3_MIN_GAIN_RATIO"]
     )
 
-    result = binomtest(
-        int(intero_proportion * 100), 100, f5_thresholds["F5_3_MIN_PROPORTION"]
-    )
+    result = binomtest(int(intero_proportion * 100), 100, f5_thresholds["F5_3_MIN_PROPORTION"])
 
     f5_3_pass = (
         intero_proportion >= f5_thresholds["F5_3_MIN_PROPORTION"]
@@ -473,12 +459,15 @@ def check_F5_family(
 try:
     import yaml
 
-    from utils.config_loader import (get_cohens_d_adaptation_threshold,
-                                     get_cohens_d_threshold,
-                                     get_cumulative_reward_advantage_threshold,
-                                     get_significance_level, get_tau_theta_max,
-                                     get_tau_theta_min,
-                                     get_threshold_reduction_min)
+    from utils.config_loader import (
+        get_cohens_d_adaptation_threshold,
+        get_cohens_d_threshold,
+        get_cumulative_reward_advantage_threshold,
+        get_significance_level,
+        get_tau_theta_max,
+        get_tau_theta_min,
+        get_threshold_reduction_min,
+    )
 
     # Load PAC configuration
     def load_pac_bands():
@@ -507,15 +496,11 @@ except ImportError:
     # Fallback functions if config_loader not available
     # Import from centralized falsification_thresholds to ensure single-source-of-truth
     from utils.falsification_thresholds import F1_1_ALPHA as _F1_1_ALPHA
-    from utils.falsification_thresholds import \
-        F1_1_MIN_ADVANTAGE_PCT as _F1_1_ADV
+    from utils.falsification_thresholds import F1_1_MIN_ADVANTAGE_PCT as _F1_1_ADV
     from utils.falsification_thresholds import F1_1_MIN_COHENS_D as _F1_1_D
-    from utils.falsification_thresholds import \
-        F3_3_MIN_REDUCTION_PCT as _THRESHOLD_REDUCTION_MIN
-    from utils.falsification_thresholds import \
-        F6_1_LTCN_MAX_TRANSITION_MS as _TAU_THETA_MIN
-    from utils.falsification_thresholds import \
-        F6_5_HYSTERESIS_MIN as _TAU_THETA_MAX
+    from utils.falsification_thresholds import F3_3_MIN_REDUCTION_PCT as _THRESHOLD_REDUCTION_MIN
+    from utils.falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS as _TAU_THETA_MIN
+    from utils.falsification_thresholds import F6_5_HYSTERESIS_MIN as _TAU_THETA_MAX
 
     def get_cumulative_reward_advantage_threshold(default=None):
         return default if default is not None else _F1_1_ADV
@@ -657,9 +642,7 @@ class HierarchicalGenerativeModel:
             level_name = level["name"]
             level_state = self.states.get(level_name)
             if level_state is None:
-                raise ValueError(
-                    f"Level '{level_name}' (index {i}) has no state initialized"
-                )
+                raise ValueError(f"Level '{level_name}' (index {i}) has no state initialized")
             actual_dim = len(level_state)
             expected_dim = level["dim"]
             if actual_dim != expected_dim:
@@ -672,10 +655,10 @@ class HierarchicalGenerativeModel:
         output = np.concatenate([self.states[level["name"]] for level in self.levels])
 
         # Post-concatenation validation
-        assert output.shape[-1] == expected_total_dim, (
-            f"Concatenation dimension mismatch: expected {expected_total_dim}, "
-            f"got {output.shape[-1]}"
-        )
+        if output.shape[-1] != expected_total_dim:
+            raise ValueError(
+                f"Concatenation dimension mismatch: expected {expected_total_dim}, " f"got {output.shape[-1]}"
+            )
 
         return output
 
@@ -773,9 +756,7 @@ class SomaticMarkerNetwork:
 
         # Update weights with clipping
         W2_grad = np.outer(output_grad, h)
-        W2_grad = np.clip(
-            W2_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
-        )  # Gradient clipping
+        W2_grad = np.clip(W2_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
 
         W2_updated = self.W2.astype(np.float64) + self.learning_rate * W2_grad
         W2_clipped = np.clip(W2_updated, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
@@ -790,9 +771,7 @@ class SomaticMarkerNetwork:
         h_grad = np.clip(h_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
 
         W1_grad = np.outer(h_grad, context_dp)
-        W1_grad = np.clip(
-            W1_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
-        )  # Gradient clipping
+        W1_grad = np.clip(W1_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
 
         W1_updated = self.W1.astype(np.float64) + self.learning_rate * W1_grad
         W1_clipped = np.clip(W1_updated, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
@@ -1136,9 +1115,7 @@ def analyze_bifurcation_structure(
         bifurcation_point = theta_t
         hysteresis_width = 0.1
 
-    f6_5_pass = (
-        hysteresis_width >= hysteresis_min and hysteresis_width <= hysteresis_max
-    )
+    f6_5_pass = hysteresis_width >= hysteresis_min and hysteresis_width <= hysteresis_max
 
     return {
         "bifurcation_point": bifurcation_point,
@@ -1235,8 +1212,7 @@ class APGIActiveInferenceAgent:
 
         # M(context, action) → expected interoceptive outcome
         self.somatic_markers = SomaticMarkerNetwork(
-            state_dim=CONTEXT_DIM
-            + HOMEOSTATIC_DIM,  # extero_context + intero_homeostatic
+            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM,  # extero_context + intero_homeostatic
             action_dim=config.get("n_actions", 4),
             hidden_dim=SOMATIC_HIDDEN_DIM,
             learning_rate=config.get("lr_somatic", 0.1),
@@ -1272,9 +1248,7 @@ class APGIActiveInferenceAgent:
         # =====================
 
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM
-            + HOMEOSTATIC_DIM
-            + WORKSPACE_DIM,  # extero + intero + workspace
+            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + workspace
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -1332,9 +1306,7 @@ class APGIActiveInferenceAgent:
         intero_actual = observation["intero"]
 
         # Validate observations before processing
-        if not (
-            np.all(np.isfinite(extero_actual)) and np.all(np.isfinite(intero_actual))
-        ):
+        if not (np.all(np.isfinite(extero_actual)) and np.all(np.isfinite(intero_actual))):
             # Return safe default action if observations are invalid
             return 0
 
@@ -1380,9 +1352,7 @@ class APGIActiveInferenceAgent:
         # =====================
 
         # APGI core equation
-        input_drive = self.Pi_e * np.linalg.norm(
-            eps_e
-        ) + self.beta * self.Pi_i * np.linalg.norm(eps_i)
+        input_drive = self.Pi_e * np.linalg.norm(eps_e) + self.beta * self.Pi_i * np.linalg.norm(eps_i)
 
         # Dynamical update
         dS_dt = -self.S_t / self.tau_S + input_drive
@@ -1445,15 +1415,11 @@ class APGIActiveInferenceAgent:
             self.ignition_history.append(
                 {
                     "time": self.time,
-                    "S_t": self.S_t
-                    + self.config.get("rho", 0.7) * self.S_t,  # Pre-reset
+                    "S_t": self.S_t + self.config.get("rho", 0.7) * self.S_t,  # Pre-reset
                     "theta_t": self.theta_t,
                     "Pi_e_eps_e": self.Pi_e * np.linalg.norm(eps_e),
                     "Pi_i_eps_i": self.Pi_i * np.linalg.norm(eps_i),
-                    "intero_dominant": (
-                        self.Pi_i * np.linalg.norm(eps_i)
-                        > self.Pi_e * np.linalg.norm(eps_e)
-                    ),
+                    "intero_dominant": (self.Pi_i * np.linalg.norm(eps_i) > self.Pi_e * np.linalg.norm(eps_e)),
                 }
             )
 
@@ -1508,22 +1474,17 @@ class APGIActiveInferenceAgent:
     def _get_workspace_state(self) -> np.ndarray:
         """Get state representation for workspace-based policy"""
         if self.workspace_content is None:
-            return np.zeros(
-                CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM
-            )  # extero + intero + workspace
+            return np.zeros(CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM)  # extero + intero + workspace
 
         return np.concatenate(
             [
                 self.workspace_content.get("extero_context", np.zeros(CONTEXT_DIM)),
                 self.workspace_content.get("intero_state", np.zeros(HOMEOSTATIC_DIM)),
-                [self.workspace_content.get("S_t", 0.0)]
-                * WORKSPACE_DIM,  # Repeat S_t to fill workspace dim
+                [self.workspace_content.get("S_t", 0.0)] * WORKSPACE_DIM,  # Repeat S_t to fill workspace dim
             ]
         )
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """
         Process outcome and update somatic markers
 
@@ -1657,9 +1618,7 @@ class StandardPPAgent:
 
         # Continuous processing - no threshold
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM
-            + HOMEOSTATIC_DIM
-            + WORKSPACE_DIM,  # extero + intero + combined
+            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + combined
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -1681,9 +1640,7 @@ class StandardPPAgent:
         else:
             extero_actual = extero_actual[:SENSORY_DIM]
         if len(intero_actual) < VISCERAL_DIM:
-            intero_actual = np.pad(
-                intero_actual, (0, VISCERAL_DIM - len(intero_actual))
-            )
+            intero_actual = np.pad(intero_actual, (0, VISCERAL_DIM - len(intero_actual)))
         else:
             intero_actual = intero_actual[:VISCERAL_DIM]
         eps_e = extero_actual - self.extero_model.predict()
@@ -1702,9 +1659,7 @@ class StandardPPAgent:
         self.last_action = action
         return action
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """
         Process outcome and accumulate surprise for convergence comparison.
 
@@ -1726,9 +1681,7 @@ class StandardPPAgent:
         else:
             extero_actual = extero_actual[:SENSORY_DIM]
         if len(intero_actual) < VISCERAL_DIM:
-            intero_actual = np.pad(
-                intero_actual, (0, VISCERAL_DIM - len(intero_actual))
-            )
+            intero_actual = np.pad(intero_actual, (0, VISCERAL_DIM - len(intero_actual)))
         else:
             intero_actual = intero_actual[:VISCERAL_DIM]
 
@@ -1770,12 +1723,8 @@ class StandardPPAgent:
             target_Pi_i = 1.0 / var_i
 
             # Smooth precision update
-            self.Pi_e += self.config.get("lr_precision", 0.05) * (
-                target_Pi_e - self.Pi_e
-            )
-            self.Pi_i += self.config.get("lr_precision", 0.05) * (
-                target_Pi_i - self.Pi_i
-            )
+            self.Pi_e += self.config.get("lr_precision", 0.05) * (target_Pi_e - self.Pi_e)
+            self.Pi_i += self.config.get("lr_precision", 0.05) * (target_Pi_i - self.Pi_i)
 
             # Clip to reasonable range
             self.Pi_e = float(np.clip(self.Pi_e, 0.1, 5.0))
@@ -1844,16 +1793,12 @@ class GWTOnlyAgent:
         self.theta_t = config.get("theta_init", 0.5)  # Fixed threshold
         self.theta_0 = config.get("theta_baseline", 0.5)
         # Apply clipping to alpha to prevent sigmoid overflow
-        self.alpha = np.clip(
-            config.get("alpha", 8.0), 0.1, 50.0
-        )  # Sigmoid steepness with overflow protection
+        self.alpha = np.clip(config.get("alpha", 8.0), 0.1, 50.0)  # Sigmoid steepness with overflow protection
         self.tau_S = config.get("tau_S", 0.3)
 
         # No somatic markers
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM
-            + HOMEOSTATIC_DIM
-            + WORKSPACE_DIM,  # extero + intero + workspace
+            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + workspace
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -1984,22 +1929,17 @@ class GWTOnlyAgent:
     def _get_workspace_state(self) -> np.ndarray:
         """Get state representation for workspace-based policy"""
         if self.workspace_content is None:
-            return np.zeros(
-                CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM
-            )  # extero + intero + workspace
+            return np.zeros(CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM)  # extero + intero + workspace
 
         return np.concatenate(
             [
                 self.workspace_content.get("extero_context", np.zeros(CONTEXT_DIM)),
                 self.workspace_content.get("intero_state", np.zeros(HOMEOSTATIC_DIM)),
-                [self.workspace_content.get("S_t", 0.0)]
-                * WORKSPACE_DIM,  # Repeat S_t to fill workspace dim
+                [self.workspace_content.get("S_t", 0.0)] * WORKSPACE_DIM,  # Repeat S_t to fill workspace dim
             ]
         )
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """
         Process outcome and accumulate surprise for convergence comparison.
 
@@ -2021,9 +1961,7 @@ class GWTOnlyAgent:
         else:
             extero_actual = extero_actual[:SENSORY_DIM]
         if len(intero_actual) < VISCERAL_DIM:
-            intero_actual = np.pad(
-                intero_actual, (0, VISCERAL_DIM - len(intero_actual))
-            )
+            intero_actual = np.pad(intero_actual, (0, VISCERAL_DIM - len(intero_actual)))
         else:
             intero_actual = intero_actual[:VISCERAL_DIM]
 
@@ -2065,12 +2003,8 @@ class GWTOnlyAgent:
             target_Pi_i = 1.0 / var_i
 
             # Smooth precision update
-            self.Pi_e += self.config.get("lr_precision", 0.05) * (
-                target_Pi_e - self.Pi_e
-            )
-            self.Pi_i += self.config.get("lr_precision", 0.05) * (
-                target_Pi_i - self.Pi_i
-            )
+            self.Pi_e += self.config.get("lr_precision", 0.05) * (target_Pi_e - self.Pi_e)
+            self.Pi_i += self.config.get("lr_precision", 0.05) * (target_Pi_i - self.Pi_i)
 
             # Clip to reasonable range
             self.Pi_e = float(np.clip(self.Pi_e, 0.1, 5.0))
@@ -2158,9 +2092,7 @@ class IowaGamblingTaskEnvironment:
         return reward, intero_cost, obs, self.trial >= self.n_trials
 
 
-def compute_time_to_criterion(
-    rewards: List[float], threshold: float = 0.7, window: int = 10
-) -> float:
+def compute_time_to_criterion(rewards: List[float], threshold: float = 0.7, window: int = 10) -> float:
     """
     Compute trials to reach criterion (rolling mean reward exceeds threshold % of optimal).
 
@@ -2194,9 +2126,7 @@ def compute_time_to_criterion(
     return float(len(rewards))  # Criterion not reached
 
 
-def compute_threshold_ablation_reduction(
-    baseline_rewards: List[float], agent, env, n_episodes: int = 50
-) -> float:
+def compute_threshold_ablation_reduction(baseline_rewards: List[float], agent, env, n_episodes: int = 50) -> float:
     """
     Compute performance reduction when threshold gating is disabled (ablation study).
 
@@ -2240,9 +2170,7 @@ def compute_threshold_ablation_reduction(
     return 0.0
 
 
-def compute_precision_ablation_reduction(
-    baseline_rewards: List[float], agent, env, n_episodes: int = 50
-) -> float:
+def compute_precision_ablation_reduction(baseline_rewards: List[float], agent, env, n_episodes: int = 50) -> float:
     """
     Compute performance reduction when precision weighting is disabled (uniform precision).
 
@@ -2358,9 +2286,7 @@ def run_comprehensive_simulation():
     timescales = []
     for i in range(1, len(threshold_adaptation)):
         if threshold_adaptation[i] != threshold_adaptation[i - 1]:
-            timescales.append(
-                abs(threshold_adaptation[i] - threshold_adaptation[i - 1])
-            )
+            timescales.append(abs(threshold_adaptation[i] - threshold_adaptation[i - 1]))
     if len(timescales) == 0:
         timescales = [0.1, 0.5, 2.0]  # Fallback if no adaptation
 
@@ -2470,10 +2396,7 @@ def run_comprehensive_simulation():
     # F1.5: PAC MI tuned to pass threshold (MI >= 0.012, >=15% increase, p < 0.05)
     pac_baseline = 0.010
     pac_ignition = 0.016  # 60% increase, well above 15% threshold
-    pac_mi = [
-        (pac_baseline, pac_ignition + np.random.normal(0, 0.001))
-        for _ in range(min(10, n_trials))
-    ]
+    pac_mi = [(pac_baseline, pac_ignition + np.random.normal(0, 0.001)) for _ in range(min(10, n_trials))]
 
     # F1.6: Spectral slopes tuned to pass threshold (active: 0.8-1.2, low-arousal: 1.5-2.0, delta >= 0.25)
     # Active task should have flatter slope (lower alpha) than low-arousal
@@ -2591,31 +2514,18 @@ def run_falsification():
     np.random.seed(APGI_GLOBAL_SEED)
 
     # Compute power analysis for key tests
-    from utils.statistical_tests import (compute_power_analysis,
-                                         compute_required_n)
+    from utils.statistical_tests import compute_power_analysis, compute_required_n
 
     # F1.1 power analysis: Cohen's d = 0.60, alpha = 0.01
-    power_f11 = compute_power_analysis(
-        effect_size=0.60, n_per_group=100, alpha=0.01, test_type="ttest_ind"
-    )
-    required_n_f11 = compute_required_n(
-        effect_size=0.60, desired_power=0.80, alpha=0.01, test_type="ttest_ind"
-    )
+    power_f11 = compute_power_analysis(effect_size=0.60, n_per_group=100, alpha=0.01, test_type="ttest_ind")
+    required_n_f11 = compute_required_n(effect_size=0.60, desired_power=0.80, alpha=0.01, test_type="ttest_ind")
 
     # F1.4 power analysis: Cohen's d = 0.70 for pre/post adaptation
-    power_f14 = compute_power_analysis(
-        effect_size=0.70, n_per_group=50, alpha=0.01, test_type="ttest_rel"
-    )
-    required_n_f14 = compute_required_n(
-        effect_size=0.70, desired_power=0.80, alpha=0.01, test_type="ttest_rel"
-    )
+    power_f14 = compute_power_analysis(effect_size=0.70, n_per_group=50, alpha=0.01, test_type="ttest_rel")
+    required_n_f14 = compute_required_n(effect_size=0.70, desired_power=0.80, alpha=0.01, test_type="ttest_rel")
 
-    logger.info(
-        f"Power analysis - F1.1: power={power_f11:.2f}, required_n={required_n_f11}"
-    )
-    logger.info(
-        f"Power analysis - F1.4: power={power_f14:.2f}, required_n={required_n_f14}"
-    )
+    logger.info(f"Power analysis - F1.1: power={power_f11:.2f}, required_n={required_n_f11}")
+    logger.info(f"Power analysis - F1.4: power={power_f14:.2f}, required_n={required_n_f14}")
 
     return run_comprehensive_simulation()
 
@@ -2879,9 +2789,7 @@ def check_falsification(
             t_stat, p_value = 0.0, 1.0
     else:
         # If data is nearly identical, use descriptive statistics instead
-        logger.info(
-            "Data variance too low for meaningful t-test, using descriptive statistics"
-        )
+        logger.info("Data variance too low for meaningful t-test, using descriptive statistics")
         t_stat = None
         p_value = None
         advantage_pct = None
@@ -2905,11 +2813,7 @@ def check_falsification(
 
     # Falsification Criteria: Advantage < _F1_1_ADV OR d < 0.35 OR p >= 0.01
     f1_1_pass = (
-        not (
-            advantage_pct < _F1_1_ADV
-            or cohens_d < 0.35
-            or (p_value >= 0.01 if p_value is not None else False)
-        )
+        not (advantage_pct < _F1_1_ADV or cohens_d < 0.35 or (p_value >= 0.01 if p_value is not None else False))
         if advantage_pct is not None
         else False
     )
@@ -2929,27 +2833,16 @@ def check_falsification(
     if len(timescales) >= 3:
         kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
         clusters = kmeans.fit_predict(timescales_array)
-        silhouette = (
-            silhouette_score(timescales_array, clusters)
-            if len(np.unique(clusters)) > 1
-            else 0
-        )
+        silhouette = silhouette_score(timescales_array, clusters) if len(np.unique(clusters)) > 1 else 0
         cluster_means = [timescales_array[clusters == i] for i in range(3)]
         timescales_arr = np.array(timescales)
         ss_total = np.sum((timescales_arr - np.mean(timescales_arr)) ** 2)
         ss_between = (
-            sum(
-                len(cm) * (np.mean(cm) - np.mean(timescales_arr)) ** 2
-                for cm in cluster_means
-            )
-            if ss_total > 0
-            else 0
+            sum(len(cm) * (np.mean(cm) - np.mean(timescales_arr)) ** 2 for cm in cluster_means) if ss_total > 0 else 0
         )
         eta_squared = ss_between / ss_total if ss_total > 0 else 0
         # Falsification Criteria: <3 clusters OR silhouette < 0.30 OR eta^2 < 0.50
-        f1_2_pass = not (
-            len(np.unique(clusters)) < 3 or silhouette < 0.30 or eta_squared < 0.50
-        )
+        f1_2_pass = not (len(np.unique(clusters)) < 3 or silhouette < 0.30 or eta_squared < 0.50)
     else:
         silhouette, eta_squared, f1_2_pass = 0, 0, False
     results["criteria"]["F1.2"] = {
@@ -2975,24 +2868,16 @@ def check_falsification(
     # F1.4: Threshold Adaptation Dynamics
     theta_vals = np.array(threshold_adaptation)
     if len(threshold_adaptation) > 5:
-        adaptation = (
-            (theta_vals[0] - np.min(theta_vals)) / (theta_vals[0] + 1e-10)
-        ) * 100
+        adaptation = ((theta_vals[0] - np.min(theta_vals)) / (theta_vals[0] + 1e-10)) * 100
         time_pts = np.arange(len(theta_vals))
         try:
-            popt, _ = curve_fit(
-                exp_decay, time_pts, theta_vals, p0=[20.0, 0.5, 0.5], maxfev=5000
-            )
+            popt, _ = curve_fit(exp_decay, time_pts, theta_vals, p0=[20.0, 0.5, 0.5], maxfev=5000)
             tau_theta = popt[0]
-            ss_res: float = float(
-                np.sum((theta_vals - exp_decay(time_pts, *popt)) ** 2)
-            )
+            ss_res: float = float(np.sum((theta_vals - exp_decay(time_pts, *popt)) ** 2))
             ss_tot: float = float(np.sum((theta_vals - np.mean(theta_vals)) ** 2))
             r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
             # Falsification Criteria: Adaptation <12% OR tau_theta < 5s or > 150s OR R^2 < 0.65
-            f1_4_pass = not (
-                adaptation < 12.0 or tau_theta < 5.0 or tau_theta > 150.0 or r2 < 0.65
-            )
+            f1_4_pass = not (adaptation < 12.0 or tau_theta < 5.0 or tau_theta > 150.0 or r2 < 0.65)
             error_msg = None  # Success - no error
         except Exception as e:
             logger.error(f"Failed to compute threshold adaptation: {e}")
@@ -3063,9 +2948,7 @@ def check_falsification(
     active_slopes = [s[0] for s in spectral_slopes] if spectral_slopes else [1.5]
     low_slopes = [s[1] for s in spectral_slopes] if spectral_slopes else [1.2]
 
-    def bootstrap_slope_ci(
-        data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
-    ) -> Tuple[float, float, float]:
+    def bootstrap_slope_ci(data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95) -> Tuple[float, float, float]:
         """Compute bootstrap confidence interval for spectral slope."""
         if len(data) < 2:
             return float(data[0]) if len(data) == 1 else 0.0, 0.0, 0.0
@@ -3082,9 +2965,7 @@ def check_falsification(
         return mean, lower, upper
 
     # Compute bootstrap CI for both conditions
-    active_m, active_ci_lower, active_ci_upper = bootstrap_slope_ci(
-        np.array(active_slopes)
-    )
+    active_m, active_ci_lower, active_ci_upper = bootstrap_slope_ci(np.array(active_slopes))
     low_m, low_ci_lower, low_ci_upper = bootstrap_slope_ci(np.array(low_slopes))
 
     delta_slope = low_m - active_m
@@ -3115,20 +2996,10 @@ def check_falsification(
     logger.info("Testing F2.1: Somatic Marker Advantage")
     if len(apgi_advantageous_selection) > 1 and len(no_somatic_selection) > 1:
         # Paired t-test comparing APGI vs no-somatic agents
-        t_stat, p_value = stats.ttest_rel(
-            apgi_advantageous_selection, no_somatic_selection
-        )
-        mean_advantage = np.mean(apgi_advantageous_selection) - np.mean(
-            no_somatic_selection
-        )
+        t_stat, p_value = stats.ttest_rel(apgi_advantageous_selection, no_somatic_selection)
+        mean_advantage = np.mean(apgi_advantageous_selection) - np.mean(no_somatic_selection)
         # Cohen's h for paired samples
-        pooled_std = np.sqrt(
-            (
-                np.var(apgi_advantageous_selection, ddof=1)
-                + np.var(no_somatic_selection, ddof=1)
-            )
-            / 2
-        )
+        pooled_std = np.sqrt((np.var(apgi_advantageous_selection, ddof=1) + np.var(no_somatic_selection, ddof=1)) / 2)
         cohens_h = mean_advantage / pooled_std if pooled_std > 0 else 0.0
         # Falsification: Advantage < 22 OR p >= 0.01
         f2_1_pass = mean_advantage >= F2_1_MIN_ADVANTAGE_PCT and p_value < 0.01
@@ -3199,9 +3070,7 @@ def check_falsification(
     # If rt_advantage_ms is a single value, we'll use a one-sample test against 0
     # If it's an array, use the data directly
     rt_data: np.ndarray = (
-        np.asarray(rt_advantage_ms)
-        if isinstance(rt_advantage_ms, (list, np.ndarray))
-        else np.array([rt_advantage_ms])
+        np.asarray(rt_advantage_ms) if isinstance(rt_advantage_ms, (list, np.ndarray)) else np.array([rt_advantage_ms])
     )
 
     if len(rt_data) > 1:
@@ -3265,10 +3134,7 @@ def check_falsification(
     mean_beta = np.mean(beta_data) if len(beta_data) > 0 else beta_interaction
 
     # Falsification: Confidence effect < 30%
-    f2_4_pass = (
-        mean_confidence >= F2_4_MIN_CONFIDENCE_EFFECT_PCT / 100
-        and p_value_one_tailed < 0.01
-    )
+    f2_4_pass = mean_confidence >= F2_4_MIN_CONFIDENCE_EFFECT_PCT / 100 and p_value_one_tailed < 0.01
 
     results["criteria"]["F2.4"] = {
         "passed": f2_4_pass,
@@ -3305,9 +3171,7 @@ def check_falsification(
         if n < k:
             # Not enough data for CV - use simple mean comparison
             mean_apgi = float(np.mean(apgi_data)) if len(apgi_data) > 0 else 0.0
-            mean_no_somatic = (
-                float(np.mean(no_somatic_data)) if len(no_somatic_data) > 0 else 0.0
-            )
+            mean_no_somatic = float(np.mean(no_somatic_data)) if len(no_somatic_data) > 0 else 0.0
             hr = mean_no_somatic / mean_apgi if mean_apgi > 0 else 1.0
             return hr, 0.0, mean_apgi, mean_no_somatic
 
@@ -3326,16 +3190,8 @@ def check_falsification(
             train_idx = np.concatenate([indices[:start_idx], indices[end_idx:]])
 
             # Compute mean on training set
-            train_apgi = (
-                np.mean(apgi_data[train_idx])
-                if len(train_idx) > 0
-                else np.mean(apgi_data)
-            )
-            train_no_somatic = (
-                np.mean(no_somatic_data[train_idx])
-                if len(train_idx) > 0
-                else np.mean(no_somatic_data)
-            )
+            train_apgi = np.mean(apgi_data[train_idx]) if len(train_idx) > 0 else np.mean(apgi_data)
+            train_no_somatic = np.mean(no_somatic_data[train_idx]) if len(train_idx) > 0 else np.mean(no_somatic_data)
 
             # Hazard ratio on training set
             if train_apgi > 0:
@@ -3347,9 +3203,7 @@ def check_falsification(
 
         # Mean HR across folds
         mean_hr = (
-            np.mean(hr_folds)
-            if hr_folds
-            else (mean_no_somatic_time / mean_apgi_time if mean_apgi_time > 0 else 1.0)
+            np.mean(hr_folds) if hr_folds else (mean_no_somatic_time / mean_apgi_time if mean_apgi_time > 0 else 1.0)
         )
         hr_std = np.std(hr_folds) if len(hr_folds) > 1 else 0.0
 
@@ -3357,40 +3211,22 @@ def check_falsification(
 
     # Compute cross-validated HR
     if len(apgi_time) > 1 and len(no_somatic_time) > 1:
-        hazard_ratio, hr_std, mean_apgi_time, mean_no_somatic_time = (
-            compute_cv_hr_metrics(apgi_time, no_somatic_time, k=5)
+        hazard_ratio, hr_std, mean_apgi_time, mean_no_somatic_time = compute_cv_hr_metrics(
+            apgi_time, no_somatic_time, k=5
         )
 
         # Paired t-test for time-to-criterion comparison (full data)
         min_len = min(len(apgi_time), len(no_somatic_time))
-        t_stat, p_value = stats.ttest_rel(
-            apgi_time[:min_len], no_somatic_time[:min_len]
-        )
+        t_stat, p_value = stats.ttest_rel(apgi_time[:min_len], no_somatic_time[:min_len])
 
         # Cohen's d for paired samples
-        pooled_std = np.sqrt(
-            (
-                np.var(apgi_time[:min_len], ddof=1)
-                + np.var(no_somatic_time[:min_len], ddof=1)
-            )
-            / 2
-        )
-        cohens_d = (
-            (mean_no_somatic_time - mean_apgi_time) / pooled_std
-            if pooled_std > 0
-            else 0.0
-        )
+        pooled_std = np.sqrt((np.var(apgi_time[:min_len], ddof=1) + np.var(no_somatic_time[:min_len], ddof=1)) / 2)
+        cohens_d = (mean_no_somatic_time - mean_apgi_time) / pooled_std if pooled_std > 0 else 0.0
     else:
         mean_apgi_time = apgi_time[0] if len(apgi_time) > 0 else apgi_time_to_criterion
-        mean_no_somatic_time = (
-            no_somatic_time[0]
-            if len(no_somatic_time) > 0
-            else no_somatic_time_to_criterion
-        )
+        mean_no_somatic_time = no_somatic_time[0] if len(no_somatic_time) > 0 else no_somatic_time_to_criterion
         t_stat, p_value, cohens_d = 0.0, 1.0, 0.0
-        hazard_ratio = (
-            mean_no_somatic_time / mean_apgi_time if mean_apgi_time > 0 else 1.0
-        )
+        hazard_ratio = mean_no_somatic_time / mean_apgi_time if mean_apgi_time > 0 else 1.0
         hr_std = 0.0
 
     # Also check trial advantage (difference in time to criterion)
@@ -3487,9 +3323,7 @@ def check_falsification(
         df = len(intero_data) - 1
         eta_squared = (t_stat**2) / (t_stat**2 + df) if df > 0 else 0.0
     else:
-        mean_intero = (
-            intero_data[0] if len(intero_data) > 0 else interoceptive_task_advantage
-        )
+        mean_intero = intero_data[0] if len(intero_data) > 0 else interoceptive_task_advantage
         t_stat, p_value_one_tailed, eta_squared = 0.0, 1.0, 0.0
 
     # Falsification: Advantage < 28% OR η² < 0.20
@@ -3530,9 +3364,7 @@ def check_falsification(
         std_reduction = np.std(thresh_data, ddof=1)
         cohens_d = mean_reduction / std_reduction if std_reduction > 0 else 0.0
     else:
-        mean_reduction = (
-            thresh_data[0] if len(thresh_data) > 0 else threshold_removal_reduction
-        )
+        mean_reduction = thresh_data[0] if len(thresh_data) > 0 else threshold_removal_reduction
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: Reduction < 25% OR d < 0.75
@@ -3572,9 +3404,7 @@ def check_falsification(
         std_reduction = np.std(prec_data, ddof=1)
         cohens_d = mean_reduction / std_reduction if std_reduction > 0 else 0.0
     else:
-        mean_reduction = (
-            prec_data[0] if len(prec_data) > 0 else precision_uniform_reduction
-        )
+        mean_reduction = prec_data[0] if len(prec_data) > 0 else precision_uniform_reduction
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: Reduction < 20% OR d < 0.65
@@ -3606,9 +3436,7 @@ def check_falsification(
 
     if len(eff_data) > 1:
         # TOST (Two One-Sided Tests) for non-inferiority at 85% threshold
-        margin = (
-            0.05  # 5% margin for non-inferiority (so retention ≥ 80% is acceptable)
-        )
+        margin = 0.05  # 5% margin for non-inferiority (so retention ≥ 80% is acceptable)
         lower_bound = 0.85 - margin
         # One-sided t-test: H0: mean ≤ lower_bound, H1: mean > lower_bound
         t_stat_lower, p_lower = stats.ttest_1samp(eff_data, lower_bound)
@@ -3616,9 +3444,7 @@ def check_falsification(
 
         # One-sided t-test: H0: mean ≥ 1.0, H1: mean < 1.0 (upper bound check)
         t_stat_upper, p_upper = stats.ttest_1samp(eff_data, 1.0)
-        _ = (
-            p_upper / 2 if t_stat_upper < 0 else 1 - p_upper / 2
-        )  # Upper bound check (unused)
+        _ = p_upper / 2 if t_stat_upper < 0 else 1 - p_upper / 2  # Upper bound check (unused)
 
         mean_eff = np.mean(eff_data)
         std_eff = np.std(eff_data, ddof=1)
@@ -3630,11 +3456,7 @@ def check_falsification(
     # Falsification: Retention < 85% OR gain < 30%
     # For efficiency, we interpret gain as the excess above baseline
     gain = mean_eff - 0.55  # Assuming 55% baseline for non-APGI
-    f3_5_pass = (
-        mean_eff >= 0.85
-        and gain >= 0.30
-        and (p_lower_one_tailed < 0.01 if len(eff_data) > 1 else True)
-    )
+    f3_5_pass = mean_eff >= 0.85 and gain >= 0.30 and (p_lower_one_tailed < 0.01 if len(eff_data) > 1 else True)
 
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
@@ -3843,10 +3665,7 @@ def check_falsification(
         min_loading = genome_data["min_pca_loading"]
 
     # Falsification: Variance < F5_5_PCA_MIN_VARIANCE OR min loading < F5_5_MIN_LOADING
-    f5_5_pass = (
-        pca_variance_explained >= F5_5_PCA_MIN_VARIANCE
-        and min_loading >= F5_5_MIN_LOADING
-    )
+    f5_5_pass = pca_variance_explained >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
 
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
@@ -3877,19 +3696,11 @@ def check_falsification(
         std_diff = np.std(perf_diff_data, ddof=1)
         cohens_d = mean_diff / std_diff if std_diff > 0 else 0.0
     else:
-        mean_diff = (
-            perf_diff_data[0]
-            if len(perf_diff_data) > 0
-            else control_performance_difference
-        )
+        mean_diff = perf_diff_data[0] if len(perf_diff_data) > 0 else control_performance_difference
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: Difference < 40% OR d < F5_6_MIN_COHENS_D
-    f5_6_pass = (
-        mean_diff >= 0.40
-        and cohens_d >= F5_6_MIN_COHENS_D
-        and p_value_one_tailed < 0.01
-    )
+    f5_6_pass = mean_diff >= 0.40 and cohens_d >= F5_6_MIN_COHENS_D and p_value_one_tailed < 0.01
 
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
@@ -3921,21 +3732,13 @@ def check_falsification(
         from scipy.stats import mannwhitneyu
 
         # Mann-Whitney U test for transition times
-        u_stat, p_value = mannwhitneyu(
-            ltcn_time_data, rnn_time_data, alternative="less"
-        )
+        u_stat, p_value = mannwhitneyu(ltcn_time_data, rnn_time_data, alternative="less")
         # Cliff's delta for effect size
         mean_ltcn = np.mean(ltcn_time_data)
         mean_rnn = np.mean(rnn_time_data)
-        cliff_delta = (
-            (mean_rnn - mean_ltcn) / max(mean_rnn, mean_ltcn)
-            if max(mean_rnn, mean_ltcn) > 0
-            else 0
-        )
+        cliff_delta = (mean_rnn - mean_ltcn) / max(mean_rnn, mean_ltcn) if max(mean_rnn, mean_ltcn) > 0 else 0
     else:
-        mean_ltcn = (
-            ltcn_time_data[0] if len(ltcn_time_data) > 0 else ltcn_transition_time
-        )
+        mean_ltcn = ltcn_time_data[0] if len(ltcn_time_data) > 0 else ltcn_transition_time
         mean_rnn = rnn_time_data[0] if len(rnn_time_data) > 0 else rnn_transition_time
         u_stat, p_value, cliff_delta = 0, 1.0, 0.0
 
@@ -3976,23 +3779,15 @@ def check_falsification(
         from scipy.stats import wilcoxon
 
         # Wilcoxon signed-rank test for paired comparison
-        w_stat, p_value = wilcoxon(
-            ltcn_window_data, rnn_window_data, alternative="greater"
-        )
+        w_stat, p_value = wilcoxon(ltcn_window_data, rnn_window_data, alternative="greater")
         mean_ltcn_window = np.mean(ltcn_window_data)
         mean_rnn_window = np.mean(rnn_window_data)
         ratio = mean_ltcn_window / mean_rnn_window if mean_rnn_window > 0 else 1.0
         # R² from curve fitting (assume high if well-fit)
         r_squared = 0.90  # Default assumption
     else:
-        mean_ltcn_window = (
-            ltcn_window_data[0]
-            if len(ltcn_window_data) > 0
-            else ltcn_integration_window
-        )
-        mean_rnn_window = (
-            rnn_window_data[0] if len(rnn_window_data) > 0 else rnn_integration_window
-        )
+        mean_ltcn_window = ltcn_window_data[0] if len(ltcn_window_data) > 0 else ltcn_integration_window
+        mean_rnn_window = rnn_window_data[0] if len(rnn_window_data) > 0 else rnn_integration_window
         ratio = mean_ltcn_window / mean_rnn_window if mean_rnn_window > 0 else 1.0
         w_stat, p_value, r_squared = 0, 1.0, 0.95
 
@@ -4040,21 +3835,11 @@ def check_falsification(
             p_value_one_tailed = 1 - p_value / 2
         mean_ltcn_sparse = np.mean(ltcn_sparse_data)
         mean_rnn_sparse = np.mean(rnn_sparse_data)
-        pooled_std = np.sqrt(
-            (np.var(ltcn_sparse_data, ddof=1) + np.var(rnn_sparse_data, ddof=1)) / 2
-        )
-        cohens_d = (
-            (mean_ltcn_sparse - mean_rnn_sparse) / pooled_std if pooled_std > 0 else 0.0
-        )
+        pooled_std = np.sqrt((np.var(ltcn_sparse_data, ddof=1) + np.var(rnn_sparse_data, ddof=1)) / 2)
+        cohens_d = (mean_ltcn_sparse - mean_rnn_sparse) / pooled_std if pooled_std > 0 else 0.0
     else:
-        mean_ltcn_sparse = (
-            ltcn_sparse_data[0]
-            if len(ltcn_sparse_data) > 0
-            else ltcn_sparsity_reduction
-        )
-        mean_rnn_sparse = (
-            rnn_sparse_data[0] if len(rnn_sparse_data) > 0 else rnn_sparsity_reduction
-        )
+        mean_ltcn_sparse = ltcn_sparse_data[0] if len(ltcn_sparse_data) > 0 else ltcn_sparsity_reduction
+        mean_rnn_sparse = rnn_sparse_data[0] if len(rnn_sparse_data) > 0 else rnn_sparsity_reduction
         t_stat, p_value_one_tailed, cohens_d = 0, 1.0, 0.0
 
     # Falsification: Reduction < 30% OR d < 0.70
@@ -4118,16 +3903,12 @@ def check_falsification(
 
     # Handle array or scalar inputs
     perf_gap_data = (
-        np.asarray(performance_gap)
-        if isinstance(performance_gap, (list, np.ndarray))
-        else np.array([performance_gap])
+        np.asarray(performance_gap) if isinstance(performance_gap, (list, np.ndarray)) else np.array([performance_gap])
     )
 
     if len(perf_gap_data) > 1:
         # One-sample t-test against threshold
-        t_stat, p_value = stats.ttest_1samp(
-            perf_gap_data, 15.0
-        )  # Test against 15% threshold
+        t_stat, p_value = stats.ttest_1samp(perf_gap_data, 15.0)  # Test against 15% threshold
         if t_stat > 0:
             p_value_one_tailed = p_value / 2
         else:
@@ -4140,16 +3921,10 @@ def check_falsification(
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Alternative modules needed (at least 2 to match APGI functionality)
-    add_ons = (
-        int(rnn_add_ons_needed) if isinstance(rnn_add_ons_needed, (int, float)) else 2
-    )
+    add_ons = int(rnn_add_ons_needed) if isinstance(rnn_add_ons_needed, (int, float)) else 2
 
     # Falsification: < 2 add-ons needed OR performance gap < 15%
-    f6_6_pass = (
-        add_ons >= 2
-        and mean_gap >= 15.0
-        and (p_value_one_tailed < 0.01 if len(perf_gap_data) > 1 else True)
-    )
+    f6_6_pass = add_ons >= 2 and mean_gap >= 15.0 and (p_value_one_tailed < 0.01 if len(perf_gap_data) > 1 else True)
 
     results["criteria"]["F6.6"] = {
         "passed": f6_6_pass,
@@ -4238,9 +4013,7 @@ if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("APGI FALSIFICATION REPORT")
     print("=" * 50)
-    print(
-        f"Summary: {results['summary']['passed']}/{results['summary']['total']} tests passed"
-    )
+    print(f"Summary: {results['summary']['passed']}/{results['summary']['total']} tests passed")
     print("-" * 50)
     for criterion, data in results["criteria"].items():
         status = "PASS" if data["passed"] else "FAIL"

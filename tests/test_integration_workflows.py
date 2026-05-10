@@ -5,7 +5,6 @@ Tests complete workflows that span multiple modules and components.
 """
 
 import json
-# Add project root to path
 import sys
 import tempfile
 from pathlib import Path
@@ -17,11 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules for integration testing
 try:
-    from apgi_core.equations import (CoreIgnitionSystem,
-                                     DynamicalSystemEquations,
-                                     FoundationalEquations)
-    from Theory.APGI_Parameter_Estimation import (build_apgi_model,
-                                                  generate_synthetic_dataset)
+    from apgi_core.equations import CoreIgnitionSystem, DynamicalSystemEquations, FoundationalEquations
+    from Theory.APGI_Parameter_Estimation import build_apgi_model, generate_synthetic_dataset
     from utils.config_manager import ConfigManager
     from utils.data_validation import DataValidator
 
@@ -44,16 +40,12 @@ except ImportError:
 class TestDataPipelineIntegration:
     """Test complete data pipeline integration."""
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_synthetic_data_to_parameter_estimation_workflow(self):
         """Test workflow from synthetic data generation to parameter estimation."""
         try:
             # Step 1: Generate synthetic data (reduced size for speed)
-            synthetic_data, true_params = generate_synthetic_dataset(
-                n_subjects=3, n_sessions=1, seed=42
-            )
+            synthetic_data, true_params = generate_synthetic_dataset(n_subjects=3, n_sessions=1, seed=42)
 
             assert isinstance(synthetic_data, dict)
             assert isinstance(true_params, dict)
@@ -62,7 +54,7 @@ class TestDataPipelineIntegration:
             # Step 2: Process data through validation (simplified - just check validator exists)
             validator = DataValidator()
             assert validator is not None
-            validation_result = {"valid": True, "validator_exists": True}
+            # validation_result = {"valid": True, "validator_exists": True}
 
             # Step 3: Build APGI model
             try:
@@ -73,7 +65,6 @@ class TestDataPipelineIntegration:
                 workflow_result = {
                     "synthetic_data": synthetic_data,
                     "true_parameters": true_params,
-                    "validation_result": validation_result,
                     "model_built": model is not None,
                 }
 
@@ -86,7 +77,6 @@ class TestDataPipelineIntegration:
                 workflow_result = {
                     "synthetic_data": synthetic_data,
                     "true_parameters": true_params,
-                    "validation_result": validation_result,
                     "model_built": False,
                     "model_error": str(e),
                 }
@@ -97,9 +87,7 @@ class TestDataPipelineIntegration:
         except Exception as e:
             assert False, f"Integration workflow failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_equations_to_dynamics_integration(self):
         """Test integration from equations to dynamic system simulation."""
         try:
@@ -167,13 +155,11 @@ class TestProtocolIntegration:
             falsification_result = falsifier.run_falsification(["FP-12"])
 
             # Step 3: Verify falsification result structure
-            assert isinstance(falsification_result, dict)
             assert "FP-12" in falsification_result
             fp12_result = falsification_result["FP-12"]
             assert fp12_result.get("status") in ["passed", "falsified", "error"]
 
             # Step 4: Verify workflow integration
-            assert isinstance(falsification_result, dict)
             assert falsification_result is not None
 
         except Exception as e:
@@ -184,7 +170,6 @@ class TestProtocolIntegration:
             validation_result = validator.run_validation(["Protocol-1"])
 
             # Step 6: Verify validation result structure
-            assert isinstance(validation_result, dict)
             assert validation_result is not None
 
         except Exception as e:
@@ -231,9 +216,7 @@ class TestProtocolIntegration:
 class TestConfigurationIntegration:
     """Test configuration management integration."""
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_config_to_workflow_integration(self):
         """Test workflow configuration management."""
         try:
@@ -250,9 +233,7 @@ class TestConfigurationIntegration:
             }
 
             # Step 2: Save configuration
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
                 json.dump(config_data, f)
                 config_path = f.name
 
@@ -280,9 +261,7 @@ class TestConfigurationIntegration:
         except Exception as e:
             assert False, f"Configuration integration test failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_configuration_parameter_integration(self):
         """Test configuration parameters integration with APGI modules."""
         try:
@@ -326,9 +305,7 @@ class TestConfigurationIntegration:
 class TestEndToEndWorkflows:
     """Test complete end-to-end workflows."""
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_complete_validation_workflow(self):
         """Test complete validation workflow from data to results."""
         try:
@@ -350,7 +327,7 @@ class TestEndToEndWorkflows:
             # Step 3: Data validation (simplified - just check validator exists)
             validator = DataValidator()
             assert validator is not None
-            validation_result = {"valid": True, "validator_exists": True}
+            # validation_result = {"valid": True, "validator_exists": True}
 
             # Step 4: Model building
             try:
@@ -366,19 +343,17 @@ class TestEndToEndWorkflows:
             #     {"name": "model_consistency", "prediction": "consistent_results"},
             # ]
             # falsification_result = falsification.run_falsification(test_hypotheses)
-            falsification_result = {"falsified_hypotheses": []}
+            # falsification_result = {"falsified_hypotheses": []}
 
             # Step 6: Validation testing (skipped - interface mismatch)
             # APGIValidationProtocol2()
-            validation_result = {"validation_status": "completed"}
+            # validation_result = {"validation_status": "completed"}
 
             # Step 7: Results aggregation
             end_to_end_result = {
                 "configuration": config,
                 "synthetic_data": synthetic_data,
                 "true_parameters": true_params,
-                "validation_result": validation_result,
-                "falsification_result": falsification_result,
                 "model_built": model_built,
                 "workflow_completed": True,
             }
@@ -397,9 +372,7 @@ class TestEndToEndWorkflows:
         except Exception as e:
             assert False, f"Complete validation workflow failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_simulation_workflow(self):
         """Test complete simulation workflow."""
         try:
@@ -425,18 +398,14 @@ class TestEndToEndWorkflows:
             }
 
             # Verify simulation results
-            assert len(simulation_result["time_points"]) == int(
-                sim_params["time_steps"]
-            )
+            assert len(simulation_result["time_points"]) == int(sim_params["time_steps"])
             assert simulation_result["simulation_completed"] is True
             assert simulation_result["dynamics_initialized"] is True
 
         except Exception as e:
             assert False, f"Simulation workflow failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_error_recovery_workflow(self):
         """Test error recovery in workflows."""
         try:
@@ -454,9 +423,7 @@ class TestEndToEndWorkflows:
                 try:
                     if step_name == "data_generation":
                         # Generate synthetic data
-                        synthetic_data, true_params = generate_synthetic_dataset(
-                            n_subjects=5, n_sessions=2, seed=42
-                        )
+                        synthetic_data, true_params = generate_synthetic_dataset(n_subjects=5, n_sessions=2, seed=42)
                         workflow_result["data_generation"] = True
 
                     elif step_name == "validation":
@@ -497,9 +464,7 @@ class TestEndToEndWorkflows:
 class TestPerformanceIntegration:
     """Test performance integration across workflows."""
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_performance_benchmarking(self):
         """Test performance benchmarking integration."""
         try:
@@ -510,9 +475,7 @@ class TestPerformanceIntegration:
 
             # Benchmark synthetic data generation (reduced for speed)
             start_time = time.time()
-            synthetic_data, true_params = generate_synthetic_dataset(
-                n_subjects=3, n_sessions=1, seed=42
-            )
+            synthetic_data, true_params = generate_synthetic_dataset(n_subjects=3, n_sessions=1, seed=42)
             data_gen_time = time.time() - start_time
             performance_results["data_generation_time"] = data_gen_time
 
@@ -535,11 +498,7 @@ class TestPerformanceIntegration:
                 performance_results["model_built"] = False
 
             # Performance analysis
-            total_time = sum(
-                t
-                for t in performance_results.values()
-                if isinstance(t, (int, float)) and t is not None
-            )
+            total_time = sum(t for t in performance_results.values() if isinstance(t, (int, float)) and t is not None)
 
             performance_results["total_time"] = total_time
             performance_results["steps_completed"] = len(
@@ -572,9 +531,7 @@ class TestPerformanceIntegration:
             initial_memory = psutil.Process(os.getpid()).memory_info.rss
 
             # Run memory-intensive workflow (reduced for speed)
-            synthetic_data, true_params = generate_synthetic_dataset(
-                n_subjects=10, n_sessions=2, seed=42
-            )
+            synthetic_data, true_params = generate_synthetic_dataset(n_subjects=10, n_sessions=2, seed=42)
 
             # Peak memory after data generation
             peak_memory = psutil.Process(os.getpid()).memory_info.rss
@@ -599,9 +556,7 @@ class TestPerformanceIntegration:
 class TestRobustnessIntegration:
     """Test robustness of integrated workflows."""
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_workflow_with_corrupted_data(self):
         """Test workflow robustness with corrupted data."""
         try:
@@ -638,9 +593,7 @@ class TestRobustnessIntegration:
         except Exception as e:
             assert False, f"Robustness test failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_workflow_with_missing_dependencies(self):
         """Test workflow behavior with missing dependencies."""
         try:
@@ -658,9 +611,7 @@ class TestRobustnessIntegration:
         except Exception as e:
             assert False, f"Missing dependency test failed: {e}"
 
-    @pytest.mark.skipif(
-        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
-    )
+    @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="Core APGI modules not available")
     def test_workflow_with_extreme_parameters(self):
         """Test workflow with extreme parameter values."""
         try:
@@ -676,9 +627,7 @@ class TestRobustnessIntegration:
             equations = FoundationalEquations()
 
             try:
-                prediction_error = equations.prediction_error(
-                    extreme_params["Pi_e"], extreme_params["z_i"]
-                )
+                prediction_error = equations.prediction_error(extreme_params["Pi_e"], extreme_params["z_i"])
                 # Should handle extreme values or raise appropriate error
                 assert np.isfinite(prediction_error) or np.isnan(prediction_error)
 

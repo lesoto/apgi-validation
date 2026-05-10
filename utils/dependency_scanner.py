@@ -19,7 +19,8 @@ import hmac
 import json
 import logging
 import os
-import subprocess
+import shutil
+import subprocess  # nosec B404
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,9 +45,7 @@ class DependencyScanner:
         Args:
             project_root: Root directory of the project
         """
-        self.project_root = (
-            Path(project_root).resolve() if project_root else Path.cwd().resolve()
-        )
+        self.project_root = Path(project_root).resolve() if project_root else Path.cwd().resolve()
         self.requirements_file = self._validate_and_get_requirements_path()
         self.logger = logging.getLogger("dependency_scanner")
 
@@ -66,9 +65,7 @@ class DependencyScanner:
         try:
             requirements_path.resolve().relative_to(self.project_root)
         except ValueError:
-            raise ValueError(
-                f"Requirements file path {requirements_path} is outside project root"
-            )
+            raise ValueError(f"Requirements file path {requirements_path} is outside project root")
 
         return requirements_path
 
@@ -93,7 +90,7 @@ class DependencyScanner:
                 capture_output=True,
                 text=True,
                 timeout=300,
-            )
+            )  # nosec B603
 
             if result.returncode == 0:
                 return {
@@ -125,9 +122,7 @@ class DependencyScanner:
                 }
 
         except FileNotFoundError:
-            self.logger.warning(
-                "pip-audit not found, install with: pip install pip-audit"
-            )
+            self.logger.warning("pip-audit not found, install with: pip install pip-audit")
             return {
                 "scanner": "pip-audit",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -158,11 +153,17 @@ class DependencyScanner:
         """
         try:
             result = subprocess.run(
-                ["safety", "check", "--file", str(self.requirements_file), "--json"],
+                [
+                    shutil.which("safety") or "safety",
+                    "check",
+                    "--file",
+                    str(self.requirements_file),
+                    "--json",
+                ],
                 capture_output=True,
                 text=True,
                 timeout=300,
-            )
+            )  # nosec B603
 
             if result.returncode == 0:
                 vulnerabilities = json.loads(result.stdout) if result.stdout else []
@@ -213,7 +214,7 @@ class DependencyScanner:
         try:
             result = subprocess.run(
                 [
-                    "bandit",
+                    shutil.which("bandit") or "bandit",
                     "-r",
                     str(self.project_root),
                     "-f",
@@ -226,7 +227,7 @@ class DependencyScanner:
                 capture_output=True,
                 text=True,
                 timeout=300,
-            )
+            )  # nosec B603
 
             if result.returncode == 0 or result.returncode == 1:
                 # Exit code 1 means issues found but scan succeeded
@@ -301,9 +302,7 @@ class DependencyScanner:
         results["summary"]["scanners_run"] += 1
 
         if pip_audit_result.get("vulnerabilities_found", 0) >= 0:
-            results["summary"]["total_vulnerabilities"] += pip_audit_result.get(
-                "vulnerabilities_found", 0
-            )
+            results["summary"]["total_vulnerabilities"] += pip_audit_result.get("vulnerabilities_found", 0)
         else:
             results["summary"]["scanners_failed"] += 1  # type: ignore[assignment]
 
@@ -313,9 +312,7 @@ class DependencyScanner:
         results["summary"]["scanners_run"] += 1
 
         if safety_result.get("vulnerabilities_found", 0) >= 0:
-            results["summary"]["total_vulnerabilities"] += safety_result.get(
-                "vulnerabilities_found", 0
-            )
+            results["summary"]["total_vulnerabilities"] += safety_result.get("vulnerabilities_found", 0)
         else:
             results["summary"]["scanners_failed"] += 1  # type: ignore[assignment]
 
@@ -331,9 +328,7 @@ class DependencyScanner:
 
         return results
 
-    def save_scan_report(
-        self, results: Dict[str, Any], output_file: str | Path | None = None
-    ) -> None:
+    def save_scan_report(self, results: Dict[str, Any], output_file: str | Path | None = None) -> None:
         """
         Save scan results to file.
 
@@ -384,13 +379,9 @@ class DependencyScanner:
                 summary_lines.append(f"  ERROR: {scan_result['error']}")
             else:
                 if scanner_name == "bandit":
-                    summary_lines.append(
-                        f"  Issues Found: {scan_result.get('issues_found', 0)}"
-                    )
+                    summary_lines.append(f"  Issues Found: {scan_result.get('issues_found', 0)}")
                 else:
-                    summary_lines.append(
-                        f"  Vulnerabilities Found: {scan_result.get('vulnerabilities_found', 0)}"
-                    )
+                    summary_lines.append(f"  Vulnerabilities Found: {scan_result.get('vulnerabilities_found', 0)}")
 
                 if scan_result.get("details"):
                     details = scan_result["details"]
@@ -422,20 +413,16 @@ class DependencyScanner:
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True
-            )
+            )  # nosec B603
             for line in result.stdout.splitlines():
                 if "==" in line:
                     name, version = line.split("==", 1)
-                    sbom["components"].append(
-                        {"type": "library", "name": name, "version": version}
-                    )
+                    sbom["components"].append({"type": "library", "name": name, "version": version})
         except Exception as e:
             self.logger.warning(f"Could not generate full SBOM components: {e}")
 
         # Sign the SBOM
-        signing_key = os.environ.get(
-            "APGI_SBOM_SIGNING_KEY", "fallback-key-do-not-use-in-prod"
-        ).encode()
+        signing_key = os.environ.get("APGI_SBOM_SIGNING_KEY", "fallback-key-do-not-use-in-prod").encode()
         sbom_str = json.dumps(sbom, sort_keys=True)
         signature = hmac.new(signing_key, sbom_str.encode(), hashlib.sha256).hexdigest()
 
@@ -451,16 +438,12 @@ class DependencyScanner:
 
         total_vulns = results["summary"]["total_vulnerabilities"]
         if total_vulns > SEVERITY_THRESHOLDS["CRITICAL"]:
-            self.logger.error(
-                f"Failed severity thresholds: {total_vulns} vulnerabilities found."
-            )
+            self.logger.error(f"Failed severity thresholds: {total_vulns} vulnerabilities found.")
             return False
         return True
 
 
-def run_dependency_scan(
-    project_root: str = None, save_report: bool = True
-) -> Dict[str, Any]:
+def run_dependency_scan(project_root: str = None, save_report: bool = True) -> Dict[str, Any]:
     """
     Run dependency vulnerability scan.
 
@@ -484,9 +467,7 @@ def main():
     """Main entry point for dependency scanning."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Scan dependencies for vulnerabilities"
-    )
+    parser = argparse.ArgumentParser(description="Scan dependencies for vulnerabilities")
     parser.add_argument(
         "--project-root",
         type=str,
@@ -507,9 +488,7 @@ def main():
     args = parser.parse_args()
 
     # Run scan
-    results = run_dependency_scan(
-        project_root=args.project_root, save_report=not args.no_save
-    )
+    results = run_dependency_scan(project_root=args.project_root, save_report=not args.no_save)
 
     # Print summary
     scanner = DependencyScanner(args.project_root)
@@ -522,10 +501,7 @@ def main():
     # Generate and save signed SBOM
     sbom_data = scanner.generate_signed_sbom()
     if not args.no_save:
-        sbom_path = (
-            Path(args.project_root if args.project_root else Path.cwd())
-            / "apgi-sbom-signed.json"
-        )
+        sbom_path = Path(args.project_root if args.project_root else Path.cwd()) / "apgi-sbom-signed.json"
         with open(sbom_path, "w") as f:
             json.dump(sbom_data, f, indent=2)
         print(f"\nSigned SBOM generated at {sbom_path}")

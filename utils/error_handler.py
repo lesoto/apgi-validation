@@ -80,11 +80,7 @@ class APGIError(APGIException):
             remediation = error_info.user_action
         else:
             msg = message or "Unknown error"
-            code = (
-                error_code
-                if isinstance(error_code, ErrorCode)
-                else ErrorCode.GEN_UNKNOWN
-            )
+            code = error_code if isinstance(error_code, ErrorCode) else ErrorCode.GEN_UNKNOWN
             cat = category
             sev = severity
             ctx = context or {}
@@ -100,16 +96,12 @@ class APGIError(APGIException):
             context=ctx,
             correlation_id=corr_id,
         )
-        self.error_info: Optional[ErrorInfo] = (
-            error_info if isinstance(error_info, ErrorInfo) else None
-        )
+        self.error_info: Optional[ErrorInfo] = error_info if isinstance(error_info, ErrorInfo) else None
         self.error_code: ErrorCode = code
         self.suggestion: Optional[str] = remediation
         self.timestamp: datetime = timestamp or datetime.now()
         self.original_error: Optional[Exception] = original_error
-        self.traceback: Optional[str] = (
-            traceback.format_exc() if original_error else None
-        )
+        self.traceback: Optional[str] = traceback.format_exc() if original_error else None
 
     def __str__(self) -> str:
         # Include severity and category for better error visibility
@@ -123,9 +115,7 @@ class APGIError(APGIException):
             # Remove file paths and potentially sensitive information from traceback
             import re
 
-            sanitized_traceback = re.sub(
-                r'File "[^"]*"', 'File "[REDACTED]"', self.traceback
-            )
+            sanitized_traceback = re.sub(r'File "[^"]*"', 'File "[REDACTED]"', self.traceback)
             sanitized_traceback = re.sub(r"(/[^\s]+)", "/[PATH]", sanitized_traceback)
             # Limit traceback length
             if len(sanitized_traceback) > 500:
@@ -158,9 +148,7 @@ class ConfigurationError(APGIError):
     def __init__(self, message: str, config_file: Optional[str] = None, **kwargs):
         if config_file:
             message = f"Configuration error in '{config_file}': {message}"
-        super().__init__(
-            message=message, category=ErrorCategory.CONFIGURATION, **kwargs
-        )
+        super().__init__(message=message, category=ErrorCategory.CONFIGURATION, **kwargs)
 
 
 class ProtocolError(APGIError):
@@ -341,9 +329,7 @@ class ErrorHandler:
         self.error_handlers: Dict[ErrorCategory, Callable] = {}
         self.error_counts_lock = threading.Lock()
 
-    def format_error(
-        self, category: ErrorCategory, severity: ErrorSeverity, code: str, **kwargs
-    ) -> str:
+    def format_error(self, category: ErrorCategory, severity: ErrorSeverity, code: str, **kwargs) -> str:
         """Format error message using templates."""
         try:
             template = self.ERROR_TEMPLATES[category][severity][code]
@@ -410,15 +396,11 @@ class ErrorHandler:
                     code = ErrorCode.GEN_UNKNOWN
 
         # Create error info
-        error_info = self.create_error(
-            category, severity, code, details, suggestions, user_action, **format_kwargs
-        )
+        error_info = self.create_error(category, severity, code, details, suggestions, user_action, **format_kwargs)
 
         # Count errors by category with cap to prevent unbounded growth
         with self.error_counts_lock:
-            self.error_counts[category] = min(
-                self.error_counts.get(category, 0) + 1, 1000
-            )
+            self.error_counts[category] = min(self.error_counts.get(category, 0) + 1, 1000)
 
         # Log error
         log_message = f"[{severity.value}] {category.value}: {error_info.message}"
@@ -449,14 +431,10 @@ class ErrorHandler:
 
         return APGIError(error_info)
 
-    def register_handler(
-        self, category: ErrorCategory, handler: Callable[[ErrorInfo], None]
-    ) -> None:
+    def register_handler(self, category: ErrorCategory, handler: Callable[[ErrorInfo], None]) -> None:
         """Register custom error handler for a category."""
         self.error_handlers[category] = handler
-        apgi_logger.logger.info(
-            f"Registered error handler for category: {category.value}"
-        )
+        apgi_logger.logger.info(f"Registered error handler for category: {category.value}")
 
     def get_error_summary(self) -> Dict[str, Any]:
         """Get summary of errors by category."""
@@ -464,9 +442,7 @@ class ErrorHandler:
 
         return {
             "total_errors": total_errors,
-            "by_category": {
-                category.value: count for category, count in self.error_counts.items()
-            },
+            "by_category": {category.value: count for category, count in self.error_counts.items()},
             "most_common": (
                 max(
                     self.error_counts.items(),
@@ -529,51 +505,37 @@ def handle_errors(
 # Convenience functions for common error types
 def config_error(code: str, **kwargs) -> APGIError:
     """Create configuration error."""
-    return error_handler.handle_error(
-        ErrorCategory.CONFIGURATION, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.CONFIGURATION, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def validation_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create validation error."""
-    return error_handler.handle_error(
-        ErrorCategory.VALIDATION, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.VALIDATION, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def simulation_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create simulation error."""
-    return error_handler.handle_error(
-        ErrorCategory.PROTOCOL, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.PROTOCOL, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def data_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create data error."""
-    return error_handler.handle_error(
-        ErrorCategory.DATA, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.DATA, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def io_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create I/O error."""
-    return error_handler.handle_error(
-        ErrorCategory.INFRASTRUCTURE, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.INFRASTRUCTURE, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def import_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create import/dependency error."""
-    return error_handler.handle_error(
-        ErrorCategory.CONFIGURATION, ErrorSeverity.HIGH, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.CONFIGURATION, ErrorSeverity.HIGH, code, **kwargs)
 
 
 def critical_error(code: ErrorCode, **kwargs) -> APGIError:
     """Create critical error."""
-    return error_handler.handle_error(
-        ErrorCategory.RUNTIME, ErrorSeverity.CRITICAL, code, **kwargs
-    )
+    return error_handler.handle_error(ErrorCategory.RUNTIME, ErrorSeverity.CRITICAL, code, **kwargs)
 
 
 def handle_import_error(module_name: str, error: Exception, context: str = "") -> None:
@@ -613,9 +575,7 @@ def handle_import_error(module_name: str, error: Exception, context: str = "") -
         )
 
     else:
-        import_error(
-            "DEPENDENCY_ERROR", details=f"Import error for {module_name}: {error_msg}"
-        )
+        import_error("DEPENDENCY_ERROR", details=f"Import error for {module_name}: {error_msg}")
 
     if context:
         apgi_logger.logger.warning(f"Import context: {context}")
@@ -843,9 +803,7 @@ def retry_on_error(
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:
-                        logger.error(
-                            f"All {max_retries + 1} attempts failed for {func.__name__}"
-                        )
+                        logger.error(f"All {max_retries + 1} attempts failed for {func.__name__}")
 
             raise last_exception
 
@@ -888,9 +846,7 @@ def safe_import(module_name: str, fallback=None, context: str = ""):
         handle_import_error(module_name, e, context)
         return fallback
     except Exception as e:
-        import_error(
-            "DEPENDENCY_ERROR", details=f"Unexpected error importing {module_name}: {e}"
-        )
+        import_error("DEPENDENCY_ERROR", details=f"Unexpected error importing {module_name}: {e}")
         return fallback
 
 
@@ -922,9 +878,7 @@ if __name__ == "__main__":
 
     try:
         # Test data error
-        raise data_error(
-            "MISSING_REQUIRED_FIELDS", fields=["subject_id", "timestamp", "value"]
-        )
+        raise data_error("MISSING_REQUIRED_FIELDS", fields=["subject_id", "timestamp", "value"])
     except APGIError as e:
         print(f"Data error: {format_user_message(e)}")
 

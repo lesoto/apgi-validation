@@ -92,9 +92,7 @@ def extract_genome_data_from_vp5(
             evolved_alpha_values = np.concatenate(
                 [
                     np.random.normal(4.5, 0.5, n_threshold_agents),  # Threshold agents
-                    np.random.normal(
-                        2.5, 0.5, n_agents - n_threshold_agents
-                    ),  # Non-threshold agents
+                    np.random.normal(2.5, 0.5, n_agents - n_threshold_agents),  # Non-threshold agents
                 ]
             )
 
@@ -103,38 +101,26 @@ def extract_genome_data_from_vp5(
             timescale_correlations = np.concatenate(
                 [
                     np.random.normal(0.55, 0.1, n_precision_agents),  # Precision agents
-                    np.random.normal(
-                        0.25, 0.1, n_agents - n_precision_agents
-                    ),  # Non-precision agents
+                    np.random.normal(0.25, 0.1, n_agents - n_precision_agents),  # Non-precision agents
                 ]
             )
 
             # Gain ratios for agents with interoceptive weighting (should be >= 1.3 per spec)
             intero_gain_ratios = np.concatenate(
                 [
-                    np.random.normal(
-                        1.5, 0.2, n_interoceptive_agents
-                    ),  # Interoceptive agents
-                    np.random.normal(
-                        0.9, 0.2, n_agents - n_interoceptive_agents
-                    ),  # Non-interoceptive agents
+                    np.random.normal(1.5, 0.2, n_interoceptive_agents),  # Interoceptive agents
+                    np.random.normal(0.9, 0.2, n_agents - n_interoceptive_agents),  # Non-interoceptive agents
                 ]
             )
 
         # Set return values from extracted data
-        evolved_alpha_values = (
-            evolved_alpha_values if "evolved_alpha_values" in dir() else []
-        )
-        timescale_correlations = (
-            timescale_correlations if "timescale_correlations" in dir() else []
-        )
+        evolved_alpha_values = evolved_alpha_values if "evolved_alpha_values" in dir() else []
+        timescale_correlations = timescale_correlations if "timescale_correlations" in dir() else []
         intero_gain_ratios = intero_gain_ratios if "intero_gain_ratios" in dir() else []
 
         genome_data = {
             "evolved_alpha_values": (
-                evolved_alpha_values.tolist()
-                if isinstance(evolved_alpha_values, np.ndarray)
-                else evolved_alpha_values
+                evolved_alpha_values.tolist() if isinstance(evolved_alpha_values, np.ndarray) else evolved_alpha_values
             ),
             "timescale_correlations": (
                 timescale_correlations.tolist()
@@ -142,9 +128,7 @@ def extract_genome_data_from_vp5(
                 else timescale_correlations
             ),
             "intero_gain_ratios": (
-                intero_gain_ratios.tolist()
-                if isinstance(intero_gain_ratios, np.ndarray)
-                else intero_gain_ratios
+                intero_gain_ratios.tolist() if isinstance(intero_gain_ratios, np.ndarray) else intero_gain_ratios
             ),
             "n_agents": n_agents,
             "n_generations": vp5_results.get("config", {}).get("n_generations", 500),
@@ -169,9 +153,7 @@ def extract_genome_data_from_vp5(
     return genome_data
 
 
-def save_genome_data(
-    genome_data: Dict[str, Any], output_path: str = "genome_data.json"
-):
+def save_genome_data(genome_data: Dict[str, Any], output_path: str = "genome_data.json"):
     """
     Save genome_data to JSON file for use in falsification protocols.
 

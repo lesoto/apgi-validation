@@ -177,10 +177,7 @@ class EEGPreprocessor:
 
         if sampling_rate is None:
             # Check if sampling_rate is in config
-            if (
-                hasattr(self.config, "target_sampling_rate")
-                and self.config.target_sampling_rate
-            ):
+            if hasattr(self.config, "target_sampling_rate") and self.config.target_sampling_rate:
                 sampling_rate = self.config.target_sampling_rate
             else:
                 import warnings
@@ -193,12 +190,8 @@ class EEGPreprocessor:
                     stacklevel=2,
                 )
                 if return_dict:
-                    return {
-                        "error": "sampling_rate parameter is required for EEG preprocessing"
-                    }
-                raise ValueError(
-                    "sampling_rate parameter is required for EEG preprocessing"
-                )
+                    return {"error": "sampling_rate parameter is required for EEG preprocessing"}
+                raise ValueError("sampling_rate parameter is required for EEG preprocessing")
 
         if eeg_columns is None:
             eeg_columns = [col for col in df.columns if col.startswith("eeg")]
@@ -222,22 +215,16 @@ class EEGPreprocessor:
                 df_processed[col] = df_processed[col].interpolate()
 
                 # Step 2: Apply bandpass filter
-                df_processed[col] = self._apply_bandpass_filter(
-                    df_processed[col], sampling_rate
-                )
+                df_processed[col] = self._apply_bandpass_filter(df_processed[col], sampling_rate)
 
                 # Step 3: Apply notch filter for power line noise
-                df_processed[col] = self._apply_notch_filter(
-                    df_processed[col], sampling_rate
-                )
+                df_processed[col] = self._apply_notch_filter(df_processed[col], sampling_rate)
 
                 # Step 4: Apply ICA artifact removal
                 df_processed[col] = self._apply_ica_artifact_removal(df_processed[col])
 
                 # Step 5: Detect and correct artifacts
-                df_processed[col] = self._detect_and_correct_artifacts(
-                    df_processed[col]
-                )
+                df_processed[col] = self._detect_and_correct_artifacts(df_processed[col])
 
                 if show_progress:
                     pbar.update(1)
@@ -250,17 +237,13 @@ class EEGPreprocessor:
             return {"processed_eeg": df_processed.values}
         return df_processed
 
-    def _apply_bandpass_filter(
-        self, signal_data: pd.Series, sampling_rate: float
-    ) -> pd.Series:
+    def _apply_bandpass_filter(self, signal_data: pd.Series, sampling_rate: float) -> pd.Series:
         """Apply bandpass filter to EEG signal."""
         # Use provided sampling rate
         fs = sampling_rate
 
         if fs is None or fs <= 0:
-            self.preprocessing_log.append(
-                "Invalid sampling rate, skipping bandpass filter"
-            )
+            self.preprocessing_log.append("Invalid sampling rate, skipping bandpass filter")
             return signal_data
 
         # Design bandpass filter
@@ -269,9 +252,7 @@ class EEGPreprocessor:
         high = self.config.eeg_bandpass_high / nyquist
 
         if low >= high:
-            self.preprocessing_log.append(
-                f"Invalid filter frequencies: {low} >= {high}"
-            )
+            self.preprocessing_log.append(f"Invalid filter frequencies: {low} >= {high}")
             return signal_data
 
         try:
@@ -292,14 +273,10 @@ class EEGPreprocessor:
             MemoryError,
             IndexError,
         ) as e:
-            self.preprocessing_log.append(
-                f"Error applying bandpass filter: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error applying bandpass filter: {type(e).__name__}: {e}")
             return signal_data
 
-    def _apply_notch_filter(
-        self, signal_data: pd.Series, sampling_rate: float
-    ) -> pd.Series:
+    def _apply_notch_filter(self, signal_data: pd.Series, sampling_rate: float) -> pd.Series:
         """Apply notch filter to remove power line noise."""
         fs = sampling_rate
 
@@ -320,9 +297,7 @@ class EEGPreprocessor:
 
             result = signal_data.copy()
             result.loc[signal_data.dropna().index] = filtered_data
-            self.preprocessing_log.append(
-                f"Applied notch filter at {self.config.eeg_notch_freq} Hz"
-            )
+            self.preprocessing_log.append(f"Applied notch filter at {self.config.eeg_notch_freq} Hz")
 
             return result
 
@@ -333,9 +308,7 @@ class EEGPreprocessor:
             MemoryError,
             IndexError,
         ) as e:
-            self.preprocessing_log.append(
-                f"Error applying notch filter: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error applying notch filter: {type(e).__name__}: {e}")
             return signal_data
 
     def _detect_and_correct_artifacts(self, signal_data: pd.Series) -> pd.Series:
@@ -357,9 +330,7 @@ class EEGPreprocessor:
             result.loc[artifact_indices] = np.nan
             result = result.interpolate()
 
-            self.preprocessing_log.append(
-                f"Corrected {artifact_mask.sum()} artifacts in {signal_data.name}"
-            )
+            self.preprocessing_log.append(f"Corrected {artifact_mask.sum()} artifacts in {signal_data.name}")
             return result
 
         return signal_data
@@ -381,9 +352,7 @@ class EEGPreprocessor:
             n_windows = len(data_clean) - window_size + 1
 
             if n_windows < 10:
-                self.preprocessing_log.append(
-                    f"Insufficient windows for ICA in {signal_data.name}: {n_windows}"
-                )
+                self.preprocessing_log.append(f"Insufficient windows for ICA in {signal_data.name}: {n_windows}")
                 return signal_data
 
             # Create windows with overlap
@@ -396,9 +365,7 @@ class EEGPreprocessor:
                 )
                 return signal_data
 
-            windows = np.array(
-                [data_clean.iloc[i : i + window_size].values for i in range(n_windows)]
-            )
+            windows = np.array([data_clean.iloc[i : i + window_size].values for i in range(n_windows)])
 
             # Advanced ICA with multiple algorithms
             ica_methods = ["fastica", "picard", "infomax"]
@@ -442,14 +409,10 @@ class EEGPreprocessor:
                     ica_components = ica.fit_transform(windows)
 
                     # Advanced artifact detection
-                    artifact_mask = self._detect_artifact_components(
-                        ica_components, windows
-                    )
+                    artifact_mask = self._detect_artifact_components(ica_components, windows)
 
                     # Reconstruct data without artifact components
-                    cleaned_windows = ica.inverse_transform(
-                        ica_components * artifact_mask[np.newaxis, :]
-                    )
+                    cleaned_windows = ica.inverse_transform(ica_components * artifact_mask[np.newaxis, :])
 
                     # Reconstruct signal from cleaned windows
                     cleaned_signal = self._reconstruct_signal_from_windows(
@@ -458,17 +421,13 @@ class EEGPreprocessor:
 
                     # Evaluate reconstruction quality
                     data_values = np.array(data_clean.values)
-                    reconstruction_score = self._evaluate_reconstruction_quality(
-                        data_values, cleaned_signal
-                    )
+                    reconstruction_score = self._evaluate_reconstruction_quality(data_values, cleaned_signal)
 
                     if reconstruction_score < best_score:
                         best_score = reconstruction_score
                         best_reconstruction = cleaned_signal
 
-                    self.preprocessing_log.append(
-                        f"ICA {method}: reconstruction_score={reconstruction_score:.4f}"
-                    )
+                    self.preprocessing_log.append(f"ICA {method}: reconstruction_score={reconstruction_score:.4f}")
 
                 except (
                     ValueError,
@@ -488,25 +447,18 @@ class EEGPreprocessor:
                 )
 
                 self.preprocessing_log.append(
-                    f"Advanced ICA artifact removal completed for {signal_data.name} "
-                    f"(best_score={best_score:.4f})"
+                    f"Advanced ICA artifact removal completed for {signal_data.name} " f"(best_score={best_score:.4f})"
                 )
                 return result
             else:
-                self.preprocessing_log.append(
-                    f"All ICA methods failed for {signal_data.name}, using original signal"
-                )
+                self.preprocessing_log.append(f"All ICA methods failed for {signal_data.name}, using original signal")
                 return signal_data
 
         except (ValueError, MemoryError, RuntimeError, ImportError) as e:
-            self.preprocessing_log.append(
-                f"ICA processing failed for {signal_data.name}: {e}"
-            )
+            self.preprocessing_log.append(f"ICA processing failed for {signal_data.name}: {e}")
             return signal_data
 
-    def _detect_artifact_components(
-        self, ica_components: np.ndarray, windows: np.ndarray
-    ) -> np.ndarray:
+    def _detect_artifact_components(self, ica_components: np.ndarray, windows: np.ndarray) -> np.ndarray:
         """Advanced artifact component detection using multiple criteria."""
         from scipy import stats
 
@@ -570,9 +522,7 @@ class EEGPreprocessor:
 
         return cleaned_signal
 
-    def _evaluate_reconstruction_quality(
-        self, original: np.ndarray, reconstructed: np.ndarray
-    ) -> float:
+    def _evaluate_reconstruction_quality(self, original: np.ndarray, reconstructed: np.ndarray) -> float:
         """Evaluate reconstruction quality using multiple metrics."""
         # Ensure same length
         min_len = min(len(original), len(reconstructed))
@@ -613,9 +563,7 @@ class PupilPreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
-    def preprocess(
-        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
-    ) -> Union[pd.DataFrame, np.ndarray]:
+    def preprocess(self, data: Union[pd.DataFrame, np.ndarray], **kwargs) -> Union[pd.DataFrame, np.ndarray]:
         """Generic preprocess method that delegates to preprocess_pupil.
 
         Args:
@@ -630,12 +578,8 @@ class PupilPreprocessor:
             if data.ndim == 1:
                 df = pd.DataFrame({"pupil_diameter": data})
             else:
-                df = pd.DataFrame(
-                    {f"pupil_diameter_{i}": data[:, i] for i in range(data.shape[1])}
-                )
-            result = self.preprocess_pupil(df, **kwargs)
-            return result.values if isinstance(result, pd.DataFrame) else result
-        return self.preprocess_pupil(data, **kwargs)
+                df = pd.DataFrame({f"pupil_diameter_{i}": data[:, i] for i in range(data.shape[1])})
+            return self.preprocess_pupil(df, **kwargs)
 
     def _execute_pupil_step(
         self,
@@ -677,11 +621,7 @@ class PupilPreprocessor:
             ("Smoothing signal", self._smooth_pupil_signal, "series_method"),
         ]
 
-        pbar = (
-            tqdm(total=len(steps), desc="Processing pupil data")
-            if show_progress
-            else None
-        )
+        pbar = tqdm(total=len(steps), desc="Processing pupil data") if show_progress else None
 
         # Execute steps based on their method type
         for i, (step_name, step_func, method_type) in enumerate(steps):
@@ -732,14 +672,10 @@ class PupilPreprocessor:
 
         if len(blink_indices) > 0:
             # Interpolate over blink periods
-            df_processed[pupil_column] = df_processed[pupil_column].interpolate(
-                method="linear"
-            )
+            df_processed[pupil_column] = df_processed[pupil_column].interpolate(method="linear")
 
             # Log interpolation
-            self.preprocessing_log.append(
-                f"Interpolated {len(blink_indices)} blink samples"
-            )
+            self.preprocessing_log.append(f"Interpolated {len(blink_indices)} blink samples")
 
         return df_processed
 
@@ -758,9 +694,7 @@ class PupilPreprocessor:
             # Interpolate over blinks
             result = result.interpolate()
 
-            self.preprocessing_log.append(
-                f"Detected and interpolated {blink_mask.sum()} blinks"
-            )
+            self.preprocessing_log.append(f"Detected and interpolated {blink_mask.sum()} blinks")
             return result
 
         return pupil_data
@@ -775,15 +709,11 @@ class PupilPreprocessor:
             # Fill NaN values at edges with original data
             smoothed_data = smoothed_data.fillna(pupil_data)
 
-            self.preprocessing_log.append(
-                f"Applied smoothing with window size {window_size}"
-            )
+            self.preprocessing_log.append(f"Applied smoothing with window size {window_size}")
             return smoothed_data
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(
-                f"Error smoothing pupil signal: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error smoothing pupil signal: {type(e).__name__}: {e}")
             return pupil_data
 
     def _normalize_pupil_diameter(self, pupil_data: pd.Series) -> pd.Series:
@@ -794,9 +724,7 @@ class PupilPreprocessor:
         if baseline > 0:
             # Convert to percentage change from baseline
             normalized_data = ((pupil_data - baseline) / baseline) * 100
-            self.preprocessing_log.append(
-                f"Normalized pupil diameter (baseline: {baseline:.2f} mm)"
-            )
+            self.preprocessing_log.append(f"Normalized pupil diameter (baseline: {baseline:.2f} mm)")
             return normalized_data
 
         return pupil_data
@@ -809,9 +737,7 @@ class EDAPreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
-    def preprocess(
-        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
-    ) -> Union[pd.DataFrame, np.ndarray]:
+    def preprocess(self, data: Union[pd.DataFrame, np.ndarray], **kwargs) -> Union[pd.DataFrame, np.ndarray]:
         """Generic preprocess method that delegates to preprocess_eda.
 
         Args:
@@ -826,16 +752,10 @@ class EDAPreprocessor:
             if data.ndim == 1:
                 df = pd.DataFrame({"eda": data})
             else:
-                df = pd.DataFrame(
-                    {f"eda_{i}": data[:, i] for i in range(data.shape[1])}
-                )
-            result = self.preprocess_eda(df, **kwargs)
-            return result.values if isinstance(result, pd.DataFrame) else result
-        return self.preprocess_eda(data, **kwargs)
+                df = pd.DataFrame({f"eda_{i}": data[:, i] for i in range(data.shape[1])})
+            return self.preprocess_eda(df, **kwargs)
 
-    def preprocess_eda(
-        self, df: pd.DataFrame, eda_column: str = "eda", show_progress: bool = True
-    ) -> pd.DataFrame:
+    def preprocess_eda(self, df: pd.DataFrame, eda_column: str = "eda", show_progress: bool = True) -> pd.DataFrame:
         """Apply comprehensive EDA preprocessing pipeline."""
         if eda_column not in df.columns:
             self.preprocessing_log.append(f"EDA column '{eda_column}' not found")
@@ -859,18 +779,14 @@ class EDAPreprocessor:
         # Step 1: Apply lowpass filter
         if show_progress:
             pbar.set_description(steps[0])
-        df_processed.loc[:, eda_column] = self._apply_lowpass_filter(
-            df_processed[eda_column]
-        )
+        df_processed.loc[:, eda_column] = self._apply_lowpass_filter(df_processed[eda_column])
         if show_progress:
             pbar.update(1)
 
         # Step 2: Smoothing
         if show_progress:
             pbar.set_description(steps[1])
-        df_processed.loc[:, eda_column] = self._smooth_eda_signal(
-            df_processed[eda_column]
-        )
+        df_processed.loc[:, eda_column] = self._smooth_eda_signal(df_processed[eda_column])
         if show_progress:
             pbar.update(1)
 
@@ -903,9 +819,7 @@ class EDAPreprocessor:
             result = eda_data.copy()
             result.loc[eda_data.dropna().index] = filtered_data
 
-            self.preprocessing_log.append(
-                f"Applied lowpass filter ({self.config.eda_lowpass_cutoff} Hz cutoff)"
-            )
+            self.preprocessing_log.append(f"Applied lowpass filter ({self.config.eda_lowpass_cutoff} Hz cutoff)")
             return result
 
         except (
@@ -915,9 +829,7 @@ class EDAPreprocessor:
             MemoryError,
             IndexError,
         ) as e:
-            self.preprocessing_log.append(
-                f"Error applying lowpass filter: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error applying lowpass filter: {type(e).__name__}: {e}")
             return eda_data
 
     def _smooth_eda_signal(self, eda_data: pd.Series) -> pd.Series:
@@ -927,15 +839,11 @@ class EDAPreprocessor:
             smoothed_data = eda_data.rolling(window=window_size, center=True).mean()
             smoothed_data = smoothed_data.fillna(eda_data)
 
-            self.preprocessing_log.append(
-                f"Applied EDA smoothing with window size {window_size}"
-            )
+            self.preprocessing_log.append(f"Applied EDA smoothing with window size {window_size}")
             return smoothed_data
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(
-                f"Error smoothing EDA signal: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error smoothing EDA signal: {type(e).__name__}: {e}")
             return eda_data
 
     def _extract_phasic_tonic(self, df: pd.DataFrame, eda_column: str) -> pd.DataFrame:
@@ -946,9 +854,7 @@ class EDAPreprocessor:
             # Tonic component (slow varying)
             tonic_window = 30  # 30 second window
             tonic = eda_data.rolling(
-                window=int(
-                    tonic_window * self._estimate_sampling_rate(eda_data) or 1000
-                ),
+                window=int(tonic_window * self._estimate_sampling_rate(eda_data) or 1000),
                 center=True,
                 min_periods=1,
             ).mean()
@@ -963,9 +869,7 @@ class EDAPreprocessor:
             return df
 
         except (ValueError, TypeError, IndexError, MemoryError, RuntimeError) as e:
-            self.preprocessing_log.append(
-                f"Error extracting phasic/tonic components: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error extracting phasic/tonic components: {type(e).__name__}: {e}")
             return df
 
     def _estimate_sampling_rate(self, signal_data: pd.Series) -> Optional[float]:
@@ -990,9 +894,7 @@ class HeartRatePreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
-    def preprocess(
-        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
-    ) -> Union[pd.DataFrame, np.ndarray]:
+    def preprocess(self, data: Union[pd.DataFrame, np.ndarray], **kwargs) -> Union[pd.DataFrame, np.ndarray]:
         """Generic preprocess method that delegates to preprocess_heart_rate.
 
         Args:
@@ -1007,12 +909,8 @@ class HeartRatePreprocessor:
             if data.ndim == 1:
                 df = pd.DataFrame({"heart_rate": data})
             else:
-                df = pd.DataFrame(
-                    {f"heart_rate_{i}": data[:, i] for i in range(data.shape[1])}
-                )
-            result = self.preprocess_heart_rate(df, **kwargs)
-            return result.values if isinstance(result, pd.DataFrame) else result
-        return self.preprocess_heart_rate(data, **kwargs)
+                df = pd.DataFrame({f"heart_rate_{i}": data[:, i] for i in range(data.shape[1])})
+            return self.preprocess_heart_rate(df, **kwargs)
 
     def preprocess_heart_rate(
         self,
@@ -1051,18 +949,14 @@ class HeartRatePreprocessor:
         # Step 2: Interpolate missing values
         if show_progress:
             pbar.set_description(steps[1])
-        df_processed.loc[:, hr_column] = self._interpolate_missing_values(
-            df_processed[hr_column]
-        )
+        df_processed.loc[:, hr_column] = self._interpolate_missing_values(df_processed[hr_column])
         if show_progress:
             pbar.update(1)
 
         # Step 3: Smoothing
         if show_progress:
             pbar.set_description(steps[2])
-        df_processed.loc[:, hr_column] = self._smooth_heart_rate(
-            df_processed[hr_column]
-        )
+        df_processed.loc[:, hr_column] = self._smooth_heart_rate(df_processed[hr_column])
         if show_progress:
             pbar.update(1)
 
@@ -1088,9 +982,7 @@ class HeartRatePreprocessor:
             # Replace outliers with NaN for interpolation
             result.loc[outlier_indices] = np.nan
 
-            self.preprocessing_log.append(
-                f"Detected and marked {outlier_mask.sum()} heart rate outliers"
-            )
+            self.preprocessing_log.append(f"Detected and marked {outlier_mask.sum()} heart rate outliers")
             return result
 
         return hr_data
@@ -1103,21 +995,15 @@ class HeartRatePreprocessor:
             polyorder = 3
 
             if len(hr_data.dropna()) > window_length:
-                smoothed_data = signal.savgol_filter(
-                    hr_data.dropna(), window_length, polyorder
-                )
+                smoothed_data = signal.savgol_filter(hr_data.dropna(), window_length, polyorder)
                 result = hr_data.copy()
                 result.loc[hr_data.dropna().index] = smoothed_data
 
-                self.preprocessing_log.append(
-                    f"Applied Savitzky-Golay smoothing (window={window_length})"
-                )
+                self.preprocessing_log.append(f"Applied Savitzky-Golay smoothing (window={window_length})")
                 return result
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(
-                f"Error smoothing heart rate: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error smoothing heart rate: {type(e).__name__}: {e}")
 
         return hr_data
 
@@ -1134,9 +1020,7 @@ class HeartRatePreprocessor:
             return result
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(
-                f"Error interpolating heart rate: {type(e).__name__}: {e}"
-            )
+            self.preprocessing_log.append(f"Error interpolating heart rate: {type(e).__name__}: {e}")
             return hr_data
 
 
@@ -1182,9 +1066,7 @@ class MultimodalPreprocessingPipeline:
         self.pipeline_log.append(f"Loaded data: {df.shape}")
         return df
 
-    def _apply_specialized_preprocessing(
-        self, df: pd.DataFrame, sampling_rate: Optional[float] = None
-    ) -> pd.DataFrame:
+    def _apply_specialized_preprocessing(self, df: pd.DataFrame, sampling_rate: Optional[float] = None) -> pd.DataFrame:
         """Apply specialized preprocessing for different data types."""
         df_processed = df.copy()
 
@@ -1194,17 +1076,13 @@ class MultimodalPreprocessingPipeline:
             )  # type: ignore[assignment]
 
         if "pupil_diameter" in df.columns:
-            df_processed = self.pupil_processor.preprocess_pupil(
-                df_processed, "pupil_diameter"
-            )
+            df_processed = self.pupil_processor.preprocess_pupil(df_processed, "pupil_diameter")
 
         if "eda" in df.columns:
             df_processed = self.eda_processor.preprocess_eda(df_processed, "eda")
 
         if "heart_rate" in df.columns:
-            df_processed = self.hr_processor.preprocess_heart_rate(
-                df_processed, "heart_rate"
-            )
+            df_processed = self.hr_processor.preprocess_heart_rate(df_processed, "heart_rate")
 
         return df_processed
 
@@ -1214,9 +1092,7 @@ class MultimodalPreprocessingPipeline:
 
         # Handle missing values
         if self.config.handle_missing:
-            df_processed = self.preprocessor.clean_missing_data(
-                df_processed, self.config.missing_data_strategy
-            )
+            df_processed = self.preprocessor.clean_missing_data(df_processed, self.config.missing_data_strategy)
             self.pipeline_log.append("Handled missing values")
 
         # Remove outliers
@@ -1231,18 +1107,12 @@ class MultimodalPreprocessingPipeline:
 
         return df_processed
 
-    def _resample_data_if_needed(
-        self, df: pd.DataFrame, pbar, step_name: str
-    ) -> pd.DataFrame:
+    def _resample_data_if_needed(self, df: pd.DataFrame, pbar, step_name: str) -> pd.DataFrame:
         """Resample data if timestamp column exists and sufficient data."""
         self._update_progress(pbar, step_name)
         if "timestamp" in df.columns and len(df) > 100:
-            df_resampled = self.preprocessor.resample_data(
-                df, self.config.target_sampling_rate
-            )
-            self.pipeline_log.append(
-                f"Resampled to {self.config.target_sampling_rate} Hz"
-            )
+            df_resampled = self.preprocessor.resample_data(df, self.config.target_sampling_rate)
+            self.pipeline_log.append(f"Resampled to {self.config.target_sampling_rate} Hz")
             return df_resampled
         return df
 
@@ -1291,9 +1161,7 @@ class MultimodalPreprocessingPipeline:
             ("Saving results", "save"),
         ]
 
-        pbar = self._setup_progress_bar(
-            steps, f"Processing {input_path.name}", show_progress
-        )
+        pbar = self._setup_progress_bar(steps, f"Processing {input_path.name}", show_progress)
 
         try:
             validation_report = self._validate_input_data(input_path, pbar, steps[0][0])
@@ -1305,13 +1173,9 @@ class MultimodalPreprocessingPipeline:
             df_processed = self._apply_general_preprocessing(df_processed)
             self._update_progress(pbar, steps[3][0])
 
-            df_processed = self._resample_data_if_needed(
-                df_processed, pbar, steps[4][0]
-            )
+            df_processed = self._resample_data_if_needed(df_processed, pbar, steps[4][0])
 
-            output_file = self._save_processed_data(
-                df_processed, input_path, output_path, pbar, steps[5][0]
-            )
+            output_file = self._save_processed_data(df_processed, input_path, output_path, pbar, steps[5][0])
 
             self._save_processing_report(
                 validation_report,
@@ -1353,9 +1217,7 @@ class MultimodalPreprocessingPipeline:
                 pbar.close()
             return {"error": f"{type(e).__name__}: {e}", "log": self.pipeline_log}
 
-    def _save_processing_report(
-        self, initial_validation: Dict, final_quality: Dict, report_file: Path
-    ):
+    def _save_processing_report(self, initial_validation: Dict, final_quality: Dict, report_file: Path):
         """Save comprehensive processing report."""
         report = {
             "processing_timestamp": datetime.now().isoformat(),

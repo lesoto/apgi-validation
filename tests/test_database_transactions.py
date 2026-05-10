@@ -361,12 +361,8 @@ class DatabaseTransactionTester:
         for t in threads:
             t.join()
 
-        results["successful_acquisitions"] = sum(
-            1 for _, success in connection_results if success
-        )
-        results["failed_acquisitions"] = sum(
-            1 for _, success in connection_results if not success
-        )
+        results["successful_acquisitions"] = sum(1 for _, success in connection_results if success)
+        results["failed_acquisitions"] = sum(1 for _, success in connection_results if not success)
         results["exhaustion_detected"] = results["failed_acquisitions"] > 0
 
         return results
@@ -443,9 +439,7 @@ class DatabaseTransactionTester:
             final_balance = 0.0
 
         # With sequential updates, balance should be 1300 (1000 + 100 + 200)
-        results["lost_update_prevented"] = (
-            final_balance == 1300.0 and success1 and success2
-        )
+        results["lost_update_prevented"] = final_balance == 1300.0 and success1 and success2
         results["test_completed"] = True
 
         return results
@@ -496,10 +490,7 @@ class DatabaseTransactionTester:
                 conn.close()
                 completion_events["t1"].set()
             except sqlite3.OperationalError as e:
-                if (
-                    "deadlock" in str(e).lower()
-                    or "database is locked" in str(e).lower()
-                ):
+                if "deadlock" in str(e).lower() or "database is locked" in str(e).lower():
                     results["deadlock_detected"] = True
 
         def transaction_2():
@@ -524,10 +515,7 @@ class DatabaseTransactionTester:
                 conn.close()
                 completion_events["t2"].set()
             except sqlite3.OperationalError as e:
-                if (
-                    "deadlock" in str(e).lower()
-                    or "database is locked" in str(e).lower()
-                ):
+                if "deadlock" in str(e).lower() or "database is locked" in str(e).lower():
                     results["deadlock_detected"] = True
 
         t1 = threading.Thread(target=transaction_1)
@@ -538,9 +526,7 @@ class DatabaseTransactionTester:
         t1.join(timeout=5.0)
         t2.join(timeout=5.0)
 
-        results["both_transactions_completed"] = (
-            completion_events["t1"].is_set() and completion_events["t2"].is_set()
-        )
+        results["both_transactions_completed"] = completion_events["t1"].is_set() and completion_events["t2"].is_set()
 
         return results
 
@@ -616,9 +602,7 @@ class TestConnectionPool:
         # On fast systems, all requests may succeed if connections are returned quickly.
         # The important thing is that the pool system works (either detects exhaustion
         # or successfully handles all requests without crashing).
-        assert (
-            results["successful_acquisitions"] > 0
-        ), "Should acquire at least some connections"
+        assert results["successful_acquisitions"] > 0, "Should acquire at least some connections"
         assert (
             results["successful_acquisitions"] <= results["concurrent_requests"]
         ), "Cannot succeed more than requested"
@@ -705,9 +689,7 @@ class TestTransactionContextManager:
 
         # Verify commit
         with transaction_tester.transaction() as conn:
-            cursor = conn.execute(
-                "SELECT balance FROM test_accounts WHERE account_number = ?", (account,)
-            )
+            cursor = conn.execute("SELECT balance FROM test_accounts WHERE account_number = ?", (account,))
             balance = cursor.fetchone()[0]
             assert balance == 500.0
 
@@ -735,9 +717,7 @@ class TestTransactionContextManager:
 
         # Verify rollback
         with transaction_tester.transaction() as conn:
-            cursor = conn.execute(
-                "SELECT balance FROM test_accounts WHERE account_number = ?", (account,)
-            )
+            cursor = conn.execute("SELECT balance FROM test_accounts WHERE account_number = ?", (account,))
             balance = cursor.fetchone()[0]
             assert balance == 1000.0  # Should be unchanged
 

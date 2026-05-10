@@ -7,6 +7,7 @@ to prevent scipy import errors. It should be imported before any scipy imports.
 """
 
 import sys
+from typing import Any, cast
 
 # Apply patches immediately when this module is imported
 if sys.version_info >= (3, 14):
@@ -92,17 +93,13 @@ if sys.version_info >= (3, 14):
                     if "zero-size array to reduction operation" in str(e):
                         # Handle zero-size arrays by returning appropriate result
                         if hasattr(x1, "size") and x1.size == 0:
-                            return np.array(
-                                [], dtype=x1.dtype if hasattr(x1, "dtype") else float
-                            )
+                            return np.array([], dtype=x1.dtype if hasattr(x1, "dtype") else float)
                         elif hasattr(x2, "size") and x2.size == 0:
-                            return np.array(
-                                [], dtype=x2.dtype if hasattr(x2, "dtype") else float
-                            )
+                            return np.array([], dtype=x2.dtype if hasattr(x2, "dtype") else float)
                     raise
 
             # Safe reshape that handles zero-size arrays
-            def _safe_reshape(a, newshape, *args, **kwargs):
+            def _safe_reshape(a: Any, newshape: Any, *args: Any, **kwargs: Any) -> Any:
                 """Safe reshape that handles zero-size arrays."""
                 try:
                     return _original_reshape(a, newshape, *args, **kwargs)
@@ -168,22 +165,19 @@ if sys.version_info >= (3, 14):
                             return _original_round(float(x.item()), *args, **kwargs)
                         # For arrays, apply element-wise
                         if hasattr(x, "flat"):
-                            return np.array(
-                                [
-                                    _original_round(float(val), *args, **kwargs)
-                                    for val in x.flat
-                                ]
-                            ).reshape(x.shape)
+                            return np.array([_original_round(float(val), *args, **kwargs) for val in x.flat]).reshape(
+                                x.shape
+                            )
                         return x  # Return as-is if we can't handle it
                 return _original_round(x, *args, **kwargs)
 
-            builtins.round = _safe_round
+            builtins.round = _safe_round  # type: ignore[assignment]
 
             # Apply patches immediately with reduce methods
             np.sum = _add_reduce_method(_safe_sum, _original_sum)
             np.prod = _add_reduce_method(_safe_prod, _original_prod)
             np.multiply = _add_reduce_method(_safe_multiply, _original_multiply)
-            np.reshape = _safe_reshape
+            np.reshape = cast(Any, _safe_reshape)  # type: ignore[assignment]
 
     except ImportError:
         pass  # NumPy not available

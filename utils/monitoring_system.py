@@ -175,9 +175,7 @@ class NotificationManager:
                     self._send_file(alert)
             except Exception as e:
                 if apgi_logger:
-                    apgi_logger.logger.error(
-                        f"Failed to send {channel.value} notification: {e}"
-                    )
+                    apgi_logger.logger.error(f"Failed to send {channel.value} notification: {e}")
 
     def _send_email(self, alert: Alert):
         """Send email notification."""
@@ -209,9 +207,7 @@ class NotificationManager:
                 if email_config.get("use_tls", True):
                     server.starttls()
                 if email_config.get("username"):
-                    server.login(
-                        email_config["username"], email_config.get("password", "")
-                    )
+                    server.login(email_config["username"], email_config.get("password", ""))
                 server.send_message(msg)
         except Exception as e:
             if apgi_logger:
@@ -256,9 +252,7 @@ class NotificationManager:
 
     def _send_console(self, alert: Alert):
         """Send notification to console."""
-        timestamp = datetime.fromtimestamp(alert.timestamp).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        timestamp = datetime.fromtimestamp(alert.timestamp).strftime("%Y-%m-%d %H:%M:%S")
         print(
             f"\n[{timestamp}] ALERT [{alert.severity.value.upper()}] {alert.metric_name}\n"
             f"  Value: {alert.metric_value:.2f} (threshold: {alert.threshold})\n"
@@ -380,9 +374,7 @@ class MonitoringSystem:
                 if key != "timestamp":
                     if key not in self.metrics_history:
                         self.metrics_history[key] = []
-                    self.metrics_history[key].append(
-                        {"timestamp": metrics["timestamp"], "value": value}
-                    )
+                    self.metrics_history[key].append({"timestamp": metrics["timestamp"], "value": value})
                     # Keep only last 1000 entries
                     self.metrics_history[key] = self.metrics_history[key][-1000:]
 
@@ -455,9 +447,7 @@ class MonitoringSystem:
         self._monitor_thread.start()
 
         if apgi_logger:
-            apgi_logger.logger.info(
-                f"Started monitoring system (interval: {interval_seconds}s)"
-            )
+            apgi_logger.logger.info(f"Started monitoring system (interval: {interval_seconds}s)")
 
     def stop_monitoring(self):
         """Stop monitoring."""
@@ -556,9 +546,7 @@ if __name__ == "__main__":
     def check_database():
         return True  # Simulated check
 
-    monitoring.add_health_check(
-        HealthCheck("database", check_database, interval_seconds=10)
-    )
+    monitoring.add_health_check(HealthCheck("database", check_database, interval_seconds=10))
 
     # Start monitoring
     print("\n1. Starting monitoring...")

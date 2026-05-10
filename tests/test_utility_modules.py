@@ -20,18 +20,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.dependency_scanner import DependencyScanner
-from utils.security_audit_logger import (
-    SecurityAuditLogger,
-    log_delete,
-    log_import,
-    log_read,
-    log_write,
-)
-from utils.security_logging_integration import (
-    SecurityContext,
-    secure_file_read,
-    secure_file_write,
-)
+from utils.security_audit_logger import SecurityAuditLogger, log_delete, log_import, log_read, log_write
+from utils.security_logging_integration import SecurityContext, secure_file_read, secure_file_write
 
 
 class TestDependencyScanner:
@@ -118,9 +108,7 @@ class TestDependencyScanner:
         scanner = DependencyScanner(project_root=str(temp_dir))
 
         with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(
-                cmd="pip-audit", timeout=300
-            )
+            mock_run.side_effect = subprocess.TimeoutExpired(cmd="pip-audit", timeout=300)
             result = scanner.scan_with_pip_audit()
             assert result["vulnerabilities_found"] == -1
             assert "error" in result
@@ -182,9 +170,7 @@ class TestSecurityAuditLogger:
         log_file = temp_dir / "test_audit.log"
         logger = SecurityAuditLogger(log_file=str(log_file))
 
-        logger.log_file_access(
-            "write", "/path/to/file.txt", success=True, size_bytes=1024
-        )
+        logger.log_file_access("write", "/path/to/file.txt", success=True, size_bytes=1024)
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["operation"] == "write"
         assert logger.audit_trail[0]["context"]["size_bytes"] == 1024
@@ -260,18 +246,14 @@ class TestSecurityAuditLogger:
         assert log_file.exists(), f"Log file {log_file} should exist"
         content = log_file.read_text()
         assert "read" in content, f"Content should contain 'read': {content}"
-        assert (
-            "/path/to/file.txt" in content
-        ), f"Content should contain file path: {content}"
+        assert "/path/to/file.txt" in content, f"Content should contain file path: {content}"
 
     def test_log_with_error_details(self, temp_dir):
         """Test logging with error details."""
         log_file = temp_dir / "test_audit.log"
         logger = SecurityAuditLogger(log_file=str(log_file))
 
-        logger.log_file_access(
-            "read", "/path/to/file.txt", success=False, error="Permission denied"
-        )
+        logger.log_file_access("read", "/path/to/file.txt", success=False, error="Permission denied")
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["success"] is False
         assert logger.audit_trail[0]["error"] == "Permission denied"
@@ -373,9 +355,7 @@ class TestSecurityLoggingIntegration:
 
         def log_operations(thread_id):
             for i in range(100):
-                logger.log_file_access(
-                    "read", f"/path/file_{thread_id}_{i}.txt", success=True
-                )
+                logger.log_file_access("read", f"/path/file_{thread_id}_{i}.txt", success=True)
 
         threads = [threading.Thread(target=log_operations, args=(i,)) for i in range(5)]
         for thread in threads:

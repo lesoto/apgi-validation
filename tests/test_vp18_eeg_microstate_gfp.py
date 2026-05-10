@@ -29,34 +29,47 @@ class TestOddballEEGSimulator:
 
     def test_default_init(self):
         sim = OddballEEGSimulator(n_subjects=2, n_trials_per_condition=4)
-        assert sim.fs == 1000.0
-        assert sim.n_electrodes == 64
-        assert len(sim.timepoints_ms) == sim.n_timepoints
+        if sim.fs != 1000.0:
+            raise AssertionError(f"Expected fs=1000.0, got {sim.fs}")
+        if sim.n_electrodes != 64:
+            raise AssertionError(f"Expected n_electrodes=64, got {sim.n_electrodes}")
+        if len(sim.timepoints_ms) != sim.n_timepoints:
+            raise AssertionError(f"Expected timepoints length {sim.n_timepoints}, got {len(sim.timepoints_ms)}")
 
     def test_gfp_window_indices_nonempty(self):
         sim = OddballEEGSimulator()
-        assert sim.window_idx.sum() > 0
+        if sim.window_idx.sum() <= 0:
+            raise ValueError(f"Expected positive window_idx sum, got {sim.window_idx.sum()}")
 
     def test_gfp_window_covers_correct_range(self):
         sim = OddballEEGSimulator()
         t_in_window = sim.timepoints_ms[sim.window_idx]
-        assert t_in_window.min() >= GFP_WINDOW_MS[0]
-        assert t_in_window.max() <= GFP_WINDOW_MS[1]
+        if t_in_window.min() < GFP_WINDOW_MS[0]:
+            raise AssertionError(f"Window min {t_in_window.min()} < {GFP_WINDOW_MS[0]}")
+        if t_in_window.max() > GFP_WINDOW_MS[1]:
+            raise AssertionError(f"Window max {t_in_window.max()} > {GFP_WINDOW_MS[1]}")
 
     def test_simulate_ignition_epoch(self):
         sim = OddballEEGSimulator(n_subjects=1, n_trials_per_condition=1)
         result = sim._simulate_epoch(0, 0, "ignition", 0.9)
-        assert isinstance(result, GFPResult)
-        assert result.epoch_meta.condition == "ignition"
-        assert result.gfp_auc > 0
-        assert len(result.gfp_timeseries) == sim.n_timepoints
+        if not isinstance(result, GFPResult):
+            raise TypeError(f"Expected GFPResult, got {type(result)}")
+        if result.epoch_meta.condition != "ignition":
+            raise AssertionError(f"Expected condition ignition, got {result.epoch_meta.condition}")
+        if result.gfp_auc <= 0:
+            raise ValueError(f"Expected positive GFP AUC, got {result.gfp_auc}")
+        if len(result.gfp_timeseries) != sim.n_timepoints:
+            raise AssertionError(f"Expected timeseries length {sim.n_timepoints}, got {len(result.gfp_timeseries)}")
 
     def test_simulate_no_ignition_epoch(self):
         sim = OddballEEGSimulator(n_subjects=1, n_trials_per_condition=1)
         result = sim._simulate_epoch(0, 0, "no_ignition", 0.1)
-        assert isinstance(result, GFPResult)
-        assert result.epoch_meta.condition == "no_ignition"
-        assert result.gfp_auc > 0
+        if not isinstance(result, GFPResult):
+            raise TypeError(f"Expected GFPResult, got {type(result)}")
+        if result.epoch_meta.condition != "no_ignition":
+            raise AssertionError(f"Expected condition no_ignition, got {result.epoch_meta.condition}")
+        if result.gfp_auc <= 0:
+            raise ValueError(f"Expected positive GFP AUC, got {result.gfp_auc}")
 
     def test_ignition_gfp_auc_greater_than_no_ignition_on_average(self):
         """Ignition trials should produce systematically larger GFP-AUC."""
@@ -65,37 +78,44 @@ class TestOddballEEGSimulator:
         dataset = sim.simulate_dataset()
         ig = [r.gfp_auc for r in dataset if r.epoch_meta.condition == "ignition"]
         no = [r.gfp_auc for r in dataset if r.epoch_meta.condition == "no_ignition"]
-        assert np.mean(ig) > np.mean(no)
+        if not np.mean(ig) > np.mean(no):
+            raise ValueError(f"Expected ignition AUC mean {np.mean(ig)} > no-ignition AUC mean {np.mean(no)}")
 
     def test_simulate_dataset_length(self):
         sim = OddballEEGSimulator(n_subjects=3, n_trials_per_condition=5)
         dataset = sim.simulate_dataset()
         # 3 subjects × 5 trials × 2 conditions
-        assert len(dataset) == 3 * 5 * 2
+        if len(dataset) != 3 * 5 * 2:
+            raise AssertionError(f"Expected dataset length 30, got {len(dataset)}")
 
     def test_spatial_cov_shape(self):
         sim = OddballEEGSimulator()
         cov = sim._build_spatial_cov()
-        assert cov.shape == (64, 64)
+        if cov.shape != (64, 64):
+            raise AssertionError(f"Expected cov shape (64, 64), got {cov.shape}")
         # Diagonal should be 1 (distance 0)
-        assert np.allclose(np.diag(cov), 1.0)
+        if not np.allclose(np.diag(cov), 1.0):
+            raise AssertionError(f"Expected diagonal close to 1.0, got {np.diag(cov)}")
 
     def test_p3b_template_zero_before_stimulus(self):
         sim = OddballEEGSimulator()
         template = sim._p3b_template(amplitude=1.0)
         pre_stim = template[sim.timepoints_ms < 0]
-        assert np.all(pre_stim == 0.0)
+        if not np.all(pre_stim == 0.0):
+            raise AssertionError(f"Expected pre-stimulus values to be 0.0, got {pre_stim}")
 
     def test_p3b_template_peak_near_380ms(self):
         sim = OddballEEGSimulator()
         template = sim._p3b_template(amplitude=1.0)
         peak_t = sim.timepoints_ms[np.argmax(template)]
-        assert 360.0 <= peak_t <= 400.0
+        if not (360.0 <= peak_t <= 400.0):
+            raise AssertionError(f"Expected peak time between 360.0-400.0ms, got {peak_t}")
 
     def test_gfp_timeseries_nonnegative(self):
         sim = OddballEEGSimulator(n_subjects=1, n_trials_per_condition=1)
         result = sim._simulate_epoch(0, 0, "ignition", 0.8)
-        assert np.all(result.gfp_timeseries >= 0)
+        if not np.all(result.gfp_timeseries >= 0):
+            raise ValueError("GFP timeseries contains negative values")
 
 
 # ---------------------------------------------------------------------------
@@ -114,18 +134,23 @@ class TestGFPMicrostateValidator:
         return v
 
     def test_load_or_generate_data_populates_dataset(self, small_validator):
-        assert len(small_validator.dataset) > 0
+        if len(small_validator.dataset) <= 0:
+            raise ValueError("Dataset should contain data")
 
     def test_load_or_generate_data_idempotent(self, small_validator):
         original_len = len(small_validator.dataset)
         small_validator.load_or_generate_data()
-        assert len(small_validator.dataset) == original_len
+        if len(small_validator.dataset) != original_len:
+            raise AssertionError(f"Expected dataset length {original_len}, got {len(small_validator.dataset)}")
 
     def test_split_by_condition_balanced(self, small_validator):
         ig, no, st, auc = small_validator._split_by_condition()
-        assert len(ig) == len(no)
-        assert len(st) == len(ig) + len(no)
-        assert len(auc) == len(st)
+        if len(ig) != len(no):
+            raise AssertionError(f"Expected equal ignition/no-ignition counts, got ig={len(ig)}, no={len(no)}")
+        if len(st) != len(ig) + len(no):
+            raise AssertionError(f"Expected st count {len(ig) + len(no)}, got {len(st)}")
+        if len(auc) != len(st):
+            raise AssertionError(f"Expected auc count {len(st)}, got {len(auc)}")
 
     def test_validate_gfp_auc_ignition_effect_keys(self, small_validator):
         result = small_validator.validate_gfp_auc_ignition_effect()
@@ -137,8 +162,9 @@ class TestGFPMicrostateValidator:
             "cohens_d",
             "passed",
         ):
-            assert key in result
-        assert result["prediction_id"] == "V18.1"
+            assert key in result  # nosec B101
+        if result["prediction_id"] != "V18.1":
+            raise AssertionError(f"Expected prediction_id V18.1, got {result['prediction_id']}")
 
     def test_validate_proportional_advantage_keys(self, small_validator):
         result = small_validator.validate_proportional_advantage()
@@ -149,8 +175,9 @@ class TestGFPMicrostateValidator:
             "threshold",
             "passed",
         ):
-            assert key in result
-        assert result["prediction_id"] == "V18.2"
+            assert key in result  # nosec B101
+        if result["prediction_id"] != "V18.2":
+            raise AssertionError(f"Expected prediction_id V18.2, got {result['prediction_id']}")
 
     def test_validate_st_correlation_keys(self, small_validator):
         result = small_validator.validate_st_correlation()
@@ -162,21 +189,31 @@ class TestGFPMicrostateValidator:
             "threshold_r",
             "passed",
         ):
-            assert key in result
-        assert result["prediction_id"] == "V18.3"
+            assert key in result  # nosec B101
+        if result["prediction_id"] != "V18.3":
+            raise AssertionError(f"Expected prediction_id V18.3, got {result['prediction_id']}")
 
     def test_run_full_validation_structure(self, small_validator):
         results = small_validator.run_full_validation()
-        assert "overall_score" in results
-        assert "tests_passed" in results
-        assert "tests_total" in results
-        assert results["tests_total"] == 3
-        assert results["protocol_id"] == "VP_18_EEG_Microstate_GFP_P3b"
-        assert "measurement_gap_note" in results
+        required_keys = [
+            "overall_score",
+            "tests_passed",
+            "tests_total",
+            "protocol_id",
+            "measurement_gap_note",
+        ]
+        for key in required_keys:
+            if key not in results:
+                raise KeyError(f"Missing required key: {key}")
+        if results["tests_total"] != 3:
+            raise AssertionError(f"Expected tests_total=3, got {results['tests_total']}")
+        if results["protocol_id"] != "VP_18_EEG_Microstate_GFP_P3b":
+            raise AssertionError(f"Expected protocol_id VP_18_EEG_Microstate_GFP_P3b, got {results['protocol_id']}")
 
     def test_run_full_validation_score_range(self, small_validator):
         results = small_validator.run_full_validation()
-        assert 0.0 <= results["overall_score"] <= 1.0
+        if not (0.0 <= results["overall_score"] <= 1.0):
+            raise AssertionError(f"Expected overall_score in [0.0, 1.0], got {results['overall_score']}")
 
     def test_run_full_validation_passes_all_tests(self):
         """With default parameters the simulation should pass all three tests."""
@@ -184,25 +221,29 @@ class TestGFPMicrostateValidator:
         sim = OddballEEGSimulator(n_subjects=24, n_trials_per_condition=60, rng=rng)
         v = GFPMicrostateValidator(simulator=sim)
         results = v.run_full_validation()
-        assert results["tests_passed"] == 3
+        if results["tests_passed"] != 3:
+            raise AssertionError(f"Expected tests_passed=3, got {results['tests_passed']}")
 
     def test_measurement_gap_note_content(self, small_validator):
         results = small_validator.run_full_validation()
         note = results["measurement_gap_note"]
-        assert "Level 3" in note
-        assert "Landauer" in note
-        assert "thermodynamic" in note
+        required_terms = ["Level 3", "Landauer", "thermodynamic"]
+        missing_terms = [term for term in required_terms if term not in note]
+        if missing_terms:
+            raise AssertionError(f"Note missing required terms: {missing_terms}")
 
     @patch("Validation.VP_18_EEG_Microstate_GFP_P3b.HAS_MATPLOTLIB", False)
     def test_generate_summary_figure_no_matplotlib(self, small_validator):
         result = small_validator.generate_summary_figure()
-        assert result is None
+        if result is not None:
+            raise ValueError("Expected None result when matplotlib unavailable")
 
     def test_generate_summary_figure_with_matplotlib(self, small_validator, tmp_path):
         output = tmp_path / "test_figure.png"
         result = small_validator.generate_summary_figure(output_path=output)
         if result is not None:
-            assert output.exists()
+            if not output.exists():
+                raise FileNotFoundError(f"Expected output file to exist: {output}")
 
     def test_proportional_advantage_zero_denominator(self):
         """Edge case: no-ignition AUC is zero."""
@@ -215,17 +256,20 @@ class TestGFPMicrostateValidator:
             if r.epoch_meta.condition == "no_ignition":
                 object.__setattr__(r, "gfp_auc", 0.0)
         result = v.validate_proportional_advantage()
-        assert result["proportional_advantage"] == 0.0
+        if result["proportional_advantage"] != 0.0:
+            raise AssertionError(f"Expected proportional_advantage=0.0, got {result['proportional_advantage']}")
 
     def test_cohens_d_calculation_positive(self, small_validator):
         result = small_validator.validate_gfp_auc_ignition_effect()
         # Ignition AUC mean should exceed no-ignition AUC mean → d > 0
-        assert result["cohens_d"] > 0
+        if result["cohens_d"] <= 0:
+            raise ValueError(f"Expected positive cohens_d, got {result['cohens_d']}")
 
     def test_st_correlation_sign_positive(self, small_validator):
         result = small_validator.validate_st_correlation()
         # Higher Sₜ should yield higher GFP-AUC → positive correlation
-        assert result["pearson_r"] > 0
+        if result["pearson_r"] <= 0:
+            raise ValueError(f"Expected positive pearson_r, got {result['pearson_r']}")
 
 
 # ---------------------------------------------------------------------------
@@ -236,24 +280,28 @@ class TestGFPMicrostateValidator:
 class TestRunValidation:
 
     def test_run_validation_returns_dict(self):
-        result = run_validation(seed=99)
-        assert isinstance(result, dict)
+        run_validation(seed=99)
 
     def test_run_validation_has_protocol_id(self):
         result = run_validation(seed=0)
-        assert result["protocol_id"] == "VP_18_EEG_Microstate_GFP_P3b"
+        if result["protocol_id"] != "VP_18_EEG_Microstate_GFP_P3b":
+            raise AssertionError(f"Expected protocol_id VP_18_EEG_Microstate_GFP_P3b, got {result['protocol_id']}")
 
     def test_run_validation_accepts_kwargs(self):
         result = run_validation(seed=7, extra_param="ignored")
-        assert "overall_score" in result
+        assert "overall_score" in result  # nosec B101
 
     def test_validate_alias(self):
         result = validate()
-        assert isinstance(result, dict)
-        assert "overall_score" in result
+        if not isinstance(result, dict):
+            raise TypeError(f"Expected dict, got {type(result)}")
+        if "overall_score" not in result:
+            raise KeyError("Missing overall_score in result")
 
     def test_run_validation_deterministic(self):
         r1 = run_validation(seed=42)
         r2 = run_validation(seed=42)
-        assert r1["overall_score"] == r2["overall_score"]
-        assert r1["tests_passed"] == r2["tests_passed"]
+        if r1["overall_score"] != r2["overall_score"]:
+            raise AssertionError(f"Expected equal overall_score, got {r1['overall_score']} vs {r2['overall_score']}")
+        if r1["tests_passed"] != r2["tests_passed"]:
+            raise AssertionError(f"Expected equal tests_passed, got {r1['tests_passed']} vs {r2['tests_passed']}")

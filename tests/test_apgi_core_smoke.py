@@ -4,8 +4,7 @@ import numpy as np
 
 
 def test_apgi_core_model_functions_execute():
-    from apgi_core import (compute_precision, compute_signal,
-                           ignition_probability, update_threshold)
+    from apgi_core import compute_precision, compute_signal, ignition_probability, update_threshold
 
     z_e = 0.2
     z_i = -0.1

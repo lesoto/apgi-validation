@@ -7,7 +7,7 @@ ensuring stable contracts between layers and removing ad-hoc dict drift.
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 # Apply Python 3.14 NumPy compatibility patches first
 try:
@@ -17,11 +17,13 @@ except ImportError:
 
 from pydantic import BaseModel, Field
 
+# Forward declaration for type hints to avoid circular imports
+if TYPE_CHECKING:
+    from .protocol_schema import ProtocolResult
+
 # Add parent directory to path for standalone execution
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from utils.protocol_schema import ProtocolResult
 
 
 class PerformanceMetricDTO(BaseModel):
@@ -54,7 +56,7 @@ class MasterValidationReportDTO(BaseModel):
     success_rate: float
     weighted_score: float
     tier_summary: Dict[str, ValidationTierSummaryDTO]
-    protocol_results: Dict[str, ProtocolResult]
+    protocol_results: Dict[str, "ProtocolResult"]  # type: ignore
     falsification_status: Dict[str, List[Any]] = Field(default_factory=dict)
     summary: str
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())

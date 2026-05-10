@@ -33,16 +33,10 @@ class TestEEGSimulatorInitialization:
         """Test EEGSimulator with default parameters."""
         simulator = EEGSimulator()
 
-        assert (
-            simulator.sampling_rate == 1000.0
-        ), "Default sampling rate should be 1000 Hz"
+        assert simulator.sampling_rate == 1000.0, "Default sampling rate should be 1000 Hz"
         assert simulator.eeg_duration == 1.5, "Default duration should be 1.5 seconds"
-        assert (
-            simulator.cardiac_cycle_duration == 0.9
-        ), "Default cardiac cycle should be 0.9s"
-        assert (
-            simulator.r_wave_duration == 0.05
-        ), "Default R-wave duration should be 0.05s"
+        assert simulator.cardiac_cycle_duration == 0.9, "Default cardiac cycle should be 0.9s"
+        assert simulator.r_wave_duration == 0.05, "Default R-wave duration should be 0.05s"
         assert simulator.hep_window_start == 0.2, "HEP window should start at 0.2s"
         assert simulator.hep_window_end == 0.6, "HEP window should end at 0.6s"
         assert simulator.p3b_window_start == 0.3, "P3b window should start at 0.3s"
@@ -65,9 +59,7 @@ class TestEEGSimulatorInitialization:
 
         assert simulator.sampling_rate == 500.0, "Should use custom sampling rate"
         assert simulator.eeg_duration == 2.0, "Should use custom duration"
-        assert (
-            simulator.cardiac_cycle_duration == 1.0
-        ), "Should use custom cardiac cycle"
+        assert simulator.cardiac_cycle_duration == 1.0, "Should use custom cardiac cycle"
         assert simulator.r_wave_duration == 0.1, "Should use custom R-wave duration"
         assert simulator.hep_window_start == 0.15, "Should use custom HEP start"
         assert simulator.hep_window_end == 0.65, "Should use custom HEP end"
@@ -81,18 +73,10 @@ class TestEEGSimulatorInitialization:
 
         assert simulator.n_samples == 1000, "Should calculate correct number of samples"
         assert simulator.r_wave_samples == 50, "Should calculate correct R-wave samples"
-        assert (
-            simulator.hep_start_sample == 200
-        ), "Should calculate correct HEP start sample"
-        assert (
-            simulator.hep_end_sample == 600
-        ), "Should calculate correct HEP end sample"
-        assert (
-            simulator.p3b_start_sample == 300
-        ), "Should calculate correct P3b start sample"
-        assert (
-            simulator.p3b_end_sample == 600
-        ), "Should calculate correct P3b end sample"
+        assert simulator.hep_start_sample == 200, "Should calculate correct HEP start sample"
+        assert simulator.hep_end_sample == 600, "Should calculate correct HEP end sample"
+        assert simulator.p3b_start_sample == 300, "Should calculate correct P3b start sample"
+        assert simulator.p3b_end_sample == 600, "Should calculate correct P3b end sample"
 
 
 class TestGenerateRWave:
@@ -116,9 +100,7 @@ class TestGenerateRWave:
         r_wave_default = simulator.generate_r_wave(amplitude=1.0)
         r_wave_large = simulator.generate_r_wave(amplitude=2.0)
 
-        assert np.max(r_wave_large) > np.max(
-            r_wave_default
-        ), "Larger amplitude should produce larger peak"
+        assert np.max(r_wave_large) > np.max(r_wave_default), "Larger amplitude should produce larger peak"
 
     def test_generate_r_wave_timing_jitter(self):
         """Test R-wave generation with timing jitter."""
@@ -163,9 +145,7 @@ class TestGenerateHEP:
         hep_default = simulator.generate_hep(r_wave_time=0.0, amplitude=0.15)
         hep_large = simulator.generate_hep(r_wave_time=0.0, amplitude=0.3)
 
-        assert np.max(hep_large) > np.max(
-            hep_default
-        ), "Larger amplitude should produce larger HEP"
+        assert np.max(hep_large) > np.max(hep_default), "Larger amplitude should produce larger HEP"
 
     def test_generate_hep_modulation(self):
         """Test HEP generation with modulation."""
@@ -174,9 +154,7 @@ class TestGenerateHEP:
         hep_default = simulator.generate_hep(r_wave_time=0.0, modulation=1.0)
         hep_modulated = simulator.generate_hep(r_wave_time=0.0, modulation=2.0)
 
-        assert np.max(hep_modulated) > np.max(
-            hep_default
-        ), "Modulation should affect HEP amplitude"
+        assert np.max(hep_modulated) > np.max(hep_default), "Modulation should affect HEP amplitude"
 
     def test_generate_hep_timing(self):
         """Test HEP timing relative to R-wave."""
@@ -221,9 +199,7 @@ class TestGenerateP3B:
         p3b_default = simulator.generate_p3b(stimulus_time=0.5, amplitude=0.3)
         p3b_large = simulator.generate_p3b(stimulus_time=0.5, amplitude=0.6)
 
-        assert np.max(p3b_large) > np.max(
-            p3b_default
-        ), "Larger amplitude should produce larger P3b"
+        assert np.max(p3b_large) > np.max(p3b_default), "Larger amplitude should produce larger P3b"
 
     def test_generate_p3b_custom_latency(self):
         """Test P3b generation with custom latency."""
@@ -236,9 +212,7 @@ class TestGenerateP3B:
         peak_early_idx = np.argmax(p3b_early)
         peak_late_idx = np.argmax(p3b_late)
 
-        assert (
-            peak_late_idx > peak_early_idx
-        ), "Longer latency should produce later peak"
+        assert peak_late_idx > peak_early_idx, "Longer latency should produce later peak"
 
     def test_generate_p3b_modulation(self):
         """Test P3b generation with modulation."""
@@ -247,9 +221,7 @@ class TestGenerateP3B:
         p3b_default = simulator.generate_p3b(stimulus_time=0.5, modulation=1.0)
         p3b_modulated = simulator.generate_p3b(stimulus_time=0.5, modulation=2.0)
 
-        assert np.max(p3b_modulated) > np.max(
-            p3b_default
-        ), "Modulation should affect P3b amplitude"
+        assert np.max(p3b_modulated) > np.max(p3b_default), "Modulation should affect P3b amplitude"
 
     def test_generate_p3b_timing(self):
         """Test P3b timing relative to stimulus."""
@@ -263,9 +235,7 @@ class TestGenerateP3B:
         peak_time = peak_idx / simulator.sampling_rate
 
         expected_peak_time = stimulus_time + 0.35
-        assert (
-            abs(peak_time - expected_peak_time) < 0.1
-        ), "P3b peak should occur at expected time"
+        assert abs(peak_time - expected_peak_time) < 0.1, "P3b peak should occur at expected time"
 
     def test_generate_p3b_zero_amplitude(self):
         """Test P3b generation with zero amplitude."""
@@ -293,24 +263,16 @@ class TestGenerateBackgroundEEG:
         """Test background EEG with custom power settings."""
         simulator = EEGSimulator()
 
-        background_low = simulator.generate_background_eeg(
-            alpha_power=0.1, beta_power=0.1, theta_power=0.1
-        )
-        background_high = simulator.generate_background_eeg(
-            alpha_power=1.0, beta_power=1.0, theta_power=1.0
-        )
+        background_low = simulator.generate_background_eeg(alpha_power=0.1, beta_power=0.1, theta_power=0.1)
+        background_high = simulator.generate_background_eeg(alpha_power=1.0, beta_power=1.0, theta_power=1.0)
 
-        assert np.std(background_high) > np.std(
-            background_low
-        ), "Higher power should produce more variability"
+        assert np.std(background_high) > np.std(background_low), "Higher power should produce more variability"
 
     def test_generate_background_eeg_components(self):
         """Test that background EEG contains expected frequency components."""
         simulator = EEGSimulator(sampling_rate=1000.0, eeg_duration=2.0)
 
-        background = simulator.generate_background_eeg(
-            alpha_power=1.0, beta_power=0.0, theta_power=0.0
-        )
+        background = simulator.generate_background_eeg(alpha_power=1.0, beta_power=0.0, theta_power=0.0)
 
         # Should have dominant alpha component (10 Hz)
         from scipy import signal
@@ -322,9 +284,7 @@ class TestGenerateBackgroundEEG:
         peak_freq = f[peak_idx]
 
         # Should be close to alpha frequency (10 Hz)
-        assert (
-            8 <= peak_freq <= 12
-        ), f"Peak frequency {peak_freq} should be in alpha band"
+        assert 8 <= peak_freq <= 12, f"Peak frequency {peak_freq} should be in alpha band"
 
 
 class TestGenerateEpoch:
@@ -341,9 +301,7 @@ class TestGenerateEpoch:
         for key in required_keys:
             assert key in epoch, f"Missing key: {key}"
             assert isinstance(epoch[key], np.ndarray), f"{key} should be numpy array"
-            assert (
-                len(epoch[key]) == simulator.n_samples
-            ), f"{key} should have correct length"
+            assert len(epoch[key]) == simulator.n_samples, f"{key} should have correct length"
 
     def test_generate_epoch_with_stimulus(self):
         """Test epoch generation with stimulus."""
@@ -353,9 +311,7 @@ class TestGenerateEpoch:
 
         assert "p3b" in epoch, "Should include P3b when stimulus is provided"
         assert isinstance(epoch["p3b"], np.ndarray), "P3b should be numpy array"
-        assert (
-            len(epoch["p3b"]) == simulator.n_samples
-        ), "P3b should have correct length"
+        assert len(epoch["p3b"]) == simulator.n_samples, "P3b should have correct length"
 
     def test_generate_epoch_custom_parameters(self):
         """Test epoch generation with custom parameters."""
@@ -437,16 +393,11 @@ class TestAnalysisFunctions:
             assert isinstance(coupling[key], float), f"{key} should be float"
 
         # Check calculations
-        assert (
-            coupling["hep_modulation"] == hep_amp / 0.15
-        ), "HEP modulation should be ratio to baseline"
-        assert (
-            coupling["p3b_modulation"] == p3b_amp / 0.3
-        ), "P3b modulation should be ratio to baseline"
+        assert coupling["hep_modulation"] == hep_amp / 0.15, "HEP modulation should be ratio to baseline"
+        assert coupling["p3b_modulation"] == p3b_amp / 0.3, "P3b modulation should be ratio to baseline"
         assert coupling["hep_p3b_ratio"] == hep_amp / p3b_amp, "Ratio should be HEP/P3b"
         assert (
-            coupling["coupling_strength"]
-            == coupling["hep_modulation"] * coupling["p3b_modulation"]
+            coupling["coupling_strength"] == coupling["hep_modulation"] * coupling["p3b_modulation"]
         ), "Coupling should be product"
 
     def test_simulate_cardiac_phase_alignment(self):
@@ -459,28 +410,20 @@ class TestAnalysisFunctions:
         assert isinstance(r_wave_times, np.ndarray), "Should return numpy array"
         assert len(r_wave_times) == n_epochs, "Should have correct number of times"
         assert np.all(r_wave_times > 0), "All times should be positive"
-        assert np.all(
-            np.diff(r_wave_times) > 0
-        ), "Times should be monotonically increasing"
+        assert np.all(np.diff(r_wave_times) > 0), "Times should be monotonically increasing"
 
     def test_simulate_cardiac_phase_alignment_with_jitter(self):
         """Test cardiac phase alignment with jitter."""
         simulator = EEGSimulator()
 
-        r_wave_times_no_jitter = simulator.simulate_cardiac_phase_alignment(
-            n_epochs=20, cardiac_cycle_jitter=0.0
-        )
-        r_wave_times_jitter = simulator.simulate_cardiac_phase_alignment(
-            n_epochs=20, cardiac_cycle_jitter=0.1
-        )
+        r_wave_times_no_jitter = simulator.simulate_cardiac_phase_alignment(n_epochs=20, cardiac_cycle_jitter=0.0)
+        r_wave_times_jitter = simulator.simulate_cardiac_phase_alignment(n_epochs=20, cardiac_cycle_jitter=0.1)
 
         # With jitter, intervals should vary more
         intervals_no_jitter = np.diff(r_wave_times_no_jitter)
         intervals_jitter = np.diff(r_wave_times_jitter)
 
-        assert np.std(intervals_jitter) > np.std(
-            intervals_no_jitter
-        ), "Jitter should increase variability"
+        assert np.std(intervals_jitter) > np.std(intervals_no_jitter), "Jitter should increase variability"
 
 
 class TestCreateDefaultSimulator:
@@ -490,9 +433,7 @@ class TestCreateDefaultSimulator:
         """Test create_default_simulator function."""
         simulator = create_default_simulator()
 
-        assert isinstance(
-            simulator, EEGSimulator
-        ), "Should return EEGSimulator instance"
+        assert isinstance(simulator, EEGSimulator), "Should return EEGSimulator instance"
         assert simulator.sampling_rate == 1000.0, "Should have default sampling rate"
         assert simulator.eeg_duration == 1.5, "Should have default duration"
 

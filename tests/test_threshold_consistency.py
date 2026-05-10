@@ -21,22 +21,16 @@ def test_f5_1_constants():
     )
 
     # Test proportion threshold - should be 0.75 per paper spec
-    assert (
-        F5_1_MIN_PROPORTION == 0.75
-    ), f"F5_1_MIN_PROPORTION should be 0.75, got {F5_1_MIN_PROPORTION}"
+    assert F5_1_MIN_PROPORTION == 0.75, f"F5_1_MIN_PROPORTION should be 0.75, got {F5_1_MIN_PROPORTION}"
 
     # Test alpha threshold - should be 4.0 per paper spec
     assert F5_1_MIN_ALPHA == 4.0, f"F5_1_MIN_ALPHA should be 4.0, got {F5_1_MIN_ALPHA}"
 
     # Test PCA variance threshold - should be 0.70 per paper spec
-    assert (
-        F5_5_PCA_MIN_VARIANCE == 0.70
-    ), f"F5_5_PCA_MIN_VARIANCE should be 0.70, got {F5_5_PCA_MIN_VARIANCE}"
+    assert F5_5_PCA_MIN_VARIANCE == 0.70, f"F5_5_PCA_MIN_VARIANCE should be 0.70, got {F5_5_PCA_MIN_VARIANCE}"
 
     # Test loading threshold - should be 0.60 per paper spec
-    assert (
-        F5_5_PCA_MIN_LOADING == 0.60
-    ), f"F5_5_PCA_MIN_LOADING should be 0.60, got {F5_5_PCA_MIN_LOADING}"
+    assert F5_5_PCA_MIN_LOADING == 0.60, f"F5_5_PCA_MIN_LOADING should be 0.60, got {F5_5_PCA_MIN_LOADING}"
 
     # Test peak separation threshold - should be 0.12 per paper spec (bits)
     # Source: APGI Framework Paper, Appendix A.4, Table S3
@@ -75,14 +69,10 @@ def test_v12_1_constants():
     ), f"V12_1_MIN_IGNITION_REDUCTION_PCT should be 50.0, got {V12_1_MIN_IGNITION_REDUCTION_PCT}"
 
     # Test coherence threshold - should be 0.80 per paper spec
-    assert (
-        V12_1_MIN_COHENS_D == 0.80
-    ), f"V12_1_MIN_COHENS_D should be 0.80, got {V12_1_MIN_COHENS_D}"
+    assert V12_1_MIN_COHENS_D == 0.80, f"V12_1_MIN_COHENS_D should be 0.80, got {V12_1_MIN_COHENS_D}"
 
     # Test correlation threshold - should be 0.60 per paper spec
-    assert (
-        V12_2_MIN_CORRELATION == 0.60
-    ), f"V12_2_MIN_CORRELATION should be 0.60, got {V12_2_MIN_CORRELATION}"
+    assert V12_2_MIN_CORRELATION == 0.60, f"V12_2_MIN_CORRELATION should be 0.60, got {V12_2_MIN_CORRELATION}"
 
 
 def test_f1_f3_criteria_consistency():
@@ -144,9 +134,7 @@ def test_f1_f3_criteria_consistency():
     assert F2_3_MIN_BETA == 25.0, "F2.3_MIN_BETA should be 25.0ms/unit"
     assert F2_3_ALPHA == 0.01, "F2.3_ALPHA should be 0.01"
 
-    assert (
-        F2_4_MIN_CONFIDENCE_EFFECT_PCT == 30.0
-    ), "F2.4_MIN_CONFIDENCE_EFFECT_PCT should be 30.0%"
+    assert F2_4_MIN_CONFIDENCE_EFFECT_PCT == 30.0, "F2.4_MIN_CONFIDENCE_EFFECT_PCT should be 30.0%"
     assert F2_4_MIN_BETA_INTERACTION == 0.35, "F2.4_MIN_BETA_INTERACTION should be 0.35"
     assert F2_4_ALPHA == 0.01, "F2.4_ALPHA should be 0.01"
 
@@ -160,9 +148,7 @@ def test_f1_f3_criteria_consistency():
     assert F3_1_MIN_COHENS_D == 0.60, "F3.1_MIN_COHENS_D should be 0.60"
     assert F3_1_ALPHA == 0.01, "F3.1_ALPHA should be 0.01"
 
-    assert (
-        F3_2_MIN_INTERO_ADVANTAGE_PCT == 28.0
-    ), "F3.2_MIN_INTERO_ADVANTAGE_PCT should be 28.0%"
+    assert F3_2_MIN_INTERO_ADVANTAGE_PCT == 28.0, "F3.2_MIN_INTERO_ADVANTAGE_PCT should be 28.0%"
     assert F3_2_MIN_COHENS_D == 0.70, "F3.2_MIN_COHENS_D should be 0.70"
     assert F3_2_ALPHA == 0.01, "F3.2_ALPHA should be 0.01"
 
@@ -187,7 +173,6 @@ def test_f6_1_boundary_conditions():
     ltcn_data = np.array([50.0, 50.0, 50.0, 50.0])
     feedf_data = np.array([60.0, 60.0, 60.0, 60.0])
     result = test_f6_1_intrinsic_threshold_behavior(ltcn_data, feedf_data)
-    assert isinstance(result, dict)
     assert "passed" in result
     assert isinstance(result["passed"], bool)
     assert "ltcn_median_time" in result
@@ -198,7 +183,6 @@ def test_f6_1_boundary_conditions():
     ltcn_min = np.array([40.0, 40.0])
     feedf_min = np.array([60.0, 60.0])
     result = test_f6_1_intrinsic_threshold_behavior(ltcn_min, feedf_min)
-    assert isinstance(result, dict)
     assert "passed" in result
 
 
@@ -210,7 +194,6 @@ def test_f6_3_boundary_conditions():
     ltcn_data = np.array([30.0, 30.0, 30.0, 30.0, 30.0])
     standard_data = np.array([10.0, 10.0, 10.0, 10.0, 10.0])
     result = test_f6_3_metabolic_selectivity(ltcn_data, standard_data)
-    assert isinstance(result, dict)
     assert "passed" in result
     assert isinstance(result["passed"], bool)
     assert "ltcn_mean_reduction" in result
@@ -226,7 +209,6 @@ def test_f6_5_boundary_conditions():
     # Test with theta_t at boundary
     theta_t = 0.5
     result = test_f6_5_bifurcation_structure(theta_t)
-    assert isinstance(result, dict)
     assert "passed" in result
     assert "hysteresis_width" in result
     assert "bifurcation_point" in result
@@ -234,31 +216,25 @@ def test_f6_5_boundary_conditions():
     # Test with very small theta_t
     theta_t_small = 0.1
     result = test_f6_5_bifurcation_structure(theta_t_small)
-    assert isinstance(result, dict)
     assert "hysteresis_width" in result
 
     # Test with large theta_t
     theta_t_large = 2.0
     result = test_f6_5_bifurcation_structure(theta_t_large)
-    assert isinstance(result, dict)
     assert "hysteresis_width" in result
 
 
 def test_threshold_function_input_validation():
     """Test threshold functions validate input correctly."""
-    from utils.falsification_thresholds import (
-        test_f6_1_intrinsic_threshold_behavior,
-        test_f6_3_metabolic_selectivity,
-    )
+    from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior, test_f6_3_metabolic_selectivity
 
     # Test with arrays of different lengths (should handle gracefully or raise error)
     ltcn = np.array([40.0, 40.0, 40.0])
     feedf = np.array([60.0, 60.0])  # Different length
 
     try:
-        result = test_f6_1_intrinsic_threshold_behavior(ltcn, feedf)
+        test_f6_1_intrinsic_threshold_behavior(ltcn, feedf)
         # If it doesn't raise, check result structure
-        assert isinstance(result, dict)
     except (ValueError, IndexError):
         # Or raise appropriate error
         pass

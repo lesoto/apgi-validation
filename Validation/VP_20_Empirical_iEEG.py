@@ -100,7 +100,7 @@ try:
     import mne
 
     HAS_MNE = True
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 
@@ -119,18 +119,10 @@ V20_VARIANCE_ADVANTAGE_MIN: float = 0.10
 # Try to override with centralized values if available
 try:
     from utils.falsification_thresholds import DEFAULT_ALPHA as _DEFAULT_ALPHA
-    from utils.falsification_thresholds import (
-        V20_AC1_ADVANTAGE_MIN as _V20_AC1_ADVANTAGE_MIN,
-    )
-    from utils.falsification_thresholds import (
-        V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN,
-    )
-    from utils.falsification_thresholds import (
-        V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN,
-    )
-    from utils.falsification_thresholds import (
-        V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN,
-    )
+    from utils.falsification_thresholds import V20_AC1_ADVANTAGE_MIN as _V20_AC1_ADVANTAGE_MIN
+    from utils.falsification_thresholds import V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN
+    from utils.falsification_thresholds import V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN
+    from utils.falsification_thresholds import V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN
 
     DEFAULT_ALPHA = _DEFAULT_ALPHA
     V20_HG_BIMODALITY_COEFF_MIN = _V20_HG_BIMODALITY_COEFF_MIN
@@ -278,10 +270,7 @@ class BIDSiEEGLoader:
         epoch_tmax: float = 1.0,
     ) -> None:
         if not HAS_MNE:
-            raise ImportError(
-                "MNE-Python is required for BIDS data loading. "
-                "Install with: pip install mne"
-            )
+            raise ImportError("MNE-Python is required for BIDS data loading. " "Install with: pip install mne")
         self.bids_root = Path(bids_root)
         self.sfreq_target = sfreq_target
         self.epoch_tmin = epoch_tmin
@@ -297,8 +286,7 @@ class BIDSiEEGLoader:
             found.extend(sorted(self.bids_root.glob(pat)))
         if not found:
             raise FileNotFoundError(
-                f"No iEEG files found under {self.bids_root}. "
-                "Expected *_ieeg.edf / .vhdr / .set / .fif"
+                f"No iEEG files found under {self.bids_root}. " "Expected *_ieeg.edf / .vhdr / .set / .fif"
             )
         return found
 
@@ -339,9 +327,7 @@ class BIDSiEEGLoader:
         sfreq = self.sfreq_target
         onset_values = np.asarray(df["onset"].values)
         samples = (onset_values * sfreq).astype(int)
-        events = np.column_stack(
-            [samples, np.zeros(len(df), dtype=int), np.asarray(df["event_id"].values)]
-        )
+        events = np.column_stack([samples, np.zeros(len(df), dtype=int), np.asarray(df["event_id"].values)])
         return events
 
     def load_epochs(self, max_subjects: Optional[int] = None) -> List[ChannelEpoch]:
@@ -355,18 +341,14 @@ class BIDSiEEGLoader:
             # Group by subject prefix and limit
             subjects_seen: Dict[str, List[Path]] = {}
             for f in ieeg_files:
-                sub = f.parts[
-                    f.parts.index(next(p for p in f.parts if p.startswith("sub-")))
-                ]
+                sub = f.parts[f.parts.index(next(p for p in f.parts if p.startswith("sub-")))]
                 subjects_seen.setdefault(sub, []).append(f)
             selected = list(subjects_seen.values())[:max_subjects]
             ieeg_files = [f for files in selected for f in files]
 
         all_epochs: List[ChannelEpoch] = []
         for ieeg_path in ieeg_files:
-            subject_id = next(
-                (p for p in ieeg_path.parts if p.startswith("sub-")), "unknown"
-            )
+            subject_id = next((p for p in ieeg_path.parts if p.startswith("sub-")), "unknown")
             try:
                 raw = self._read_raw(ieeg_path)
                 events = self._load_events_tsv(ieeg_path)
@@ -425,9 +407,7 @@ class BIDSiEEGLoader:
             if suffix == ".edf":
                 raw = mne.io.read_raw_edf(str(path), preload=True, verbose=False)
             elif suffix == ".vhdr":
-                raw = mne.io.read_raw_brainvision(
-                    str(path), preload=True, verbose=False
-                )
+                raw = mne.io.read_raw_brainvision(str(path), preload=True, verbose=False)
             elif suffix == ".set":
                 raw = mne.io.read_raw_eeglab(str(path), preload=True, verbose=False)
             elif suffix == ".fif":
@@ -444,9 +424,7 @@ class BIDSiEEGLoader:
 # ---------------------------------------------------------------------------
 
 
-def _bandpass_butter(
-    data: np.ndarray, low: float, high: float, sfreq: float, order: int = 4
-) -> np.ndarray:
+def _bandpass_butter(data: np.ndarray, low: float, high: float, sfreq: float, order: int = 4) -> np.ndarray:
     """Zero-phase Butterworth bandpass filter."""
     nyq = sfreq / 2.0
     b, a = butter(order, [low / nyq, high / nyq], btype="band")
@@ -619,14 +597,8 @@ class HighGammaGMMAnalyzer:
         pvalue = p_two / 2.0 if t_stat > 0 else 1.0
 
         # Cohen's d
-        pooled_std = np.sqrt(
-            (np.std(arr_h, ddof=1) ** 2 + np.std(arr_m, ddof=1) ** 2) / 2.0
-        )
-        cohens_d = (
-            float((np.mean(arr_h) - np.mean(arr_m)) / pooled_std)
-            if pooled_std > 0
-            else 0.0
-        )
+        pooled_std = np.sqrt((np.std(arr_h, ddof=1) ** 2 + np.std(arr_m, ddof=1) ** 2) / 2.0)
+        cohens_d = float((np.mean(arr_h) - np.mean(arr_m)) / pooled_std) if pooled_std > 0 else 0.0
 
         bc_conscious = float(np.mean(bc_hits)) if bc_hits else 0.0
         bc_unconscious = float(np.mean(bc_misses)) if bc_misses else 0.0
@@ -881,17 +853,13 @@ class SyntheticiEEGSimulator:
             x[i] = phi * x[i - 1] + self.rng.normal(0.0, sigma)
         return x
 
-    def _inject_high_gamma_burst(
-        self, lfp: np.ndarray, amplitude: float = 1.0
-    ) -> np.ndarray:
+    def _inject_high_gamma_burst(self, lfp: np.ndarray, amplitude: float = 1.0) -> np.ndarray:
         """Add a high-gamma (100 Hz) burst to simulate up-state firing."""
         t = np.arange(self.n_samples) / self.sfreq
         burst = amplitude * np.sin(2 * np.pi * 100.0 * t)
         # Gaussian envelope centred at middle of epoch
         centre = self.n_samples // 2
-        envelope = np.exp(
-            -0.5 * ((np.arange(self.n_samples) - centre) / (0.1 * self.n_samples)) ** 2
-        )
+        envelope = np.exp(-0.5 * ((np.arange(self.n_samples) - centre) / (0.1 * self.n_samples)) ** 2)
         return lfp + burst * envelope
 
     # ------------------------------------------------------------------ #
@@ -933,9 +901,7 @@ class SyntheticiEEGSimulator:
                         lfp = self._ar1_process(self.n_samples, phi, sigma=1.0)
                         lfp += self._pink_noise(self.n_samples) * 0.3
                         amp = hg_amp_map[cond] * (1.0 + self.rng.normal(0, 0.1))
-                        lfp = self._inject_high_gamma_burst(
-                            lfp, amplitude=max(0.0, amp)
-                        )
+                        lfp = self._inject_high_gamma_burst(lfp, amplitude=max(0.0, amp))
 
                         epochs.append(
                             ChannelEpoch(
@@ -993,8 +959,7 @@ def generate_p6a_figure(
     ax.boxplot([hits, misses], labels=["Hits (conscious)", "Misses (unconscious)"])
     ax.set_ylabel("High-gamma mode occupancy (GMM weight)")
     ax.set_title(
-        f"P6a — HG Mode Occupancy\nd={gmm_result.get('cohens_d', 0):.3f}, "
-        f"p={gmm_result.get('pvalue', 1):.4f}"
+        f"P6a — HG Mode Occupancy\nd={gmm_result.get('cohens_d', 0):.3f}, " f"p={gmm_result.get('pvalue', 1):.4f}"
     )
     ax.axhline(0.5, color="gray", linestyle="--", alpha=0.5, label="Equal occupancy")
     ax.legend(fontsize=8)
@@ -1008,9 +973,7 @@ def generate_p6a_figure(
         [bc_val, gmm_result.get("bimodality_unconscious", 0)],
         color=[VISUAL_CONSTANTS.ST_BLUE, VISUAL_CONSTANTS.THETA_RED],
     )
-    ax2.axhline(
-        bc_threshold, color="red", linestyle="--", label=f"Threshold ({bc_threshold})"
-    )
+    ax2.axhline(bc_threshold, color="red", linestyle="--", label=f"Threshold ({bc_threshold})")
     ax2.set_ylabel("Bimodality coefficient")
     ax2.set_title("P6a — Bimodality Coefficient (GMM mode separation)")
     ax2.legend(fontsize=8)
@@ -1111,13 +1074,9 @@ class EmpiricalIEEGValidator:
                     self._epochs = epochs
                     return epochs
             except FileNotFoundError as exc:
-                logger.warning(
-                    "BIDS load failed (%s); falling back to synthetic data.", exc
-                )
+                logger.warning("BIDS load failed (%s); falling back to synthetic data.", exc)
             except Exception as exc:
-                logger.warning(
-                    "BIDS load error (%s); falling back to synthetic data.", exc
-                )
+                logger.warning("BIDS load error (%s); falling back to synthetic data.", exc)
         elif self.bids_root is not None and not HAS_MNE:
             logger.warning("MNE-Python not available; falling back to synthetic data.")
 

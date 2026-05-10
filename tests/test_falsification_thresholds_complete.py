@@ -120,24 +120,12 @@ from utils.falsification_thresholds import (
     VP4_CALIBRATED_TAU,
     VP4_CALIBRATED_THETA_0,
 )
-from utils.falsification_thresholds import (
-    test_f6_1_intrinsic_threshold_behavior as f6_1_validator,
-)
-from utils.falsification_thresholds import (
-    test_f6_2_intrinsic_temporal_integration as f6_2_validator,
-)
-from utils.falsification_thresholds import (
-    test_f6_3_metabolic_selectivity as f6_3_validator,
-)
-from utils.falsification_thresholds import (
-    test_f6_4_fading_memory as f6_4_validator,
-)
-from utils.falsification_thresholds import (
-    test_f6_5_bifurcation_structure as f6_5_validator,
-)
-from utils.falsification_thresholds import (
-    test_f6_6_alternative_architectures as f6_6_validator,
-)
+from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior as f6_1_validator
+from utils.falsification_thresholds import test_f6_2_intrinsic_temporal_integration as f6_2_validator
+from utils.falsification_thresholds import test_f6_3_metabolic_selectivity as f6_3_validator
+from utils.falsification_thresholds import test_f6_4_fading_memory as f6_4_validator
+from utils.falsification_thresholds import test_f6_5_bifurcation_structure as f6_5_validator
+from utils.falsification_thresholds import test_f6_6_alternative_architectures as f6_6_validator
 
 
 class TestThresholdConstants:
@@ -365,9 +353,7 @@ class TestF6ValidationFunctions:
     def test_f6_1_nan_values(self):
         """Test F6.1 with NaN values"""
         with pytest.raises(ValueError, match="NaN"):
-            f6_1_validator(
-                np.array([30.0, np.nan, 40.0]), np.array([100.0, 110.0, 120.0])
-            )
+            f6_1_validator(np.array([30.0, np.nan, 40.0]), np.array([100.0, 110.0, 120.0]))
 
     def test_f6_2_passing_case(self):
         """Test F6.2 with passing data"""
@@ -420,9 +406,7 @@ class TestF6ValidationFunctions:
 
     def test_f6_6_passing_case(self):
         """Test F6.6 with passing alternative architecture data"""
-        result = f6_6_validator(
-            alternative_modules_needed=3.0, performance_gap_without_addons=20.0
-        )
+        result = f6_6_validator(alternative_modules_needed=3.0, performance_gap_without_addons=20.0)
         assert "passed" in result
         assert "modules_pass" in result
         assert "performance_pass" in result
@@ -526,10 +510,7 @@ class TestPaperVsSimulationVariants:
 
     def test_f5_pca_variance_variants(self):
         """Test F5.5 PCA variance paper vs simulation variants exist"""
-        from utils.falsification_thresholds import (
-            F5_5_PCA_MIN_VARIANCE_PAPER_SPEC,
-            F5_5_PCA_MIN_VARIANCE_SIMULATION,
-        )
+        from utils.falsification_thresholds import F5_5_PCA_MIN_VARIANCE_PAPER_SPEC, F5_5_PCA_MIN_VARIANCE_SIMULATION
 
         assert F5_5_PCA_MIN_VARIANCE_PAPER_SPEC == 0.70
         assert F5_5_PCA_MIN_VARIANCE_SIMULATION == 0.60
@@ -537,10 +518,7 @@ class TestPaperVsSimulationVariants:
 
     def test_f5_1_proportion_variants(self):
         """Test F5.1 proportion paper vs simulation variants exist"""
-        from utils.falsification_thresholds import (
-            F5_1_MIN_PROPORTION_PAPER_SPEC,
-            F5_1_MIN_PROPORTION_SIMULATION,
-        )
+        from utils.falsification_thresholds import F5_1_MIN_PROPORTION_PAPER_SPEC, F5_1_MIN_PROPORTION_SIMULATION
 
         assert F5_1_MIN_PROPORTION_PAPER_SPEC == 0.75
         assert F5_1_MIN_PROPORTION_SIMULATION == 0.70
@@ -548,10 +526,7 @@ class TestPaperVsSimulationVariants:
 
     def test_p1_d_prime_variants(self):
         """Test P1 d' paper vs simulation variants exist"""
-        from utils.falsification_thresholds import (
-            P1_1_MIN_D_PRIME_PAPER_SPEC,
-            P1_1_MIN_D_PRIME_SIMULATION,
-        )
+        from utils.falsification_thresholds import P1_1_MIN_D_PRIME_PAPER_SPEC, P1_1_MIN_D_PRIME_SIMULATION
 
         assert P1_1_MIN_D_PRIME_PAPER_SPEC == 0.50
         assert P1_1_MIN_D_PRIME_SIMULATION == 0.40

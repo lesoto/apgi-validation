@@ -36,9 +36,7 @@ PROTOCOL_DEPENDENCIES = {
         "FP_01_ActiveInference",
         "FP_02_AgentComparison_ConvergenceBenchmark",
     ],
-    "FP_04_PhaseTransition_EpistemicArchitecture": [
-        "FP_03_FrameworkLevel_MultiProtocol"
-    ],
+    "FP_04_PhaseTransition_EpistemicArchitecture": ["FP_03_FrameworkLevel_MultiProtocol"],
     "FP_05_EvolutionaryPlausibility": [],
     "FP_06_LiquidNetwork_EnergyBenchmark": [],
     "FP_07_MathematicalConsistency": [],
@@ -51,9 +49,7 @@ PROTOCOL_DEPENDENCIES = {
     "VP_01_SyntheticEEG_MLClassification": [],
     "VP_02_Behavioral_BayesianComparison": [],
     "VP_03_ActiveInference_AgentSimulations": ["FP_01_ActiveInference"],
-    "VP_04_PhaseTransition_EpistemicLevel2": [
-        "FP_04_PhaseTransition_EpistemicArchitecture"
-    ],
+    "VP_04_PhaseTransition_EpistemicLevel2": ["FP_04_PhaseTransition_EpistemicArchitecture"],
     "VP_05_EvolutionaryEmergence": ["FP_05_EvolutionaryPlausibility"],
     "VP_06_LiquidNetwork_InductiveBias": ["FP_06_LiquidNetwork_EnergyBenchmark"],
     "VP_07_TMS_CausalInterventions": [],
@@ -143,9 +139,7 @@ def normalize_status(status_string: Optional[str]) -> ProtocolStatus:
     return normalized
 
 
-def normalize_data_source(
-    data_source_string: Optional[str], legacy_metadata: Optional[Dict] = None
-) -> DataSource:
+def normalize_data_source(data_source_string: Optional[str], legacy_metadata: Optional[Dict] = None) -> DataSource:
     """Map protocol-specific data source strings to standard enum.
 
     Args:
@@ -157,15 +151,9 @@ def normalize_data_source(
     """
     if not data_source_string and legacy_metadata:
         # Heuristic: check for empirical indicators
-        if any(
-            k in legacy_metadata
-            for k in ["empirical_data", "real_data", "clinical_data", "fmri_data"]
-        ):
+        if any(k in legacy_metadata for k in ["empirical_data", "real_data", "clinical_data", "fmri_data"]):
             return DataSource.EMPIRICAL
-        if any(
-            k in legacy_metadata
-            for k in ["synthetic_data", "simulation", "generated_data"]
-        ):
+        if any(k in legacy_metadata for k in ["synthetic_data", "simulation", "generated_data"]):
             return DataSource.SYNTHETIC
 
     if not data_source_string:
@@ -198,9 +186,7 @@ def normalize_data_source(
     return normalized
 
 
-def standardize_metadata(
-    protocol_id: str, legacy_metadata: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+def standardize_metadata(protocol_id: str, legacy_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Convert protocol-specific metadata to standard format.
 
     Args:
@@ -215,9 +201,7 @@ def standardize_metadata(
 
     # Extract and normalize fields
     status = normalize_status(legacy_metadata.get("status"))
-    data_source = normalize_data_source(
-        legacy_metadata.get("data_source"), legacy_metadata
-    )
+    data_source = normalize_data_source(legacy_metadata.get("data_source"), legacy_metadata)
     completion_percentage = legacy_metadata.get("completion_percentage", 50)
     errors = legacy_metadata.get("errors", [])
 
@@ -278,9 +262,7 @@ class StandardizedMetadata:
         }
 
     @classmethod
-    def from_dict(
-        cls, protocol_id: str, data: Dict[str, Any]
-    ) -> "StandardizedMetadata":
+    def from_dict(cls, protocol_id: str, data: Dict[str, Any]) -> "StandardizedMetadata":
         """Create from dictionary."""
         return cls(
             protocol_id=protocol_id,

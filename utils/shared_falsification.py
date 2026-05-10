@@ -18,12 +18,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.statistical_tests import (
-    compute_cohens_d,
-    safe_binomtest,
-    safe_ttest_1samp,
-    safe_ttest_ind,
-)
+from utils.statistical_tests import compute_cohens_d, safe_binomtest, safe_ttest_1samp, safe_ttest_ind
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +59,7 @@ def check_F1_family(data: dict, thresholds: dict) -> Dict[str, Any]:
     if "apgi_rewards" in data and "pp_rewards" in data:
         apgi_rewards = data["apgi_rewards"]
         pp_rewards = data["pp_rewards"]
-        t_stat, p_value, _ = safe_ttest_ind(
-            apgi_rewards, pp_rewards, alpha=sig_level, min_n=2
-        )
+        t_stat, p_value, _ = safe_ttest_ind(apgi_rewards, pp_rewards, alpha=sig_level, min_n=2)
         mean_apgi = np.mean(apgi_rewards)
         mean_pp = np.mean(pp_rewards)
         safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
@@ -76,11 +69,7 @@ def check_F1_family(data: dict, thresholds: dict) -> Dict[str, Any]:
         min_advantage = thresholds.get("F1_1_MIN_ADVANTAGE_PCT", 18.0)
         min_cohens_d = thresholds.get("F1_1_MIN_COHENS_D", 0.60)
 
-        f1_1_pass = (
-            advantage_pct >= min_advantage
-            and cohens_d >= min_cohens_d
-            and p_value < sig_level
-        )
+        f1_1_pass = advantage_pct >= min_advantage and cohens_d >= min_cohens_d and p_value < sig_level
         results["F1.1"] = {
             "passed": f1_1_pass,
             "advantage_pct": advantage_pct,
@@ -95,9 +84,7 @@ def check_F1_family(data: dict, thresholds: dict) -> Dict[str, Any]:
     if "threshold_adaptation" in data:
         threshold_array = np.asarray(data["threshold_adaptation"], dtype=float)
         threshold_reduction = float(np.mean(threshold_array))
-        t_stat, p_adapt, _ = safe_ttest_1samp(
-            threshold_array, popmean=0.0, alpha=sig_level, min_n=2
-        )
+        t_stat, p_adapt, _ = safe_ttest_1samp(threshold_array, popmean=0.0, alpha=sig_level, min_n=2)
         adapt_std = float(np.std(threshold_array, ddof=1))
         cohens_d_adapt = threshold_reduction / max(1e-10, adapt_std)
 
@@ -106,11 +93,7 @@ def check_F1_family(data: dict, thresholds: dict) -> Dict[str, Any]:
         )  # F1.4 shares threshold logic with F3.3 in some specs
         min_d = thresholds.get("F3_3_MIN_COHENS_D", 0.70)
 
-        f1_4_pass = (
-            threshold_reduction >= target_red
-            and cohens_d_adapt >= min_d
-            and p_adapt < sig_level
-        )
+        f1_4_pass = threshold_reduction >= target_red and cohens_d_adapt >= min_d and p_adapt < sig_level
         results["F1.4"] = {
             "passed": f1_4_pass,
             "threshold_reduction_pct": threshold_reduction,
@@ -123,9 +106,7 @@ def check_F1_family(data: dict, thresholds: dict) -> Dict[str, Any]:
     return results
 
 
-def check_F5_family(
-    data: dict, thresholds: dict, genome_data: Optional[dict] = None
-) -> Dict[str, Any]:
+def check_F5_family(data: dict, thresholds: dict, genome_data: Optional[dict] = None) -> Dict[str, Any]:
     """
     Check F5 family criteria (evolutionary emergence).
     Deduplicated from FP-1, FP-2, FP-3 per Step 1.3.
@@ -144,9 +125,7 @@ def check_F5_family(
             n_agents = len(genome_data["evolved_alpha_values"])
 
             # Cohen's d vs baseline alpha=3.0
-            alpha_std = (
-                np.std(genome_data["evolved_alpha_values"]) if genome_data else 0.5
-            )
+            alpha_std = np.std(genome_data["evolved_alpha_values"]) if genome_data else 0.5
             cohens_d = (mean_alpha - 3.0) / max(1e-10, alpha_std)
         else:
             # CRITICAL FIX: Raise error instead of using fictional defaults
@@ -201,12 +180,7 @@ def check_F5_family(
         min_r = thresholds.get("F5_2_MIN_CORRELATION", 0.25)
 
         # Calibrated: Focus on proportion as primary criterion
-        f5_2_pass = (
-            np.isfinite(prop)
-            and np.isfinite(mean_r)
-            and prop >= min_prop
-            and mean_r >= min_r
-        )
+        f5_2_pass = np.isfinite(prop) and np.isfinite(mean_r) and prop >= min_prop and mean_r >= min_r
         results["F5.2"] = {
             "passed": f5_2_pass,
             "proportion": prop,

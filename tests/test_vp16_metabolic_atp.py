@@ -24,14 +24,18 @@ class TestMetabolicGroundTruthSimulator:
     def test_init_default(self):
         """Test simulator initialization with default parameters."""
         sim = MetabolicGroundTruthSimulator()
-        assert sim.fs == 100.0
-        assert sim.dt == 0.01
+        if sim.fs != 100.0:
+            raise AssertionError(f"Expected fs=100.0, got {sim.fs}")
+        if sim.dt != 0.01:
+            raise AssertionError(f"Expected dt=0.01, got {sim.dt}")
 
     def test_init_custom_fs(self):
         """Test simulator initialization with custom sampling rate."""
         sim = MetabolicGroundTruthSimulator(fs=200.0)
-        assert sim.fs == 200.0
-        assert sim.dt == 0.005
+        if sim.fs != 200.0:
+            raise AssertionError(f"Expected fs=200.0, got {sim.fs}")
+        if sim.dt != 0.005:
+            raise AssertionError(f"Expected dt=0.005, got {sim.dt}")
 
     def test_simulate_iatpsnfr_trace_basic(self):
         """Test basic iATPSnFR trace simulation."""
@@ -39,21 +43,24 @@ class TestMetabolicGroundTruthSimulator:
         ignitions = np.array([0, 0, 1, 1, 0, 0, 1, 0])
         trace = sim.simulate_iatpsnfr_trace(ignitions)
 
-        assert len(trace) == len(ignitions)
-        assert isinstance(trace, np.ndarray)
+        if len(trace) != len(ignitions):
+            raise AssertionError(f"Expected trace length {len(ignitions)}, got {len(trace)}")
+        if not isinstance(trace, np.ndarray):
+            raise TypeError(f"Expected np.ndarray, got {type(trace)}")
         # Trace should be non-negative
-        assert np.all(trace >= 0)
+        if not np.all(trace >= 0):
+            raise ValueError("Trace contains negative values")
 
     def test_simulate_iatpsnfr_trace_custom_params(self):
         """Test iATPSnFR trace with custom cost coefficients."""
         sim = MetabolicGroundTruthSimulator()
         ignitions = np.array([0, 1, 0, 1, 0])
-        trace = sim.simulate_iatpsnfr_trace(
-            ignitions, c1_true=0.2, c2_true=0.03, tau_decay=0.2
-        )
+        trace = sim.simulate_iatpsnfr_trace(ignitions, c1_true=0.2, c2_true=0.03, tau_decay=0.2)
 
-        assert len(trace) == len(ignitions)
-        assert isinstance(trace, np.ndarray)
+        if len(trace) != len(ignitions):
+            raise AssertionError(f"Expected trace length {len(ignitions)}, got {len(trace)}")
+        if not isinstance(trace, np.ndarray):
+            raise TypeError(f"Expected np.ndarray, got {type(trace)}")
 
     def test_simulate_iatpsnfr_trace_all_ignitions(self):
         """Test trace with all ignitions active."""
@@ -61,9 +68,11 @@ class TestMetabolicGroundTruthSimulator:
         ignitions = np.ones(100)
         trace = sim.simulate_iatpsnfr_trace(ignitions)
 
-        assert len(trace) == 100
+        if len(trace) != 100:
+            raise AssertionError(f"Expected trace length 100, got {len(trace)}")
         # With all ignitions, trace should be higher
-        assert np.mean(trace) > 0
+        if not np.mean(trace) > 0:
+            raise ValueError(f"Expected positive mean trace, got {np.mean(trace)}")
 
     def test_simulate_iatpsnfr_trace_no_ignitions(self):
         """Test trace with no ignitions."""
@@ -71,10 +80,12 @@ class TestMetabolicGroundTruthSimulator:
         ignitions = np.zeros(100)
         trace = sim.simulate_iatpsnfr_trace(ignitions)
 
-        assert len(trace) == 100
+        if len(trace) != 100:
+            raise AssertionError(f"Expected trace length 100, got {len(trace)}")
         # With no ignitions, trace should be lower (only maintenance)
         # The maintenance cost accumulates, so we check it's relatively low
-        assert np.mean(trace) < 0.5
+        if not np.mean(trace) < 0.5:
+            raise ValueError(f"Expected mean trace < 0.5, got {np.mean(trace)}")
 
     def test_simulate_pmrs_flux_basic(self):
         """Test P-MRS flux simulation."""
@@ -82,8 +93,10 @@ class TestMetabolicGroundTruthSimulator:
         trace = np.random.randn(100)
         flux = sim.simulate_pmrs_flux(trace)
 
-        assert len(flux) == len(trace)
-        assert isinstance(flux, np.ndarray)
+        if len(flux) != len(trace):
+            raise AssertionError(f"Expected flux length {len(trace)}, got {len(flux)}")
+        if not isinstance(flux, np.ndarray):
+            raise TypeError(f"Expected np.ndarray, got {type(flux)}")
 
     def test_simulate_pmrs_flux_custom_window(self):
         """Test P-MRS flux with custom window size."""
@@ -91,7 +104,8 @@ class TestMetabolicGroundTruthSimulator:
         trace = np.random.randn(100)
         flux = sim.simulate_pmrs_flux(trace, window_ms=100.0)
 
-        assert len(flux) == len(trace)
+        if len(flux) != len(trace):
+            raise AssertionError(f"Expected flux length {len(trace)}, got {len(flux)}")
 
     def test_simulate_pmrs_flux_small_window(self):
         """Test P-MRS flux with very small window."""
@@ -100,7 +114,8 @@ class TestMetabolicGroundTruthSimulator:
         flux = sim.simulate_pmrs_flux(trace, window_ms=1.0)
 
         # Should handle small window gracefully
-        assert len(flux) == len(trace)
+        if len(flux) != len(trace):
+            raise AssertionError(f"Expected flux length {len(trace)}, got {len(flux)}")
 
 
 class TestAPGIMetabolicValidator:
@@ -109,14 +124,17 @@ class TestAPGIMetabolicValidator:
     def test_init_default_config(self):
         """Test validator initialization with default config."""
         validator = APGIMetabolicValidator()
-        assert validator.config is not None
-        assert validator.simulator is not None
+        if validator.config is None:
+            raise ValueError("Validator config should not be None")
+        if validator.simulator is None:
+            raise ValueError("Validator simulator should not be None")
 
     def test_init_custom_config(self):
         """Test validator initialization with custom config."""
         custom_config = {"c1": 0.15, "c2": 0.025}
         validator = APGIMetabolicValidator(config=custom_config)
-        assert validator.config == custom_config
+        if validator.config != custom_config:
+            raise AssertionError(f"Expected config {custom_config}, got {validator.config}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_basic(self, mock_model):
@@ -124,20 +142,24 @@ class TestAPGIMetabolicValidator:
         # Mock the APGI model
         mock_instance = MagicMock()
         mock_instance.run.return_value = [
-            {"metabolic_cost": 0.05, "ignited": True, "ignition_prob": 0.8}
-            for _ in range(500)
+            {"metabolic_cost": 0.05, "ignited": True, "ignition_prob": 0.8} for _ in range(500)
         ]
         mock_model.return_value = mock_instance
 
         validator = APGIMetabolicValidator()
         results = validator.validate_c1_c2_ground_truth(n_trials=2)
 
-        assert "v16_1_correlation" in results
-        assert "v16_2_consistency" in results
-        assert "v16_3_efficiency_gain" in results
-        assert "c1_fitted" in results
-        assert "c2_fitted" in results
-        assert "passed" in results
+        required_keys = [
+            "v16_1_correlation",
+            "v16_2_consistency",
+            "v16_3_efficiency_gain",
+            "c1_fitted",
+            "c2_fitted",
+            "passed",
+        ]
+        missing_keys = [key for key in required_keys if key not in results]
+        if missing_keys:
+            raise KeyError(f"Missing required keys in results: {missing_keys}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_with_config(self, mock_model):
@@ -145,15 +167,15 @@ class TestAPGIMetabolicValidator:
         custom_config = {"c1": 0.12, "c2": 0.018}
         mock_instance = MagicMock()
         mock_instance.run.return_value = [
-            {"metabolic_cost": 0.04, "ignited": True, "ignition_prob": 0.7}
-            for _ in range(500)
+            {"metabolic_cost": 0.04, "ignited": True, "ignition_prob": 0.7} for _ in range(500)
         ]
         mock_model.return_value = mock_instance
 
         validator = APGIMetabolicValidator(config=custom_config)
         results = validator.validate_c1_c2_ground_truth(n_trials=2)
 
-        assert results is not None
+        if results is None:
+            raise ValueError("Results should not be None")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_curve_fit_failure(self, mock_model):
@@ -161,8 +183,7 @@ class TestAPGIMetabolicValidator:
         mock_instance = MagicMock()
         # Return data that might cause fitting issues
         mock_instance.run.return_value = [
-            {"metabolic_cost": 0.01, "ignited": False, "ignition_prob": 0.0}
-            for _ in range(500)
+            {"metabolic_cost": 0.01, "ignited": False, "ignition_prob": 0.0} for _ in range(500)
         ]
         mock_model.return_value = mock_instance
 
@@ -170,8 +191,10 @@ class TestAPGIMetabolicValidator:
         results = validator.validate_c1_c2_ground_truth(n_trials=2)
 
         # Should still return results even with fitting failures
-        assert results is not None
-        assert "v16_2_consistency" in results
+        if results is None:
+            raise ValueError("Results should not be None")
+        if "v16_2_consistency" not in results:
+            raise KeyError("Missing v16_2_consistency in results")
 
 
 class TestRunValidation:
@@ -193,12 +216,16 @@ class TestRunValidation:
 
         result = run_validation()
 
-        assert result["protocol_id"] == "VP_16_Metabolic_ATP_GroundTruth"
-        assert result["status"] == "success"
-        assert result["passed"] is True
-        assert "named_predictions" in result
-        assert "metrics" in result
-        assert "metadata" in result
+        if result["protocol_id"] != "VP_16_Metabolic_ATP_GroundTruth":
+            raise AssertionError(f"Expected protocol_id VP_16_Metabolic_ATP_GroundTruth, got {result['protocol_id']}")
+        if result["status"] != "success":
+            raise AssertionError(f"Expected status success, got {result['status']}")
+        if result["passed"] is not True:
+            raise AssertionError(f"Expected passed True, got {result['passed']}")
+        required_sections = ["named_predictions", "metrics", "metadata"]
+        missing_sections = [section for section in required_sections if section not in result]
+        if missing_sections:
+            raise KeyError(f"Missing required sections in result: {missing_sections}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
     def test_run_validation_failure(self, mock_validator):
@@ -216,8 +243,10 @@ class TestRunValidation:
 
         result = run_validation()
 
-        assert result["status"] == "failed"
-        assert result["passed"] is False
+        if result["status"] != "failed":
+            raise AssertionError(f"Expected status failed, got {result['status']}")
+        if result["passed"] is not False:
+            raise AssertionError(f"Expected passed False, got {result['passed']}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
     def test_run_validation_named_predictions(self, mock_validator):
@@ -235,22 +264,24 @@ class TestRunValidation:
 
         result = run_validation()
 
-        assert "V16.1" in result["named_predictions"]
-        assert "V16.2" in result["named_predictions"]
-        assert "V16.3" in result["named_predictions"]
+        required_predictions = ["V16.1", "V16.2", "V16.3"]
+        missing_predictions = [pred for pred in required_predictions if pred not in result["named_predictions"]]
+        if missing_predictions:
+            raise KeyError(f"Missing required predictions: {missing_predictions}")
 
         # Check V16.1 structure
         v16_1 = result["named_predictions"]["V16.1"]
-        assert "passed" in v16_1
-        assert "value" in v16_1
-        assert "threshold" in v16_1
-        assert "description" in v16_1
+        required_fields = ["passed", "value", "threshold", "description"]
+        missing_fields = [field for field in required_fields if field not in v16_1]
+        if missing_fields:
+            raise KeyError(f"V16.1 missing required fields: {missing_fields}")
 
         # Check V16.3 structure
         v16_3 = result["named_predictions"]["V16.3"]
-        assert "passed" in v16_3
-        assert "value" in v16_3
-        assert "threshold" in v16_3
+        required_fields = ["passed", "value", "threshold"]
+        missing_fields = [field for field in required_fields if field not in v16_3]
+        if missing_fields:
+            raise KeyError(f"V16.3 missing required fields: {missing_fields}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
     def test_run_validation_metrics(self, mock_validator):
@@ -269,10 +300,10 @@ class TestRunValidation:
         result = run_validation()
 
         metrics = result["metrics"]
-        assert "c1_fitted" in metrics
-        assert "c2_fitted" in metrics
-        assert "correlation" in metrics
-        assert "efficiency_gain" in metrics
+        required_metrics = ["c1_fitted", "c2_fitted", "correlation", "efficiency_gain"]
+        missing_metrics = [metric for metric in required_metrics if metric not in metrics]
+        if missing_metrics:
+            raise KeyError(f"Missing required metrics: {missing_metrics}")
 
     @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
     def test_run_validation_metadata(self, mock_validator):
@@ -291,6 +322,7 @@ class TestRunValidation:
         result = run_validation()
 
         metadata = result["metadata"]
-        assert "temporal_resolution" in metadata
-        assert "ground_truth_source" in metadata
-        assert "timestamp" in metadata
+        required_metadata = ["temporal_resolution", "ground_truth_source", "timestamp"]
+        missing_metadata = [item for item in required_metadata if item not in metadata]
+        if missing_metadata:
+            raise KeyError(f"Missing required metadata: {missing_metadata}")

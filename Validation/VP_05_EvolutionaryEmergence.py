@@ -80,11 +80,7 @@ if str(_proj_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        F5_1_MIN_COHENS_D,
-        F5_1_MIN_PROPORTION,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, F5_1_MIN_COHENS_D, F5_1_MIN_PROPORTION
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F5_1_MIN_PROPORTION = 0.75
@@ -100,9 +96,7 @@ except ImportError:
 
         def wrapper(*args, **kwargs):
             # Check if VP-05 has completed by looking for genome_data.json
-            genome_data_file = (
-                _proj_root / "data_repository" / "metadata" / "genome_data.json"
-            )
+            genome_data_file = _proj_root / "data_repository" / "metadata" / "genome_data.json"
             if not genome_data_file.exists():
                 raise RuntimeError(
                     "VP-05 requires genome_data from completed Protocol-5. "
@@ -119,9 +113,7 @@ except ImportError:
 
         def wrapper(*args, **kwargs):
             # Check if VP-05 has completed by looking for genome_data.json
-            genome_data_file = (
-                _proj_root / "data_repository" / "metadata" / "genome_data.json"
-            )
+            genome_data_file = _proj_root / "data_repository" / "metadata" / "genome_data.json"
             if not genome_data_file.exists():
                 raise RuntimeError(
                     "VP-05 requires genome_data from completed Protocol-5. "
@@ -193,8 +185,7 @@ class AnalyticalValidationTestCases:
                     # S* = 0.35 · (1.0·0.5 + 1.0·0.5·0.3) = 0.2275
                     "ignition_time": 0.35
                     * np.log(
-                        (0.35 * (1.0 * 0.5 + 1.0 * 0.5 * 0.3) - 0.1)
-                        / (0.35 * (1.0 * 0.5 + 1.0 * 0.5 * 0.3) - 0.3)
+                        (0.35 * (1.0 * 0.5 + 1.0 * 0.5 * 0.3) - 0.1) / (0.35 * (1.0 * 0.5 + 1.0 * 0.5 * 0.3) - 0.3)
                     ),
                 },
                 "tolerance": 1e-6,
@@ -289,23 +280,15 @@ class AnalyticalValidationTestCases:
             )
             abs_error = abs(computed - expected["steady_state_surprise"])
             rel_error = (
-                abs_error / abs(expected["steady_state_surprise"])
-                if expected["steady_state_surprise"] != 0
-                else 0.0
+                abs_error / abs(expected["steady_state_surprise"]) if expected["steady_state_surprise"] != 0 else 0.0
             )
 
-            results["max_absolute_error"] = max(
-                results["max_absolute_error"], abs_error
-            )
-            results["max_relative_error"] = max(
-                results["max_relative_error"], rel_error
-            )
+            results["max_absolute_error"] = max(results["max_absolute_error"], abs_error)
+            results["max_relative_error"] = max(results["max_relative_error"], rel_error)
 
             if abs_error > tolerance:
                 results["passed"] = False
-                results["errors"].append(
-                    f"Steady-state surprise error: {abs_error:.2e} > {tolerance:.2e}"
-                )
+                results["errors"].append(f"Steady-state surprise error: {abs_error:.2e} > {tolerance:.2e}")
 
         if "ignition_time" in expected:
             computed = AnalyticalAPGISolutions.ignition_time(
@@ -320,23 +303,16 @@ class AnalyticalValidationTestCases:
             abs_error = abs(computed - expected["ignition_time"])
             rel_error = (
                 abs_error / abs(expected["ignition_time"])
-                if expected["ignition_time"] != 0
-                and not np.isinf(expected["ignition_time"])
+                if expected["ignition_time"] != 0 and not np.isinf(expected["ignition_time"])
                 else 0.0
             )
 
-            results["max_absolute_error"] = max(
-                results["max_absolute_error"], abs_error
-            )
-            results["max_relative_error"] = max(
-                results["max_relative_error"], rel_error
-            )
+            results["max_absolute_error"] = max(results["max_absolute_error"], abs_error)
+            results["max_relative_error"] = max(results["max_relative_error"], rel_error)
 
             if abs_error > tolerance:
                 results["passed"] = False
-                results["errors"].append(
-                    f"Ignition time error: {abs_error:.2e} > {tolerance:.2e}"
-                )
+                results["errors"].append(f"Ignition time error: {abs_error:.2e} > {tolerance:.2e}")
 
         if "phase_gap" in expected:
             computed = AnalyticalAPGISolutions.phase_boundary(
@@ -348,53 +324,31 @@ class AnalyticalValidationTestCases:
                 params["tau_S"],
             )["phase_gap"]
             abs_error = abs(computed - expected["phase_gap"])
-            rel_error = (
-                abs_error / abs(expected["phase_gap"])
-                if expected["phase_gap"] != 0
-                else 0.0
-            )
+            rel_error = abs_error / abs(expected["phase_gap"]) if expected["phase_gap"] != 0 else 0.0
 
-            results["max_absolute_error"] = max(
-                results["max_absolute_error"], abs_error
-            )
-            results["max_relative_error"] = max(
-                results["max_relative_error"], rel_error
-            )
+            results["max_absolute_error"] = max(results["max_absolute_error"], abs_error)
+            results["max_relative_error"] = max(results["max_relative_error"], rel_error)
 
             if abs_error > tolerance:
                 results["passed"] = False
-                results["errors"].append(
-                    f"Phase gap error: {abs_error:.2e} > {tolerance:.2e}"
-                )
+                results["errors"].append(f"Phase gap error: {abs_error:.2e} > {tolerance:.2e}")
 
         if "Pi_i_eff" in expected:
-            computed = (
-                AnalyticalAPGISolutions.effective_interoceptive_precision_analytical(
-                    params["Pi_i_baseline"],
-                    params["M"],
-                    params["M_0"],
-                    params["beta"],
-                )
+            computed = AnalyticalAPGISolutions.effective_interoceptive_precision_analytical(
+                params["Pi_i_baseline"],
+                params["M"],
+                params["M_0"],
+                params["beta"],
             )
             abs_error = abs(computed - expected["Pi_i_eff"])
-            rel_error = (
-                abs_error / abs(expected["Pi_i_eff"])
-                if expected["Pi_i_eff"] != 0
-                else 0.0
-            )
+            rel_error = abs_error / abs(expected["Pi_i_eff"]) if expected["Pi_i_eff"] != 0 else 0.0
 
-            results["max_absolute_error"] = max(
-                results["max_absolute_error"], abs_error
-            )
-            results["max_relative_error"] = max(
-                results["max_relative_error"], rel_error
-            )
+            results["max_absolute_error"] = max(results["max_absolute_error"], abs_error)
+            results["max_relative_error"] = max(results["max_relative_error"], rel_error)
 
             if abs_error > tolerance:
                 results["passed"] = False
-                results["errors"].append(
-                    f"Effective precision error: {abs_error:.2e} > {tolerance:.2e}"
-                )
+                results["errors"].append(f"Effective precision error: {abs_error:.2e} > {tolerance:.2e}")
 
         if "ignition_probability" in expected:
             computed = AnalyticalAPGISolutions.ignition_probability_analytical(
@@ -404,23 +358,15 @@ class AnalyticalValidationTestCases:
             )
             abs_error = abs(computed - expected["ignition_probability"])
             rel_error = (
-                abs_error / abs(expected["ignition_probability"])
-                if expected["ignition_probability"] != 0
-                else 0.0
+                abs_error / abs(expected["ignition_probability"]) if expected["ignition_probability"] != 0 else 0.0
             )
 
-            results["max_absolute_error"] = max(
-                results["max_absolute_error"], abs_error
-            )
-            results["max_relative_error"] = max(
-                results["max_relative_error"], rel_error
-            )
+            results["max_absolute_error"] = max(results["max_absolute_error"], abs_error)
+            results["max_relative_error"] = max(results["max_relative_error"], rel_error)
 
             if abs_error > tolerance:
                 results["passed"] = False
-                results["errors"].append(
-                    f"Ignition probability error: {abs_error:.2e} > {tolerance:.2e}"
-                )
+                results["errors"].append(f"Ignition probability error: {abs_error:.2e} > {tolerance:.2e}")
 
         return results
 
@@ -579,43 +525,29 @@ class AgentGenome:
 
         # Parameter mutations (Gaussian perturbation)
         if np.random.random() < mutation_rate:
-            mutated.theta_0 = np.clip(
-                mutated.theta_0 + np.random.normal(0, 0.1), 0.1, 0.9
-            )
+            mutated.theta_0 = np.clip(mutated.theta_0 + np.random.normal(0, 0.1), 0.1, 0.9)
 
         if np.random.random() < mutation_rate:
-            mutated.alpha = np.clip(
-                mutated.alpha * np.random.uniform(0.8, 1.2), 1.0, 15.0
-            )
+            mutated.alpha = np.clip(mutated.alpha * np.random.uniform(0.8, 1.2), 1.0, 15.0)
 
         if np.random.random() < mutation_rate:
             mutated.beta = np.clip(mutated.beta * np.random.uniform(0.8, 1.2), 0.3, 2.5)
 
         if np.random.random() < mutation_rate:
-            mutated.Pi_e_lr = np.clip(
-                mutated.Pi_e_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3
-            )
+            mutated.Pi_e_lr = np.clip(mutated.Pi_e_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3)
 
         if np.random.random() < mutation_rate:
-            mutated.Pi_i_lr = np.clip(
-                mutated.Pi_i_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3
-            )
+            mutated.Pi_i_lr = np.clip(mutated.Pi_i_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3)
 
         if np.random.random() < mutation_rate:
-            mutated.somatic_lr = np.clip(
-                mutated.somatic_lr * np.random.uniform(0.8, 1.2), 0.005, 0.4
-            )
+            mutated.somatic_lr = np.clip(mutated.somatic_lr * np.random.uniform(0.8, 1.2), 0.005, 0.4)
 
         # Architecture mutations
         if np.random.random() < mutation_rate:
-            mutated.n_hidden_layers = np.clip(
-                mutated.n_hidden_layers + np.random.randint(-1, 2), 1, 5
-            )
+            mutated.n_hidden_layers = np.clip(mutated.n_hidden_layers + np.random.randint(-1, 2), 1, 5)
 
         if np.random.random() < mutation_rate:
-            mutated.hidden_dim = np.clip(
-                int(mutated.hidden_dim * np.random.choice([0.5, 1.5, 2.0])), 8, 128
-            )
+            mutated.hidden_dim = np.clip(int(mutated.hidden_dim * np.random.choice([0.5, 1.5, 2.0])), 8, 128)
 
         return mutated
 
@@ -708,9 +640,7 @@ class EvolvableAgent:
         # Apply threshold mechanism (if present)
         if self.genome.has_threshold:
             # Ignition probability
-            P_ignition = 1.0 / (
-                1.0 + np.exp(-self.genome.alpha * (S_t - self.genome.theta_0))
-            )
+            P_ignition = 1.0 / (1.0 + np.exp(-self.genome.alpha * (S_t - self.genome.theta_0)))
 
             ignition = np.random.random() < P_ignition
 
@@ -754,9 +684,7 @@ class EvolvableAgent:
             )
             hidden = np.tanh(np.clip(hidden @ W, -100, 100))
             # Clip output to prevent downstream overflow
-            hidden = np.clip(
-                np.nan_to_num(hidden, nan=0.0, posinf=10.0, neginf=-10.0), -10, 10
-            )
+            hidden = np.clip(np.nan_to_num(hidden, nan=0.0, posinf=10.0, neginf=-10.0), -10, 10)
 
         # Output layer: hidden_dim x 4 (for 4 actions)
         W_out = rng.randn(self.genome.hidden_dim, 4) * 0.1
@@ -825,9 +753,7 @@ class EvolvableAgent:
             # Strengthen marker for taken action based on reward
             state_key_tuple = tuple(observation.round(6))
             if state_key_tuple in self.somatic_markers:
-                self.somatic_markers[state_key_tuple][action] += (
-                    self.genome.somatic_lr * reward
-                )
+                self.somatic_markers[state_key_tuple][action] += self.genome.somatic_lr * reward
 
             # Decay others
             for a in range(4):
@@ -1182,9 +1108,7 @@ class EvolutionaryOptimizer:
                 internal_signal = np.random.uniform(-0.2, 0.2)
 
                 # Agent decision
-                action, ignition, metabolic_cost = agent.decide(
-                    obs, external_signal, internal_signal
-                )
+                action, ignition, metabolic_cost = agent.decide(obs, external_signal, internal_signal)
 
                 # Environment step
                 reward, intero_cost, next_obs, done = env.step(action)
@@ -1224,9 +1148,7 @@ class EvolutionaryOptimizer:
 
     def tournament_selection(self, fitness_scores: np.ndarray) -> AgentGenome:
         """Tournament selection"""
-        tournament_indices = np.random.choice(
-            self.pop_size, self.tournament_size, replace=False
-        )
+        tournament_indices = np.random.choice(self.pop_size, self.tournament_size, replace=False)
 
         winner_idx = tournament_indices[np.argmax(fitness_scores[tournament_indices])]
 
@@ -1236,15 +1158,9 @@ class EvolutionaryOptimizer:
         """Compute frequency of each architectural feature"""
         return {
             "has_threshold": float(np.mean([g.has_threshold for g in self.population])),
-            "has_intero_weighting": float(
-                np.mean([g.has_intero_weighting for g in self.population])
-            ),
-            "has_somatic_markers": float(
-                np.mean([g.has_somatic_markers for g in self.population])
-            ),
-            "has_precision_weighting": float(
-                np.mean([g.has_precision_weighting for g in self.population])
-            ),
+            "has_intero_weighting": float(np.mean([g.has_intero_weighting for g in self.population])),
+            "has_somatic_markers": float(np.mean([g.has_somatic_markers for g in self.population])),
+            "has_precision_weighting": float(np.mean([g.has_precision_weighting for g in self.population])),
         }
 
     def compute_diversity(self) -> float:
@@ -1342,12 +1258,8 @@ class EvolutionaryOptimizer:
                 if i == j:
                     # Within community
                     comm_nodes = len(communities.get(comm_a, set()))
-                    within_edges += float(
-                        comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1
-                    )
-                    total_edges += float(
-                        comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1
-                    )
+                    within_edges += float(comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1)
+                    total_edges += float(comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1)
                 else:
                     # Between communities
                     nodes_a = len(communities.get(comm_a, set()))
@@ -1417,15 +1329,11 @@ class EvolutionaryOptimizer:
             if not test_pass:
                 results["overall_pass"] = False
 
-        results["min_retention"] = min(
-            t["fitness_retention"] for t in results["perturbation_tests"]
-        )
+        results["min_retention"] = min(t["fitness_retention"] for t in results["perturbation_tests"])
 
         return results
 
-    def run_neutral_evolution_baseline(
-        self, n_generations: int = None, population_size: int = None
-    ) -> Dict[str, Any]:
+    def run_neutral_evolution_baseline(self, n_generations: int = None, population_size: int = None) -> Dict[str, Any]:
         """
         V5.1: Run neutral evolution baseline (mutation only, no selection) for comparison.
 
@@ -1468,17 +1376,13 @@ class EvolutionaryOptimizer:
             try:
                 from scipy import stats
 
-                u_stat, p_value = stats.mannwhitneyu(
-                    selection_fitness, neutral_fitness_history, alternative="greater"
-                )
+                u_stat, p_value = stats.mannwhitneyu(selection_fitness, neutral_fitness_history, alternative="greater")
                 selection_superior = p_value < 0.01
             except ImportError:
                 # Fallback if scipy not available
                 u_stat = 0.0
                 p_value = 1.0
-                selection_superior = np.mean(selection_fitness) > np.mean(
-                    neutral_fitness_history
-                )
+                selection_superior = np.mean(selection_fitness) > np.mean(neutral_fitness_history)
         else:
             u_stat = 0.0
             p_value = 1.0
@@ -1487,9 +1391,7 @@ class EvolutionaryOptimizer:
         return {
             "neutral_fitness_history": neutral_fitness_history,
             "neutral_final_fitness": float(np.mean(neutral_fitness_history[-10:])),
-            "selection_final_fitness": (
-                float(np.mean(selection_fitness[-10:])) if selection_fitness else 0.0
-            ),
+            "selection_final_fitness": (float(np.mean(selection_fitness[-10:])) if selection_fitness else 0.0),
             "mann_whitney_u": float(u_stat),
             "mann_whitney_p": float(p_value),
             "selection_superior": selection_superior,
@@ -1571,12 +1473,7 @@ class EvolutionaryOptimizer:
             current_env = self.environments[env_cycle]
 
             # Evaluate fitness
-            fitness_scores = np.array(
-                [
-                    self.evaluate_fitness(genome, current_env)
-                    for genome in self.population
-                ]
-            )
+            fitness_scores = np.array([self.evaluate_fitness(genome, current_env) for genome in self.population])
 
             # Compute generational fitness variance for convergence check
             gen_fitness_variance = np.var(fitness_scores)
@@ -1590,12 +1487,8 @@ class EvolutionaryOptimizer:
             # Early stopping check
             if low_variance_generations >= min_generations_for_convergence:
                 print(f"\n[CONVERGENCE] Early stopping at generation {generation}")
-                print(
-                    f"  Fitness variance {gen_fitness_variance:.2e} < {convergence_threshold:.2e}"
-                )
-                print(
-                    f"  for {min_generations_for_convergence} consecutive generations"
-                )
+                print(f"  Fitness variance {gen_fitness_variance:.2e} < {convergence_threshold:.2e}")
+                print(f"  for {min_generations_for_convergence} consecutive generations")
                 break
 
             # Record statistics
@@ -1613,17 +1506,10 @@ class EvolutionaryOptimizer:
             # Fix 3: Track genetic diversity for premature convergence detection
             genetic_diversity = self.compute_genetic_diversity_hamming()
             genetic_diversity_history.append(genetic_diversity)
-            if (
-                genetic_diversity < diversity_convergence_threshold
-                and not premature_convergence_flag
-            ):
+            if genetic_diversity < diversity_convergence_threshold and not premature_convergence_flag:
                 premature_convergence_flag = True
-                print(
-                    f"\n[WARNING] Premature convergence detected at generation {generation}"
-                )
-                print(
-                    f"  Genetic diversity {genetic_diversity:.4f} < threshold {diversity_convergence_threshold:.4f}"
-                )
+                print(f"\n[WARNING] Premature convergence detected at generation {generation}")
+                print(f"  Genetic diversity {genetic_diversity:.4f} < threshold {diversity_convergence_threshold:.4f}")
 
             # Store best genome
             best_idx = np.argmax(fitness_scores)
@@ -1670,11 +1556,7 @@ class EvolutionaryOptimizer:
         new_pop_list: List[AgentGenome] = new_population[: self.pop_size]
         self.population = new_pop_list
         self.history["evolution_metrics"] = {
-            "final_diversity": (
-                float(genetic_diversity_history[-1])
-                if genetic_diversity_history
-                else 0.0
-            ),
+            "final_diversity": (float(genetic_diversity_history[-1]) if genetic_diversity_history else 0.0),
             "genetic_diversity_history": genetic_diversity_history,
             "premature_convergence": premature_convergence_flag,
             "diversity_convergence_threshold": float(diversity_convergence_threshold),
@@ -1717,9 +1599,7 @@ class EvolutionaryAnalyzer:
 
         for trait in traits:
             # Extract frequency time series
-            freqs = np.array(
-                [h[trait] for h in self.history["architecture_frequencies"]]
-            )
+            freqs = np.array([h[trait] for h in self.history["architecture_frequencies"]])
 
             # Avoid edge cases
             freqs = np.clip(freqs, 0.01, 0.99)
@@ -1737,9 +1617,7 @@ class EvolutionaryAnalyzer:
 
         return selection_coefficients
 
-    def find_fixation_generations(
-        self, threshold: float = 0.9
-    ) -> Dict[str, Optional[int]]:
+    def find_fixation_generations(self, threshold: float = 0.9) -> Dict[str, Optional[int]]:
         """
         Find generation when each trait reached fixation (>threshold frequency)
         """
@@ -1821,9 +1699,7 @@ class EvolutionaryAnalyzer:
             key=lambda x: x[1] if x[1] is not None else float("inf"),
         )
 
-        emergence_order = {
-            trait: rank for rank, (trait, gen) in enumerate(sorted_traits)
-        }
+        emergence_order = {trait: rank for rank, (trait, gen) in enumerate(sorted_traits)}
 
         return emergence_order
 
@@ -1881,9 +1757,7 @@ class FalsificationChecker:
             "generation": history["generation"][generation_idx],
         }
 
-    def check_F5_2(
-        self, selection_coefficients: Dict, history: Dict
-    ) -> Tuple[bool, Dict]:
+    def check_F5_2(self, selection_coefficients: Dict, history: Dict) -> Tuple[bool, Dict]:
         """
         F5.2: Interoceptive weighting selection coefficient
 
@@ -1893,9 +1767,7 @@ class FalsificationChecker:
         s = selection_coefficients["has_intero_weighting"]
 
         # Get interoceptive weighting frequencies over generations
-        intero_freqs = [
-            h["has_intero_weighting"] for h in history["architecture_frequencies"]
-        ]
+        intero_freqs = [h["has_intero_weighting"] for h in history["architecture_frequencies"]]
         generations = list(range(len(intero_freqs)))
 
         # Compute Pearson correlation between generation and frequency
@@ -1947,11 +1819,7 @@ class FalsificationChecker:
 
         return falsified, {
             "threshold_frequency": float(final_freq),
-            "interpretation": (
-                "Discrete ignition advantageous"
-                if final_freq > 0.5
-                else "Continuous equally good"
-            ),
+            "interpretation": ("Discrete ignition advantageous" if final_freq > 0.5 else "Continuous equally good"),
         }
 
     def check_F5_5(self, history: Dict) -> Tuple[bool, Dict]:
@@ -2078,9 +1946,7 @@ class FalsificationChecker:
 
         # Compute correlation between component count and fitness
         if len(apgi_component_counts_arr) > 1:
-            correlation = np.corrcoef(apgi_component_counts_arr, fitness_values_arr)[
-                0, 1
-            ]
+            correlation = np.corrcoef(apgi_component_counts_arr, fitness_values_arr)[0, 1]
         else:
             correlation = 0.0
 
@@ -2107,19 +1973,13 @@ class FalsificationChecker:
             performance_diff_pct = 0.0  # type: ignore[assignment]
 
         # Falsified if non-APGI (0 components) performs as well or better than APGI
-        falsified = (
-            performance_diff_pct < self.criteria["F5.6"]["min_performance_diff_pct"]
-        )
+        falsified = performance_diff_pct < self.criteria["F5.6"]["min_performance_diff_pct"]
 
         return falsified, {
             "correlation_components_fitness": float(correlation),
             "performance_diff_pct": float(performance_diff_pct),
-            "zero_component_mean_fitness": (
-                float(mean_zero) if zero_component_fitness else 0.0
-            ),
-            "four_component_mean_fitness": (
-                float(mean_four) if four_component_fitness else 0.0
-            ),
+            "zero_component_mean_fitness": (float(mean_zero) if zero_component_fitness else 0.0),
+            "four_component_mean_fitness": (float(mean_four) if four_component_fitness else 0.0),
         }
 
     def generate_report(self, history: Dict, selection_coefficients: Dict) -> Dict:
@@ -2131,12 +1991,18 @@ class FalsificationChecker:
             "overall_falsified": False,
         }
 
-        # F5.1
+        # Run all checks
         f5_1_result, f5_1_details = self.check_F5_1(history)
+        f5_2_result, f5_2_details = self.check_F5_2(selection_coefficients, history)
+        f5_3_result, f5_3_details = self.check_F5_3(history)
+        f5_4_result, f5_4_details = self.check_F5_4(history)
+        f5_5_result, f5_5_details = self.check_F5_5(history)
+        f5_6_result, f5_6_details = self.check_F5_6(history)
+
+        # F5.1
         criterion = {
             "code": "F5.1",
             "description": self.criteria["F5.1"]["description"],
-            "falsified": f5_1_result,
             "details": f5_1_details,
         }
 
@@ -2146,11 +2012,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.2
-        f5_2_result, f5_2_details = self.check_F5_2(selection_coefficients, {})
         criterion = {
             "code": "F5.2",
             "description": self.criteria["F5.2"]["description"],
-            "falsified": f5_2_result,
             "details": f5_2_details,
         }
 
@@ -2160,11 +2024,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.3
-        f5_3_result, f5_3_details = self.check_F5_3(history)
         criterion = {
             "code": "F5.3",
             "description": self.criteria["F5.3"]["description"],
-            "falsified": f5_3_result,
             "details": f5_3_details,
         }
 
@@ -2174,11 +2036,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.4
-        f5_4_result, f5_4_details = self.check_F5_4(history)
         criterion = {
             "code": "F5.4",
             "description": self.criteria["F5.4"]["description"],
-            "falsified": f5_4_result,
             "details": f5_4_details,
         }
 
@@ -2188,11 +2048,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.5
-        f5_5_result, f5_5_details = self.check_F5_5(history)
         criterion = {
             "code": "F5.5",
             "description": self.criteria["F5.5"]["description"],
-            "falsified": f5_5_result,
             "details": f5_5_details,
         }
 
@@ -2202,11 +2060,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.6
-        f5_6_result, f5_6_details = self.check_F5_6(history)
         criterion = {
             "code": "F5.6",
             "description": self.criteria["F5.6"]["description"],
-            "falsified": f5_6_result,
             "details": f5_6_details,
         }
 
@@ -2225,9 +2081,7 @@ class FalsificationChecker:
 # =============================================================================
 
 
-def plot_evolutionary_results(
-    history: Dict, save_path: str = "protocol5_evolution_results.png"
-):
+def plot_evolutionary_results(history: Dict, save_path: str = "protocol5_evolution_results.png"):
     """Generate comprehensive visualization of evolutionary results"""
 
     fig = plt.figure(figsize=(20, 14))
@@ -2391,9 +2245,7 @@ def plot_evolutionary_results(
             linewidth=1.5,
         )
         ax_fix.set_xlabel("Generation", fontsize=11, fontweight="bold")
-        ax_fix.set_title(
-            "Fixation Generation (freq>0.9)", fontsize=12, fontweight="bold"
-        )
+        ax_fix.set_title("Fixation Generation (freq>0.9)", fontsize=12, fontweight="bold")
         ax_fix.grid(axis="x", alpha=0.3)
 
     # ==========================================================================
@@ -2421,9 +2273,7 @@ def plot_evolutionary_results(
         startangle=90,
         textprops={"fontsize": 10, "fontweight": "bold"},
     )
-    ax_pie.set_title(
-        "Final Architecture\nComponent Frequencies", fontsize=12, fontweight="bold"
-    )
+    ax_pie.set_title("Final Architecture\nComponent Frequencies", fontsize=12, fontweight="bold")
 
     # Emergence order
     ax_order = fig.add_subplot(gs[3, 1])
@@ -2472,9 +2322,7 @@ def plot_evolutionary_results(
         ["Precision", f"{final_freqs['has_precision_weighting']:.2f}"],
     ]
 
-    table = ax_stats.table(
-        cellText=stats_data, cellLoc="left", loc="center", colWidths=[0.6, 0.4]
-    )
+    table = ax_stats.table(cellText=stats_data, cellLoc="left", loc="center", colWidths=[0.6, 0.4])
     table.auto_set_font_size(False)
     table.set_fontsize(9)
     table.scale(1, 2)
@@ -2723,9 +2571,7 @@ def analyze_fitness_landscape(genome_space_sample, environment):
         "fitness_range": float(np.max(fitness_array) - np.min(fitness_array)),
         "num_peaks": len(peaks),
         "peak_fitnesses": [float(f) for _, f in peaks[:10]],  # Top 10 peaks
-        "neutral_network_size": len(
-            [f for f in fitnesses if f > np.median(fitness_array) - 0.1]
-        ),
+        "neutral_network_size": len([f for f in fitnesses if f > np.median(fitness_array) - 0.1]),
     }
 
     # Plot landscape
@@ -2762,9 +2608,7 @@ def analyze_fitness_landscape(genome_space_sample, environment):
             "threshold": np.mean([g.has_threshold for g in peak_genomes]),
             "intero_weighting": np.mean([g.has_intero_weighting for g in peak_genomes]),
             "somatic_markers": np.mean([g.has_somatic_markers for g in peak_genomes]),
-            "precision_weighting": np.mean(
-                [g.has_precision_weighting for g in peak_genomes]
-            ),
+            "precision_weighting": np.mean([g.has_precision_weighting for g in peak_genomes]),
         }
 
         components = list(component_prevalence.keys())
@@ -2899,9 +2743,7 @@ def evaluate_agent(agent, environment):
         internal_signal = np.random.uniform(-0.2, 0.2)
 
         # Agent decision
-        action, ignition, metabolic_cost = agent.decide(
-            obs, external_signal, internal_signal
-        )
+        action, ignition, metabolic_cost = agent.decide(obs, external_signal, internal_signal)
 
         # Environment step
         reward, intero_cost, next_obs, done = environment.step(action)
@@ -3043,9 +2885,7 @@ def run_ensemble_evolution(
         final_genomes = history.get("best_genomes", [])
         if final_genomes:
             # Get last generation's best genomes
-            best_genome = (
-                final_genomes[-1] if isinstance(final_genomes, list) else final_genomes
-            )
+            best_genome = final_genomes[-1] if isinstance(final_genomes, list) else final_genomes
             if isinstance(best_genome, AgentGenome):
                 all_genomes.append(best_genome)
 
@@ -3130,16 +2970,8 @@ def run_ensemble_evolution(
             "values": mean_fitnesses,
         },
         "convergence_generations": {
-            "mean": (
-                float(np.mean(convergence_generations))
-                if convergence_generations
-                else n_generations
-            ),
-            "std": (
-                float(np.std(convergence_generations))
-                if len(convergence_generations) > 1
-                else 0.0
-            ),
+            "mean": (float(np.mean(convergence_generations)) if convergence_generations else n_generations),
+            "std": (float(np.std(convergence_generations)) if len(convergence_generations) > 1 else 0.0),
             "values": convergence_generations,
             "early_stop_rate": len(convergence_generations) / n_seeds,
         },
@@ -3166,17 +2998,11 @@ def run_ensemble_evolution(
     )
 
     print("\n--- Ensemble Fitness ---")
-    print(
-        f"Best: {ensemble_statistics['best_fitness']['mean']:.3f} ± {ensemble_statistics['best_fitness']['std']:.3f}"
-    )
-    print(
-        f"Mean: {ensemble_statistics['mean_fitness']['mean']:.3f} ± {ensemble_statistics['mean_fitness']['std']:.3f}"
-    )
+    print(f"Best: {ensemble_statistics['best_fitness']['mean']:.3f} ± {ensemble_statistics['best_fitness']['std']:.3f}")
+    print(f"Mean: {ensemble_statistics['mean_fitness']['mean']:.3f} ± {ensemble_statistics['mean_fitness']['std']:.3f}")
 
     print("\n--- Convergence ---")
-    print(
-        f"Early stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}"
-    )
+    print(f"Early stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}")
     if convergence_generations:
         print(
             f"Avg convergence gen: {ensemble_statistics['convergence_generations']['mean']:.1f} ± {ensemble_statistics['convergence_generations']['std']:.1f}"
@@ -3186,9 +3012,7 @@ def run_ensemble_evolution(
     valid_genomes = sum(1 for v in phenotype_validation_results if v["valid"])
     print("\n--- Phenotype Validation ---")
     print(f"Valid genomes: {valid_genomes}/{len(phenotype_validation_results)}")
-    if phenotype_validation_results and valid_genomes < len(
-        phenotype_validation_results
-    ):
+    if phenotype_validation_results and valid_genomes < len(phenotype_validation_results):
         for v in phenotype_validation_results:
             if not v["valid"]:
                 print(f"  Seed {v['seed']}: {len(v['violations'])} violations")
@@ -3245,9 +3069,7 @@ def _generate_ensemble_genome_data(
             "beta": float(np.mean(beta_values)) if beta_values else 0.0,
             "Pi_i_lr": float(np.mean(pi_i_lr_values)) if pi_i_lr_values else 0.0,
             "threshold_frequency": ensemble_statistics["threshold_frequency"]["mean"],
-            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"][
-                "mean"
-            ],
+            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"]["mean"],
             "somatic_frequency": ensemble_statistics["somatic_frequency"]["mean"],
             "precision_frequency": ensemble_statistics["precision_frequency"]["mean"],
         },
@@ -3256,9 +3078,7 @@ def _generate_ensemble_genome_data(
             "beta": float(np.std(beta_values)) if beta_values else 0.0,
             "Pi_i_lr": float(np.std(pi_i_lr_values)) if pi_i_lr_values else 0.0,
             "threshold_frequency": ensemble_statistics["threshold_frequency"]["std"],
-            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"][
-                "std"
-            ],
+            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"]["std"],
             "somatic_frequency": ensemble_statistics["somatic_frequency"]["std"],
             "precision_frequency": ensemble_statistics["precision_frequency"]["std"],
         },
@@ -3269,9 +3089,7 @@ def _generate_ensemble_genome_data(
         # Validation status
         "phenotype_validation": {
             "all_valid": (
-                all(v["valid"] for v in phenotype_validation_results)
-                if phenotype_validation_results
-                else False
+                all(v["valid"] for v in phenotype_validation_results) if phenotype_validation_results else False
             ),
             "validation_results": phenotype_validation_results,
         },
@@ -3325,22 +3143,14 @@ def save_genome_data(
         from utils.interprotocol_schema import export_vp5_genome_data
 
         interprotocol_path = export_vp5_genome_data(genome_data)
-        print(
-            f"[OK] Genome data exported to interprotocol schema: {interprotocol_path}"
-        )
+        print(f"[OK] Genome data exported to interprotocol schema: {interprotocol_path}")
     except ImportError as e:
         print(f"[WARN] Could not export to interprotocol schema: {e}")
 
     print(f"  Seeds: {genome_data.get('n_seeds', 'N/A')}")
-    print(
-        f"  Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A')}"
-    )
-    print(
-        f"  Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A')}"
-    )
-    print(
-        f"  All phenotypes valid: {genome_data.get('phenotype_validation', {}).get('all_valid', False)}"
-    )
+    print(f"  Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A')}")
+    print(f"  Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A')}")
+    print(f"  All phenotypes valid: {genome_data.get('phenotype_validation', {}).get('all_valid', False)}")
 
 
 # =============================================================================
@@ -3460,11 +3270,7 @@ def main() -> Dict[str, Any]:
 
     # Final frequencies
     print("\n--- Final Architecture Frequencies ---")
-    final_freqs = (
-        history["architecture_frequencies"][-1]
-        if history.get("architecture_frequencies")
-        else {}
-    )
+    final_freqs = history["architecture_frequencies"][-1] if history.get("architecture_frequencies") else {}
     for trait, freq in final_freqs.items():
         print(f"{trait}: {freq:.3f}")
 
@@ -3527,26 +3333,14 @@ def main() -> Dict[str, Any]:
         },
         "genome_data": genome_data,
         "final_statistics": {
-            "best_fitness": (
-                float(history["best_fitness"][-1])
-                if history.get("best_fitness")
-                else 0.0
-            ),
-            "mean_fitness": (
-                float(history["mean_fitness"][-1])
-                if history.get("mean_fitness")
-                else 0.0
-            ),
-            "final_diversity": (
-                float(history["diversity"][-1]) if history.get("diversity") else 0.0
-            ),
+            "best_fitness": (float(history["best_fitness"][-1]) if history.get("best_fitness") else 0.0),
+            "mean_fitness": (float(history["mean_fitness"][-1]) if history.get("mean_fitness") else 0.0),
+            "final_diversity": (float(history["diversity"][-1]) if history.get("diversity") else 0.0),
             "final_frequencies": final_freqs,
         },
         "selection_coefficients": sel_coeffs,
         "fixation_generations": fixation_gens,
-        "emergence_order": {
-            k: int(v) if v != float("inf") else -1 for k, v in emergence_order.items()
-        },
+        "emergence_order": {k: int(v) if v != float("inf") else -1 for k, v in emergence_order.items()},
         "falsification": falsification_report,
     }
 
@@ -3577,16 +3371,10 @@ def main() -> Dict[str, Any]:
     print("\nEnsemble Simulation Summary:")
     print(f"  - Seeds run: {ensemble_results['n_seeds']}")
     print("  - Genome data exported: genome_data.json")
-    print(
-        f"  - Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A'):.3f}"
-    )
-    print(
-        f"  - Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A'):.3f}"
-    )
+    print(f"  - Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A'):.3f}")
+    print(f"  - Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A'):.3f}")
     print(f"  - All phenotypes valid: {phenotype_validation['all_valid']}")
-    print(
-        f"  - Convergence early-stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}"
-    )
+    print(f"  - Convergence early-stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}")
     print("=" * 80)
 
     # =========================================================================
@@ -3655,9 +3443,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     np.random.seed(APGI_GLOBAL_SEED)
 
     try:
-        print(
-            "Running APGI Validation Protocol 5: Computational Falsification Framework"
-        )
+        print("Running APGI Validation Protocol 5: Computational Falsification Framework")
         results = main()
 
         # Map F5 criteria to V5 series for aggregator
@@ -3665,9 +3451,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
         named_predictions = {
             "V5.1": {
                 "passed": falsification.get("F5.1", {}).get("passed", False),
-                "actual": falsification.get("F5.1", {}).get(
-                    "proportion_threshold_agents"
-                ),
+                "actual": falsification.get("F5.1", {}).get("proportion_threshold_agents"),
                 "threshold": ">=75% (0.60 gate)",
             },
             "V5.2": {
@@ -3719,11 +3503,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -3921,11 +3701,7 @@ def check_falsification(
     logger.info("Testing V5.1: Algorithmic Falsification")
     test_pass_rate = test_cases_passed / total_test_cases if total_test_cases > 0 else 0
 
-    v5_1_pass = (
-        max_absolute_error <= 1e-5
-        and max_relative_error <= 1e-6
-        and test_pass_rate == 1.0
-    )
+    v5_1_pass = max_absolute_error <= 1e-5 and max_relative_error <= 1e-6 and test_pass_rate == 1.0
     results["criteria"]["V5.1"] = {
         "passed": v5_1_pass,
         "max_absolute_error": max_absolute_error,
@@ -3946,11 +3722,7 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
-    )
+    f3_3_pass = threshold_reduction >= 0.15 and cohens_d_threshold >= 0.50 and p_threshold < 0.01
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
@@ -3970,10 +3742,7 @@ def check_falsification(
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -3994,11 +3763,7 @@ def check_falsification(
 
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
+    f5_2_pass = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
     results["criteria"]["F5.2"] = {
         "passed": f5_2_pass,
         "proportion_precision_agents": proportion_precision_agents,
@@ -4042,11 +3807,7 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
+    f5_4_pass = proportion_multiscale_agents >= 0.45 and peak_separation_ratio >= 2.0 and binomial_p_f5_4 < 0.01
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "proportion_multiscale_agents": proportion_multiscale_agents,
@@ -4083,11 +3844,7 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
-    )
+    f5_6_pass = performance_difference >= 0.25 and cohen_d_performance >= 0.55 and ttest_p_f5_6 < 0.01
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
@@ -4149,12 +3906,8 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    f6_1_pass = (
-        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
-    )
+    f6_1_pass = ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    status, power, underpowered = check_power_and_apply_gating("F6.1", f6_1_pass, cliffs_delta, 80, 0.01)
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "status": status,
@@ -4173,9 +3926,7 @@ def check_falsification(
         increment_summary("passed")
     else:
         increment_summary("failed")
-    logger.info(
-        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
-    )
+    logger.info(f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}")
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
@@ -4185,14 +3936,8 @@ def check_falsification(
         and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
-    integration_ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
-    )
+    integration_ratio = ltcn_integration_window / rnn_integration_window if rnn_integration_window > 0 else 0
+    status, power, underpowered = check_power_and_apply_gating("F6.2", f6_2_pass, integration_ratio, 80, 0.01)
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "status": status,
@@ -4239,9 +3984,7 @@ class APGIValidationProtocol5:
 
         # Fix 1: Map analytical scores to F5 criteria explicitly
         # Component Emergence → F5.1+F5.2, Fitness Advantage → F5.3, Metabolic Efficiency → F5.6
-        analytical_verification = criteria_results.get(
-            "v5_1_analytical_verification", {}
-        )
+        analytical_verification = criteria_results.get("v5_1_analytical_verification", {})
         total_test_cases = analytical_verification.get("total_test_cases", 0)
 
         # Calculate individual F5 component scores
@@ -4260,8 +4003,7 @@ class APGIValidationProtocol5:
                 sum(
                     1
                     for test in analytical_verification.get("test_results", [])
-                    if test.get("passed", False)
-                    and test.get("test_name", "") in emergence_tests
+                    if test.get("passed", False) and test.get("test_name", "") in emergence_tests
                 )
                 / 3
             )
@@ -4272,8 +4014,7 @@ class APGIValidationProtocol5:
                 sum(
                     1
                     for test in analytical_verification.get("test_results", [])
-                    if test.get("passed", False)
-                    and test.get("test_name", "") in fitness_tests
+                    if test.get("passed", False) and test.get("test_name", "") in fitness_tests
                 )
                 / 1
             )
@@ -4287,8 +4028,7 @@ class APGIValidationProtocol5:
                 sum(
                     1
                     for test in analytical_verification.get("test_results", [])
-                    if test.get("passed", False)
-                    and test.get("test_name", "") in metabolic_tests
+                    if test.get("passed", False) and test.get("test_name", "") in metabolic_tests
                 )
                 / 2
             )
@@ -4370,12 +4110,8 @@ class MultiModalIntegrationValidator:
             Dictionary with validation results
         """
         # Normalize data to z-scores
-        extero_z = (exteroceptive_data - np.mean(exteroceptive_data)) / (
-            np.std(exteroceptive_data) + 1e-8
-        )
-        intero_z = (interoceptive_data - np.mean(interoceptive_data)) / (
-            np.std(interoceptive_data) + 1e-8
-        )
+        extero_z = (exteroceptive_data - np.mean(exteroceptive_data)) / (np.std(exteroceptive_data) + 1e-8)
+        intero_z = (interoceptive_data - np.mean(interoceptive_data)) / (np.std(interoceptive_data) + 1e-8)
 
         # Check that interoceptive signals receive higher weighting during salience
         intero_weighted = np.mean(apgi_weights * np.abs(intero_z))
@@ -4448,9 +4184,7 @@ class CrossModalFalsificationChecker:
         intero_error = np.mean(np.abs(interoceptive_predictions - actual_outcomes))
 
         # Test 3: Cross-modal integration error (combined predictions should be better)
-        combined_predictions = (
-            exteroceptive_predictions + interoceptive_predictions
-        ) / 2
+        combined_predictions = (exteroceptive_predictions + interoceptive_predictions) / 2
         combined_error = np.mean(np.abs(combined_predictions - actual_outcomes))
 
         # APGI should weight streams optimally
@@ -4472,9 +4206,7 @@ class CrossModalFalsificationChecker:
                 "interoceptive_error": float(intero_error),
                 "combined_error": float(combined_error),
                 "integration_improvement": float(apgi_improvement),
-                "cross_modal_weighting": (
-                    "active" if apgi_improvement > 0 else "inactive"
-                ),
+                "cross_modal_weighting": ("active" if apgi_improvement > 0 else "inactive"),
             },
         }
 

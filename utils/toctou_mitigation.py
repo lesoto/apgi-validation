@@ -165,9 +165,7 @@ class SecureFileOperations:
                         content = f.read()
                     return content
                 else:
-                    self.logger.warning(
-                        f"File not accessible after acquiring lock: {file_path}"
-                    )
+                    self.logger.warning(f"File not accessible after acquiring lock: {file_path}")
                     return None
             else:
                 self.logger.warning(f"Could not acquire lock for reading: {file_path}")
@@ -232,9 +230,7 @@ class SecureFileOperations:
                     self.logger.debug(f"Safely deleted: {file_path}")
                     return True
                 else:
-                    self.logger.warning(
-                        f"File not found after acquiring lock: {file_path}"
-                    )
+                    self.logger.warning(f"File not found after acquiring lock: {file_path}")
                     return False
             else:
                 self.logger.warning(f"Could not acquire lock for deletion: {file_path}")
@@ -425,9 +421,7 @@ class SecureFileOperations:
                     self.logger.debug(f"Safely renamed: {src_path} -> {dst_path}")
                     return True
                 else:
-                    self.logger.warning(
-                        f"Rename preconditions failed: {src_path} -> {dst_path}"
-                    )
+                    self.logger.warning(f"Rename preconditions failed: {src_path} -> {dst_path}")
                     return False
             else:
                 return False
@@ -435,9 +429,7 @@ class SecureFileOperations:
             lock2.release()
             lock1.release()
 
-    def concurrent_safe_operation(
-        self, file_path: str, operation: str, **kwargs
-    ) -> Any:
+    def concurrent_safe_operation(self, file_path: str, operation: str, **kwargs) -> Any:
         """
         Perform concurrent-safe file operation.
 
@@ -447,7 +439,6 @@ class SecureFileOperations:
             **kwargs: Additional arguments for the operation
 
         Returns:
-            Operation result, or None if operation failed
         """
         from typing import Callable, Dict
 

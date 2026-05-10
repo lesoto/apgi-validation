@@ -110,9 +110,7 @@ def find_existing_outputs(root_dir: Path) -> Dict[str, List[Path]]:
     return outputs
 
 
-def check_protocol_outputs(
-    protocol_num: int, outputs: Dict[str, List[Path]]
-) -> Dict[str, bool]:
+def check_protocol_outputs(protocol_num: int, outputs: Dict[str, List[Path]]) -> Dict[str, bool]:
     """Check if a specific protocol has all expected outputs."""
     expected = EXPECTED_OUTPUTS.get(protocol_num, {})
 
@@ -167,9 +165,7 @@ def generate_report(outputs: Dict[str, List[Path]]) -> str:
         if all_ok:
             complete_count += 1
 
-        lines.append(
-            f"| FP_{i:02d} | {png_mark} | {json_mark} | {csv_mark} | {status_str} |"
-        )
+        lines.append(f"| FP_{i:02d} | {png_mark} | {json_mark} | {csv_mark} | {status_str} |")
 
     lines.append("")
     lines.append(f"**Overall: {complete_count}/12 protocols complete**")
@@ -193,9 +189,7 @@ def generate_report(outputs: Dict[str, List[Path]]) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Verify APGI protocol outputs")
-    parser.add_argument(
-        "--report", action="store_true", help="Generate markdown report"
-    )
+    parser.add_argument("--report", action="store_true", help="Generate markdown report")
     parser.add_argument(
         "--output",
         default="protocol_output_verification_report.md",
@@ -209,9 +203,7 @@ def main():
     outputs = find_existing_outputs(root)
 
     # Print summary
-    print(
-        f"Found {len(outputs['png'])} PNG, {len(outputs['json'])} JSON, {len(outputs['csv'])} CSV files"
-    )
+    print(f"Found {len(outputs['png'])} PNG, {len(outputs['json'])} JSON, {len(outputs['csv'])} CSV files")
     print()
 
     # Check each protocol
@@ -283,9 +275,7 @@ class OutputVerifier:
         """Initialize verifier."""
         pass
 
-    def verify(
-        self, filepath: Path, schema: Optional[Dict] = None
-    ) -> VerificationResult:
+    def verify(self, filepath: Path, schema: Optional[Dict] = None) -> VerificationResult:
         """Verify an output file."""
         errors: List[str] = []
         warnings: List[str] = []
@@ -293,19 +283,13 @@ class OutputVerifier:
 
         if not filepath.exists():
             errors.append(f"File does not exist: {filepath}")
-            return VerificationResult(
-                valid=False, errors=errors, warnings=warnings, details=details
-            )
+            return VerificationResult(valid=False, errors=errors, warnings=warnings, details=details)
 
         try:
             with open(filepath, "r") as f:
                 content = f.read()
                 data = json.loads(content)
-                details["checked"] = (
-                    len(data)
-                    if isinstance(data, dict)
-                    else len(data) if isinstance(data, list) else 1
-                )
+                details["checked"] = len(data) if isinstance(data, dict) else len(data) if isinstance(data, list) else 1
 
             if schema and isinstance(data, dict):
                 # Basic schema validation
@@ -318,9 +302,7 @@ class OutputVerifier:
         except Exception as e:
             errors.append(f"Error reading file: {e}")
 
-        return VerificationResult(
-            valid=len(errors) == 0, errors=errors, warnings=warnings, details=details
-        )
+        return VerificationResult(valid=len(errors) == 0, errors=errors, warnings=warnings, details=details)
 
 
 def verify_protocol_output(filepath: Path) -> VerificationResult:
@@ -329,9 +311,7 @@ def verify_protocol_output(filepath: Path) -> VerificationResult:
     return verifier.verify(filepath)
 
 
-def check_output_structure(
-    data: Dict[str, Any], required_fields: List[str]
-) -> Dict[str, Any]:
+def check_output_structure(data: Dict[str, Any], required_fields: List[str]) -> Dict[str, Any]:
     """Check that data has required structure."""
     result: Dict[str, Any] = {"valid": True, "missing_fields": [], "extra_fields": []}
 
@@ -357,9 +337,7 @@ def validate_output_files(files: List[Path]) -> Dict[str, Any]:
     return result
 
 
-def compare_protocol_outputs(
-    output1: Dict[str, Any], output2: Dict[str, Any]
-) -> Dict[str, Any]:
+def compare_protocol_outputs(output1: Dict[str, Any], output2: Dict[str, Any]) -> Dict[str, Any]:
     """Compare two protocol outputs."""
     result: Dict[str, Any] = {
         "identical": output1 == output2,

@@ -23,11 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 APGI_CORE_AVAILABLE = False
 
 try:
-    from apgi_core.equations import (CoreIgnitionSystem,
-                                     DynamicalSystemEquations,
-                                     FoundationalEquations)
-    from Theory.APGI_Parameter_Estimation import (build_apgi_model,
-                                                  generate_synthetic_dataset)
+    from apgi_core.equations import CoreIgnitionSystem, DynamicalSystemEquations, FoundationalEquations
+    from Theory.APGI_Parameter_Estimation import build_apgi_model, generate_synthetic_dataset
     from utils.data_validation import DataValidator
 
     APGI_CORE_AVAILABLE = True
@@ -66,10 +63,7 @@ class TestPerformanceBenchmarks:
         """Test performance of ignition system calculations."""
         # Benchmark ignition probability calculation
         n_iterations = 1000
-        params_list = [
-            {"Pi_e": 2.0, "Pi_i": 1.5, "alpha": 5.0, "z_i": 0.8}
-            for _ in range(n_iterations)
-        ]
+        params_list = [{"Pi_e": 2.0, "Pi_i": 1.5, "alpha": 5.0, "z_i": 0.8} for _ in range(n_iterations)]
 
         start_time = time.time()
         for params in params_list:
@@ -81,9 +75,7 @@ class TestPerformanceBenchmarks:
                 eps_i=params["z_i"],
             )
             # Then compute ignition probability
-            CoreIgnitionSystem.ignition_probability(
-                S=S, theta=1.0, alpha=params["alpha"]
-            )
+            CoreIgnitionSystem.ignition_probability(S=S, theta=1.0, alpha=params["alpha"])
         end_time = time.time()
 
         ignition_time = end_time - start_time
@@ -131,9 +123,7 @@ class TestPerformanceBenchmarks:
 
         for n_subjects in data_sizes:
             start_time = time.time()
-            synthetic_data, true_params = generate_synthetic_dataset(
-                n_subjects=n_subjects, n_sessions=1, seed=42
-            )
+            synthetic_data, true_params = generate_synthetic_dataset(n_subjects=n_subjects, n_sessions=1, seed=42)
             end_time = time.time()
 
             generation_time = end_time - start_time
@@ -143,9 +133,7 @@ class TestPerformanceBenchmarks:
             assert generation_time < 30.0  # Should complete within 30 seconds
 
         # Verify scalability
-        assert (
-            performance_results[10] < performance_results[15] * 3
-        )  # 15 subjects shouldn't take 3x longer than 10
+        assert performance_results[10] < performance_results[15] * 3  # 15 subjects shouldn't take 3x longer than 10
 
     @pytest.mark.skipif(
         not APGI_CORE_AVAILABLE or np is None,
@@ -162,9 +150,7 @@ class TestPerformanceBenchmarks:
             n_samples = 100
             df = pd.DataFrame(
                 {
-                    "timestamp": pd.date_range(
-                        "2024-01-01", periods=n_samples, freq="1s"
-                    ),
+                    "timestamp": pd.date_range("2024-01-01", periods=n_samples, freq="1s"),
                     "EEG_Cz": np.random.randn(n_samples),
                     "pupil_diameter": np.random.uniform(2, 8, n_samples),
                     "eda": np.random.uniform(0.5, 5, n_samples),
@@ -191,9 +177,7 @@ class TestPerformanceBenchmarks:
 
         for n_subjects in data_sizes:
             # Scale the dataframe size
-            scaled_df = pd.concat(
-                [df] * (n_subjects // 10 + 1), ignore_index=True
-            ).head(n_subjects * 10)
+            scaled_df = pd.concat([df] * (n_subjects // 10 + 1), ignore_index=True).head(n_subjects * 10)
 
             start_time = time.time()
             validation_result = validator.validate_data_quality(scaled_df)
@@ -207,9 +191,7 @@ class TestPerformanceBenchmarks:
             assert validation_result["quality_score"] > 0  # Quality score should exist
 
         # Verify scalability
-        assert (
-            performance_results[5] < performance_results[10] * 2
-        )  # 10 subjects shouldn't take 2x longer than 5
+        assert performance_results[5] < performance_results[10] * 2  # 10 subjects shouldn't take 2x longer than 5
 
     @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="APGI modules not available")
     def test_model_building_performance(self):
@@ -221,9 +203,7 @@ class TestPerformanceBenchmarks:
 
         for n_subjects in data_sizes:
             # Generate test data
-            synthetic_data, _ = generate_synthetic_dataset(
-                n_subjects=n_subjects, n_sessions=1, seed=42
-            )
+            synthetic_data, _ = generate_synthetic_dataset(n_subjects=n_subjects, n_sessions=1, seed=42)
 
             start_time = time.time()
             try:
@@ -236,9 +216,7 @@ class TestPerformanceBenchmarks:
             performance_results[n_subjects] = model_time
 
             # Should complete in reasonable time or fail gracefully
-            assert (
-                model_time < 30.0
-            )  # Should complete within 30 seconds or fail quickly
+            assert model_time < 30.0  # Should complete within 30 seconds or fail quickly
 
         # Verify that model building was attempted (may not succeed due to data format)
         # Note: build_apgi_model expects specific data structure that synthetic data may not have
@@ -259,9 +237,7 @@ class TestScalabilityBenchmarks:
         for n_subjects in data_sizes:
             # Generate synthetic data
             start_time = time.time()
-            synthetic_data, true_params = generate_synthetic_dataset(
-                n_subjects=n_subjects, n_sessions=1, seed=42
-            )
+            synthetic_data, true_params = generate_synthetic_dataset(n_subjects=n_subjects, n_sessions=1, seed=42)
             generation_time = time.time() - start_time
 
             # Measure memory usage
@@ -319,9 +295,7 @@ class TestScalabilityBenchmarks:
                 scaling_factor = curr_time / prev_size
                 expected_factor = curr_size / prev_size
                 # Allow some variance in scaling
-                assert (
-                    scaling_factor < expected_factor * 1.5
-                )  # Shouldn't be more than 1.5x expected
+                assert scaling_factor < expected_factor * 1.5  # Shouldn't be more than 1.5x expected
 
 
 class TestMemoryBenchmarks:
@@ -357,9 +331,7 @@ class TestMemoryBenchmarks:
         # Verify reasonable memory usage
         for size, memory_mb in memory_usage.items():
             assert memory_mb < 1000  # Should be less than 1GB
-            assert (
-                memory_mb >= 0
-            )  # Should be non-negative (may be 0 due to garbage collection)
+            assert memory_mb >= 0  # Should be non-negative (may be 0 due to garbage collection)
 
     def test_memory_efficiency(self):
         """Test memory efficiency of data structures."""
@@ -551,9 +523,7 @@ class TestThroughputBenchmarks:
                 scaling_factor = curr_throughput / prev_throughput
                 expected_factor = curr_size / prev_size
                 # Allow some variance in scaling
-                assert (
-                    scaling_factor < expected_factor * 2.0
-                )  # Shouldn't be more than 2x expected
+                assert scaling_factor < expected_factor * 2.0  # Shouldn't be more than 2x expected
 
     @pytest.mark.skipif(not APGI_CORE_AVAILABLE, reason="APGI modules not available")
     def test_data_processing_throughput(self):
@@ -572,9 +542,7 @@ class TestThroughputBenchmarks:
             n_samples = n_subjects * 10
             df = pd.DataFrame(
                 {
-                    "timestamp": pd.date_range(
-                        "2024-01-01", periods=n_samples, freq="1s"
-                    ),
+                    "timestamp": pd.date_range("2024-01-01", periods=n_samples, freq="1s"),
                     "EEG_Cz": np.random.randn(n_samples),
                     "pupil_diameter": np.random.uniform(2, 8, n_samples),
                     "eda": np.random.uniform(0.5, 5, n_samples),

@@ -54,9 +54,7 @@ class AnalyticalAPGISolutions:
     """Analytical solutions for core APGI equations"""
 
     @staticmethod
-    def effective_interoceptive_precision(
-        Pi_i_baseline: float, beta: float, M: float
-    ) -> float:
+    def effective_interoceptive_precision(Pi_i_baseline: float, beta: float, M: float) -> float:
         """
         Compute effective interoceptive precision:
 
@@ -132,9 +130,7 @@ class AnalyticalAPGISolutions:
         Returns:
             Time to ignition t* (seconds), or inf if no ignition
         """
-        S_star = AnalyticalAPGISolutions.steady_state_surprise(
-            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-        )
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
 
         # Check if ignition is possible
         if S_star <= theta:
@@ -166,9 +162,7 @@ class AnalyticalAPGISolutions:
         return 1.0 / (1.0 + np.exp(-alpha * (S_t - theta)))
 
     @staticmethod
-    def threshold_adaptation(
-        theta_t: float, eta: float, C_metabolic: float, V_information: float
-    ) -> float:
+    def threshold_adaptation(theta_t: float, eta: float, C_metabolic: float, V_information: float) -> float:
         """
         Compute threshold adaptation:
 
@@ -211,9 +205,7 @@ class AnalyticalAPGISolutions:
         Returns:
             Tuple of (critical_surprise, critical_threshold)
         """
-        S_star = AnalyticalAPGISolutions.steady_state_surprise(
-            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-        )
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
 
         # Critical point is at 0.5 * S_star (midpoint to steady state)
         critical_surprise = 0.5 * S_star
@@ -297,13 +289,17 @@ class AlgorithmicVerificationEngine:
 
         # Analytical solution
         S_star_analytical = AnalyticalAPGISolutions.steady_state_surprise(
-            params.Pi_e, params.eps_e, Pi_i_eff, params.eps_i, params.tau_S, params.beta
+            params.Pi_e,
+            params.eps_e,
+            Pi_i_eff,
+            params.eps_i,
+            params.tau_S,
+            params.beta,
         )
 
-        # Numerical implementation (ODE-based: dS/dt = -S/τ_S + Π^e|ε^e| + β·Π^i|ε^i|)
-        input_rate = params.Pi_e * abs(params.eps_e) + params.beta * Pi_i_eff * abs(
-            params.eps_i
-        )
+        # Numerical implementation (ODE-based)
+        # dS/dt = -S/τ_S + Π^e|ε^e| + β·Π^i|ε^i|
+        input_rate = params.Pi_e * abs(params.eps_e) + params.beta * Pi_i_eff * abs(params.eps_i)
         S_star_numerical = params.tau_S * input_rate
 
         # Compute error
@@ -324,9 +320,7 @@ class AlgorithmicVerificationEngine:
         self.results["steady_state_surprise"] = result
         return result
 
-    def verify_ignition_time(
-        self, params: APGIParameters, S_0: float = 0.0
-    ) -> Dict[str, Any]:
+    def verify_ignition_time(self, params: APGIParameters, S_0: float = 0.0) -> Dict[str, Any]:
         """
         Verify ignition time equation.
 
@@ -363,11 +357,7 @@ class AlgorithmicVerificationEngine:
                 break
 
             # Accumulate surprise
-            dS = (
-                0.5 * params.Pi_e * (params.eps_e**2)
-                + 0.5 * Pi_i_eff * (params.eps_i**2)
-                - S_t / params.tau_S
-            ) * dt
+            dS = (0.5 * params.Pi_e * (params.eps_e**2) + 0.5 * Pi_i_eff * (params.eps_i**2) - S_t / params.tau_S) * dt
 
             S_t += dS
             t_numerical += dt
@@ -393,9 +383,7 @@ class AlgorithmicVerificationEngine:
         self.results["ignition_time"] = result
         return result
 
-    def verify_ignition_probability(
-        self, params: APGIParameters, S_t: float = 1.0
-    ) -> Dict[str, Any]:
+    def verify_ignition_probability(self, params: APGIParameters, S_t: float = 1.0) -> Dict[str, Any]:
         """
         Verify ignition probability equation.
 
@@ -407,14 +395,10 @@ class AlgorithmicVerificationEngine:
             Dictionary with verification results
         """
         # Analytical solution
-        p_ignition_analytical = AnalyticalAPGISolutions.ignition_probability(
-            S_t, params.theta_0, params.alpha
-        )
+        p_ignition_analytical = AnalyticalAPGISolutions.ignition_probability(S_t, params.theta_0, params.alpha)
 
         # Numerical implementation
-        p_ignition_numerical = 1.0 / (
-            1.0 + np.exp(-params.alpha * (S_t - params.theta_0))
-        )
+        p_ignition_numerical = 1.0 / (1.0 + np.exp(-params.alpha * (S_t - params.theta_0)))
 
         # Compute error
         error = abs(p_ignition_analytical - p_ignition_numerical)
@@ -434,9 +418,7 @@ class AlgorithmicVerificationEngine:
         self.results["ignition_probability"] = result
         return result
 
-    def verify_threshold_adaptation(
-        self, params: APGIParameters, n_steps: int = 10
-    ) -> Dict[str, Any]:
+    def verify_threshold_adaptation(self, params: APGIParameters, n_steps: int = 10) -> Dict[str, Any]:
         """
         Verify threshold adaptation equation.
 
@@ -450,9 +432,7 @@ class AlgorithmicVerificationEngine:
         max_error = 0.0
 
         for step in range(n_steps):
-            theta_analytical = params.theta_0 + step * params.eta * (
-                params.C_metabolic - params.V_information
-            )
+            theta_analytical = params.theta_0 + step * params.eta * (params.C_metabolic - params.V_information)
 
             # Numerical implementation (iterative)
             theta_numerical = params.theta_0
@@ -481,9 +461,7 @@ class AlgorithmicVerificationEngine:
         self.results["threshold_adaptation"] = result
         return result
 
-    def verify_phase_transition_boundary(
-        self, params: APGIParameters
-    ) -> Dict[str, Any]:
+    def verify_phase_transition_boundary(self, params: APGIParameters) -> Dict[str, Any]:
         """
         Verify phase transition boundary calculation.
 
@@ -519,9 +497,7 @@ class AlgorithmicVerificationEngine:
 
         # Compute errors
         error_surprise = abs(critical_surprise_analytical - critical_surprise_numerical)
-        error_threshold = abs(
-            critical_threshold_analytical - critical_threshold_numerical
-        )
+        error_threshold = abs(critical_threshold_analytical - critical_threshold_numerical)
         max_error = max(error_surprise, error_threshold)
 
         passed = max_error <= self.tolerance
@@ -575,9 +551,7 @@ class AlgorithmicVerificationEngine:
             result_set["tests"].append(self.verify_ignition_time(test_params))
             result_set["tests"].append(self.verify_ignition_probability(test_params))
             result_set["tests"].append(self.verify_threshold_adaptation(test_params))
-            result_set["tests"].append(
-                self.verify_phase_transition_boundary(test_params)
-            )
+            result_set["tests"].append(self.verify_phase_transition_boundary(test_params))
 
             # Check if all tests passed
             set_passed = all(test["passed"] for test in result_set["tests"])
@@ -593,21 +567,15 @@ class AlgorithmicVerificationEngine:
             "test_results": test_results,
             "summary": {
                 "total_tests": len(test_results) * 6,
-                "passed": sum(
-                    1 for r in test_results for t in r["tests"] if t["passed"]
-                ),
-                "failed": sum(
-                    1 for r in test_results for t in r["tests"] if not t["passed"]
-                ),
+                "passed": sum(1 for r in test_results for t in r["tests"] if t["passed"]),
+                "failed": sum(1 for r in test_results for t in r["tests"] if not t["passed"]),
             },
         }
 
         return overall_result
 
 
-def verify_apgi_equations(
-    tolerance: float = 1e-6, n_test_sets: int = 10
-) -> Dict[str, Any]:
+def verify_apgi_equations(tolerance: float = 1e-6, n_test_sets: int = 10) -> Dict[str, Any]:
     """
     Convenience function to verify APGI equations with multiple test cases.
 

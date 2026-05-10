@@ -27,8 +27,7 @@ class TestFalsificationPackageImports:
 
     def test_falsification_package_import(self):
         """Test Falsification package imports"""
-        from Falsification import (Protocol_1, Protocol_2, Protocol_3,
-                                   Protocol_4, Protocol_5, Protocol_6)
+        from Falsification import Protocol_1, Protocol_2, Protocol_3, Protocol_4, Protocol_5, Protocol_6
 
         # All protocols should be importable (may be None if load fails)
         protocols = [
@@ -49,10 +48,14 @@ class TestFalsificationPackageImports:
 
     def test_falsification_exports(self):
         """Test Falsification module exports"""
-        from Falsification import (APGIInspiredNetwork, EvolvableAgent,
-                                   HierarchicalGenerativeModel,
-                                   IowaGamblingTaskEnvironment,
-                                   StandardPPAgent_P3, SurpriseIgnitionSystem)
+        from Falsification import (
+            APGIInspiredNetwork,
+            EvolvableAgent,
+            HierarchicalGenerativeModel,
+            IowaGamblingTaskEnvironment,
+            StandardPPAgent_P3,
+            SurpriseIgnitionSystem,
+        )
 
         # These may be None if protocols fail to load, but they should exist
         # Using all imports to satisfy linter
@@ -149,8 +152,7 @@ class TestFP07MathematicalConsistency:
     def test_fp07_import(self):
         """Test FP_07 module import"""
         try:
-            from Falsification.FP_07_MathematicalConsistency import \
-                MathematicalConsistencyChecker
+            from Falsification.FP_07_MathematicalConsistency import MathematicalConsistencyChecker
 
             assert MathematicalConsistencyChecker is not None
         except ImportError:
@@ -163,8 +165,7 @@ class TestFP08ParameterSensitivity:
     def test_fp08_import(self):
         """Test FP_08 module import"""
         try:
-            from Falsification.FP_08_ParameterSensitivity_Identifiability import \
-                ParameterSensitivityAnalyzer
+            from Falsification.FP_08_ParameterSensitivity_Identifiability import ParameterSensitivityAnalyzer
 
             assert ParameterSensitivityAnalyzer is not None
         except ImportError:
@@ -177,8 +178,7 @@ class TestFP09NeuralSignatures:
     def test_fp09_import(self):
         """Test FP_09 module import"""
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import \
-                NeuralSignatureValidator
+            from Falsification.FP_09_NeuralSignatures_P3b_HEP import NeuralSignatureValidator
 
             assert NeuralSignatureValidator is not None
         except ImportError:
@@ -191,8 +191,7 @@ class TestFP10BayesianEstimation:
     def test_fp10_import(self):
         """Test FP_10 module import"""
         try:
-            from Falsification.FP_10_BayesianEstimation_MCMC import \
-                BayesianParameterRecovery
+            from Falsification.FP_10_BayesianEstimation_MCMC import BayesianParameterRecovery
 
             assert BayesianParameterRecovery is not None
         except ImportError:
@@ -205,8 +204,7 @@ class TestFP11LiquidNetwork:
     def test_fp11_import(self):
         """Test FP_11 module import"""
         try:
-            from Falsification.FP_11_LiquidNetworkDynamics_EchoState import \
-                LiquidNetworkDynamicsAnalyzer
+            from Falsification.FP_11_LiquidNetworkDynamics_EchoState import LiquidNetworkDynamicsAnalyzer
 
             assert LiquidNetworkDynamicsAnalyzer is not None
         except ImportError:
@@ -219,8 +217,7 @@ class TestFP12CrossSpecies:
     def test_fp12_import(self):
         """Test FP_12 module import"""
         try:
-            from Falsification.FP_12_CrossSpeciesScaling import \
-                CrossSpeciesScalingAnalyzer
+            from Falsification.FP_12_CrossSpeciesScaling import CrossSpeciesScalingAnalyzer
 
             assert CrossSpeciesScalingAnalyzer is not None
         except ImportError:

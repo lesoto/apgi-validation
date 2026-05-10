@@ -197,7 +197,6 @@ class TestAPGIModelMissingCoverage:
         input_val = 2.5
         result = model.step(input_val)
 
-        assert isinstance(result, dict)
         assert "S" in result
         assert "theta" in result
         assert "M" in result

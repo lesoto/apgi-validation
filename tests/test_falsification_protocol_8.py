@@ -20,11 +20,7 @@ import numpy as np
 import pytest
 
 # Import the protocol to test
-from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-    EEGData,
-    FalsificationThresholds,
-    NeuralSignatureValidator,
-)
+from Falsification.FP_09_NeuralSignatures_P3b_HEP import EEGData, FalsificationThresholds, NeuralSignatureValidator
 
 
 class TestNeuralSignaturesEEGProtocol8:
@@ -86,33 +82,23 @@ class TestNeuralSignaturesEEGProtocol8:
         assert eeg.fs == sampling_rate
         assert eeg.data.shape == (n_channels, n_samples)
 
-    def test_falsification_thresholds_creation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_falsification_thresholds_creation(self, sample_protocol_data, mock_validation_framework):
         """Test falsification thresholds creation."""
         # FalsificationThresholds appears to be a dataclass without required init params
         # Test using the class structure
         thresholds = FalsificationThresholds()
 
         # Test thresholds has expected attributes
-        assert hasattr(thresholds, "__dataclass_fields__") or hasattr(
-            thresholds, "__dict__"
-        )
+        assert hasattr(thresholds, "__dataclass_fields__") or hasattr(thresholds, "__dict__")
 
-    def test_neural_signature_validator(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_neural_signature_validator(self, sample_protocol_data, mock_validation_framework):
         """Test neural signature validator."""
         validator = NeuralSignatureValidator()
 
         # Test validator has required methods (run_validation or run_full_experiment)
-        assert hasattr(validator, "run_validation") or hasattr(
-            validator, "run_full_experiment"
-        )
+        assert hasattr(validator, "run_validation") or hasattr(validator, "run_full_experiment")
 
-    def test_prediction_accuracy_validation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_prediction_accuracy_validation(self, sample_protocol_data, mock_validation_framework):
         """Test prediction accuracy validation."""
         validator = NeuralSignatureValidator()
 
@@ -137,9 +123,7 @@ class TestNeuralSignaturesEEGProtocol8:
         assert eeg2.data.shape == (64, 1000)
         assert len(eeg2.channels) == 2  # Mismatched but stored
 
-    def test_performance_benchmarks(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_performance_benchmarks(self, sample_protocol_data, mock_validation_framework):
         """Test performance benchmarks."""
         validator = NeuralSignatureValidator()
 
@@ -151,9 +135,7 @@ class TestNeuralSignaturesEEGProtocol8:
         # Should complete quickly
         assert True
 
-    def test_integration_compatibility(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_integration_compatibility(self, sample_protocol_data, mock_validation_framework):
         """Test integration compatibility with other protocols."""
         validator = NeuralSignatureValidator()
 

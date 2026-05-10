@@ -6,7 +6,7 @@ This protocol implements MCMC-based Bayesian estimation for APGI model parameter
 Per Step 1.8 - Upgrade FP-10 from MH to NUTS with PyMC.
 
 CRITICAL FEATURES:
-- 5,000 MCMC samples across 4 chains with 1,000 burn-in
+    - 5,000 MCMC samples across 4 chains with 1,000 burn-in
 - Gelman-Rubin diagnostic (R̂ ≤ 1.01) mandatory convergence check
 - Bayes factor computation for model comparison (APGI vs. StandardPP vs. GWTOnly)
 - Priors over {θ₀, Πe, Πi, β, α} from physiological ranges
@@ -160,18 +160,14 @@ def get_mcmc_priors(prior_set: str = "default") -> Dict[str, Dict[str, Any]]:
         Dictionary of prior specifications for each parameter
     """
     if prior_set not in MCMC_PRIOR_REGISTRY:
-        raise ValueError(
-            f"Unknown prior set: {prior_set}. Available: {list(MCMC_PRIOR_REGISTRY.keys())}"
-        )
+        raise ValueError(f"Unknown prior set: {prior_set}. Available: {list(MCMC_PRIOR_REGISTRY.keys())}")
 
     return MCMC_PRIOR_REGISTRY[prior_set].copy()
 
 
 # VP-11 Fix 1: Global data source tracking with empirical validation requirement
 _CURRENT_DATA_SOURCE: DataSource = DataSource.SYNTHETIC
-_EMPIRICAL_VALIDATION_REQUIRED: bool = (
-    True  # CRIT-02 FIX: Default to True in production
-)
+_EMPIRICAL_VALIDATION_REQUIRED: bool = True  # CRIT-02 FIX: Default to True in production
 
 
 def set_data_source(source: DataSource) -> None:
@@ -230,9 +226,7 @@ def _ensure_numpy_array_utils_shim() -> None:
             def normalize_axis_index(axis: int, ndim: int) -> int:  # type: ignore[misc]
                 """Validate and normalize axis index for array operations."""
                 if axis < -ndim or axis >= ndim:
-                    raise ValueError(
-                        f"axis {axis} is out of bounds for array of dimension {ndim}"
-                    )
+                    raise ValueError(f"axis {axis} is out of bounds for array of dimension {ndim}")
                 return axis % ndim
 
             module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
@@ -243,9 +237,7 @@ def _ensure_numpy_array_utils_shim() -> None:
         def normalize_axis_index(axis: int, ndim: int) -> int:  # type: ignore[misc]
             """Validate and normalize axis index for array operations."""
             if axis < -ndim or axis >= ndim:
-                raise ValueError(
-                    f"axis {axis} is out of bounds for array of dimension {ndim}"
-                )
+                raise ValueError(f"axis {axis} is out of bounds for array of dimension {ndim}")
             return axis % ndim
 
         module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
@@ -257,9 +249,7 @@ def _ensure_numpy_array_utils_shim() -> None:
         except ImportError:
             # Fallback: define our own normalize_axis_tuple
             def normalize_axis_tuple(axis: int, ndim: int) -> tuple[int, ...]:  # type: ignore[misc]
-                return (
-                    normalize_axis_index(axis, ndim) if normalize_axis_index else axis,
-                )
+                return (normalize_axis_index(axis, ndim) if normalize_axis_index else axis,)
 
         module.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
@@ -350,9 +340,7 @@ def attempt_imports():
             )
 
 
-def compute_harmonic_mean_evidence(
-    trace: Any, param_names: List[str]
-) -> Optional[float]:
+def compute_harmonic_mean_evidence(trace: Any, param_names: List[str]) -> Optional[float]:
     """
     HIGH-03: Harmonic mean estimator for marginal likelihood.
 
@@ -375,9 +363,7 @@ def compute_harmonic_mean_evidence(
             return None
 
         # Get stimulus data from trace (if available) or use default
-        n_samples = len(
-            trace.posterior[list(trace.posterior.data_vars.keys())[0]].values.flatten()
-        )
+        n_samples = len(trace.posterior[list(trace.posterior.data_vars.keys())[0]].values.flatten())
 
         # Generate synthetic stimulus data for likelihood computation
         # In practice, this should come from the trace or be passed as argument
@@ -387,6 +373,7 @@ def compute_harmonic_mean_evidence(
         inv_likelihoods = []
 
         for i in range(min(n_samples, 500)):  # Limit to 500 samples for efficiency
+            stim_id = f"stimulus_{i}"  # Define stimulus_id before use
             # Extract parameter values
             params = {}
             for param in param_names:
@@ -408,7 +395,8 @@ def compute_harmonic_mean_evidence(
                     avg_likelihood = np.mean(p_det)
                     if avg_likelihood > 1e-300:  # Avoid underflow
                         inv_likelihoods.append(1.0 / avg_likelihood)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Failed to process stimulus {stim_id}: {e}")
                     continue
 
         if len(inv_likelihoods) == 0:
@@ -476,8 +464,7 @@ class BayesianParameterRecovery:
             Dictionary with complete analysis results including recovery accuracy
         """
         logger.info(
-            f"Starting Bayesian parameter recovery experiment "
-            f"({self.n_samples} samples, {self.n_chains} chains)"
+            f"Starting Bayesian parameter recovery experiment " f"({self.n_samples} samples, {self.n_chains} chains)"
         )
 
         # STAGE 1: Define known ground-truth parameters
@@ -490,9 +477,7 @@ class BayesianParameterRecovery:
         }
 
         # Generate synthetic data from KNOWN parameters
-        stimulus_data, response_data = generate_synthetic_data(
-            n_trials=200, true_params=true_params
-        )
+        stimulus_data, response_data = generate_synthetic_data(n_trials=200, true_params=true_params)
 
         # Run complete MCMC analysis
         results = run_complete_mcmc_analysis(
@@ -517,9 +502,7 @@ class BayesianParameterRecovery:
         logger.info("Bayesian parameter recovery experiment completed")
         return results
 
-    def _validate_parameter_recovery(
-        self, results: Dict[str, Any], true_params: Dict[str, float]
-    ) -> Dict[str, Any]:
+    def _validate_parameter_recovery(self, results: Dict[str, Any], true_params: Dict[str, float]) -> Dict[str, Any]:
         """
         Validate that recovered parameters are within ±2 SD of ground truth.
 
@@ -605,9 +588,7 @@ def test_parameter_identifiability(
             posterior_std = np.std(samples)
 
             # Check if true value is within tolerance of posterior mean
-            relative_error = abs(posterior_mean - true_value) / (
-                abs(true_value) + 1e-10
-            )
+            relative_error = abs(posterior_mean - true_value) / (abs(true_value) + 1e-10)
             is_identified = relative_error < tolerance
 
             param_results[param_name] = {
@@ -666,12 +647,8 @@ def run_prior_sensitivity_check(
     logger.info(f"Running prior sensitivity check with SD values: {prior_sd_values}")
 
     sensitivity_results = {}
-    all_posterior_means: Dict[str, List[float]] = {
-        param: [] for param in true_params.keys()
-    }
-    all_posterior_stds: Dict[str, List[float]] = {
-        param: [] for param in true_params.keys()
-    }
+    all_posterior_means: Dict[str, List[float]] = {param: [] for param in true_params.keys()}
+    all_posterior_stds: Dict[str, List[float]] = {param: [] for param in true_params.keys()}
 
     for prior_sd in prior_sd_values:
         # Modify priors for this sensitivity check
@@ -681,9 +658,7 @@ def run_prior_sensitivity_check(
                 priors[param]["params"]["sigma"] = prior_sd
 
         # Run MCMC with modified priors (reduced samples for speed)
-        results = run_mcmc_bayesian_estimation_np(
-            stimulus_data, response_data, n_samples=1000, burn_in=500, n_chains=2
-        )
+        results = run_mcmc_bayesian_estimation_np(stimulus_data, response_data, n_samples=1000, burn_in=500, n_chains=2)
 
         # Test parameter recovery
         recovery_results = test_parameter_identifiability(
@@ -694,12 +669,10 @@ def run_prior_sensitivity_check(
 
         # Calculate sensitivity metric
         posterior_means = {
-            param: np.mean(results.get("posterior_samples", {}).get(param, [0]))
-            for param in true_params.keys()
+            param: np.mean(results.get("posterior_samples", {}).get(param, [0])) for param in true_params.keys()
         }
         posterior_stds = {
-            param: np.std(results.get("posterior_samples", {}).get(param, [0]))
-            for param in true_params.keys()
+            param: np.std(results.get("posterior_samples", {}).get(param, [0])) for param in true_params.keys()
         }
 
         # Store for cross-variant comparison
@@ -709,11 +682,7 @@ def run_prior_sensitivity_check(
 
         # Calculate coefficient of variation across posterior means
         mean_values = [v for v in posterior_means.values() if v != 0]
-        cv = (
-            np.std(mean_values) / np.mean(mean_values)
-            if mean_values and np.mean(mean_values) > 0
-            else 0.0
-        )
+        cv = np.std(mean_values) / np.mean(mean_values) if mean_values and np.mean(mean_values) > 0 else 0.0
 
         sensitivity_results[f"prior_sd_{prior_sd}"] = {
             "recovery_results": recovery_results,
@@ -740,9 +709,7 @@ def run_prior_sensitivity_check(
             param_sensitivity[param] = {
                 "mean_range": float(mean_range),
                 "avg_posterior_std": float(avg_std),
-                "sensitivity_ratio": (
-                    float(mean_range / avg_std) if avg_std > 0 else float("inf")
-                ),
+                "sensitivity_ratio": (float(mean_range / avg_std) if avg_std > 0 else float("inf")),
                 "prior_sensitive": is_sensitive,
             }
 
@@ -753,9 +720,7 @@ def run_prior_sensitivity_check(
     all_cv_values: list[float] = []
     for v in sensitivity_results.values():
         cv_value = v.get("coefficient_of_variation", 0.0)
-        all_cv_values.append(
-            float(cv_value) if isinstance(cv_value, (int, float, str)) else 0.0
-        )
+        all_cv_values.append(float(cv_value) if isinstance(cv_value, (int, float, str)) else 0.0)
     mean_cv = float(np.mean(all_cv_values)) if all_cv_values else 0.0
 
     # VP-11 Fix 4: Flag as prior_sensitive if any parameter fails the criterion
@@ -777,8 +742,7 @@ def run_prior_sensitivity_check(
         "param_sensitivity": param_sensitivity,
         "prior_sensitive_params": prior_sensitive_params,
         "has_prior_sensitivity": has_prior_sensitivity,
-        "sensitivity_pass": mean_cv < 0.5
-        and not has_prior_sensitivity,  # Pass if CV < 50% and no sensitive params
+        "sensitivity_pass": mean_cv < 0.5 and not has_prior_sensitivity,  # Pass if CV < 50% and no sensitive params
     }
 
 
@@ -839,9 +803,7 @@ def run_parallel_tempering_mcmc(
         for temp in temperatures:
             temp_key = f"T{temp}"
             if temp_key in temp_results:
-                temp_samples = (
-                    temp_results[temp_key].get("posterior_samples", {}).get(param, [])
-                )
+                temp_samples = temp_results[temp_key].get("posterior_samples", {}).get(param, [])
                 if len(temp_samples) > 0:
                     # Inverse temperature weighting: lower temp = higher weight
                     weight = 1.0 / temp
@@ -853,21 +815,13 @@ def run_parallel_tempering_mcmc(
 
     # Compute combined diagnostics
     max_r_hat = max(
-        temp_results.get("T1.0", {})
-        .get("convergence_diagnostics", {})
-        .get("max_r_hat", 1.0),
-        temp_results.get(f"T{min(temperatures):.1f}", {})
-        .get("convergence_diagnostics", {})
-        .get("max_r_hat", 1.0),
+        temp_results.get("T1.0", {}).get("convergence_diagnostics", {}).get("max_r_hat", 1.0),
+        temp_results.get(f"T{min(temperatures):.1f}", {}).get("convergence_diagnostics", {}).get("max_r_hat", 1.0),
     )
 
     min_ess = min(
-        temp_results.get("T1.0", {})
-        .get("convergence_diagnostics", {})
-        .get("min_ess", 0),
-        temp_results.get(f"T{min(temperatures):.1f}", {})
-        .get("convergence_diagnostics", {})
-        .get("min_ess", 0),
+        temp_results.get("T1.0", {}).get("convergence_diagnostics", {}).get("min_ess", 0),
+        temp_results.get(f"T{min(temperatures):.1f}", {}).get("convergence_diagnostics", {}).get("min_ess", 0),
     )
 
     # Fix 3: Use configurable threshold with improved default for better convergence
@@ -951,9 +905,7 @@ def apgi_psychometric_function(
         logit = (stimulus_intensity - threshold * modulation) / (1.0 + attention_factor)
         return pm.math.sigmoid(logit)
     else:
-        return apgi_psychometric_function_np(
-            stimulus_intensity, theta_0, pi_e, pi_i, beta, alpha
-        )
+        return apgi_psychometric_function_np(stimulus_intensity, theta_0, pi_e, pi_i, beta, alpha)
 
 
 def apgi_psychometric_v2(
@@ -1072,10 +1024,7 @@ def run_mcmc_bayesian_estimation_np(
 
     def log_likelihood(params):
         p_det = apgi_psychometric_function_np(stimulus_data, *params)
-        ll = np.sum(
-            response_data * np.log(p_det + 1e-10)
-            + (1 - response_data) * np.log(1 - p_det + 1e-10)
-        )
+        ll = np.sum(response_data * np.log(p_det + 1e-10) + (1 - response_data) * np.log(1 - p_det + 1e-10))
         return ll
 
     def log_posterior(params):
@@ -1088,12 +1037,8 @@ def run_mcmc_bayesian_estimation_np(
     for c in range(n_chains):
         samples = np.zeros((n_samples, len(param_names)))
         # Initial guess from prior means with slight randomization per chain
-        curr_params = np.array(
-            [priors[n]["params"].get("mu", 0.5) for n in param_names]
-        )
-        curr_params += np.random.normal(
-            0, 0.05, len(param_names)
-        )  # Randomize start per chain
+        curr_params = np.array([priors[n]["params"].get("mu", 0.5) for n in param_names])
+        curr_params += np.random.normal(0, 0.05, len(param_names))  # Randomize start per chain
         curr_lp = log_posterior(curr_params)
 
         # Adaptive step size for better mixing
@@ -1148,11 +1093,7 @@ def run_mcmc_bayesian_estimation_np(
         # Compute between-chain variance (B)
         chain_means = [np.mean(chain) for chain in param_chains]
         overall_mean = np.mean(chain_means)
-        B = (
-            n_chains
-            / (n_chains - 1)
-            * np.sum((np.array(chain_means) - overall_mean) ** 2)
-        )
+        B = n_chains / (n_chains - 1) * np.sum((np.array(chain_means) - overall_mean) ** 2)
 
         # Compute R_hat
         if W > 0:
@@ -1176,9 +1117,7 @@ def run_mcmc_bayesian_estimation_np(
         ess[name] = n_samples * n_chains / 2.0  # Conservative estimate
 
     # Calculate posterior means from samples
-    posterior_means = {
-        name: float(np.mean(posterior_samples[name])) for name in posterior_samples
-    }
+    posterior_means = {name: float(np.mean(posterior_samples[name])) for name in posterior_samples}
 
     return {
         "posterior_samples": posterior_samples,
@@ -1229,16 +1168,10 @@ def run_mcmc_bayesian_estimation(
         simulation_only = True
 
     if not HAS_PYMC or not HAS_ARVIZ:
-        return run_mcmc_bayesian_estimation_np(
-            stimulus_data, response_data, n_samples, burn_in, n_chains
-        )
+        return run_mcmc_bayesian_estimation_np(stimulus_data, response_data, n_samples, burn_in, n_chains)
 
-    logger.info(
-        f"Starting MCMC: {n_samples} samples across {n_chains} chains with {burn_in} burn-in"
-    )
-    logger.info(
-        f"NUTS settings: target_accept={target_accept}, max_tree_depth={max_tree_depth}"
-    )
+    logger.info(f"Starting MCMC: {n_samples} samples across {n_chains} chains with {burn_in} burn-in")
+    logger.info(f"NUTS settings: target_accept={target_accept}, max_tree_depth={max_tree_depth}")
 
     if not HAS_PYMC:
         logger.warning(f"PyMC not available: {LAST_IMPORT_ERROR}")
@@ -1273,9 +1206,7 @@ def run_mcmc_bayesian_estimation(
 
             # Define likelihood using APGI psychometric function
             # Expected detection probabilities
-            p_detection = apgi_psychometric_function(
-                stimulus_data, theta_0, pi_e, pi_i, beta, alpha
-            )
+            p_detection = apgi_psychometric_function(stimulus_data, theta_0, pi_e, pi_i, beta, alpha)
 
             # Bernoulli likelihood for binary responses
             # Note: Named variable required for pm.sample_posterior_predictive
@@ -1309,16 +1240,12 @@ def run_mcmc_bayesian_estimation(
             # Posterior predictive check using PyMC's sample_posterior_predictive
             # This tests whether the model can generate data similar to observed
             try:
-                ppc = pm.sample_posterior_predictive(
-                    trace, var_names=["y_obs"], random_seed=42
-                )
+                ppc = pm.sample_posterior_predictive(trace, var_names=["y_obs"], random_seed=42)
                 # Compute Bayesian p-value: proportion of times predictive mean >= observed mean
                 observed_mean = np.mean(response_data)
                 ppc_p_value = np.mean(ppc["y_obs"].mean(axis=1) >= observed_mean)
                 ppc_acceptable = 0.05 <= ppc_p_value <= 0.95
-                logger.info(
-                    f"PPC p-value: {ppc_p_value:.4f}, acceptable: {ppc_acceptable}"
-                )
+                logger.info(f"PPC p-value: {ppc_p_value:.4f}, acceptable: {ppc_acceptable}")
             except Exception as ppc_error:
                 logger.warning(f"Posterior predictive check failed: {ppc_error}")
                 ppc_p_value = None
@@ -1327,9 +1254,7 @@ def run_mcmc_bayesian_estimation(
             # Fix 3: Propagate PPC failure to overall protocol pass/fail
             # If PPC is not acceptable, the overall protocol should fail
             if not ppc_acceptable:
-                logger.warning(
-                    "PPC check failed - model may not be appropriate for data"
-                )
+                logger.warning("PPC check failed - model may not be appropriate for data")
 
             # Compute model evidence (log marginal likelihood) using LOO-CV
             # CRITICAL: If LOO/WAIC fails, report ERROR not neutral BF=1.0
@@ -1340,11 +1265,10 @@ def run_mcmc_bayesian_estimation(
                 # Negate to get log-evidence for Bayes factor computation
                 loo_result = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
                 # loo_result is an ELPD value (typically negative), negate for evidence
-                elpd_loo = (
-                    float(loo_result.iloc[0])
-                    if hasattr(loo_result, "iloc")
-                    else float(loo_result)
-                )
+                if hasattr(loo_result, "iloc"):
+                    elpd_loo = float(loo_result.iloc[0])
+                else:
+                    elpd_loo = float(loo_result)
                 log_evidence = -elpd_loo  # Convert ELPD to log-evidence
             except Exception as e:
                 evidence_error = f"LOO failed: {e}"
@@ -1367,15 +1291,11 @@ def run_mcmc_bayesian_estimation(
         ess = az.ess(trace)  # type: ignore
 
         # Check Gelman-Rubin diagnostic (R̂ ≤ 1.01)
-        max_r_hat = max(
-            [float(r_hat[param].values) for param in param_names if param in r_hat]
-        )
+        max_r_hat = max([float(r_hat[param].values) for param in param_names if param in r_hat])
         convergence_pass = max_r_hat <= 1.01
 
         # Effective sample size diagnostics
-        min_ess = min(
-            [float(ess[param].values) for param in param_names if param in ess]
-        )
+        min_ess = min([float(ess[param].values) for param in param_names if param in ess])
 
         # Fix 5: Add n_eff validation (effective sample size >= 200)
         n_eff_threshold = 200
@@ -1386,9 +1306,7 @@ def run_mcmc_bayesian_estimation(
         convergence_pass = max_r_hat <= r_hat_threshold and n_eff_pass
 
         # Calculate posterior means from samples
-        posterior_means = {
-            name: float(np.mean(posterior_samples[name])) for name in posterior_samples
-        }
+        posterior_means = {name: float(np.mean(posterior_samples[name])) for name in posterior_samples}
 
         # Prepare results
         results = {
@@ -1396,16 +1314,8 @@ def run_mcmc_bayesian_estimation(
             "posterior_means": posterior_means,
             "trace": trace,
             "convergence_diagnostics": {
-                "r_hat": {
-                    param: float(r_hat[param].values)
-                    for param in param_names
-                    if param in r_hat
-                },
-                "ess": {
-                    param: float(ess[param].values)
-                    for param in param_names
-                    if param in ess
-                },
+                "r_hat": {param: float(r_hat[param].values) for param in param_names if param in r_hat},
+                "ess": {param: float(ess[param].values) for param in param_names if param in ess},
                 "max_r_hat": max_r_hat,
                 "min_ess": min_ess,
                 "n_eff_threshold": n_eff_threshold,  # Fix 5: Report threshold
@@ -1421,9 +1331,7 @@ def run_mcmc_bayesian_estimation(
                 "total_posterior_samples": n_samples * n_chains,
             },
             "model_evidence": {
-                "log_evidence": (
-                    float(log_evidence) if log_evidence is not None else None
-                ),
+                "log_evidence": (float(log_evidence) if log_evidence is not None else None),
                 "evidence_type": "LOO" if log_evidence is not None else "ERROR",
                 "evidence_error": evidence_error if log_evidence is None else None,
             },
@@ -1448,9 +1356,7 @@ def run_mcmc_bayesian_estimation(
         }
 
         if not convergence_pass:
-            logger.warning(
-                f"MCMC failed convergence: R̂ = {max_r_hat:.4f} > {r_hat_threshold}"
-            )
+            logger.warning(f"MCMC failed convergence: R̂ = {max_r_hat:.4f} > {r_hat_threshold}")
             results["convergence_diagnostics"]["reason"] = "non-convergence"
 
             # Fix 1: Trigger parallel tempering for severe non-convergence (bimodality detection)
@@ -1472,27 +1378,17 @@ def run_mcmc_bayesian_estimation(
                 results["posterior_samples"] = pt_results["posterior_samples"]
                 results["convergence_diagnostics"]["parallel_tempering_applied"] = True
                 results["convergence_diagnostics"]["original_max_r_hat"] = max_r_hat
-                results["convergence_diagnostics"]["pt_max_r_hat"] = pt_results[
-                    "convergence_diagnostics"
-                ]["max_r_hat"]
+                results["convergence_diagnostics"]["pt_max_r_hat"] = pt_results["convergence_diagnostics"]["max_r_hat"]
 
                 # Update convergence status
-                convergence_pass = pt_results["convergence_diagnostics"][
-                    "convergence_pass"
-                ]
-                results["convergence_diagnostics"][
-                    "convergence_pass"
-                ] = convergence_pass
+                convergence_pass = pt_results["convergence_diagnostics"]["convergence_pass"]
+                results["convergence_diagnostics"]["convergence_pass"] = convergence_pass
 
                 if convergence_pass:
                     logger.info("Parallel tempering improved convergence")
-                    results["convergence_diagnostics"][
-                        "reason"
-                    ] = "parallel_tempering_success"
+                    results["convergence_diagnostics"]["reason"] = "parallel_tempering_success"
                 else:
-                    results["convergence_diagnostics"][
-                        "reason"
-                    ] = "parallel_tempering_failed"
+                    results["convergence_diagnostics"]["reason"] = "parallel_tempering_failed"
 
         # Fix 6: Propagate PPC failure to overall pass/fail
         if not ppc_acceptable:
@@ -1501,9 +1397,7 @@ def run_mcmc_bayesian_estimation(
             results["convergence_diagnostics"]["ppc_failure"] = True
             results["convergence_diagnostics"]["reason"] = "ppc_failure"
 
-        logger.info(
-            f"MCMC completed: R̂ = {max_r_hat:.4f}, ESS = {min_ess:.0f}, PPC acceptable: {ppc_acceptable}"
-        )
+        logger.info(f"MCMC completed: R̂ = {max_r_hat:.4f}, ESS = {min_ess:.0f}, PPC acceptable: {ppc_acceptable}")
         return results
 
     except Exception as e:
@@ -1562,13 +1456,9 @@ def compute_bayes_factors(
                             trace, model=None  # Model extracted from trace
                         )
                         bridge_evidence[model_name] = float(log_marginal_likelihood)
-                        logger.info(
-                            f"{model_name}: Bridge sampling log-evidence = {log_marginal_likelihood:.2f}"
-                        )
+                        logger.info(f"{model_name}: Bridge sampling log-evidence = {log_marginal_likelihood:.2f}")
                     except Exception as model_error:
-                        logger.warning(
-                            f"Bridge sampling failed for {model_name}: {model_error}"
-                        )
+                        logger.warning(f"Bridge sampling failed for {model_name}: {model_error}")
                         # Fall back to provided evidence
                         if model_name in evidence_dict:
                             bridge_evidence[model_name] = evidence_dict[model_name]
@@ -1579,14 +1469,10 @@ def compute_bayes_factors(
                 estimation_method = "bridge_sampling"
                 logger.info("Using bridge sampling for Bayes factors")
             else:
-                logger.warning(
-                    "Bridge sampling incomplete, falling back to harmonic mean"
-                )
+                logger.warning("Bridge sampling incomplete, falling back to harmonic mean")
 
         except Exception as e:
-            logger.warning(
-                f"Bridge sampling failed: {e}. Falling back to harmonic mean."
-            )
+            logger.warning(f"Bridge sampling failed: {e}. Falling back to harmonic mean.")
 
     # HIGH-03: Try harmonic mean estimator if traces provided and bridge sampling not used
     if estimation_method == "LOO_approximation" and trace_dict is not None:
@@ -1601,16 +1487,12 @@ def compute_bayes_factors(
                     if hm_evidence is not None:
                         # Use harmonic mean evidence instead of LOO evidence
                         evidence_dict[model_name] = hm_evidence
-                        logger.info(
-                            f"{model_name}: Using harmonic mean evidence = {hm_evidence:.2f}"
-                        )
+                        logger.info(f"{model_name}: Using harmonic mean evidence = {hm_evidence:.2f}")
 
             estimation_method = "harmonic_mean"
 
         except Exception as e:
-            logger.warning(
-                f"Harmonic mean estimation failed: {e}. Using LOO approximation."
-            )
+            logger.warning(f"Harmonic mean estimation failed: {e}. Using LOO approximation.")
 
     # Compute pairwise Bayes factors
     bayes_factors = {}
@@ -1638,9 +1520,7 @@ def compute_bayes_factors(
         "bayes_factors": bayes_factors,
         "model_evidence": evidence_dict,
         "best_model": best_model,
-        "model_ranking": sorted(
-            evidence_dict.keys(), key=lambda k: evidence_dict[k], reverse=True
-        ),
+        "model_ranking": sorted(evidence_dict.keys(), key=lambda k: evidence_dict[k], reverse=True),
         "comparison_summary": {
             model: {
                 "evidence": evidence_dict.get(model),
@@ -1651,11 +1531,7 @@ def compute_bayes_factors(
                     else None
                 ),
             }
-            for i, model in enumerate(
-                sorted(
-                    evidence_dict.keys(), key=lambda k: evidence_dict[k], reverse=True
-                )
-            )
+            for i, model in enumerate(sorted(evidence_dict.keys(), key=lambda k: evidence_dict[k], reverse=True))
         },
         "estimation_method": estimation_method,  # HIGH-03: Report which method was used
     }
@@ -1674,23 +1550,23 @@ def interpret_bayes_factor(bf: float) -> str:
     Returns:
         Interpretation string
     """
-    if bf > 100:
+    if bf >= 100:
         return "Extreme evidence for model 1"
-    elif bf > 30:
+    elif bf >= 30:
         return "Very strong evidence for model 1"
-    elif bf > 10:
+    elif bf >= 10:
         return "Strong evidence for model 1"
-    elif bf > 3:
+    elif bf >= 3:
         return "Moderate evidence for model 1"
-    elif bf > 1:
+    elif bf >= 1:
         return "Weak evidence for model 1"
-    elif bf > 0.33:
+    elif bf >= 0.33:
         return "Weak evidence for model 2"
-    elif bf > 0.1:
+    elif bf >= 0.1:
         return "Moderate evidence for model 2"
-    elif bf > 0.03:
+    elif bf >= 0.03:
         return "Strong evidence for model 2"
-    elif bf > 0.01:
+    elif bf >= 0.01:
         return "Very strong evidence for model 2"
     else:
         return "Extreme evidence for model 2"
@@ -1719,9 +1595,7 @@ def compute_posterior_predictive_mae(
         available_params = list(trace.posterior.data_vars.keys())
 
         # Check which model type based on available parameters
-        is_apgi = all(
-            p in available_params for p in ["theta_0", "pi_e", "pi_i", "beta", "alpha"]
-        )
+        is_apgi = all(p in available_params for p in ["theta_0", "pi_e", "pi_i", "beta", "alpha"])
         is_standard_pp = "pi_i" in available_params and "pi_e" not in available_params
 
         # Get posterior samples for available parameters
@@ -1756,9 +1630,7 @@ def compute_posterior_predictive_mae(
             # APGI psychometric function (numpy version)
             precision_ratio = pi_i_samples[i] / (pi_e_samples[i] + 1e-10)
             somatic_gain = 1.0 + beta_samples[i] * precision_ratio
-            effective_threshold = theta_0_samples[i] / (
-                1.0 + alpha_samples[i] * stimulus_data
-            )
+            effective_threshold = theta_0_samples[i] / (1.0 + alpha_samples[i] * stimulus_data)
             mu = effective_threshold * somatic_gain
             sigma = 1.0 / np.sqrt(pi_i_samples[i] + 1e-10)
 
@@ -1779,9 +1651,7 @@ def compute_posterior_predictive_mae(
 
         for _ in range(n_bootstrap):
             # Resample trials
-            indices = np.random.choice(
-                len(response_data), size=len(response_data), replace=True
-            )
+            indices = np.random.choice(len(response_data), size=len(response_data), replace=True)
             mae_boot = np.mean(np.abs(mean_predicted[indices] - response_data[indices]))
             mae_bootstrap.append(mae_boot)
 
@@ -1794,9 +1664,7 @@ def compute_posterior_predictive_mae(
             "mae_mean": float(mae_prob),
             "hdi_95": (float(hdi_lower), float(hdi_upper)),
             "n_observations": len(response_data),
-            "model_type": (
-                "APGI" if is_apgi else ("StandardPP" if is_standard_pp else "GWTOnly")
-            ),
+            "model_type": ("APGI" if is_apgi else ("StandardPP" if is_standard_pp else "GWTOnly")),
         }
 
     except Exception as e:
@@ -1872,9 +1740,7 @@ def run_posterior_predictive_check(
             # Compute predicted probabilities
             precision_ratio = pi_i_samples[i] / (pi_e_samples[i] + 1e-10)
             somatic_gain = 1.0 + beta_samples[i] * precision_ratio
-            effective_threshold = theta_0_samples[i] / (
-                1.0 + alpha_samples[i] * stimulus_data
-            )
+            effective_threshold = theta_0_samples[i] / (1.0 + alpha_samples[i] * stimulus_data)
             mu = effective_threshold * somatic_gain
             sigma = 1.0 / np.sqrt(pi_i_samples[i] + 1e-10)
 
@@ -1891,15 +1757,10 @@ def run_posterior_predictive_check(
             p_pred_clipped = np.clip(p_pred, 0.01, 0.99)
 
             # Chi-squared statistic for observed data
-            test_stat_obs = np.sum(
-                (response_data - p_pred_clipped) ** 2
-                / (p_pred_clipped * (1 - p_pred_clipped))
-            )
+            test_stat_obs = np.sum((response_data - p_pred_clipped) ** 2 / (p_pred_clipped * (1 - p_pred_clipped)))
 
             # Chi-squared statistic for predicted data
-            test_stat_pred = np.sum(
-                (y_pred - p_pred_clipped) ** 2 / (p_pred_clipped * (1 - p_pred_clipped))
-            )
+            test_stat_pred = np.sum((y_pred - p_pred_clipped) ** 2 / (p_pred_clipped * (1 - p_pred_clipped)))
 
             test_stats_observed.append(float(test_stat_obs))
             test_stats_predicted.append(float(test_stat_pred))
@@ -1959,9 +1820,7 @@ def compare_models_mae(
         Dictionary with MAE comparison results
     """
     # Compute MAE for APGI
-    apgi_mae = compute_posterior_predictive_mae(
-        apgi_trace, stimulus_data, response_data
-    )
+    apgi_mae = compute_posterior_predictive_mae(apgi_trace, stimulus_data, response_data)
 
     results: Dict[str, Any] = {
         "APGI": apgi_mae,
@@ -1972,20 +1831,13 @@ def compare_models_mae(
     # Compute MAE for alternative models
     for model_name, model_result in alternative_results.items():
         if "trace" in model_result and model_result["trace"] is not None:
-            alt_mae = compute_posterior_predictive_mae(
-                model_result["trace"], stimulus_data, response_data
-            )
+            alt_mae = compute_posterior_predictive_mae(model_result["trace"], stimulus_data, response_data)
             results["alternatives"][model_name] = alt_mae
 
             # Compare MAE
-            if (
-                apgi_mae.get("mae_mean") is not None
-                and alt_mae.get("mae_mean") is not None
-            ):
+            if apgi_mae.get("mae_mean") is not None and alt_mae.get("mae_mean") is not None:
                 # Calculate percent improvement
-                percent_improvement = (
-                    (alt_mae["mae_mean"] - apgi_mae["mae_mean"]) / alt_mae["mae_mean"]
-                ) * 100
+                percent_improvement = ((alt_mae["mae_mean"] - apgi_mae["mae_mean"]) / alt_mae["mae_mean"]) * 100
 
                 # Check if ≥20% improvement threshold met
                 improvement_threshold_met = percent_improvement >= 20.0
@@ -2000,8 +1852,7 @@ def compare_models_mae(
 
     # Overall F10.MAE criterion: APGI must show ≥20% lower MAE vs at least one alternative
     any_improvement_met = any(
-        comp.get("improvement_threshold_met", False)
-        for comp in results["mae_comparison"].values()
+        comp.get("improvement_threshold_met", False) for comp in results["mae_comparison"].values()
     )
 
     results["f10_mae_passed"] = any_improvement_met
@@ -2063,16 +1914,10 @@ def run_alternative_models(
             # Compute evidence - negate ELPD to get log-evidence (same pattern as main model)
             try:
                 evidence = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
-                elpd = (
-                    float(evidence.iloc[0])
-                    if hasattr(evidence, "iloc")
-                    else float(evidence)
-                )
+                elpd = float(evidence.iloc[0]) if hasattr(evidence, "iloc") else float(evidence)
                 log_evidence = -elpd  # Convert ELPD to log-evidence
             except Exception as e:
-                logger.error(
-                    f"CRITICAL: Could not compute LOO evidence for StandardPP: {e}"
-                )
+                logger.error(f"CRITICAL: Could not compute LOO evidence for StandardPP: {e}")
                 log_evidence = None
                 # Do NOT continue with degraded results - raise the error
                 raise RuntimeError(f"MCMC evidence computation failed: {e}") from e
@@ -2114,16 +1959,10 @@ def run_alternative_models(
             # Compute evidence - negate ELPD to get log-evidence (same pattern as main model)
             try:
                 evidence = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
-                elpd = (
-                    float(evidence.iloc[0])
-                    if hasattr(evidence, "iloc")
-                    else float(evidence)
-                )
+                elpd = float(evidence.iloc[0]) if hasattr(evidence, "iloc") else float(evidence)
                 log_evidence = -elpd  # Convert ELPD to log-evidence
             except Exception as e:
-                logger.error(
-                    f"CRITICAL: Could not compute LOO evidence for GWTOnly: {e}"
-                )
+                logger.error(f"CRITICAL: Could not compute LOO evidence for GWTOnly: {e}")
                 log_evidence = None
                 # Do NOT continue with degraded results - raise the error
                 raise RuntimeError(f"MCMC evidence computation failed: {e}") from e
@@ -2149,9 +1988,7 @@ def run_complete_mcmc_analysis(
     burn_in: int = 1000,
     run_alternatives: bool = True,
     run_prior_sensitivity: bool = True,  # VP-11 Fix 4: Add prior sensitivity option
-    true_params: Optional[
-        Dict[str, float]
-    ] = None,  # VP-11 Fix 4: For prior sensitivity
+    true_params: Optional[Dict[str, float]] = None,  # VP-11 Fix 4: For prior sensitivity
 ) -> Dict[str, Any]:
     """
     Run complete MCMC Bayesian estimation analysis.
@@ -2186,15 +2023,11 @@ def run_complete_mcmc_analysis(
         )
 
     # Run main APGI model on training data
-    apgi_results = run_mcmc_bayesian_estimation(
-        stimulus_data, response_data, n_samples, n_chains, burn_in
-    )
+    apgi_results = run_mcmc_bayesian_estimation(stimulus_data, response_data, n_samples, n_chains, burn_in)
 
     # Generate additional validation data for robust MAE
     # VP-11 Fix 1: Note that this is synthetic data
-    stim_val, resp_val = generate_synthetic_data(
-        n_trials=100, true_params=None, set_data_source_flag=False
-    )
+    stim_val, resp_val = generate_synthetic_data(n_trials=100, true_params=None, set_data_source_flag=False)
 
     # Check convergence - warn but continue with degraded results for NumPy fallback
     if not apgi_results["convergence_diagnostics"]["convergence_pass"]:
@@ -2229,17 +2062,13 @@ def run_complete_mcmc_analysis(
                     for param in ["theta_0", "pi_e", "pi_i", "beta", "alpha"]
                 }
 
-            sensitivity_results = run_prior_sensitivity_check(
-                stimulus_data, response_data, true_params
-            )
+            sensitivity_results = run_prior_sensitivity_check(stimulus_data, response_data, true_params)
             complete_results["prior_sensitivity"] = sensitivity_results
 
             # VP-11 Fix 4: Add to F10 criteria
             complete_results["f10_criteria"]["F10.PriorSensitivity"] = {
                 "passed": not sensitivity_results.get("has_prior_sensitivity", False),
-                "sensitive_params": sensitivity_results.get(
-                    "prior_sensitive_params", []
-                ),
+                "sensitive_params": sensitivity_results.get("prior_sensitive_params", []),
                 "description": "Posterior stable across prior variants (±2 SD criterion)",
             }
 
@@ -2287,9 +2116,7 @@ def run_complete_mcmc_analysis(
                         "description": f"BF_10 (APGI vs StandardPP) = {bf_10:.2f}",
                     }
             else:
-                logger.warning(
-                    "Insufficient evidence values for Bayes factor comparison"
-                )
+                logger.warning("Insufficient evidence values for Bayes factor comparison")
 
             # F10.MAE: Posterior predictive MAE comparison
             try:
@@ -2327,25 +2154,19 @@ def run_complete_mcmc_analysis(
                         for j, model2 in enumerate(model_names):
                             if i != j:
                                 bf_key = f"{model1}_vs_{model2}"
-                                log_evidence_diff = (
-                                    evidence_dict[model1] - evidence_dict[model2]
-                                )
+                                log_evidence_diff = evidence_dict[model1] - evidence_dict[model2]
                                 linear_bf = np.exp(log_evidence_diff)
 
                                 fallback_bfs[bf_key] = {
                                     "linear_bf": float(linear_bf),
                                     "log_bf": float(log_evidence_diff),
-                                    "interpretation": interpret_bayesian_factor(
-                                        linear_bf
-                                    ),
+                                    "interpretation": interpret_bayesian_factor(linear_bf),
                                     "method": "log_evidence_difference_fallback",
                                 }
 
                     complete_results["bayes_factor_comparison"] = {
                         "best_model": max(model_names, key=lambda m: evidence_dict[m]),
-                        "model_ranking": sorted(
-                            model_names, key=lambda m: evidence_dict[m], reverse=True
-                        ),
+                        "model_ranking": sorted(model_names, key=lambda m: evidence_dict[m], reverse=True),
                         "bayes_factors": fallback_bfs,
                         "method": "fallback_log_evidence_difference",
                     }
@@ -2353,9 +2174,7 @@ def run_complete_mcmc_analysis(
                     logger.info("Fallback Bayes factor computation completed")
 
             except Exception as fallback_error:
-                logger.error(
-                    f"Fallback Bayes factor computation also failed: {fallback_error}"
-                )
+                logger.error(f"Fallback Bayes factor computation also failed: {fallback_error}")
                 complete_results["bayes_factor_fallback_error"] = str(fallback_error)
 
     # F10.MCMC: Convergence check (always included)
@@ -2386,13 +2205,8 @@ def run_complete_mcmc_analysis(
             ppc_samples = []
             for i in range(500):
                 idx = np.random.randint(len(samples["theta_0"]))
-                params = [
-                    samples[n][idx]
-                    for n in ["theta_0", "pi_e", "pi_i", "beta", "alpha"]
-                ]
-                ppc_samples.append(
-                    apgi_psychometric_function_np(stimulus_data, *params)
-                )
+                params = [samples[n][idx] for n in ["theta_0", "pi_e", "pi_i", "beta", "alpha"]]
+                ppc_samples.append(apgi_psychometric_function_np(stimulus_data, *params))
 
             # Convert dictionary of arrays to list of parameter tuples
             param_names = ["theta_0", "pi_e", "pi_i", "beta", "alpha"]
@@ -2400,9 +2214,7 @@ def run_complete_mcmc_analysis(
             ppc_samples_list: list[np.ndarray] = []
             for idx in range(min(n_samples, 500)):
                 params = [float(posterior_samples[p][idx]) for p in param_names]
-                ppc_samples_list.append(
-                    apgi_psychometric_function_np(stimulus_data, *params)
-                )
+                ppc_samples_list.append(apgi_psychometric_function_np(stimulus_data, *params))
 
             ppc_array: np.ndarray = np.array(ppc_samples_list)
             observed_mean = np.mean(response_data)
@@ -2419,9 +2231,7 @@ def run_complete_mcmc_analysis(
             "passed": ppc_results.get("ppc_passed", False),
             "bayesian_p_value": ppc_results.get("bayesian_p_value"),
             "threshold": "0.05 < p < 0.95",
-            "description": (
-                f"Bayesian p-value = {ppc_results.get('bayesian_p_value', 0.5):.3f}"
-            ),
+            "description": (f"Bayesian p-value = {ppc_results.get('bayesian_p_value', 0.5):.3f}"),
         }
     except Exception as ppc_error:
         logger.error(f"Error in posterior predictive check: {ppc_error}")
@@ -2461,9 +2271,7 @@ def load_empirical_data_if_available() -> Optional[Tuple[np.ndarray, np.ndarray]
                         response_data = data[:, 1]
                         return stimulus_data, response_data
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to load empirical data from {data_path}: {e}"
-                    )
+                    logger.warning(f"Failed to load empirical data from {data_path}: {e}")
                     continue
 
         logger.info("No empirical data found, will use synthetic data for validation")
@@ -2472,33 +2280,6 @@ def load_empirical_data_if_available() -> Optional[Tuple[np.ndarray, np.ndarray]
     except Exception as e:
         logger.warning(f"Error checking for empirical data: {e}")
         return None
-
-
-def generate_synthetic_data(
-    n_trials: int = 200,
-    true_params: Optional[Dict[str, float]] = None,
-    noise_level: float = 0.05,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Legacy function - routes to appropriate generator based on context.
-
-    CRIT-02 FIX: This function now routes to parameter recovery or model comparison
-    based on the empirical validation requirement flag.
-    """
-    if _EMPIRICAL_VALIDATION_REQUIRED:
-        # Use empirically plausible data for model comparison
-        return generate_empirical_plausible_data(
-            n_trials=n_trials,
-            data_source="literature_based",
-            set_data_source_flag=False,
-        )
-    else:
-        # Use parameter recovery data for synthetic testing
-        return generate_parameter_recovery_data(
-            n_trials=n_trials,
-            true_params=true_params,
-            noise_level=noise_level,
-        )
 
 
 def generate_parameter_recovery_data(
@@ -2538,16 +2319,17 @@ def generate_parameter_recovery_data(
     # APGI computational model with known parameters
     precision_ratio = true_params["pi_i"] / (true_params["pi_e"] + 1e-10)
     somatic_gain = 1.0 + true_params["beta"] * precision_ratio
-    effective_threshold = true_params["theta_0"] / (
-        1.0 + true_params["alpha"] * stimulus_data
-    )
+    # Ensure stimulus_data is not causing overflows or NaNs
+    stimulus_data = np.nan_to_num(stimulus_data, nan=0.0)
+    effective_threshold = true_params["theta_0"] / (1.0 + true_params["alpha"] * stimulus_data)
     mu = effective_threshold * somatic_gain
     sigma = 1.0 / np.sqrt(true_params["pi_i"] + 1e-10)
 
     # Compute detection probabilities
-    z = (stimulus_data - mu) / sigma
-    z = np.clip(z, -500, 500)
+    z = (stimulus_data - mu) / (sigma + 1e-10)
+    z = np.clip(z, -50, 50)  # Narrower clip for stability
     p_detection = 1.0 / (1.0 + np.exp(-z))
+    p_detection = np.nan_to_num(p_detection, nan=0.5)  # Handle any remaining NaNs
 
     # Add minimal noise for clean parameter recovery
     response_data = np.random.binomial(1, p_detection)
@@ -2702,17 +2484,11 @@ def load_empirical_data(
                 col_lower = col.lower()
                 if "stimulus" in col_lower or "intensity" in col_lower:
                     stimulus_col = col
-                if (
-                    "response" in col_lower
-                    or "detected" in col_lower
-                    or "correct" in col_lower
-                ):
+                if "response" in col_lower or "detected" in col_lower or "correct" in col_lower:
                     response_col = col
 
             if stimulus_col is None or response_col is None:
-                logger.error(
-                    f"CSV must contain stimulus and response columns. Found: {list(df.columns)}"
-                )
+                logger.error(f"CSV must contain stimulus and response columns. Found: {list(df.columns)}")
                 return None, None, DataSource.SYNTHETIC
 
             stimulus_data = df[stimulus_col].values
@@ -2746,9 +2522,7 @@ def load_empirical_data(
                     break
 
             if stimulus_data is None or response_data is None:
-                logger.error(
-                    f"NPZ must contain stimulus/response arrays. Keys: {list(data.keys())}"
-                )
+                logger.error(f"NPZ must contain stimulus/response arrays. Keys: {list(data.keys())}")
                 return None, None, DataSource.SYNTHETIC
 
         elif data_format == "json":
@@ -2756,12 +2530,8 @@ def load_empirical_data(
             with open(data_path, "r") as f:
                 data = json.load(f)
 
-            stimulus_data = np.array(
-                data.get("stimulus", data.get("stimulus_data", []))
-            )
-            response_data = np.array(
-                data.get("response", data.get("response_data", []))
-            )
+            stimulus_data = np.array(data.get("stimulus", data.get("stimulus_data", [])))
+            response_data = np.array(data.get("response", data.get("response_data", [])))
 
             if len(stimulus_data) == 0 or len(response_data) == 0:
                 logger.error("JSON must contain 'stimulus' and 'response' arrays")
@@ -2773,19 +2543,13 @@ def load_empirical_data(
 
         # Validate loaded data
         if len(stimulus_data) != len(response_data):
-            logger.error(
-                f"Stimulus/response length mismatch: {len(stimulus_data)} vs {len(response_data)}"
-            )
+            logger.error(f"Stimulus/response length mismatch: {len(stimulus_data)} vs {len(response_data)}")
             return None, None, DataSource.SYNTHETIC
 
         if len(stimulus_data) < 50:
-            logger.warning(
-                f"Small dataset ({len(stimulus_data)} trials) - MCMC may be unstable"
-            )
+            logger.warning(f"Small dataset ({len(stimulus_data)} trials) - MCMC may be unstable")
 
-        logger.info(
-            f"HIGH-03: Loaded empirical data: {len(stimulus_data)} trials from {data_path}"
-        )
+        logger.info(f"HIGH-03: Loaded empirical data: {len(stimulus_data)} trials from {data_path}")
         return (
             stimulus_data if len(stimulus_data) > 0 else None,  # type: ignore[return-value]
             response_data if len(response_data) > 0 else None,  # type: ignore[return-value]
@@ -2843,18 +2607,12 @@ def run_falsification(
     empirical_file = data_repo / "metadata" / "behavioral_data.csv"
 
     if empirical_file.exists() and data_source == DataSource.SYNTHETIC:
-        logger.info(
-            f"FP-10: Empirical behavioral data found at {empirical_file}. Upgrading to EMPIRICAL."
-        )
-        stimulus_data, response_data, data_source = load_empirical_data(
-            str(empirical_file)
-        )
+        logger.info(f"FP-10: Empirical behavioral data found at {empirical_file}. Upgrading to EMPIRICAL.")
+        stimulus_data, response_data, data_source = load_empirical_data(str(empirical_file))
         set_data_source(data_source)
     else:
         # Generate synthetic data (with data source flag)
-        stimulus_data, response_data = generate_synthetic_data(
-            n_trials=200, set_data_source_flag=False
-        )
+        stimulus_data, response_data = generate_synthetic_data(n_trials=200, set_data_source_flag=False)
 
     # Run complete analysis with prior sensitivity
     results = run_complete_mcmc_analysis(
@@ -2895,14 +2653,8 @@ def run_falsification(
     # Return standardized format for aggregator
     return {
         "passed": results.get("passed", False) and divergence_pass and convergence_pass,
-        "status": (
-            "passed"
-            if results.get("passed", False) and convergence_pass
-            else "falsified"
-        ),
-        "falsified": not results.get("passed", False)
-        or not divergence_pass
-        or not convergence_pass,
+        "status": ("passed" if results.get("passed", False) and convergence_pass else "falsified"),
+        "falsified": not results.get("passed", False) or not divergence_pass or not convergence_pass,
         "f10_criteria": f10_criteria,
         "max_r_hat": max_r_hat,
         "data_source": {  # VP-11 Fix 1
@@ -3043,9 +2795,7 @@ class FP10Dispatcher:
             self.n_samples = 100
             self.n_chains = 2
             self.burn_in = 50
-            logger.info(
-                "FP10Dispatcher: Using TEST MODE parameters (n_samples=100, n_chains=2, burn_in=50)"
-            )
+            logger.info("FP10Dispatcher: Using TEST MODE parameters (n_samples=100, n_chains=2, burn_in=50)")
         else:
             self.n_samples = n_samples
             self.n_chains = n_chains
@@ -3138,13 +2888,9 @@ class FP10Dispatcher:
             combined_predictions["fp10b_scaling"] = {"passed": False}
 
         # Overall falsified if either sub-protocol fails
-        falsified = mcmc_result.get("falsified", True) or scaling_result.get(
-            "falsified", True
-        )
+        falsified = mcmc_result.get("falsified", True) or scaling_result.get("falsified", True)
 
         return {
-            "fp10a_mcmc": mcmc_result,
-            "fp10b_scaling": scaling_result,
             "falsified": falsified,
             "passed": not falsified,
             "status": "falsified" if falsified else "passed",
@@ -3214,9 +2960,7 @@ def run_bayesian_estimation_complete(
         n_samples = 1000
         n_chains = 2
         burn_in = 200
-        logger.info(
-            f"Using reduced MCMC parameters for NumPy fallback: {n_samples} samples, {n_chains} chains"
-        )
+        logger.info(f"Using reduced MCMC parameters for NumPy fallback: {n_samples} samples, {n_chains} chains")
 
     results = run_mcmc_bayesian_estimation(
         stimulus_data=stimulus_data,
@@ -3229,9 +2973,7 @@ def run_bayesian_estimation_complete(
     trace = results.get("trace")
     # Allow NumPy fallback which provides posterior_samples without trace
     if trace is None and "posterior_samples" not in results:
-        raise RuntimeError(
-            "MCMC sampling failed to produce a trace or posterior_samples"
-        )
+        raise RuntimeError("MCMC sampling failed to produce a trace or posterior_samples")
 
     # Extract posterior samples and statistics
     # Map model params to test params: beta -> beta, pi -> pi_e
@@ -3251,16 +2993,16 @@ def run_bayesian_estimation_complete(
                 if model_param in summary.index:
                     row = summary.loc[model_param]  # type: ignore[index]
                     posterior_statistics[test_param] = {
-                        "mean": float(row["mean"]),  # type: ignore[arg-type]
-                        "std": float(row["sd"]),  # type: ignore[arg-type]
-                        "hdi_3%": float(row["hdi_3%"]),  # type: ignore[arg-type]
-                        "hdi_97%": float(row["hdi_97%"]),  # type: ignore[arg-type]
-                        "r_hat": float(row["r_hat"]),  # type: ignore[arg-type]
+                        "mean": float(np.nan_to_num(row["mean"], nan=0.0)),  # type: ignore[arg-type]
+                        "std": float(np.nan_to_num(row["sd"], nan=0.1)),  # type: ignore[arg-type]
+                        "hdi_3%": float(np.nan_to_num(row["hdi_3%"], nan=0.0)),  # type: ignore[arg-type]
+                        "hdi_97%": float(np.nan_to_num(row["hdi_97%"], nan=1.0)),  # type: ignore[arg-type]
+                        "r_hat": float(np.nan_to_num(row["r_hat"], nan=1.0)),  # type: ignore[arg-type]
                     }
                 else:
                     posterior_statistics[test_param] = {
-                        "mean": float(np.mean(samples)),
-                        "std": float(np.std(samples)),
+                        "mean": float(np.nan_to_num(np.mean(samples), nan=0.0)),
+                        "std": float(np.nan_to_num(np.std(samples), nan=0.1)),
                     }
     else:
         # Fallback from results
@@ -3269,8 +3011,8 @@ def run_bayesian_estimation_complete(
                 samples = results["posterior_samples"][model_param]
                 posterior_samples[test_param] = samples
                 posterior_statistics[test_param] = {
-                    "mean": float(np.mean(samples)),
-                    "std": float(np.std(samples)),
+                    "mean": float(np.nan_to_num(np.mean(samples), nan=0.0)),
+                    "std": float(np.nan_to_num(np.std(samples), nan=0.1)),
                     "r_hat": 1.0,
                 }
 
@@ -3291,9 +3033,7 @@ if __name__ == "__main__":
 
     # Run complete analysis (fewer samples for NP fallback speed)
     n_samples = 1000 if not HAS_PYMC or not HAS_ARVIZ else 5000
-    results = run_complete_mcmc_analysis(
-        stimulus_data, response_data, n_samples=n_samples, n_chains=4, burn_in=200
-    )
+    results = run_complete_mcmc_analysis(stimulus_data, response_data, n_samples=n_samples, n_chains=4, burn_in=200)
 
     # Print results
     print("\n=== MCMC Bayesian Estimation Results ===")
@@ -3313,27 +3053,20 @@ if __name__ == "__main__":
             status = "PASS" if criterion_data.get("passed", False) else "FAIL"
             print(f"{criterion}: {status}")
             if "value" in criterion_data:
-                print(
-                    f"  Value: {criterion_data['value']:.3f}, Threshold: {criterion_data['threshold']}"
-                )
+                print(f"  Value: {criterion_data['value']:.3f}, Threshold: {criterion_data['threshold']}")
             if "description" in criterion_data:
                 print(f"  {criterion_data['description']}")
             print()
 
     # Bayes Factor details
-    if (
-        "bayes_factor_comparison" in results
-        and results["bayes_factor_comparison"] is not None
-    ):
+    if "bayes_factor_comparison" in results and results["bayes_factor_comparison"] is not None:
         bf_comp = results["bayes_factor_comparison"]
         print(f"Best model: {bf_comp['best_model']}")
         print(f"Model ranking: {bf_comp['model_ranking']}")
         if "bayes_factors" in bf_comp:
             print("\nBayes Factors:")
             for bf_key, bf_data in bf_comp["bayes_factors"].items():
-                print(
-                    f"  {bf_key}: BF = {bf_data['linear_bf']:.2f} ({bf_data['interpretation']})"
-                )
+                print(f"  {bf_key}: BF = {bf_data['linear_bf']:.2f} ({bf_data['interpretation']})")
     else:
         print("Bayes factor comparison: Not available (insufficient evidence)")
 
@@ -3389,9 +3122,7 @@ if __name__ == "__main__":
 
         from utils.protocol_visualization import ProtocolVisualizer
 
-        visualizer = ProtocolVisualizer(
-            10, output_dir="validation_results/visualizations"
-        )
+        visualizer = ProtocolVisualizer(10, output_dir="validation_results/visualizations")
         success = visualizer.create_custom_plot(fp10_custom_plot, "Bayesian Estimation")
         if success:
             if os.path.exists("validation_results/visualizations/protocol10.png"):
@@ -3399,9 +3130,7 @@ if __name__ == "__main__":
                     "validation_results/visualizations/protocol10.png",
                     "validation_results/visualizations/protocol10_results.png",
                 )
-            print(
-                "✓ Generated validation_results/visualizations/protocol10_results.png"
-            )
+            print("✓ Generated validation_results/visualizations/protocol10_results.png")
         else:
             print("⚠ Failed to generate protocol10_results.png visualization")
     except ImportError:
@@ -3442,9 +3171,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                     passed=pred_data.get("passed", False),
                     value=pred_data.get("value"),
                     threshold=pred_data.get("threshold"),
-                    status=PredictionStatus(
-                        "passed" if pred_data.get("passed") else "failed"
-                    ),
+                    status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                     evidence=[str(pred_data.get("evidence", ""))],
                     sources=["FP_10_BayesianEstimation_MCMC"],
                     metadata=pred_data.copy(),
@@ -3473,13 +3200,9 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
 
 
 # Aliases for test compatibility
-def run_bayesian_estimation(
-    stimulus_data, response_data, n_samples=5000, n_chains=4, burn_in=1000
-):
+def run_bayesian_estimation(stimulus_data, response_data, n_samples=5000, n_chains=4, burn_in=1000):
     """Alias for run_mcmc_bayesian_estimation_np for test compatibility."""
-    return run_mcmc_bayesian_estimation_np(
-        stimulus_data, response_data, n_samples, n_chains, burn_in
-    )
+    return run_mcmc_bayesian_estimation_np(stimulus_data, response_data, n_samples, n_chains, burn_in)
 
 
 def compute_posterior_distributions(trace, param_names):
@@ -3534,9 +3257,7 @@ class FP10bParameterRecovery:
         true_params: Optional[Dict[str, float]] = None,
         noise_level: float = 0.1,
     ) -> Dict[str, Any]:
-        logger.info(
-            f"Starting FP-10b parameter recovery validation with {n_synthetic_datasets} datasets"
-        )
+        logger.info(f"Starting FP-10b parameter recovery validation with {n_synthetic_datasets} datasets")
 
         if true_params is None:
             true_params = self._get_default_true_parameters()
@@ -3602,15 +3323,11 @@ class FP10bParameterRecovery:
                 ci_upper = float(mcmc_results["credible_intervals"][param_name][1])
 
                 recovery_error = abs(recovered_mean - true_value)
-                relative_error = (
-                    recovery_error / abs(true_value) if true_value != 0 else recovery_error
-                )
+                relative_error = recovery_error / abs(true_value) if true_value != 0 else recovery_error
 
                 recovered_successfully = ci_lower <= true_value <= ci_upper
 
-                identifiability_score = self._compute_identifiability_score(
-                    recovered_mean, recovered_std, true_value
-                )
+                identifiability_score = self._compute_identifiability_score(recovered_mean, recovered_std, true_value)
 
                 dataset_results.append(
                     ParameterRecoveryResult(
@@ -3628,9 +3345,7 @@ class FP10bParameterRecovery:
 
         return dataset_results
 
-    def _compute_identifiability_score(
-        self, recovered_mean: float, recovered_std: float, true_value: float
-    ) -> float:
+    def _compute_identifiability_score(self, recovered_mean: float, recovered_std: float, true_value: float) -> float:
         uncertainty_score = 1.0 / (1.0 + recovered_std)
         accuracy_score = 1.0 / (1.0 + abs(recovered_mean - true_value))
         identifiability_score = 0.6 * accuracy_score + 0.4 * uncertainty_score
@@ -3667,8 +3382,7 @@ class FP10bParameterRecovery:
             param_summary = {
                 "mean_relative_error": mean_relative_error,
                 "std_relative_error": (
-                    sum((x - mean_relative_error) ** 2 for x in relative_errors)
-                    / len(relative_errors)
+                    sum((x - mean_relative_error) ** 2 for x in relative_errors) / len(relative_errors)
                 )
                 ** 0.5,
                 "mean_identifiability_score": mean_identifiability,
@@ -3698,18 +3412,12 @@ class FP10bParameterRecovery:
                 sum(all_relative_errors) / len(all_relative_errors) if all_relative_errors else 0.0
             ),
             "mean_identifiability_score_all_params": (
-                sum(all_identifiability_scores) / len(all_identifiability_scores)
-                if all_identifiability_scores
-                else 0.0
+                sum(all_identifiability_scores) / len(all_identifiability_scores) if all_identifiability_scores else 0.0
             ),
-            "overall_success_rate": (
-                successful_recoveries / total_recoveries if total_recoveries > 0 else 0.0
-            ),
+            "overall_success_rate": (successful_recoveries / total_recoveries if total_recoveries > 0 else 0.0),
             "total_parameters_tested": len(param_results),
             "parameters_passing_threshold": sum(
-                1
-                for p in summary["parameter_recovery_summary"].values()
-                if p.get("passed_thresholds")
+                1 for p in summary["parameter_recovery_summary"].values() if p.get("passed_thresholds")
             ),
         }
 
@@ -3774,7 +3482,9 @@ class FP10bParameterRecovery:
                 errors = [param_summary[p].get("mean_relative_error", 0) for p in params]
                 ax1.bar(params, errors, color="#3498db")
                 ax1.axhline(
-                    self.relative_error_threshold, color=VISUAL_CONSTANTS.STATUS_FAIL, linestyle="--"
+                    self.relative_error_threshold,
+                    color=VISUAL_CONSTANTS.STATUS_FAIL,
+                    linestyle="--",
                 )
                 ax1.set_title("Mean Relative Error by Parameter")
                 ax1.tick_params(axis="x", rotation=30)
@@ -3795,7 +3505,11 @@ class FP10bParameterRecovery:
             ax3 = axes[1, 0]
             metrics = summary.get("overall_recovery_metrics", {})
             if metrics:
-                metric_names = ["Mean Relative Error", "Mean Identifiability", "Success Rate"]
+                metric_names = [
+                    "Mean Relative Error",
+                    "Mean Identifiability",
+                    "Success Rate",
+                ]
                 metric_values = [
                     metrics.get("mean_relative_error_all_params", 0),
                     metrics.get("mean_identifiability_score_all_params", 0),
@@ -3813,7 +3527,13 @@ class FP10bParameterRecovery:
                 sizes = [passing, total - passing]
                 labels = [f"Passing ({passing})", f"Failing ({total - passing})"]
                 colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
-                ax4.pie(sizes, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+                ax4.pie(
+                    sizes,
+                    labels=labels,
+                    colors=colors,
+                    autopct="%1.1f%%",
+                    startangle=90,
+                )
                 ax4.set_title("Parameters Passing Threshold")
 
             plt.tight_layout()

@@ -25,7 +25,7 @@ Protocol specification:
     Control : "No-ignition" subliminal trials where both categories remain decodable
                confirm that suppression is ignition-specific.
 
-MEASUREMENT GAPS (required hedging per Paper 4):
+MEASUREMENT GAPS:
     This protocol tests REPRESENTATIONAL erasure at Level 3 (neural pattern
     decoding).  The thermodynamic cost of that erasure — Landauer's principle
 
@@ -99,9 +99,7 @@ try:
 except ImportError:
     DEFAULT_ALPHA = 0.05
     V19_BELOW_CHANCE_THRESHOLD = 0.48  # post-ignition accuracy must drop below this
-    V19_MIN_PRE_IGNITION_ACCURACY = (
-        0.60  # losing stimulus must be decodable pre-ignition
-    )
+    V19_MIN_PRE_IGNITION_ACCURACY = 0.60  # losing stimulus must be decodable pre-ignition
     V19_CONTROL_DECODABILITY_MIN = 0.60  # both stims decodable on subliminal trials
     V19_N_PERMUTATIONS = 500  # permutations for chance distribution
     V19_POST_IGNITION_SUPPRESSION_BINS = 3  # consecutive below-chance bins required
@@ -282,15 +280,9 @@ class StimulusPairEEGSimulator:
 
                 # --- No-ignition / subliminal trial ---
                 st_no = float(self.rng.beta(1.5, 3.0))
-                no_meta = TrialMetadata(
-                    subj, trial, "no_ignition", reported, losing, st_no
-                )
-                losing_feats_no = self._epoch_features(
-                    losing, self._no_ignition_amplitude_profile(losing)
-                )
-                winning_feats_no = self._epoch_features(
-                    reported, self._no_ignition_amplitude_profile(reported)
-                )
+                no_meta = TrialMetadata(subj, trial, "no_ignition", reported, losing, st_no)
+                losing_feats_no = self._epoch_features(losing, self._no_ignition_amplitude_profile(losing))
+                winning_feats_no = self._epoch_features(reported, self._no_ignition_amplitude_profile(reported))
                 dataset.append((no_meta, losing_feats_no, winning_feats_no))
 
         return dataset
@@ -337,9 +329,7 @@ class TimeResolvedMVPADecoder:
             ]
         )
 
-    def _train_on_pre_ignition(
-        self, features: np.ndarray, labels: np.ndarray
-    ) -> Pipeline:
+    def _train_on_pre_ignition(self, features: np.ndarray, labels: np.ndarray) -> Pipeline:
         """
         Train one SVM on the concatenation of all pre-ignition bin patterns.
         Each trial contributes one row per pre-ignition bin (data augmentation).
@@ -398,9 +388,7 @@ class TimeResolvedMVPADecoder:
         scores = cross_val_score(self._make_clf(), X, y, cv=cv, scoring="accuracy")
         return float(scores.mean())
 
-    def _permutation_threshold(
-        self, features: np.ndarray, labels: np.ndarray, alpha: float = 0.05
-    ) -> float:
+    def _permutation_threshold(self, features: np.ndarray, labels: np.ndarray, alpha: float = 0.05) -> float:
         """
         Permutation null: shuffle labels, retrain on pre-ignition, test at
         the representative post-ignition bin (t = 300 ms).
@@ -502,43 +490,28 @@ class InformationErasureValidator:
 
     def _run_decoding(self) -> None:
         """Decode all conditions and cache results."""
-        ig_feats, ig_labels, no_ig_losing, no_ig_winning = (
-            self._build_feature_matrices()
-        )
+        ig_feats, ig_labels, no_ig_losing, no_ig_winning = self._build_feature_matrices()
 
         logger.info("Running time-resolved MVPA on ignition trials …")
-        self._ig_accuracy_ts, self._perm_threshold = self.decoder.decode_timeseries(
-            ig_feats, ig_labels
-        )
+        self._ig_accuracy_ts, self._perm_threshold = self.decoder.decode_timeseries(ig_feats, ig_labels)
 
         logger.info("Running MVPA on no-ignition losing-stimulus trials …")
         no_ig_labels = np.array(
-            [
-                1 if m.losing_category == "faces" else 0
-                for m, _, _ in self.dataset
-                if m.condition == "no_ignition"
-            ]
+            [1 if m.losing_category == "faces" else 0 for m, _, _ in self.dataset if m.condition == "no_ignition"]
         )
-        self._no_ig_losing_accuracy_ts, _ = self.decoder.decode_timeseries(
-            no_ig_losing, no_ig_labels
-        )
+        self._no_ig_losing_accuracy_ts, _ = self.decoder.decode_timeseries(no_ig_losing, no_ig_labels)
 
         logger.info("Running MVPA on no-ignition winning-stimulus trials …")
         win_labels = np.array(
-            [
-                1 if m.reported_category == "faces" else 0
-                for m, _, _ in self.dataset
-                if m.condition == "no_ignition"
-            ]
+            [1 if m.reported_category == "faces" else 0 for m, _, _ in self.dataset if m.condition == "no_ignition"]
         )
-        self._no_ig_winning_accuracy_ts, _ = self.decoder.decode_timeseries(
-            no_ig_winning, win_labels
-        )
+        self._no_ig_winning_accuracy_ts, _ = self.decoder.decode_timeseries(no_ig_winning, win_labels)
 
     # ------------------------------------------------------------------
     def validate_pre_ignition_decodability(self) -> Dict[str, Any]:
         """V19.1 — Losing stimulus is decodable pre-ignition (≥ threshold)."""
-        assert self._ig_accuracy_ts is not None
+        if self._ig_accuracy_ts is None:
+            raise ValueError("_ig_accuracy_ts must not be None")
         pre_bins = self._ig_accuracy_ts[BIN_CENTRES_MS < 0]
         mean_pre = float(np.mean(pre_bins))
         passed = mean_pre >= V19_MIN_PRE_IGNITION_ACCURACY
@@ -554,7 +527,8 @@ class InformationErasureValidator:
 
     def validate_post_ignition_suppression(self) -> Dict[str, Any]:
         """V19.2 — Post-ignition accuracy drops below chance for ≥ N consecutive bins."""
-        assert self._ig_accuracy_ts is not None
+        if self._ig_accuracy_ts is None:
+            raise ValueError("_ig_accuracy_ts must not be None")
         post_mask = BIN_CENTRES_MS > 200  # 200 ms post-ignition onset
         post_acc = self._ig_accuracy_ts[post_mask]
 
@@ -585,16 +559,15 @@ class InformationErasureValidator:
 
     def validate_control_decodability(self) -> Dict[str, Any]:
         """V19.3 — On no-ignition trials both categories remain decodable."""
-        assert self._no_ig_losing_accuracy_ts is not None
-        assert self._no_ig_winning_accuracy_ts is not None
+        if self._no_ig_losing_accuracy_ts is None:
+            raise ValueError("_no_ig_losing_accuracy_ts must not be None")
+        if self._no_ig_winning_accuracy_ts is None:
+            raise ValueError("_no_ig_winning_accuracy_ts must not be None")
 
         mean_losing = float(np.mean(self._no_ig_losing_accuracy_ts))
         mean_winning = float(np.mean(self._no_ig_winning_accuracy_ts))
 
-        passed = (
-            mean_losing >= V19_CONTROL_DECODABILITY_MIN
-            and mean_winning >= V19_CONTROL_DECODABILITY_MIN
-        )
+        passed = mean_losing >= V19_CONTROL_DECODABILITY_MIN and mean_winning >= V19_CONTROL_DECODABILITY_MIN
 
         return {
             "test_name": "V19.3 No-ignition Both-Category Decodability",
@@ -606,18 +579,15 @@ class InformationErasureValidator:
         }
 
     # ------------------------------------------------------------------
-    def generate_summary_figure(
-        self, output_path: Optional[Path] = None
-    ) -> Optional[Path]:
+    def generate_summary_figure(self, output_path: Optional[Path] = None) -> Optional[Path]:
         """Three-panel decoding time-course figure."""
         if not HAS_MATPLOTLIB:
             return None
-        assert self._ig_accuracy_ts is not None
+        if self._ig_accuracy_ts is None:
+            raise ValueError("_ig_accuracy_ts must not be None")
 
         fig, axes = plt.subplots(1, 3, figsize=(16, 4))
-        fig.suptitle(
-            "VP-19: Information Erasure — MVPA Decoding Time-courses", fontsize=13
-        )
+        fig.suptitle("VP-19: Information Erasure — MVPA Decoding Time-courses", fontsize=13)
 
         # Panel 1: Ignition-trial losing-stimulus decoding
         ax = axes[0]
@@ -640,9 +610,7 @@ class InformationErasureValidator:
             linestyle=":",
             label=f"Below-chance criterion ({V19_BELOW_CHANCE_THRESHOLD})",
         )
-        ax.axvline(
-            0, color="black", linewidth=0.8, linestyle="--", label="Ignition onset"
-        )
+        ax.axvline(0, color="black", linewidth=0.8, linestyle="--", label="Ignition onset")
         ax.set_xlabel("Time re. ignition (ms)")
         ax.set_ylabel("Decoding accuracy")
         ax.set_title("Losing stimulus — ignition trials")
@@ -781,9 +749,7 @@ def run_validation(
     n_perm = n_permutations if n_permutations is not None else V19_N_PERMUTATIONS
     decoder = TimeResolvedMVPADecoder(n_permutations=n_perm, rng=rng)
     simulator = StimulusPairEEGSimulator(rng=rng)
-    validator = InformationErasureValidator(
-        simulator=simulator, decoder=decoder, rng=rng
-    )
+    validator = InformationErasureValidator(simulator=simulator, decoder=decoder, rng=rng)
     results = validator.run_full_validation()
     validator.generate_summary_figure()
     return results

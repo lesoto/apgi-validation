@@ -62,9 +62,7 @@ class BenchmarkResult:
     latencies_ms: List[float]
     throughput_ops_per_sec: float
     peak_memory_mb: float
-    timestamp: str = field(
-        default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    )
+    timestamp: str = field(default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
 
     @property
     def p95_latency_ms(self) -> float:
@@ -79,9 +77,7 @@ class BenchmarkResult:
         return mean(self.latencies_ms) if self.latencies_ms else 0.0
 
 
-def benchmark_callable(
-    protocol_id: str, fn: Callable[[], object], iterations: int = 5
-) -> BenchmarkResult:
+def benchmark_callable(protocol_id: str, fn: Callable[[], object], iterations: int = 5) -> BenchmarkResult:
     """Benchmark a callable and return metrics."""
     latencies_ms: List[float] = []
     process = psutil.Process(os.getpid())
@@ -120,19 +116,13 @@ def assert_slo(result: BenchmarkResult, slo: Optional[ProtocolSLO] = None) -> No
 
     errors = []
     if result.p95_latency_ms > slo.max_p95_latency_ms:
-        errors.append(
-            f"p95 latency {result.p95_latency_ms:.2f}ms exceeds {slo.max_p95_latency_ms}ms"
-        )
+        errors.append(f"p95 latency {result.p95_latency_ms:.2f}ms exceeds {slo.max_p95_latency_ms}ms")
 
     if result.throughput_ops_per_sec < slo.min_throughput_ops_per_sec:
-        errors.append(
-            f"throughput {result.throughput_ops_per_sec:.2f} < {slo.min_throughput_ops_per_sec}"
-        )
+        errors.append(f"throughput {result.throughput_ops_per_sec:.2f} < {slo.min_throughput_ops_per_sec}")
 
     if result.peak_memory_mb > slo.max_memory_mb:
-        errors.append(
-            f"peak memory {result.peak_memory_mb:.2f}MB exceeds {slo.max_memory_mb}MB"
-        )
+        errors.append(f"peak memory {result.peak_memory_mb:.2f}MB exceeds {slo.max_memory_mb}MB")
 
     if errors:
         msg = f"Performance regression in {result.protocol_id}: " + "; ".join(errors)
@@ -154,9 +144,36 @@ def check_all_slos(results: List[BenchmarkResult]) -> bool:
     return all_passed
 
 
-def export_benchmark_report(
-    results: Iterable[BenchmarkResult], output_file: Path
+def check_performance_regression(
+    baseline: BenchmarkResult, current: BenchmarkResult, threshold_pct: float = 10.0
 ) -> None:
+    """Check if current performance has regressed compared to baseline.
+
+    Raises PerformanceRegressionError if regression exceeds threshold.
+    """
+    # Check latency regression
+    baseline_latency = baseline.mean_latency_ms
+    current_latency = current.mean_latency_ms
+    if baseline_latency > 0:
+        latency_increase_pct = ((current_latency - baseline_latency) / baseline_latency) * 100
+        if latency_increase_pct > threshold_pct:
+            raise PerformanceRegressionError(
+                f"Latency regression detected: {latency_increase_pct:.1f}% increase " f"(threshold: {threshold_pct}%)"
+            )
+
+    # Check throughput regression
+    baseline_throughput = baseline.throughput_ops_per_sec
+    current_throughput = current.throughput_ops_per_sec
+    if baseline_throughput > 0:
+        throughput_decrease_pct = ((baseline_throughput - current_throughput) / baseline_throughput) * 100
+        if throughput_decrease_pct > threshold_pct:
+            raise PerformanceRegressionError(
+                f"Throughput regression detected: {throughput_decrease_pct:.1f}% decrease "
+                f"(threshold: {threshold_pct}%)"
+            )
+
+
+def export_benchmark_report(results: Iterable[BenchmarkResult], output_file: Path) -> None:
     """Export benchmark results to a JSON report."""
     payload = []
     for result in results:

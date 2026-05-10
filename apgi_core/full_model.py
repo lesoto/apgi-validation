@@ -54,9 +54,7 @@ class APGIParameters:
     """Parameters for APGI Full Dynamic Model with constraints."""
 
     # Temporal parameters
-    delta_t: float = (
-        0.05  # Δt: Timestep duration (seconds), typical 0.05-0.1 (50-100ms)
-    )
+    delta_t: float = 0.05  # Δt: Timestep duration (seconds), typical 0.05-0.1 (50-100ms)
     tau: float = 0.2  # τ: Signal decay time constant (seconds), typical 0.1-0.3
 
     # Signal accumulation parameters
@@ -67,17 +65,13 @@ class APGIParameters:
     theta_t0: float = 3.0  # Baseline threshold [1.0, 10.0], typical 2.0-4.0σ
     alpha: float = 0.9  # Threshold recovery rate (0,1), typical 0.8-0.95
     phi: float = 0.4  # Post-ignition facilitation [0.0, 1.0], typical 0.3-0.5σ
-    tau_theta: float = (
-        20.0  # Threshold adaptation time constant (seconds), typical 10-100s
-    )
+    tau_theta: float = 20.0  # Threshold adaptation time constant (seconds), typical 10-100s
     eta_theta: float = 0.1  # Allostatic modulation gain [0.01, 1.0], typical 0.05-0.2
 
     # Metabolic parameters
     gamma_c: float = 0.2  # Metabolic cost per ignition [0.05, 0.5], typical 0.1-0.3σ
     gamma_r: float = 0.07  # Metabolic recovery rate [0.01, 0.2], typical 0.05-0.1σ
-    eta_m_max: float = (
-        10.0  # Maximum metabolic modulation [5.0, 50.0], typical 10.0-20.0σ
-    )
+    eta_m_max: float = 10.0  # Maximum metabolic modulation [5.0, 50.0], typical 10.0-20.0σ
 
     # Sigmoid parameters
     k: float = 3.0  # Sigmoid steepness [1.0, 10.0], typical 2.0-5.0
@@ -160,9 +154,7 @@ class APGIParameters:
 
         return delta_theta_circadian
 
-    def get_ultradian_modulation(
-        self, time_since_task_start_min: float, task_load: float = 0.7
-    ) -> float:
+    def get_ultradian_modulation(self, time_since_task_start_min: float, task_load: float = 0.7) -> float:
         """
         Compute ultradian modulation of threshold.
 
@@ -260,9 +252,7 @@ class APGIFullDynamicModel:
         # Baseline statistics for standardization
         self.baseline_stats: Dict[str, Tuple[float, float]] = {}
 
-    def standardize_signal(
-        self, signal: np.ndarray, baseline_window: int = 20
-    ) -> np.ndarray:
+    def standardize_signal(self, signal: np.ndarray, baseline_window: int = 20) -> np.ndarray:
         """
         Z-score normalize prediction errors.
 
@@ -274,9 +264,7 @@ class APGIFullDynamicModel:
             Normalized signal in z-score units
         """
         if len(signal) < baseline_window:
-            raise ValueError(
-                f"Signal length {len(signal)} < baseline_window {baseline_window}"
-            )
+            raise ValueError(f"Signal length {len(signal)} < baseline_window {baseline_window}")
 
         baseline = signal[:baseline_window]
         mu_baseline = np.mean(baseline)
@@ -316,9 +304,7 @@ class APGIFullDynamicModel:
         external_contribution = self.params.we * Pi_e * abs(epsilon_e)
         internal_contribution = self.params.wi * beta_val * Pi_i * abs(epsilon_i)
 
-        S_next = (
-            decay_factor * self.state.S + external_contribution + internal_contribution
-        )
+        S_next = decay_factor * self.state.S + external_contribution + internal_contribution
 
         return S_next
 
@@ -348,9 +334,7 @@ class APGIFullDynamicModel:
 
         return base_cost * metabolic_factor
 
-    def compute_information_value(
-        self, Pi_e: float, Pi_i: float, epsilon_e: float, epsilon_i: float
-    ) -> float:
+    def compute_information_value(self, Pi_e: float, Pi_i: float, epsilon_e: float, epsilon_i: float) -> float:
         """
         Compute predicted information value of ignition.
 
@@ -395,9 +379,7 @@ class APGIFullDynamicModel:
             - Hardstone et al. 2012: DFA for neural time series analysis
         """
         if len(time_series) < 100:
-            raise ValueError(
-                "Time series must have at least 100 points for reliable DFA"
-            )
+            raise ValueError("Time series must have at least 100 points for reliable DFA")
 
         try:
             # Use nolds.dfa for robust Hurst exponent estimation
@@ -474,16 +456,12 @@ class APGIFullDynamicModel:
             variance_H_available = True
         else:
             variance_H = 0.0  # Placeholder value
-            variance_H_available = (
-                False  # Insufficient data for sliding window analysis
-            )
+            variance_H_available = False  # Insufficient data for sliding window analysis
 
         # Clinical interpretation based on document specifications
         # For ADHD detection, require valid variance_H
         if H_global > 0.55:
-            if (
-                variance_H_available and variance_H > 0.02
-            ):  # High variance suggests ADHD
+            if variance_H_available and variance_H > 0.02:  # High variance suggests ADHD
                 interpretation = "elevated_H_variance_ADHD"
             else:
                 interpretation = "healthy_persistent"
@@ -497,18 +475,12 @@ class APGIFullDynamicModel:
 
         # Optional proximity analysis if threshold provided
         proximity_effects = {}
-        if threshold_time_series is not None and len(threshold_time_series) == len(
-            signal_time_series
-        ):
+        if threshold_time_series is not None and len(threshold_time_series) == len(signal_time_series):
             proximity = np.abs(signal_time_series - threshold_time_series)
-            near_threshold_mask = proximity < np.percentile(
-                proximity, 25
-            )  # Bottom 25% closest to threshold
+            near_threshold_mask = proximity < np.percentile(proximity, 25)  # Bottom 25% closest to threshold
 
             if np.sum(near_threshold_mask) >= 100:
-                H_near = self.compute_hurst_exponent_dfa(
-                    signal_time_series[near_threshold_mask]
-                )
+                H_near = self.compute_hurst_exponent_dfa(signal_time_series[near_threshold_mask])
                 proximity_effects = {
                     "hurst_near_threshold": H_near,
                     "proximity_effect": H_near - H_global,
@@ -545,12 +517,8 @@ class APGIFullDynamicModel:
             New threshold θ_t(t+Δt) including both continuous ODE and discrete facilitation
         """
         # Continuous-time dynamics: dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)
-        return_to_baseline = (
-            self.params.theta_t0 - self.state.theta_t
-        ) / self.params.tau_theta
-        allostatic_modulation = self.params.eta_theta * (
-            self.state.C_metabolic - self.state.V_information
-        )
+        return_to_baseline = (self.params.theta_t0 - self.state.theta_t) / self.params.tau_theta
+        allostatic_modulation = self.params.eta_theta * (self.state.C_metabolic - self.state.V_information)
 
         # Euler integration for timestep Δt
         dtheta_dt = return_to_baseline + allostatic_modulation
@@ -575,11 +543,7 @@ class APGIFullDynamicModel:
         Returns:
             New metabolic modulation ηm(t+1)
         """
-        eta_m_next = (
-            self.state.eta_m
-            + self.params.gamma_c * I_prev
-            - self.params.gamma_r * (1 - I_prev)
-        )
+        eta_m_next = self.state.eta_m + self.params.gamma_c * I_prev - self.params.gamma_r * (1 - I_prev)
 
         # Ensure metabolic modulation is bounded
         eta_m_next = np.clip(eta_m_next, 0.0, self.params.eta_m_max)
@@ -713,9 +677,7 @@ class APGIFullDynamicModel:
                 raise ValueError(f"{name} length {len(arr)} != Pi_e length {n_steps}")
 
         if beta_sequence is not None and len(beta_sequence) != n_steps:
-            raise ValueError(
-                f"beta_sequence length {len(beta_sequence)} != Pi_e length {n_steps}"
-            )
+            raise ValueError(f"beta_sequence length {len(beta_sequence)} != Pi_e length {n_steps}")
 
         # Initialize storage with rolling window to prevent memory exhaustion
         # Use a maximum window size of 100,000 steps for long simulations
@@ -949,9 +911,7 @@ if __name__ == "__main__":
     print("-" * 70)
     params = model.get_parameter_summary()
     for name, info in params.items():
-        print(
-            f"{name:15s}: {info['value']:6.3f}  |  Range: {info['range']:12s}  |  Typical: {info['typical']:12s}"
-        )
+        print(f"{name:15s}: {info['value']:6.3f}  |  Range: {info['range']:12s}  |  Typical: {info['typical']:12s}")
 
     # Print core equations
     print("\nCore Equations:")
@@ -1006,9 +966,7 @@ if __name__ == "__main__":
     if biomarker_results.get("variance_h_available", False):
         print(f"H Variance (ADHD marker): {biomarker_results['variance_h']:.4f}")
     else:
-        print(
-            "H Variance (ADHD marker): N/A - insufficient data for sliding window analysis"
-        )
+        print("H Variance (ADHD marker): N/A - insufficient data for sliding window analysis")
     print(f"Clinical Interpretation: {biomarker_results['clinical_interpretation']}")
 
     if "hurst_near_threshold" in biomarker_results:

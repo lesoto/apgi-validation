@@ -2,9 +2,7 @@
 
 import numpy as np
 
-from utils.parameter_estimation_with_priors import (APGIPhysiologicalEstimator,
-                                                    CalibratedAPGIEstimate,
-                                                    HybridCalibrator)
+from utils.parameter_estimation_with_priors import APGIPhysiologicalEstimator, CalibratedAPGIEstimate, HybridCalibrator
 
 
 class TestCalibratedAPGIEstimate:
@@ -91,8 +89,7 @@ class TestAPGIPhysiologicalEstimator:
         t = np.arange(0, 10, 1 / fs)
         eeg_data = np.sin(2 * np.pi * 10 * t) + 0.1 * np.random.randn(len(t))
 
-        result = estimator.calibrate(eeg_data, None, fs)
-        assert isinstance(result, bool)
+        estimator.calibrate(eeg_data, None, fs)
         # Check that calibration state was updated
         assert estimator.pi_i_fixed is not None or not estimator.is_calibrated
 

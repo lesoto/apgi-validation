@@ -51,9 +51,7 @@ class TestAPGIHierarchyMissingCoverage:
         phi_next = np.pi / 4
         kappa_down = 0.2
 
-        result = APGIHierarchy.cross_level_modulation(
-            theta_0, pi_next, phi_next, kappa_down
-        )
+        result = APGIHierarchy.cross_level_modulation(theta_0, pi_next, phi_next, kappa_down)
 
         expected = theta_0 * (1 + kappa_down * pi_next * np.cos(phi_next))
         assert abs(result - expected) < 1e-10

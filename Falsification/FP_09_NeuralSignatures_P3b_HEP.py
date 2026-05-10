@@ -193,9 +193,7 @@ def detect_ecg_r_peaks(
 
             # Use find_peaks with prominence threshold
             prominence = np.std(filtered_ecg) * 0.5
-            peaks, properties = signal.find_peaks(
-                filtered_ecg, distance=min_distance_samples, prominence=prominence
-            )
+            peaks, properties = signal.find_peaks(filtered_ecg, distance=min_distance_samples, prominence=prominence)
 
             results["r_peak_indices"] = peaks.tolist()
             results["r_peak_times"] = (peaks / fs).tolist()
@@ -350,12 +348,8 @@ class FalsificationThresholds:
 
     # Statistical thresholds
     ALPHA_LEVEL = 0.05
-    ALPHA_BONFERRONI_P4 = (
-        0.0125  # α=0.05/4 for P4.a-P4.d (4 tests) - REMOVED: now computed dynamically
-    )
-    ALPHA_BONFERRONI_P2 = (
-        0.0167  # α=0.05/3 for P2.a-P2.c (3 tests) - REMOVED: now computed dynamically
-    )
+    ALPHA_BONFERRONI_P4 = 0.0125  # α=0.05/4 for P4.a-P4.d (4 tests) - REMOVED: now computed dynamically
+    ALPHA_BONFERRONI_P2 = 0.0167  # α=0.05/3 for P2.a-P2.c (3 tests) - REMOVED: now computed dynamically
     MIN_EFFECT_SIZE = 0.40  # Cohen's d
 
     @classmethod
@@ -394,11 +388,7 @@ class FalsificationThresholds:
             effect_size = float(effect_size)
 
         if metric == "p3b":
-            return (
-                cls.P3B_EFFECT_SIZE_RANGE[0]
-                <= effect_size
-                <= cls.P3B_EFFECT_SIZE_RANGE[1]
-            )
+            return cls.P3B_EFFECT_SIZE_RANGE[0] <= effect_size <= cls.P3B_EFFECT_SIZE_RANGE[1]
         return effect_size >= cls.MIN_EFFECT_SIZE
 
 
@@ -440,15 +430,12 @@ def detect_gamma_oscillation(
     # Insufficient data should raise an error, not silently return False
     if len(eeg_data) < 200:
         raise ValueError(
-            f"Insufficient data for gamma oscillation analysis: "
-            f"{len(eeg_data)} samples provided, need ≥200 samples"
+            f"Insufficient data for gamma oscillation analysis: " f"{len(eeg_data)} samples provided, need ≥200 samples"
         )
 
     try:
         # Compute power spectral density
-        freqs, psd = signal.welch(
-            eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2)
-        )
+        freqs, psd = signal.welch(eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2))
 
         # Fix 2: Implement adaptive thresholding with baseline computation
         # Compute baseline power and adaptive threshold
@@ -474,9 +461,7 @@ def detect_gamma_oscillation(
 
         for _ in range(n_permutations):
             perm_data = np.random.permutation(eeg_data)
-            _, perm_psd = signal.welch(
-                perm_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2)
-            )
+            _, perm_psd = signal.welch(perm_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2))
             perm_gamma_psd = perm_psd[gamma_mask]
             if len(perm_gamma_psd) > 0 and len(gamma_freqs) > 0:
                 perm_power = simps(perm_gamma_psd, gamma_freqs)
@@ -506,9 +491,7 @@ def detect_gamma_oscillation(
         confidence_interval = (ci_lower, ci_upper)
 
         # Check if effect size is within acceptable range
-        effect_size_valid = FalsificationThresholds.check_effect_size_range(
-            effect_size, "gamma"
-        )
+        effect_size_valid = FalsificationThresholds.check_effect_size_range(effect_size, "gamma")
 
         # Determine significance and falsification status
         significant = bool(p_value < FalsificationThresholds.ALPHA_LEVEL)
@@ -542,9 +525,7 @@ def detect_gamma_oscillation(
         )
 
 
-def detect_theta_gamma_pac(
-    eeg_data: np.ndarray, fs: float = 1000.0
-) -> NeuralSignatureResult:
+def detect_theta_gamma_pac(eeg_data: np.ndarray, fs: float = 1000.0) -> NeuralSignatureResult:
     """
     Detect theta-gamma phase-amplitude coupling (PAC) using Modulation Index.
     Per Step 1.6 - filter theta (4–8 Hz) and gamma (30–80 Hz), compute phase-amplitude
@@ -584,9 +565,7 @@ def detect_theta_gamma_pac(
     try:
         # Filter theta band (4-8 Hz)
         theta_low, theta_high = 4.0, 8.0
-        theta_b, theta_a = signal.butter(
-            4, [theta_low, theta_high], btype="band", fs=fs
-        )
+        theta_b, theta_a = signal.butter(4, [theta_low, theta_high], btype="band", fs=fs)
         theta_filtered = signal.filtfilt(theta_b, theta_a, eeg_data)
 
         # Extract phase from theta band using Hilbert transform
@@ -595,9 +574,7 @@ def detect_theta_gamma_pac(
 
         # Filter gamma band (30-80 Hz)
         gamma_low, gamma_high = 30.0, 80.0
-        gamma_b, gamma_a = signal.butter(
-            4, [gamma_low, gamma_high], btype="band", fs=fs
-        )
+        gamma_b, gamma_a = signal.butter(4, [gamma_low, gamma_high], btype="band", fs=fs)
         gamma_filtered = signal.filtfilt(gamma_b, gamma_a, eeg_data)
 
         # Extract amplitude envelope from gamma band
@@ -611,12 +588,8 @@ def detect_theta_gamma_pac(
         # Bin phase into bins for PAC calculation
         n_bins = 18
         phase_bins = np.linspace(-np.pi, np.pi, n_bins + 1)
-        phase_bin_indices = (
-            np.digitize(theta_phase, phase_bins) - 1
-        )  # Convert to 0-based indexing
-        phase_bin_indices = np.clip(
-            phase_bin_indices, 0, n_bins - 1
-        )  # Ensure valid indices
+        phase_bin_indices = np.digitize(theta_phase, phase_bins) - 1  # Convert to 0-based indexing
+        phase_bin_indices = np.clip(phase_bin_indices, 0, n_bins - 1)  # Ensure valid indices
 
         # Calculate mean amplitude for each phase bin
         mean_amplitudes: List[float] = []
@@ -639,9 +612,7 @@ def detect_theta_gamma_pac(
 
         # Calculate Kullback-Leibler divergence from uniform distribution
         uniform_dist = np.ones(n_bins) / n_bins
-        kl_div = np.sum(
-            normalized_amplitudes * np.log(normalized_amplitudes / uniform_dist + 1e-10)
-        )
+        kl_div = np.sum(normalized_amplitudes * np.log(normalized_amplitudes / uniform_dist + 1e-10))
 
         # Calculate modulation index (ensure non-negative)
         # KL divergence / log(n_bins) is the standard Tort et al. 2010 modulation index
@@ -682,9 +653,7 @@ def detect_theta_gamma_pac(
                 surr_normalized = np.ones(n_bins) / n_bins
 
             surr_uniform = np.ones(n_bins) / n_bins
-            surr_kl = np.sum(
-                surr_normalized * np.log(surr_normalized / surr_uniform + 1e-10)
-            )
+            surr_kl = np.sum(surr_normalized * np.log(surr_normalized / surr_uniform + 1e-10))
             surr_mi = float(max(0.0, surr_kl / np.log(n_bins)))
             surrogate_mi_values.append(surr_mi)
 
@@ -702,9 +671,7 @@ def detect_theta_gamma_pac(
         surrogate_95th = float(np.percentile(surrogate_mi_values_arr, 95))
 
         # Calculate p-value using surrogate distribution
-        p_value_surrogate = float(
-            np.sum(surrogate_mi_values_arr >= modulation_index) / n_surrogates
-        )
+        p_value_surrogate = float(np.sum(surrogate_mi_values_arr >= modulation_index) / n_surrogates)
 
         # Calculate confidence interval using surrogate distribution
         std_error = surr_std / np.sqrt(n_surrogates)
@@ -726,9 +693,7 @@ def detect_theta_gamma_pac(
             # 1. MI exceeds threshold
             # 2. MI exceeds 95th percentile of surrogate distribution (Canolty criterion)
             # 3. Effect size is valid
-            falsification_passed = bool(
-                meets_threshold and exceeds_surrogate_95th and effect_size_valid
-            )
+            falsification_passed = bool(meets_threshold and exceeds_surrogate_95th and effect_size_valid)
 
             return NeuralSignatureResult(
                 prediction_id=prediction_id,
@@ -870,9 +835,7 @@ def detect_hep_amplitude(
             for _ in range(n_permutations):
                 perm_baseline = np.random.permutation(baseline_amplitudes)
                 perm_amplitudes.append(np.max(np.abs(perm_baseline)))
-            p_value = (
-                np.sum(np.array(perm_amplitudes) >= abs(hep_amplitude)) / n_permutations
-            )
+            p_value = np.sum(np.array(perm_amplitudes) >= abs(hep_amplitude)) / n_permutations
         else:
             p_value = 0.05  # Assume significant if insufficient baseline
 
@@ -894,9 +857,7 @@ def detect_hep_amplitude(
         # Determine significance and falsification status
         significant = p_value < FalsificationThresholds.ALPHA_LEVEL
         meets_threshold = abs(hep_amplitude) >= threshold
-        effect_size_valid = FalsificationThresholds.check_effect_size_range(
-            effect_size, "hep"
-        )
+        effect_size_valid = FalsificationThresholds.check_effect_size_range(effect_size, "hep")
 
         falsification_passed = meets_threshold and significant and effect_size_valid
 
@@ -980,9 +941,7 @@ def detect_p3b_amplitude_from_literature(
 
         # For synthetic data, use literature-based effect size
         literature_effect_size = abs(p3b_amplitude) / 0.3  # Normalize to threshold
-        effect_size_valid = FalsificationThresholds.check_effect_size_range(
-            literature_effect_size, "p3b"
-        )
+        effect_size_valid = FalsificationThresholds.check_effect_size_range(literature_effect_size, "p3b")
 
         # Generate reasonable p-value based on distance from threshold
         z_score = (abs(p3b_amplitude) - threshold) / 0.2  # SD from literature
@@ -1121,9 +1080,7 @@ def detect_p3b_amplitude_from_eeg(
             for _ in range(n_permutations):
                 perm_baseline = np.random.permutation(baseline_amplitudes)
                 perm_amplitudes.append(np.max(np.abs(perm_baseline)))
-            p_value = (
-                np.sum(np.array(perm_amplitudes) >= abs(p3b_amplitude)) / n_permutations
-            )
+            p_value = np.sum(np.array(perm_amplitudes) >= abs(p3b_amplitude)) / n_permutations
         else:
             p_value = 0.05  # Assume significant if insufficient baseline
 
@@ -1136,9 +1093,7 @@ def detect_p3b_amplitude_from_eeg(
         # Determine significance and falsification status
         significant = p_value < FalsificationThresholds.ALPHA_LEVEL
         meets_threshold = abs(p3b_amplitude) >= threshold
-        effect_size_valid = FalsificationThresholds.check_effect_size_range(
-            effect_size, "p3b"
-        )
+        effect_size_valid = FalsificationThresholds.check_effect_size_range(effect_size, "p3b")
 
         falsification_passed = meets_threshold and significant and effect_size_valid
 
@@ -1282,9 +1237,7 @@ def tms_double_dissociation_test(
             signature_differences[key] = diff
 
             # Calculate effect size (Cohen's d)
-            pooled_std = np.sqrt(
-                (np.std(insula_filtered) ** 2 + np.std(dlpfc_filtered) ** 2) / 2
-            )
+            pooled_std = np.sqrt((np.std(insula_filtered) ** 2 + np.std(dlpfc_filtered) ** 2) / 2)
             if pooled_std > 0:
                 effect_sizes[key] = diff / pooled_std
             else:
@@ -1301,9 +1254,7 @@ def tms_double_dissociation_test(
         }
 
         weighted_dissociation = sum(
-            signature_differences[key] * weights.get(key, 0.1)
-            for key in weights.keys()
-            if key in signature_differences
+            signature_differences[key] * weights.get(key, 0.1) for key in weights.keys() if key in signature_differences
         )
 
         # Statistical significance test
@@ -1325,17 +1276,14 @@ def tms_double_dissociation_test(
             perm_signatures2 = calculate_signatures(perm_group2)
 
             perm_diff = sum(
-                abs(perm_signatures1[key] - perm_signatures2[key])
-                * weights.get(key, 0.1)
+                abs(perm_signatures1[key] - perm_signatures2[key]) * weights.get(key, 0.1)
                 for key in weights.keys()
                 if key in perm_signatures1
             )
             null_distributions.append(perm_diff)
 
         null_distributions_arr = np.array(null_distributions)
-        p_value = (
-            np.sum(null_distributions_arr >= weighted_dissociation) / n_permutations
-        )
+        p_value = np.sum(null_distributions_arr >= weighted_dissociation) / n_permutations
 
         # Calculate overall effect size
         overall_effect_size = np.mean(list(effect_sizes.values()))
@@ -1348,13 +1296,9 @@ def tms_double_dissociation_test(
         # Determine significance and falsification status
         significant = bool(p_value < FalsificationThresholds.ALPHA_LEVEL)
         meets_threshold = bool(weighted_dissociation >= threshold)
-        effect_size_valid = bool(
-            overall_effect_size >= FalsificationThresholds.MIN_EFFECT_SIZE
-        )
+        effect_size_valid = bool(overall_effect_size >= FalsificationThresholds.MIN_EFFECT_SIZE)
 
-        falsification_passed = bool(
-            significant and meets_threshold and effect_size_valid
-        )
+        falsification_passed = bool(significant and meets_threshold and effect_size_valid)
 
         # Create detailed description
         description_parts = [
@@ -1438,14 +1382,10 @@ def frequency_specific_power_analysis(
     try:
         # Compute power spectral density
         if method == "welch":
-            freqs, psd = signal.welch(
-                eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2)
-            )
+            freqs, psd = signal.welch(eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2))
         else:
             # Default to welch for now
-            freqs, psd = signal.welch(
-                eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2)
-            )
+            freqs, psd = signal.welch(eeg_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2))
 
         # Calculate total power for normalization
         total_power = simps(psd, freqs)
@@ -1481,9 +1421,7 @@ def frequency_specific_power_analysis(
 
             for _ in range(n_permutations):
                 perm_data = np.random.permutation(eeg_data)
-                _, perm_psd = signal.welch(
-                    perm_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2)
-                )
+                _, perm_psd = signal.welch(perm_data, fs=fs, nperseg=min(1024, len(eeg_data) // 2))
                 perm_band_psd = perm_psd[band_mask]
                 perm_band_power = simps(perm_band_psd, band_freqs)
                 perm_powers.append(perm_band_power)
@@ -1661,21 +1599,15 @@ def mne_compatible_analysis(
                 psd_mne = psd_welch(mne_epochs, fmin=0.5, fmax=100, n_fft=256)
                 results["metadata"]["mne_psd"] = {
                     "frequencies": psd_mne[0].tolist(),
-                    "power": psd_mne[1]
-                    .mean(axis=0)
-                    .tolist(),  # Average across channels
+                    "power": psd_mne[1].mean(axis=0).tolist(),  # Average across channels
                 }
 
                 # Time-frequency analysis if requested
                 if analysis_type == "all":
                     freqs = np.arange(4, 100, 2)  # 4-100 Hz in 2 Hz steps
                     n_cycles = freqs / 2.0  # Different number of cycles per frequency
-                    power = tfr_morlet(
-                        mne_epochs, freqs=freqs, n_cycles=n_cycles, return_average=False
-                    )
-                    avg_power = power.data.mean(
-                        axis=(0, 1)
-                    )  # Average across epochs and channels
+                    power = tfr_morlet(mne_epochs, freqs=freqs, n_cycles=n_cycles, return_average=False)
+                    avg_power = power.data.mean(axis=(0, 1))  # Average across epochs and channels
                     results["metadata"]["time_frequency"] = {
                         "frequencies": freqs.tolist(),
                         "power": avg_power.tolist(),
@@ -1772,18 +1704,14 @@ def detect_p3_amplitude(
         # Find peaks in P3 window
         # prominence should be at least 2x the standard deviation of noise
         noise_std = np.std(baseline) if len(baseline) > 0 else 1.0
-        peaks, properties = signal.find_peaks(
-            p3_corrected, height=2 * noise_std, prominence=2 * noise_std
-        )
+        peaks, properties = signal.find_peaks(p3_corrected, height=2 * noise_std, prominence=2 * noise_std)
 
         if len(peaks) > 0:
             # Find the peak in the middle of the P3 window (400-500ms)
             p3_center_start = int(0.4 * fs) + stimulus_onset_idx
             p3_center_end = int(0.5 * fs) + stimulus_onset_idx
             center_peaks = [
-                (p, properties["peak_heights"][i])
-                for i, p in enumerate(peaks)
-                if p3_center_start <= p <= p3_center_end
+                (p, properties["peak_heights"][i]) for i, p in enumerate(peaks) if p3_center_start <= p <= p3_center_end
             ]
 
             if center_peaks:
@@ -1809,10 +1737,7 @@ def detect_p3_amplitude(
                 for _ in range(n_permutations):
                     perm_baseline = np.random.permutation(baseline_amplitudes)
                     perm_amplitudes.append(np.max(np.abs(perm_baseline)))
-                p_value = (
-                    np.sum(np.array(perm_amplitudes) >= abs(p3_amplitude))
-                    / n_permutations
-                )
+                p_value = np.sum(np.array(perm_amplitudes) >= abs(p3_amplitude)) / n_permutations
             else:
                 p_value = 0.05  # Assume significant if insufficient baseline
 
@@ -1824,9 +1749,7 @@ def detect_p3_amplitude(
 
             # Confidence interval
             if len(baseline_amplitudes) > 1:
-                std_error = np.std(baseline_amplitudes) / np.sqrt(
-                    len(baseline_amplitudes)
-                )
+                std_error = np.std(baseline_amplitudes) / np.sqrt(len(baseline_amplitudes))
                 ci_lower = p3_amplitude - 1.96 * std_error
                 ci_upper = p3_amplitude + 1.96 * std_error
                 confidence_interval = (ci_lower, ci_upper)
@@ -1834,9 +1757,7 @@ def detect_p3_amplitude(
                 confidence_interval = (p3_amplitude, p3_amplitude)
 
             # Check if effect size is within acceptable range for P3b
-            effect_size_valid = FalsificationThresholds.check_effect_size_range(
-                effect_size, "p3b"
-            )
+            effect_size_valid = FalsificationThresholds.check_effect_size_range(effect_size, "p3b")
 
             # Determine significance and falsification status
             significant = p_value < FalsificationThresholds.ALPHA_LEVEL
@@ -1911,9 +1832,7 @@ def pci_hep_joint_auc_classification(
 
     try:
         # Validate input lengths
-        if len(pci_scores) != len(hep_amplitudes) or len(pci_scores) != len(
-            consciousness_labels
-        ):
+        if len(pci_scores) != len(hep_amplitudes) or len(pci_scores) != len(consciousness_labels):
             return NeuralSignatureResult(
                 prediction_id=prediction_id,
                 metric_name=metric_name,
@@ -2016,11 +1935,7 @@ def pci_hep_joint_auc_classification(
 
             perm_auc = 0.0
             for j in range(len(perm_fp_list) - 1):
-                perm_auc += (
-                    (perm_fp_list[j + 1] - perm_fp_list[j])
-                    * (perm_tp_list[j] + perm_tp_list[j + 1])
-                    / 2
-                )
+                perm_auc += (perm_fp_list[j + 1] - perm_fp_list[j]) * (perm_tp_list[j] + perm_tp_list[j + 1]) / 2
 
             perm_aucs.append(perm_auc)
 
@@ -2097,9 +2012,7 @@ def dmn_connectivity_specificity(
     prediction_id = PaperPrediction.P4_B.value
     metric_name = "dmn_connectivity_specificity"
     # This is a composite test, so we'll use the average of the two conditions as the main metric
-    threshold = (
-        0.35  # Composite threshold (will be checked against individual conditions)
-    )
+    threshold = 0.35  # Composite threshold (will be checked against individual conditions)
 
     try:
         # Validate input
@@ -2130,9 +2043,7 @@ def dmn_connectivity_specificity(
         n_permutations = 1000
         perm_specificities = []
 
-        combined_correlations = np.concatenate(
-            [dmn_pci_correlations, dmn_hep_correlations]
-        )
+        combined_correlations = np.concatenate([dmn_pci_correlations, dmn_hep_correlations])
 
         for _ in range(n_permutations):
             # Randomly shuffle and reassign to PCI/HEP groups
@@ -2146,9 +2057,7 @@ def dmn_connectivity_specificity(
             perm_specificities.append(perm_specificity)
 
         # Calculate p-value
-        p_value = (
-            np.sum(np.array(perm_specificities) >= composite_score) / n_permutations
-        )
+        p_value = np.sum(np.array(perm_specificities) >= composite_score) / n_permutations
 
         # Calculate effect size
         perm_mean = np.mean(perm_specificities)
@@ -2226,9 +2135,7 @@ def cold_pressor_pci_response(
 
     try:
         # Validate input
-        if len(pci_baseline) != len(pci_cold_pressor) or len(pci_baseline) != len(
-            patient_states
-        ):
+        if len(pci_baseline) != len(pci_cold_pressor) or len(pci_baseline) != len(patient_states):
             return NeuralSignatureResult(
                 prediction_id=prediction_id,
                 metric_name=metric_name,
@@ -2241,9 +2148,7 @@ def cold_pressor_pci_response(
 
         # Calculate percentage change for each patient
         pci_changes = (pci_cold_pressor - pci_baseline) / pci_baseline
-        pci_changes = np.where(
-            np.isfinite(pci_changes), pci_changes, 0
-        )  # Handle division by zero
+        pci_changes = np.where(np.isfinite(pci_changes), pci_changes, 0)  # Handle division by zero
 
         # Separate by patient state
         mcs_mask = patient_states == 1
@@ -2311,16 +2216,12 @@ def cold_pressor_pci_response(
             )
 
         # Calculate p-value
-        p_value = (
-            np.sum(np.array(perm_differentials) >= differential_score) / n_permutations
-        )
+        p_value = np.sum(np.array(perm_differentials) >= differential_score) / n_permutations
 
         # Calculate effect size
         perm_mean = np.mean(perm_differentials)
         perm_std = np.std(perm_differentials)
-        effect_size = (
-            (differential_score - perm_mean) / perm_std if perm_std > 0 else 0.0
-        )
+        effect_size = (differential_score - perm_mean) / perm_std if perm_std > 0 else 0.0
 
         # Confidence interval
         std_error = perm_std / np.sqrt(n_permutations)
@@ -2393,9 +2294,7 @@ def baseline_recovery_prediction(
 
     try:
         # Validate input
-        if len(pci_baseline) != len(hep_baseline) or len(pci_baseline) != len(
-            recovery_scores
-        ):
+        if len(pci_baseline) != len(hep_baseline) or len(pci_baseline) != len(recovery_scores):
             return NeuralSignatureResult(
                 prediction_id=prediction_id,
                 metric_name=metric_name,
@@ -2529,9 +2428,7 @@ def baseline_recovery_prediction(
                 perm_y_pred = np.dot(X, perm_beta)
 
                 perm_ss_residual = np.sum((perm_y - perm_y_pred) ** 2)
-                perm_r2 = (
-                    1 - (perm_ss_residual / perm_ss_total) if perm_ss_total > 0 else 0
-                )
+                perm_r2 = 1 - (perm_ss_residual / perm_ss_total) if perm_ss_total > 0 else 0
                 perm_r_squared.append(perm_r2)
 
         # Calculate p-value
@@ -2553,9 +2450,7 @@ def baseline_recovery_prediction(
         meets_threshold = r_squared >= threshold
         effect_size_valid = effect_size >= FalsificationThresholds.MIN_EFFECT_SIZE
 
-        falsification_passed = bool(
-            meets_threshold and significant and effect_size_valid
-        )
+        falsification_passed = bool(meets_threshold and significant and effect_size_valid)
 
         # Report mean ± SD of R² when using RepeatedKFold
         if SKLEARN_AVAILABLE and len(pci_baseline) >= 10:
@@ -2660,9 +2555,7 @@ class NeuralSignatureValidator:
             return {"passed": False, "status": "ERROR", "reason": "Invalid result type"}
 
         # P4.a: PCI+HEP joint AUC > 0.80 for DoC classification
-        if all(
-            k in data for k in ["pci_scores", "hep_amplitudes", "consciousness_labels"]
-        ):
+        if all(k in data for k in ["pci_scores", "hep_amplitudes", "consciousness_labels"]):
             result_p4a = pci_hep_joint_auc_classification(
                 data["pci_scores"],
                 data["hep_amplitudes"],
@@ -2679,9 +2572,7 @@ class NeuralSignatureValidator:
             results["named_predictions"]["P4.b"] = format_res(result_p4b)
 
         # P4.c: Cold pressor increases PCI >10% in MCS, not VS
-        if all(
-            k in data for k in ["pci_baseline", "pci_cold_pressor", "patient_states"]
-        ):
+        if all(k in data for k in ["pci_baseline", "pci_cold_pressor", "patient_states"]):
             result_p4c = cold_pressor_pci_response(
                 data["pci_baseline"],
                 data["pci_cold_pressor"],
@@ -2708,26 +2599,19 @@ class NeuralSignatureValidator:
         # Bonferroni correction across P4.a-P4.d (4 simultaneous tests)
         p4_order = ["P4.a", "P4.b", "P4.c", "P4.d"]
         p4_keys = [k for k in p4_order if k in results["named_predictions"]]
-        p4_pvals = [
-            results["named_predictions"][k].get("p_value", 1.0) for k in p4_keys
-        ]
+        p4_pvals = [results["named_predictions"][k].get("p_value", 1.0) for k in p4_keys]
 
         if p4_pvals and apply_multiple_comparison_correction is not None:
-            bonferroni = apply_multiple_comparison_correction(
-                p_values=p4_pvals, method="bonferroni", alpha=0.05
-            )
+            bonferroni = apply_multiple_comparison_correction(p_values=p4_pvals, method="bonferroni", alpha=0.05)
             adj = bonferroni.get("adjusted_p_values", p4_pvals)
             for key, adj_p in zip(p4_keys, adj):
                 results["named_predictions"][key]["p_value_bonferroni"] = float(adj_p)
                 # Re-evaluate pass using Bonferroni-corrected threshold
                 results["named_predictions"][key]["passed"] = (
-                    results["named_predictions"][key]["passed"]
-                    and adj_p < FalsificationThresholds.ALPHA_BONFERRONI_P4
+                    results["named_predictions"][key]["passed"] and adj_p < FalsificationThresholds.ALPHA_BONFERRONI_P4
                 )
             results["metadata"]["bonferroni_applied"] = True
-            results["metadata"][
-                "bonferroni_alpha"
-            ] = FalsificationThresholds.ALPHA_BONFERRONI_P4
+            results["metadata"]["bonferroni_alpha"] = FalsificationThresholds.ALPHA_BONFERRONI_P4
         else:
             results["metadata"]["bonferroni_applied"] = False
 
@@ -2737,9 +2621,7 @@ class NeuralSignatureValidator:
         if results["metadata"].get("data_source") == "synthetic":
             for key in results["named_predictions"]:
                 results["named_predictions"][key]["passed"] = None
-                results["named_predictions"][key][
-                    "validation_status"
-                ] = "SYNTHETIC_PENDING_EMPIRICAL"
+                results["named_predictions"][key]["validation_status"] = "SYNTHETIC_PENDING_EMPIRICAL"
 
         # Update metadata
         results["metadata"]["total_predictions"] = len(results["named_predictions"])
@@ -2769,9 +2651,7 @@ class NeuralSignatureValidator:
         # Sample PCI independently from empirical distribution (Casali et al. 2013)
         # Conscious: 0.31-0.73, Unconscious: 0.12-0.31, VS: 0.09-0.28
         # Use broader distribution to include overlap
-        pci_scores = (
-            np.random.beta(2, 3, n_patients) * 0.8
-        )  # Beta(2,3) gives realistic spread
+        pci_scores = np.random.beta(2, 3, n_patients) * 0.8  # Beta(2,3) gives realistic spread
 
         # Sample HEP independently from empirical distribution (Nummenmaa et al. 2013)
         # HEP amplitudes: 10-50 µV with physiological plausibility
@@ -2786,9 +2666,7 @@ class NeuralSignatureValidator:
 
         # Generate consciousness labels independently
         # Use realistic prevalence: ~30% MCS, ~40% VS, ~30% emerging consciousness
-        consciousness_states = np.random.choice(
-            [0, 1, 2], n_patients, p=[0.4, 0.3, 0.3]
-        )
+        consciousness_states = np.random.choice([0, 1, 2], n_patients, p=[0.4, 0.3, 0.3])
         # 0=VS, 1=MCS, 2=Emerging consciousness
         consciousness_labels = (consciousness_states >= 1).astype(int)
 
@@ -2807,9 +2685,7 @@ class NeuralSignatureValidator:
 
         # Independent cold pressor effects - NOT tied to consciousness states
         # Uses random variation that doesn't encode the expected relationship
-        pci_effects = np.random.normal(
-            0.05, 0.08, n_patients
-        )  # Independent random effects
+        pci_effects = np.random.normal(0.05, 0.08, n_patients)  # Independent random effects
         pci_cold_pressor = pci_baseline * (1 + pci_effects)
         pci_cold_pressor = np.clip(pci_cold_pressor, 0, 1)
 
@@ -2822,9 +2698,7 @@ class NeuralSignatureValidator:
         # Recovery scores from INDEPENDENT factors (age, injury severity, time)
         # NOT using PCI/HEP to predict recovery - that would be circular
         # Use purely independent random factors with realistic distribution
-        recovery_scores = np.clip(
-            np.random.beta(2, 2, 30), 0, 1  # Independent beta distribution
-        )
+        recovery_scores = np.clip(np.random.beta(2, 2, 30), 0, 1)  # Independent beta distribution
 
         return {
             "pci_scores": pci_scores,
@@ -2854,9 +2728,7 @@ def run_protocol():
     if eeg_files:
         try:
             # Try to integrate VP-09 empirical results
-            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import (
-                APGINeuralSignaturesValidator,
-            )
+            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import APGINeuralSignaturesValidator
 
             validator = APGINeuralSignaturesValidator()
             # Simplified mock run for aggregator - in production this would load real files
@@ -2885,33 +2757,25 @@ def run_protocol():
                 "passed": cross_species_p4["P4.a"] if not _synthetic else False,
                 "actual": "VP-09_Empirical" if not _synthetic else "synthetic_test",
                 "threshold": "AUC > 0.80",
-                "validation_status": (
-                    "VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"
-                ),
+                "validation_status": ("VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"),
             },
             "P4.b": {
                 "passed": cross_species_p4["P4.b"] if not _synthetic else False,
                 "actual": "VP-09_Empirical" if not _synthetic else "synthetic_test",
                 "threshold": "DMN-PCI r > 0.50",
-                "validation_status": (
-                    "VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"
-                ),
+                "validation_status": ("VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"),
             },
             "P4.c": {
                 "passed": cross_species_p4["P4.c"] if not _synthetic else False,
                 "actual": "VP-09_Empirical" if not _synthetic else "synthetic_test",
                 "threshold": "cold pressor response",
-                "validation_status": (
-                    "VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"
-                ),
+                "validation_status": ("VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"),
             },
             "P4.d": {
                 "passed": cross_species_p4["P4.d"] if not _synthetic else False,
                 "actual": "VP-09_Empirical" if not _synthetic else "synthetic_test",
                 "threshold": "recovery ΔR² > 0.10",
-                "validation_status": (
-                    "VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"
-                ),
+                "validation_status": ("VALIDATED" if not _synthetic else "SYNTHETIC_TEST_FAILED"),
             },
         },
         "errors": [],
@@ -3028,9 +2892,7 @@ def comprehensive_validation_framework(
             results["detailed_results"]["theta_gamma_pac"] = pac_result
 
             # P1.3: P3b amplitude detection
-            p3_result = detect_p3b_amplitude_from_eeg(
-                raw_data, actual_fs, stimulus_time
-            )
+            p3_result = detect_p3b_amplitude_from_eeg(raw_data, actual_fs, stimulus_time)
             results["prediction_results"]["P1.3"] = p3_result
             results["detailed_results"]["p3b"] = p3_result
 
@@ -3040,14 +2902,8 @@ def comprehensive_validation_framework(
             results["detailed_results"]["hep"] = hep_result
 
         # P2.b: TMS double-dissociation test
-        if (
-            include_tms_test
-            and tms_insula_data is not None
-            and tms_dlpfc_data is not None
-        ):
-            tms_result = tms_double_dissociation_test(
-                tms_insula_data, tms_dlpfc_data, fs=actual_fs
-            )
+        if include_tms_test and tms_insula_data is not None and tms_dlpfc_data is not None:
+            tms_result = tms_double_dissociation_test(tms_insula_data, tms_dlpfc_data, fs=actual_fs)
             results["prediction_results"]["P2.b"] = tms_result
             results["detailed_results"]["tms_dissociation"] = tms_result
 
@@ -3079,16 +2935,10 @@ def comprehensive_validation_framework(
         # P3.1: Consciousness markers integration
         if analysis_type == "all":
             # Combine all markers for integrated assessment
-            core_results = [
-                r
-                for r in results["prediction_results"].values()
-                if isinstance(r, NeuralSignatureResult)
-            ]
+            core_results = [r for r in results["prediction_results"].values() if isinstance(r, NeuralSignatureResult)]
             if core_results:
                 avg_significance = np.mean([r.significant for r in core_results])
-                avg_falsification = np.mean(
-                    [r.falsification_passed for r in core_results]
-                )
+                avg_falsification = np.mean([r.falsification_passed for r in core_results])
 
                 integration_result = NeuralSignatureResult(
                     prediction_id=PaperPrediction.P3_1.value,
@@ -3096,9 +2946,7 @@ def comprehensive_validation_framework(
                     value=float(avg_falsification),
                     threshold=0.5,  # 50% of markers should pass (more lenient)
                     significant=bool(avg_significance > 0.5),
-                    effect_size=float(
-                        np.mean([r.effect_size or 0 for r in core_results])
-                    ),
+                    effect_size=float(np.mean([r.effect_size or 0 for r in core_results])),
                     description=f"Integrated consciousness markers: {avg_falsification:.2f} passed",
                     falsification_passed=bool(avg_falsification >= 0.5),
                 )
@@ -3117,16 +2965,9 @@ def comprehensive_validation_framework(
                         return max(abs(xi[a] - xj[a]) for a in range(m))
 
                     def _phi(m):
-                        x = np.array(
-                            [data[i : i + m] for i in range(len(data) - m + 1)]
-                        )
+                        x = np.array([data[i : i + m] for i in range(len(data) - m + 1)])
                         C = len(
-                            [
-                                1
-                                for i in range(len(x) - 1)
-                                for j in range(i + 1, len(x))
-                                if _maxdist(x[i], x[j], m) <= r
-                            ]
+                            [1 for i in range(len(x) - 1) for j in range(i + 1, len(x)) if _maxdist(x[i], x[j], m) <= r]
                         )
                         return C / (len(x) * (len(x) - 1))
 
@@ -3160,24 +3001,18 @@ def comprehensive_validation_framework(
         all_predictions = list(results["prediction_results"].values())
         results["validation_summary"]["total_predictions"] = len(all_predictions)
         results["validation_summary"]["passed_predictions"] = sum(
-            1
-            for r in all_predictions
-            if isinstance(r, NeuralSignatureResult) and r.falsification_passed
+            1 for r in all_predictions if isinstance(r, NeuralSignatureResult) and r.falsification_passed
         )
         results["validation_summary"]["failed_predictions"] = (
-            results["validation_summary"]["total_predictions"]
-            - results["validation_summary"]["passed_predictions"]
+            results["validation_summary"]["total_predictions"] - results["validation_summary"]["passed_predictions"]
         )
 
         # Overall falsification status
         if results["validation_summary"]["total_predictions"] > 0:
             pass_rate = (
-                results["validation_summary"]["passed_predictions"]
-                / results["validation_summary"]["total_predictions"]
+                results["validation_summary"]["passed_predictions"] / results["validation_summary"]["total_predictions"]
             )
-            results["validation_summary"]["overall_falsification_status"] = (
-                pass_rate >= 0.6
-            )  # 60% pass rate
+            results["validation_summary"]["overall_falsification_status"] = pass_rate >= 0.6  # 60% pass rate
             results["validation_summary"]["pass_rate"] = pass_rate
         else:
             results["validation_summary"]["overall_falsification_status"] = False
@@ -3240,9 +3075,7 @@ def run_neural_signature_validation():
     # Create gamma with strong amplitude modulation by theta phase (theta-gamma PAC)
     # Gamma amplitude is much higher at specific theta phases (e.g., theta phase = 0)
     gamma_carrier = np.sin(2 * np.pi * 55 * time) * np.exp(-0.1 * time)
-    gamma_modulation = 1.0 + 1.5 * np.cos(
-        theta_phase
-    )  # Very strong modulation by theta phase
+    gamma_modulation = 1.0 + 1.5 * np.cos(theta_phase)  # Very strong modulation by theta phase
     gamma_signal = 0.8 * gamma_carrier * gamma_modulation
 
     # P3 component (peak at 400ms post-stimulus) - enhanced for better detection
@@ -3251,9 +3084,7 @@ def run_neural_signature_validation():
     p3_width = 0.15  # 150ms width (increased)
     p3_center = p3_start + p3_width / 2
     # Create a more realistic P3b with proper amplitude (>0.3 µV)
-    p3_envelope = 2.5 * np.exp(
-        -((time - p3_center) ** 2 / (2 * (0.08) ** 2))
-    )  # Higher amplitude
+    p3_envelope = 2.5 * np.exp(-((time - p3_center) ** 2 / (2 * (0.08) ** 2)))  # Higher amplitude
     p3_signal = p3_envelope * np.sin(2 * np.pi * 8 * time)  # Theta frequency component
 
     # HEP component (peak at 100ms post-stimulus) - enhanced for better detection
@@ -3262,21 +3093,11 @@ def run_neural_signature_validation():
     hep_width = 0.08  # 80ms width (increased)
     hep_center = hep_start + hep_width / 2
     # Create a more realistic HEP with proper amplitude (>0.2 µV)
-    hep_envelope = 2.2 * np.exp(
-        -((time - hep_center) ** 2 / (2 * (0.04) ** 2))
-    )  # Higher amplitude
-    hep_signal = hep_envelope * np.sin(
-        2 * np.pi * 12 * time
-    )  # Beta frequency component
+    hep_envelope = 2.2 * np.exp(-((time - hep_center) ** 2 / (2 * (0.04) ** 2)))  # Higher amplitude
+    hep_signal = hep_envelope * np.sin(2 * np.pi * 12 * time)  # Beta frequency component
 
     # Combine signals
-    eeg_data = (
-        gamma_signal
-        + theta_signal
-        + p3_signal
-        + hep_signal
-        + 0.1 * np.random.randn(len(time))
-    )
+    eeg_data = gamma_signal + theta_signal + p3_signal + hep_signal + 0.1 * np.random.randn(len(time))
 
     # Create synthetic TMS data for double-dissociation test
     # Insula stimulation (stronger gamma response)
@@ -3314,41 +3135,25 @@ def run_neural_signature_validation():
     )
 
     # Run MNE-compatible analysis
-    mne_results = mne_compatible_analysis(
-        eeg_data=eeg_data_structure, analysis_type="all", fs=fs, channels=["EEG001"]
-    )
+    mne_results = mne_compatible_analysis(eeg_data=eeg_data_structure, analysis_type="all", fs=fs, channels=["EEG001"])
 
     # Generate summary report
     summary = {
         "comprehensive_validation": comprehensive_results,
         "mne_analysis": mne_results,
         "validation_summary": {
-            "total_predictions_tested": comprehensive_results["validation_summary"][
-                "total_predictions"
-            ],
-            "predictions_passed": comprehensive_results["validation_summary"][
-                "passed_predictions"
-            ],
-            "predictions_failed": comprehensive_results["validation_summary"][
-                "failed_predictions"
-            ],
-            "pass_rate": comprehensive_results["validation_summary"].get(
-                "pass_rate", 0.0
-            ),
+            "total_predictions_tested": comprehensive_results["validation_summary"]["total_predictions"],
+            "predictions_passed": comprehensive_results["validation_summary"]["passed_predictions"],
+            "predictions_failed": comprehensive_results["validation_summary"]["failed_predictions"],
+            "pass_rate": comprehensive_results["validation_summary"].get("pass_rate", 0.0),
             "overall_status": (
-                "PASSED"
-                if comprehensive_results["validation_summary"][
-                    "overall_falsification_status"
-                ]
-                else "FAILED"
+                "PASSED" if comprehensive_results["validation_summary"]["overall_falsification_status"] else "FAILED"
             ),
         },
         "paper_predictions_status": {
             pred_id: {
                 "description": desc,
-                "result": comprehensive_results["prediction_results"].get(
-                    pred_id, "NOT_TESTED"
-                ),
+                "result": comprehensive_results["prediction_results"].get(pred_id, "NOT_TESTED"),
                 "status": (
                     "PASS"
                     if (
@@ -3356,9 +3161,7 @@ def run_neural_signature_validation():
                             comprehensive_results["prediction_results"].get(pred_id),
                             "falsification_passed",
                         )
-                        and comprehensive_results["prediction_results"][
-                            pred_id
-                        ].falsification_passed
+                        and comprehensive_results["prediction_results"][pred_id].falsification_passed
                     )
                     else "FAIL"
                 ),
@@ -3371,9 +3174,7 @@ def run_neural_signature_validation():
     return summary
 
 
-def validate_consciousness_markers(
-    signature_scores: Dict[str, Any], thresholds: Dict[str, float]
-) -> Dict[str, bool]:
+def validate_consciousness_markers(signature_scores: Dict[str, Any], thresholds: Dict[str, float]) -> Dict[str, bool]:
     """Validate consciousness markers against thresholds - DEPRECATED, use comprehensive_validation_framework"""
 
     validation_results = {}
@@ -3532,9 +3333,7 @@ if __name__ == "__main__":
     validator = NeuralSignatureValidator()
     validation_results = validator.run_validation()
 
-    print(
-        f"Total Predictions Tested: {validation_results['metadata']['total_predictions']}"
-    )
+    print(f"Total Predictions Tested: {validation_results['metadata']['total_predictions']}")
     print(f"Predictions Passed: {validation_results['metadata']['passed_predictions']}")
     print(f"Data Source: {validation_results['metadata']['data_source']}")
 
@@ -3545,12 +3344,8 @@ if __name__ == "__main__":
             result = validation_results[pred_id]
             status = "PASS" if result["passed"] else "FAIL"
             print(f"{pred_id}: {status} - {result['description']}")
-            print(
-                f"  Value: {result['value']:.3f}, Threshold: {result['threshold']:.3f}"
-            )
-            print(
-                f"  P-value: {result['p_value']:.3f}, Effect Size: {result['effect_size']:.3f}"
-            )
+            print(f"  Value: {result['value']:.3f}, Threshold: {result['threshold']:.3f}")
+            print(f"  P-value: {result['p_value']:.3f}, Effect Size: {result['effect_size']:.3f}")
             print()
 
     print("=" * 80)
@@ -3578,27 +3373,22 @@ if __name__ == "__main__":
     print("-" * 40)
     comprehensive_results = results["comprehensive_validation"]["prediction_results"]
     for pred_id, result in comprehensive_results.items():
-        if isinstance(result, NeuralSignatureResult):
-            print(f"{pred_id}:")
-            print(
-                f"  Value: {result.value:.3f}"
-                if result.value is not None
-                else f"  Value: {result.value}"
-            )
-            print(
-                f"  Threshold: {result.threshold:.3f}"
-                if result.threshold is not None
-                else f"  Threshold: {result.threshold}"
-            )
-            print(f"  Significant: {result.significant}")
-            print(
-                f"  Effect Size: {result.effect_size:.3f}"
-                if result.effect_size is not None
-                else f"  Effect Size: {result.effect_size}"
-            )
-            print(f"  Falsification Passed: {result.falsification_passed}")
-            print(f"  Description: {result.description}")
-            print()
+        print(f"{pred_id}:")
+        print(f"  Value: {result.value:.3f}" if result.value is not None else f"  Value: {result.value}")
+        print(
+            f"  Threshold: {result.threshold:.3f}"
+            if result.threshold is not None
+            else f"  Threshold: {result.threshold}"
+        )
+        print(f"  Significant: {result.significant}")
+        print(
+            f"  Effect Size: {result.effect_size:.3f}"
+            if result.effect_size is not None
+            else f"  Effect Size: {result.effect_size}"
+        )
+        print(f"  Falsification Passed: {result.falsification_passed}")
+        print(f"  Description: {result.description}")
+        print()
 
     print("MNE Analysis Available:", results["mne_analysis"]["mne_available"])
     if results["mne_analysis"]["mne_available"]:
@@ -3662,9 +3452,7 @@ if __name__ == "__main__":
                 )
 
                 # Write paper predictions
-                for pred_id, pred_info in results.get(
-                    "paper_predictions_status", {}
-                ).items():
+                for pred_id, pred_info in results.get("paper_predictions_status", {}).items():
                     writer.writerow(
                         [
                             pred_id,
@@ -3678,21 +3466,18 @@ if __name__ == "__main__":
 
                 # Write comprehensive validation results
                 for pred_id, result in (
-                    results.get("comprehensive_validation", {})
-                    .get("prediction_results", {})
-                    .items()
+                    results.get("comprehensive_validation", {}).get("prediction_results", {}).items()
                 ):
-                    if hasattr(result, "value"):  # NeuralSignatureResult
-                        writer.writerow(
-                            [
-                                pred_id,
-                                "PASS" if result.falsification_passed else "FAIL",
-                                result.description,
-                                result.falsification_passed,
-                                result.value,
-                                result.threshold,
-                            ]
-                        )
+                    writer.writerow(
+                        [
+                            pred_id,
+                            "PASS" if result.falsification_passed else "FAIL",
+                            result.description,
+                            result.falsification_passed,
+                            result.value,
+                            result.threshold,
+                        ]
+                    )
             print(f"✓ Saved CSV results to {csv_path}")
         except Exception as e:
             print(f"⚠ Failed to save CSV: {e}")
@@ -3705,9 +3490,7 @@ if __name__ == "__main__":
                 """Custom plot for FP-09 Neural Signatures"""
                 # Get predictions from both sources
                 paper_preds = results.get("paper_predictions_status", {})
-                comp_preds = results.get("comprehensive_validation", {}).get(
-                    "prediction_results", {}
-                )
+                comp_preds = results.get("comprehensive_validation", {}).get("prediction_results", {})
 
                 passed = 0
                 total = 0
@@ -3720,10 +3503,9 @@ if __name__ == "__main__":
 
                 # Count from comprehensive results
                 for result in comp_preds.values():
-                    if hasattr(result, "falsification_passed"):
-                        total += 1
-                        if result.falsification_passed:
-                            passed += 1
+                    total += 1
+                    if result.falsification_passed:
+                        passed += 1
 
                 if total > 0:
                     metrics = ["Passed", "Failed"]
@@ -3733,18 +3515,12 @@ if __name__ == "__main__":
                         VISUAL_CONSTANTS.STATUS_FAIL,
                     ]
 
-                    wedges, texts, autotexts = ax.pie(
-                        values, labels=metrics, colors=colors, autopct="%1.1f%%"
-                    )
-                    ax.set_title(
-                        f"Neural Signature Validation\n{passed}/{total} Passed"
-                    )
+                    wedges, texts, autotexts = ax.pie(values, labels=metrics, colors=colors, autopct="%1.1f%%")
+                    ax.set_title(f"Neural Signature Validation\n{passed}/{total} Passed")
                     return True
                 return False
 
-            success = add_standard_png_output(
-                9, results, fp09_custom_plot, "Neural Signatures"
-            )
+            success = add_standard_png_output(9, results, fp09_custom_plot, "Neural Signatures")
             if success:
                 print("✓ Generated protocol09.png visualization")
             else:
@@ -3782,9 +3558,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 passed=pred_data.get("passed", False),
                 value=pred_data.get("actual"),
                 threshold=pred_data.get("threshold"),
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
+                status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
                 sources=["FP_09_NeuralSignatures_P3b_HEP"],
                 metadata={

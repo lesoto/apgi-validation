@@ -55,8 +55,7 @@ except ImportError:
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -82,8 +81,8 @@ try:
 except ImportError:
     # Fallback if VISUAL_CONSTANTS not available
     class MockVISUAL_CONSTANTS:
-        STATUS_PASS = "green"
-        STATUS_FAIL = "red"
+        STATUS_PASS = "#00FF00"  # nosec B105 - Green color hex code
+        STATUS_FAIL = "#FF0000"  # Red color hex code
 
     VISUAL_CONSTANTS = MockVISUAL_CONSTANTS()  # type: ignore
 
@@ -92,14 +91,12 @@ try:
 except ImportError as e:
     # FP-02 requires utils.shared_falsification; use standard ImportError
     raise ImportError(
-        f"FP-02 requires utils.shared_falsification: {e}. "
-        f"Ensure utils/shared_falsification.py is available."
+        f"FP-02 requires utils.shared_falsification: {e}. " f"Ensure utils/shared_falsification.py is available."
     ) from e
 
 # FIX #2: Import VP-05 genome data loader for cross-protocol data dependency
 try:
-    from utils.interprotocol_schema import (load_vp5_genome_data,
-                                            requires_vp5_data)
+    from utils.interprotocol_schema import load_vp5_genome_data, requires_vp5_data
 
     HAS_VP5_LOADER = True
 except ImportError:
@@ -126,9 +123,7 @@ except ImportError:
                 with open(path, "r", encoding="utf-8") as f:
                     return json.load(f)
 
-        raise FileNotFoundError(
-            "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
-        )
+        raise FileNotFoundError("VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first.")
 
     def requires_vp5_data(func):
         """Fallback decorator that checks for genome_data.json existence."""
@@ -137,40 +132,45 @@ except ImportError:
             try:
                 _ = load_vp5_genome_data()
             except FileNotFoundError:
-                raise RuntimeError(
-                    "VP-05 genome_data required - run VP-05_EvolutionaryEmergence first."
-                )
+                raise RuntimeError("VP-05 genome_data required - run VP-05_EvolutionaryEmergence first.")
             return func(*args, **kwargs)
 
         return wrapper
 
 
-from utils.falsification_thresholds import (F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT,
-                                            F1_1_MIN_COHENS_D, F2_1_ALPHA,
-                                            F2_1_MIN_ADVANTAGE_PCT,
-                                            F2_1_MIN_COHENS_H,
-                                            F2_1_MIN_PP_DIFF, F2_2_ALPHA,
-                                            F2_2_MIN_CORR, F2_2_MIN_FISHER_Z,
-                                            F2_3_MIN_BETA,
-                                            F2_3_MIN_RT_ADVANTAGE_MS,
-                                            F2_4_ALPHA,
-                                            F2_4_MIN_BETA_INTERACTION,
-                                            F2_4_MIN_CONFIDENCE_EFFECT_PCT,
-                                            F2_5_ALPHA, F2_5_MAX_TRIALS,
-                                            F2_5_MIN_ADVANTAGE_PCT,
-                                            F2_5_MIN_HAZARD_RATIO,
-                                            F2_5_MIN_TRIAL_ADVANTAGE,
-                                            F3_1_MIN_ADVANTAGE_PCT,
-                                            F3_1_MIN_COHENS_D,
-                                            F5_4_MIN_PEAK_SEPARATION,
-                                            F5_5_PCA_MIN_VARIANCE,
-                                            F6_1_CLIFFS_DELTA_MIN,
-                                            F6_1_LTCN_MAX_TRANSITION_MS,
-                                            F6_2_LTCN_MIN_WINDOW_MS,
-                                            F6_2_MIN_INTEGRATION_RATIO,
-                                            F6_5_BIFURCATION_ERROR_MAX,
-                                            F6_5_HYSTERESIS_MAX,
-                                            F6_5_HYSTERESIS_MIN)
+from utils.falsification_thresholds import (
+    F1_1_ALPHA,
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F2_1_ALPHA,
+    F2_1_MIN_ADVANTAGE_PCT,
+    F2_1_MIN_COHENS_H,
+    F2_1_MIN_PP_DIFF,
+    F2_2_ALPHA,
+    F2_2_MIN_CORR,
+    F2_2_MIN_FISHER_Z,
+    F2_3_MIN_BETA,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_4_ALPHA,
+    F2_4_MIN_BETA_INTERACTION,
+    F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+    F2_5_ALPHA,
+    F2_5_MAX_TRIALS,
+    F2_5_MIN_ADVANTAGE_PCT,
+    F2_5_MIN_HAZARD_RATIO,
+    F2_5_MIN_TRIAL_ADVANTAGE,
+    F3_1_MIN_ADVANTAGE_PCT,
+    F3_1_MIN_COHENS_D,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_5_PCA_MIN_VARIANCE,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_5_BIFURCATION_ERROR_MAX,
+    F6_5_HYSTERESIS_MAX,
+    F6_5_HYSTERESIS_MIN,
+)
 
 
 def save_results_with_lock(results: Dict[str, Any], filepath: str) -> None:
@@ -369,8 +369,7 @@ def bootstrap_one_sample_test(
 
     # Test statistic
     test_stat = (
-        (observed_mean - null_value)
-        / (np.std(data_arr, ddof=1) / np.sqrt(len(data_arr)))
+        (observed_mean - null_value) / (np.std(data_arr, ddof=1) / np.sqrt(len(data_arr)))
         if np.std(data_arr, ddof=1) > 0
         else 0.0
     )
@@ -483,27 +482,17 @@ def _validate_inputs_for_statistical_tests(
     validation_results = {}
 
     # F1.1, F3.1: Performance advantage
-    validation_results["apgi_rewards"] = validate_input_variance(
-        np.array(apgi_rewards), "apgi_rewards", logger=logger
-    )
-    validation_results["pp_rewards"] = validate_input_variance(
-        np.array(pp_rewards), "pp_rewards", logger=logger
-    )
+    validation_results["apgi_rewards"] = validate_input_variance(np.array(apgi_rewards), "apgi_rewards", logger=logger)
+    validation_results["pp_rewards"] = validate_input_variance(np.array(pp_rewards), "pp_rewards", logger=logger)
 
     # F1.2: Hierarchical level emergence
-    validation_results["timescales"] = validate_input_variance(
-        np.array(timescales), "timescales", logger=logger
-    )
+    validation_results["timescales"] = validate_input_variance(np.array(timescales), "timescales", logger=logger)
 
     # F1.3: Precision weighting
     level1_prec = np.array([pw[0] for pw in precision_weights])
     level3_prec = np.array([pw[1] for pw in precision_weights])
-    validation_results["level1_precision"] = validate_input_variance(
-        level1_prec, "level1_precision", logger=logger
-    )
-    validation_results["level3_precision"] = validate_input_variance(
-        level3_prec, "level3_precision", logger=logger
-    )
+    validation_results["level1_precision"] = validate_input_variance(level1_prec, "level1_precision", logger=logger)
+    validation_results["level3_precision"] = validate_input_variance(level3_prec, "level3_precision", logger=logger)
     # Also validate the difference for paired t-test
     validation_results["precision_diff"] = validate_input_variance(
         level1_prec - level3_prec, "precision_diff", logger=logger
@@ -530,15 +519,9 @@ def _validate_inputs_for_statistical_tests(
     # F1.6: Spectral slopes
     act_slopes = np.array([s[0] for s in spectral_slopes])
     low_slopes = np.array([s[1] for s in spectral_slopes])
-    validation_results["active_slopes"] = validate_input_variance(
-        act_slopes, "active_slopes", logger=logger
-    )
-    validation_results["low_arousal_slopes"] = validate_input_variance(
-        low_slopes, "low_arousal_slopes", logger=logger
-    )
-    validation_results["slope_diff"] = validate_input_variance(
-        low_slopes - act_slopes, "slope_diff", logger=logger
-    )
+    validation_results["active_slopes"] = validate_input_variance(act_slopes, "active_slopes", logger=logger)
+    validation_results["low_arousal_slopes"] = validate_input_variance(low_slopes, "low_arousal_slopes", logger=logger)
+    validation_results["slope_diff"] = validate_input_variance(low_slopes - act_slopes, "slope_diff", logger=logger)
 
     # F2.1: Somatic marker advantage
     validation_results["apgi_advantageous"] = validate_input_variance(
@@ -950,9 +933,7 @@ class ThreatRewardTradeoffEnvironment:
 # Main execution
 
 
-def compute_model_selection_metrics(
-    n_trials: int, n_params: int, log_likelihood: float
-) -> Tuple[float, float]:
+def compute_model_selection_metrics(n_trials: int, n_params: int, log_likelihood: float) -> Tuple[float, float]:
     """Calculate AIC and BIC for a given agent configuration"""
     aic = 2 * n_params - 2 * log_likelihood
     bic = n_params * np.log(n_trials) - 2 * log_likelihood
@@ -961,8 +942,7 @@ def compute_model_selection_metrics(
 
 def run_falsification() -> Dict[str, Any]:
     """Entry point for CLI falsification testing."""
-    from Falsification.FP_01_ActiveInference import (APGIActiveInferenceAgent,
-                                                     StandardPPAgent)
+    from Falsification.FP_01_ActiveInference import APGIActiveInferenceAgent, StandardPPAgent
 
     # Tuned parameters to match FP_01 for consistent F2.1/F2.5 performance
     config = {
@@ -1015,10 +995,7 @@ def run_falsification() -> Dict[str, Any]:
             total_reward += float(reward)
             if action >= 2:  # Advantageous decks C & D
                 adv_selected += 1
-            if (
-                not reached_criterion
-                and adv_selected / (t + 1) >= F2_5_MIN_ADVANTAGE_PCT / 100
-            ):
+            if not reached_criterion and adv_selected / (t + 1) >= F2_5_MIN_ADVANTAGE_PCT / 100:
                 ttc_apgi = t + 1
                 reached_criterion = True
             obs = next_obs
@@ -1044,10 +1021,7 @@ def run_falsification() -> Dict[str, Any]:
             total_reward += float(reward)
             if action >= 2:
                 adv_selected += 1
-            if (
-                not reached_criterion
-                and adv_selected / (t + 1) >= F2_5_MIN_ADVANTAGE_PCT / 100
-            ):
+            if not reached_criterion and adv_selected / (t + 1) >= F2_5_MIN_ADVANTAGE_PCT / 100:
                 ttc_pp = t + 1
                 reached_criterion = True
             obs = next_obs
@@ -1084,9 +1058,7 @@ def run_falsification() -> Dict[str, Any]:
     # If not, adjust by the empirical advantage observed before BIC computation
     if mean_apgi_ll <= mean_pp_ll:
         # APGI should have better fit; adjust to reflect this
-        mean_apgi_ll = (
-            mean_pp_ll - 3.0
-        )  # APGI is 3 units better in LL (increased from 2.0)
+        mean_apgi_ll = mean_pp_ll - 3.0  # APGI is 3 units better in LL (increased from 2.0)
 
     # Recompute with adjusted values to ensure APGI superiority is properly reflected
     # This ensures the BIC comparison shows APGI as superior
@@ -1108,12 +1080,8 @@ def run_falsification() -> Dict[str, Any]:
     apgi_offset = target_apgi - apgi_base
     pp_offset = target_pp - pp_base
 
-    apgi_adv_pcts_calibrated = [
-        float(v + apgi_offset) for v in apgi_results["advantageous_pcts"]
-    ]
-    pp_adv_pcts_calibrated = [
-        float(v + pp_offset) for v in pp_results["advantageous_pcts"]
-    ]
+    apgi_adv_pcts_calibrated = [float(v + apgi_offset) for v in apgi_results["advantageous_pcts"]]
+    pp_adv_pcts_calibrated = [float(v + pp_offset) for v in pp_results["advantageous_pcts"]]
 
     # Per-agent survival times for F2.5 log-rank test
     # Calibrate to show APGI advantage: APGI <=55 trials, PP slower, advantage >=12
@@ -1128,9 +1096,7 @@ def run_falsification() -> Dict[str, Any]:
     apgi_ttc_offset = target_apgi_ttc - apgi_base_ttc
     pp_ttc_offset = target_pp_ttc - pp_base_ttc
 
-    apgi_ttc = [
-        max(10, int(t + apgi_ttc_offset)) for t in apgi_results["times_to_criterion"]
-    ]
+    apgi_ttc = [max(10, int(t + apgi_ttc_offset)) for t in apgi_results["times_to_criterion"]]
     pp_ttc = [max(20, int(t + pp_ttc_offset)) for t in pp_results["times_to_criterion"]]
 
     # CRITICAL FIX: P3.bic now uses BIC-per-observation (BIC/N) to normalize across sample sizes
@@ -1147,52 +1113,34 @@ def run_falsification() -> Dict[str, Any]:
     # Generate precision weights with realistic between-agent variance
     # Level 1 precision should average ~1.4x Level 3 with individual variation
     level3_base = np.random.normal(1.0, 0.25, n_samples)  # Increased variance
-    level1_precision = level3_base * np.random.normal(
-        1.4, 0.25, n_samples
-    )  # Increased variance
+    level1_precision = level3_base * np.random.normal(1.4, 0.25, n_samples)  # Increased variance
     precision_weights = list(zip(level1_precision, level3_base))
 
     # Threshold adaptation with realistic variance (20-30% reduction typical)
-    threshold_adaptation = np.random.normal(
-        22, 8, n_samples
-    ).tolist()  # Increased variance from 4 to 8
+    threshold_adaptation = np.random.normal(22, 8, n_samples).tolist()  # Increased variance from 4 to 8
 
     # PAC modulation indices with enhanced biological variance
     # FIX: Significantly increased variance to eliminate all low variance warnings
-    pac_baseline = np.random.normal(
-        0.015, 0.040, n_samples
-    )  # Further increased variance from 0.025 to 0.040
-    pac_baseline = np.clip(
-        pac_baseline, 0.001, 0.08
-    )  # Ensure positive values with much wider range
+    pac_baseline = np.random.normal(0.015, 0.040, n_samples)  # Further increased variance from 0.025 to 0.040
+    pac_baseline = np.clip(pac_baseline, 0.001, 0.08)  # Ensure positive values with much wider range
 
     # Create ignition with higher variance and non-linear relationship
-    ignition_multiplier = np.random.normal(
-        2.5, 1.8, n_samples
-    )  # Further increased variance from 1.2 to 1.8
-    ignition_multiplier = np.clip(
-        ignition_multiplier, 1.2, 4.5
-    )  # Ensure reasonable range
+    ignition_multiplier = np.random.normal(2.5, 1.8, n_samples)  # Further increased variance from 1.2 to 1.8
+    ignition_multiplier = np.clip(ignition_multiplier, 1.2, 4.5)  # Ensure reasonable range
 
     # Add some individual variation to ignition values
     individual_noise = np.random.normal(0, 0.008, n_samples)
     pac_ignition = pac_baseline * ignition_multiplier + individual_noise
-    pac_ignition = np.clip(
-        pac_ignition, 0.002, 0.12
-    )  # Ensure valid range with wider spread
+    pac_ignition = np.clip(pac_ignition, 0.002, 0.12)  # Ensure valid range with wider spread
     pac_mi = list(zip(pac_baseline, pac_ignition))
 
     # Spectral slopes with realistic variation
     # Calibrated: Ensure active slopes are in valid range (0.8-1.2) and delta > 0.4
     # FIX: Add more variance to ensure valid R² calculation
-    active_slopes = np.random.normal(
-        1.0, 0.25, n_samples
-    )  # Increased variance from 0.15 to 0.25
+    active_slopes = np.random.normal(1.0, 0.25, n_samples)  # Increased variance from 0.15 to 0.25
     active_slopes = np.clip(active_slopes, 0.60, 1.80)  # Wider bounds
     # Ensure low-arousal is always higher than active with more variance
-    low_arousal_slopes = active_slopes + np.random.uniform(
-        0.20, 0.90, n_samples
-    )  # Wider uniform range
+    low_arousal_slopes = active_slopes + np.random.uniform(0.20, 0.90, n_samples)  # Wider uniform range
     spectral_slopes = list(zip(active_slopes, low_arousal_slopes))
 
     # Multi-timescale measurements for F1.2 clustering (needs 3 distinct clusters)
@@ -1285,11 +1233,7 @@ def run_falsification() -> Dict[str, Any]:
             status = "PASS" if v["passed"] else "FAIL"
             print(f"{k}: {status} - {v.get('actual', '')}")
     print("-" * 50)
-    bic_label = (
-        "APGI Superior"
-        if results["model_comparison"]["apgi_superior"]
-        else "PP Superior"
-    )
+    bic_label = "APGI Superior" if results["model_comparison"]["apgi_superior"] else "PP Superior"
     print(f"BIC Advantage: {bic_label}")
     print(f"APGI BIC: {apgi_bic:.2f}, PP BIC: {pp_bic:.2f}")
     print("=" * 50)
@@ -1555,20 +1499,14 @@ def check_falsification(
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
     # Fisher's z-transformation for group comparison
     z_apgi = 0.5 * np.log((1 + apgi_cost_correlation) / (1 - apgi_cost_correlation))
-    z_no_somatic = 0.5 * np.log(
-        (1 + no_somatic_cost_correlation) / (1 - no_somatic_cost_correlation)
-    )
+    z_no_somatic = 0.5 * np.log((1 + no_somatic_cost_correlation) / (1 - no_somatic_cost_correlation))
     z_diff = z_apgi - z_no_somatic
-    se_z = np.sqrt(
-        1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3)
-    )
+    se_z = np.sqrt(1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3))
     z_stat_group = z_diff / se_z
     p_group = 2 * (1 - stats.norm.cdf(abs(z_stat_group)))
 
     f2_2_pass = (
-        abs(apgi_cost_correlation) >= F2_2_MIN_CORR
-        and abs(z_diff) >= F2_2_MIN_FISHER_Z
-        and p_group < F2_2_ALPHA
+        abs(apgi_cost_correlation) >= F2_2_MIN_CORR and abs(z_diff) >= F2_2_MIN_FISHER_Z and p_group < F2_2_ALPHA
     )
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
@@ -1646,9 +1584,7 @@ def check_falsification(
 
         # Add realistic variance (std = 0.1 for confidence ratings)
         conf_apgi = np.random.normal(apgi_conf_mean, 0.1, n_f24)
-        conf_base = np.random.normal(
-            base_confidence, 0.08, n_f24
-        )  # Slightly lower variance for baseline
+        conf_base = np.random.normal(base_confidence, 0.08, n_f24)  # Slightly lower variance for baseline
 
         # Clip to valid range [0, 1]
         conf_apgi = np.clip(conf_apgi, 0.01, 0.99)
@@ -1746,9 +1682,7 @@ def check_falsification(
 
     # Calculate trial advantage for reporting (median difference)
     trial_advantage = (
-        (np.median(pp_surv) - np.median(apgi_surv)) / np.median(apgi_surv) * 100
-        if np.median(apgi_surv) > 0
-        else 0.0
+        (np.median(pp_surv) - np.median(apgi_surv)) / np.median(apgi_surv) * 100 if np.median(apgi_surv) > 0 else 0.0
     )
 
     # Create F2.5 criteria entry first
@@ -1800,20 +1734,14 @@ def check_falsification(
     ]
 
     # Apply Holm-Bonferroni correction with family-wise alpha = 0.05
-    corrected_p_values, rejected_hypotheses = apply_holm_bonferroni_correction(
-        f2_p_values, alpha=0.05
-    )
+    corrected_p_values, rejected_hypotheses = apply_holm_bonferroni_correction(f2_p_values, alpha=0.05)
 
     # Update F2 criteria with corrected p-values and rejection status
     f2_criteria_names = ["F2.1", "F2.2", "F2.3", "F2.4", "F2.5"]
     for i, criterion_name in enumerate(f2_criteria_names):
         if criterion_name in results["criteria"]:
-            results["criteria"][criterion_name]["p_value_corrected"] = (
-                corrected_p_values[i]
-            )
-            results["criteria"][criterion_name]["rejected_holm"] = rejected_hypotheses[
-                i
-            ]
+            results["criteria"][criterion_name]["p_value_corrected"] = corrected_p_values[i]
+            results["criteria"][criterion_name]["rejected_holm"] = rejected_hypotheses[i]
             # Update pass/fail based on corrected p-value (if p-value was the deciding factor)
             old_pass = results["criteria"][criterion_name]["passed"]
             # Re-evaluate with corrected p-value
@@ -1844,8 +1772,7 @@ def check_falsification(
                 )
             elif criterion_name == "F2.5":
                 results["criteria"][criterion_name]["passed"] = (
-                    hazard_ratio >= F2_5_MIN_HAZARD_RATIO
-                    and corrected_p_values[i] < 0.05
+                    hazard_ratio >= F2_5_MIN_HAZARD_RATIO and corrected_p_values[i] < 0.05
                 )
 
                 # Update summary if pass/fail status changed
@@ -1853,15 +1780,13 @@ def check_falsification(
                     results["summary"]["passed"] -= 1
                     results["summary"]["failed"] += 1
                     logger.info(
-                        f"{criterion_name}: FAIL (after Holm correction) - "
-                        f"p_corrected={corrected_p_values[i]:.4f}"
+                        f"{criterion_name}: FAIL (after Holm correction) - " f"p_corrected={corrected_p_values[i]:.4f}"
                     )
                 elif not old_pass and results["criteria"][criterion_name]["passed"]:
                     results["summary"]["passed"] += 1
                     results["summary"]["failed"] -= 1
                     logger.info(
-                        f"{criterion_name}: PASS (after Holm correction) - "
-                        f"p_corrected={corrected_p_values[i]:.4f}"
+                        f"{criterion_name}: PASS (after Holm correction) - " f"p_corrected={corrected_p_values[i]:.4f}"
                     )
 
     logger.info(
@@ -1879,9 +1804,7 @@ def check_falsification(
     # This handles negative rewards (Iowa Gambling Task) correctly
     raw_diff = mean_apgi - mean_pp
     # Use absolute value of PP mean as baseline to avoid sign flipping issues
-    baseline = max(
-        abs(mean_pp), 100.0
-    )  # Minimum 100 to avoid division by small numbers
+    baseline = max(abs(mean_pp), 100.0)  # Minimum 100 to avoid division by small numbers
     advantage_pct = (raw_diff / baseline) * 100.0
 
     # Cohen's d for effect size
@@ -1900,8 +1823,7 @@ def check_falsification(
         np.isfinite(advantage_pct)
         and np.isfinite(cohens_d)
         and np.isfinite(p_value)
-        and advantage_pct
-        >= 15.0  # Calibrated from 18% to 15% to match simulation variance
+        and advantage_pct >= 15.0  # Calibrated from 18% to 15% to match simulation variance
         and cohens_d >= F1_1_MIN_COHENS_D
         and p_value < F1_1_ALPHA
     )
@@ -1931,9 +1853,7 @@ def check_falsification(
     kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
     clusters = kmeans.fit_predict(timescales_array)
     silhouette = (
-        silhouette_score(timescales_array, clusters)
-        if len(np.unique(clusters)) > 1
-        else -1
+        silhouette_score(timescales_array, clusters) if len(np.unique(clusters)) > 1 else -1
     )  # Silhouette requires >1 cluster
 
     # One-way ANOVA
@@ -1944,11 +1864,7 @@ def check_falsification(
     # Eta-squared
     ss_total = float(np.sum((timescales_array - float(np.mean(timescales_array))) ** 2))
     ss_between = float(
-        sum(
-            float(len(cm))
-            * (float(np.mean(cm)) - float(np.mean(timescales_array))) ** 2
-            for cm in cluster_means
-        )
+        sum(float(len(cm)) * (float(np.mean(cm)) - float(np.mean(timescales_array))) ** 2 for cm in cluster_means)
     )
     eta_squared = ss_between / ss_total if ss_total > 0 else 0.0
 
@@ -2006,17 +1922,13 @@ def check_falsification(
         pooled_mean = (np.mean(level1_precision) + np.mean(level3_precision)) / 2
         if pooled_mean > 1e-10:
             # Effect size as proportion of mean (coefficient of variation style)
-            cohens_d_rm = (
-                mean_abs_diff / pooled_mean * 2
-            )  # Scale to typical Cohen's d range
+            cohens_d_rm = mean_abs_diff / pooled_mean * 2  # Scale to typical Cohen's d range
             logger.warning(
                 f"F1.3: Near-zero variance detected, using alternative effect size metric: d={cohens_d_rm:.3f}"
             )
         else:
             cohens_d_rm = 0.0
-            logger.warning(
-                "F1.3: Cannot compute effect size - both variance and mean are near-zero"
-            )
+            logger.warning("F1.3: Cannot compute effect size - both variance and mean are near-zero")
 
     f1_3_pass = (
         np.isfinite(mean_diff)
@@ -2196,9 +2108,7 @@ def check_falsification(
     # Ensure valid data - recalibrate if needed
     if np.mean(active_slopes) >= np.mean(low_arousal_slopes):
         # Fix: low-arousal should be higher than active
-        low_arousal_slopes = active_slopes + np.random.uniform(
-            0.3, 0.6, len(active_slopes)
-        )
+        low_arousal_slopes = active_slopes + np.random.uniform(0.3, 0.6, len(active_slopes))
 
     mean_active = np.mean(active_slopes)
     mean_low_arousal = np.mean(low_arousal_slopes)
@@ -2273,9 +2183,7 @@ def check_falsification(
 
     # Robust percentage advantage calculation using absolute mean as baseline
     raw_diff = mean_apgi - mean_pp
-    baseline = max(
-        abs(mean_pp), 100.0
-    )  # Minimum 100 to avoid division by small numbers
+    baseline = max(abs(mean_pp), 100.0)  # Minimum 100 to avoid division by small numbers
     advantage_pct = (raw_diff / baseline) * 100.0
 
     # Cohen's d for effect size
@@ -2348,9 +2256,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Interoceptive advantage: {mean_adv:.2f}%, d={cohens_d:.3f}"
-    )
+    logger.info(f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Interoceptive advantage: {mean_adv:.2f}%, d={cohens_d:.3f}")
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
@@ -2385,9 +2291,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Reduction: {mean_red:.2f}%, d={cohens_d:.3f}"
-    )
+    logger.info(f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Reduction: {mean_red:.2f}%, d={cohens_d:.3f}")
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
@@ -2469,18 +2373,12 @@ def check_falsification(
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
     # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(sample_efficiency_trials, (list, np.ndarray))
-        and len(sample_efficiency_trials) >= 30
-    ):
+    if isinstance(sample_efficiency_trials, (list, np.ndarray)) and len(sample_efficiency_trials) >= 30:
         # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(sample_efficiency_trials, 300)
         mean_trials = float(np.mean(sample_efficiency_trials))
         hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-    elif (
-        isinstance(sample_efficiency_trials, (list, np.ndarray))
-        and len(sample_efficiency_trials) >= 2
-    ):
+    elif isinstance(sample_efficiency_trials, (list, np.ndarray)) and len(sample_efficiency_trials) >= 2:
         # Use bootstrap test for small samples
         data_array = np.array(sample_efficiency_trials)
         t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=300.0)
@@ -2492,22 +2390,14 @@ def check_falsification(
         mean_trials = (
             float(sample_efficiency_trials)
             if not isinstance(sample_efficiency_trials, (list, np.ndarray))
-            else (
-                float(sample_efficiency_trials[0])
-                if len(sample_efficiency_trials) > 0
-                else 300.0
-            )
+            else (float(sample_efficiency_trials[0]) if len(sample_efficiency_trials) > 0 else 300.0)
         )
         hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
 
     f3_6_pass = (
         np.isfinite(mean_trials)
         and np.isfinite(hazard_ratio)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_trials <= 200
-        )
+        and (p_value < 0.01 if np.isfinite(p_value) and p_value != 1.0 else mean_trials <= 200)
         and mean_trials <= 200
         and hazard_ratio >= 1.45
     )
@@ -2539,14 +2429,16 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from utils.falsification_thresholds import (F5_1_MIN_ALPHA,
-                                                F5_1_MIN_COHENS_D,
-                                                F5_1_MIN_PROPORTION,
-                                                F5_2_MIN_CORRELATION,
-                                                F5_2_MIN_PROPORTION,
-                                                F5_3_MIN_COHENS_D,
-                                                F5_3_MIN_GAIN_RATIO,
-                                                F5_3_MIN_PROPORTION)
+    from utils.falsification_thresholds import (
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_1_MIN_PROPORTION,
+        F5_2_MIN_CORRELATION,
+        F5_2_MIN_PROPORTION,
+        F5_3_MIN_COHENS_D,
+        F5_3_MIN_GAIN_RATIO,
+        F5_3_MIN_PROPORTION,
+    )
 
     f5_thresholds = {
         "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,
@@ -2615,9 +2507,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.2f}"
-    )
+    logger.info(f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.2f}")
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
@@ -2636,9 +2526,7 @@ def check_falsification(
         _f5_6_data = np.array([base_value + np.random.normal(0, 2) for _ in range(10)])
 
     if len(_f5_6_data) >= 2:
-        t_stat, p_value = stats.ttest_ind(
-            _f5_6_data, np.zeros(len(_f5_6_data)), equal_var=False
-        )
+        t_stat, p_value = stats.ttest_ind(_f5_6_data, np.zeros(len(_f5_6_data)), equal_var=False)
         denom = float(np.std(_f5_6_data, ddof=1))
         cohens_d: float = float(np.mean(_f5_6_data)) / denom if denom > 0 else 0.0  # type: ignore
     else:
@@ -2666,9 +2554,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Difference: {mean_control_diff:.2f}%, d={cohens_d:.3f}"
-    )
+    logger.info(f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Difference: {mean_control_diff:.2f}%, d={cohens_d:.3f}")
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
@@ -2689,11 +2575,7 @@ def check_falsification(
     mean_rnn_t = float(np.mean(_rnn_t))
     # Calibrated: Fix Cliff's delta - should be positive when LTCN is faster
     # (RNN - LTCN) / max gives positive value when LTCN < RNN
-    cliff_delta = (
-        (mean_rnn_t - mean_ltcn_t) / max(mean_ltcn_t, mean_rnn_t)
-        if max(mean_ltcn_t, mean_rnn_t) > 0
-        else 0.0
-    )
+    cliff_delta = (mean_rnn_t - mean_ltcn_t) / max(mean_ltcn_t, mean_rnn_t) if max(mean_ltcn_t, mean_rnn_t) > 0 else 0.0
     if len(_ltcn_t) >= 2 and len(_rnn_t) >= 2:
         stat, p_value = mannwhitneyu(_ltcn_t, _rnn_t)
     else:
@@ -2786,12 +2668,7 @@ def check_falsification(
         denom = float(np.std([mean_ltcn_s, mean_rnn_s], ddof=1))
         cohens_d: float = (mean_ltcn_s - mean_rnn_s) / denom if denom > 0 else 0.0  # type: ignore
 
-    f6_3_pass = (
-        np.isfinite(mean_ltcn_s)
-        and np.isfinite(cohens_d)
-        and mean_ltcn_s >= 30
-        and cohens_d >= 0.70
-    )
+    f6_3_pass = np.isfinite(mean_ltcn_s) and np.isfinite(cohens_d) and mean_ltcn_s >= 30 and cohens_d >= 0.70
     results["criteria"]["F6.3"] = {
         "passed": f6_3_pass,
         "ltcn_reduction": mean_ltcn_s,
@@ -2824,9 +2701,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {memory_decay_tau:.1f}s"
-    )
+    logger.info(f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {memory_decay_tau:.1f}s")
 
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
@@ -2874,9 +2749,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Add-ons: {rnn_add_ons_needed}, gap: {performance_gap:.1f}%"
-    )
+    logger.info(f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Add-ons: {rnn_add_ons_needed}, gap: {performance_gap:.1f}%")
 
     logger.info(
         f"\nFalsification-Protocol-2 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
@@ -2936,10 +2809,7 @@ def _generate_fp02_visualization(
         if predictions:
             pred_names = list(predictions.keys())[:6]
             pred_values = [predictions[p].get("passed", False) for p in pred_names]
-            colors = [
-                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
-                for v in pred_values
-            ]
+            colors = [VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL for v in pred_values]
             ax2.barh(pred_names, [1 if v else 0 for v in pred_values], color=colors)
             ax2.set_title("Named Predictions Status")
             ax2.set_xlabel("Pass (1) / Fail (0)")

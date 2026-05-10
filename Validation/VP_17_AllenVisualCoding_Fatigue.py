@@ -138,9 +138,7 @@ class FatigueDataSimulator:
             p3b = baseline_p3b * (1 - self.p3b_decay_rate * fatigue_factor)
             theta = baseline_theta * (1 + self.theta_elevation_rate * fatigue_factor)
             rt = baseline_rt * (1 + self.rt_increase_rate * fatigue_factor)
-            accuracy = baseline_accuracy * (
-                1 - self.accuracy_decay_rate * fatigue_factor
-            )
+            accuracy = baseline_accuracy * (1 - self.accuracy_decay_rate * fatigue_factor)
 
             # Add measurement noise
             p3b += np.random.normal(0, 0.05)
@@ -225,9 +223,7 @@ class QuantitativeModelValidator:
             pci_value = 0.5 + 0.5 * (
                 1.0 - self.data["time_hours"] / max(self.data["time_hours"] + 1)
             )  # approximation of PCI
-            self.data.loc[:, "joint_hep_pci"] = compute_joint_hep_pci_index(
-                hep_amplitude, pci_value
-            )
+            self.data.loc[:, "joint_hep_pci"] = compute_joint_hep_pci_index(hep_amplitude, pci_value)
 
     def validate_p3b_fatigue_decay(self) -> Dict[str, Any]:
         """
@@ -240,9 +236,7 @@ class QuantitativeModelValidator:
             self.load_or_generate_data()
 
         # Group by time and calculate mean P3b
-        time_groups = self.data.groupby("time_hours")["p3b_amplitude"].agg(
-            ["mean", "std", "count"]
-        )
+        time_groups = self.data.groupby("time_hours")["p3b_amplitude"].agg(["mean", "std", "count"])
         times = time_groups.index.values
         p3b_means = time_groups["mean"].values
 
@@ -348,9 +342,7 @@ class QuantitativeModelValidator:
         correlations = {}
 
         # P3b vs Alpha (negative)
-        r_p3b_alpha, p_p3b_alpha = stats.pearsonr(
-            self.data["p3b_amplitude"], self.data["alpha_power"]
-        )
+        r_p3b_alpha, p_p3b_alpha = stats.pearsonr(self.data["p3b_amplitude"], self.data["alpha_power"])
         correlations["p3b_alpha"] = {
             "r": float(r_p3b_alpha),
             "p": float(p_p3b_alpha),
@@ -359,9 +351,7 @@ class QuantitativeModelValidator:
         }
 
         # Theta vs RT (positive)
-        r_theta_rt, p_theta_rt = stats.pearsonr(
-            self.data["threshold_theta"], self.data["reaction_time"]
-        )
+        r_theta_rt, p_theta_rt = stats.pearsonr(self.data["threshold_theta"], self.data["reaction_time"])
         correlations["theta_rt"] = {
             "r": float(r_theta_rt),
             "p": float(p_theta_rt),
@@ -370,9 +360,7 @@ class QuantitativeModelValidator:
         }
 
         # Pupil vs Accuracy (negative)
-        r_pupil_acc, p_pupil_acc = stats.pearsonr(
-            self.data["pupil_diameter"], self.data["accuracy"]
-        )
+        r_pupil_acc, p_pupil_acc = stats.pearsonr(self.data["pupil_diameter"], self.data["accuracy"])
         correlations["pupil_accuracy"] = {
             "r": float(r_pupil_acc),
             "p": float(p_pupil_acc),
@@ -494,9 +482,7 @@ class QuantitativeModelValidator:
         results["tests_total"] = total_tests
         results["validation_timestamp"] = datetime.now().isoformat()
 
-        logger.info(
-            f"Quantitative validation complete: {passed_tests}/{total_tests} tests passed"
-        )
+        logger.info(f"Quantitative validation complete: {passed_tests}/{total_tests} tests passed")
 
         return results
 

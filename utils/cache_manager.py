@@ -103,13 +103,8 @@ class CacheManager:
                 alerts.append(
                     {
                         "domain": domain,
-                        "severity": (
-                            "warning" if miss_rate < max_miss_rate * 1.5 else "critical"
-                        ),
-                        "message": (
-                            f"Miss rate {miss_rate:.2%} exceeds "
-                            f"SLO {max_miss_rate:.2%}"
-                        ),
+                        "severity": ("warning" if miss_rate < max_miss_rate * 1.5 else "critical"),
+                        "message": (f"Miss rate {miss_rate:.2%} exceeds " f"SLO {max_miss_rate:.2%}"),
                         "current_miss_rate": miss_rate,
                         "slo_max_miss_rate": max_miss_rate,
                     }
@@ -139,9 +134,7 @@ class CacheManager:
                     return json.load(f)
             except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
                 if console:
-                    console.print(
-                        f"Error loading cache metadata: {type(e).__name__}: {e}"
-                    )
+                    console.print(f"Error loading cache metadata: {type(e).__name__}: {e}")
                 return {}
         return {}
 
@@ -226,9 +219,7 @@ class CacheManager:
         if isinstance(obj, dict):
             if "_type" in obj:
                 if obj["_type"] == "DataFrame":
-                    return pd.DataFrame(
-                        obj["data"], index=obj["index"], columns=obj["columns"]
-                    )
+                    return pd.DataFrame(obj["data"], index=obj["index"], columns=obj["columns"])
                 elif obj["_type"] == "Series":
                     return pd.Series(obj["data"], index=obj["index"], name=obj["name"])
                 elif obj["_type"] == "ndarray":
@@ -293,9 +284,7 @@ class CacheManager:
 
         if total_size > self.max_size_bytes:
             # Sort by least recently used
-            entries = sorted(
-                self.metadata.items(), key=lambda x: x[1].get("accessed", 0)
-            )
+            entries = sorted(self.metadata.items(), key=lambda x: x[1].get("accessed", 0))
 
             # Evict entries until under limit
             for key, info in entries:
@@ -308,9 +297,7 @@ class CacheManager:
                         cache_path.unlink()
                     except OSError as e:
                         if console:
-                            console.print(
-                                f"Error deleting cache file {cache_path}: {e}"
-                            )
+                            console.print(f"Error deleting cache file {cache_path}: {e}")
                     total_size -= info.get("size", 0)
                     del self.metadata[key]
                     self.stats["evictions"] += 1
@@ -337,9 +324,7 @@ class CacheManager:
                         if json_path.exists():
                             json_path.unlink()
                     except OSError as e:
-                        print(
-                            f"Error deleting expired cache files for {cache_key}: {e}"
-                        )
+                        print(f"Error deleting expired cache files for {cache_key}: {e}")
                     del self.metadata[cache_key]
                     self._save_metadata()
                     self.stats["misses"] += 1
@@ -370,9 +355,7 @@ class CacheManager:
                     Exception,
                 ) as e:
                     if console:
-                        console.print(
-                            f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}"
-                        )
+                        console.print(f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}")
                     # Remove corrupted entry
                     cache_path.unlink(missing_ok=True)
                     json_path.unlink(missing_ok=True)
@@ -427,9 +410,7 @@ class CacheManager:
                 Exception,
             ) as e:
                 if console:
-                    console.print(
-                        f"Error saving cache entry {cache_key}: {type(e).__name__}: {e}"
-                    )
+                    console.print(f"Error saving cache entry {cache_key}: {type(e).__name__}: {e}")
 
     def warm_cache(self, data_sources: List[Union[str, Path]], max_workers: int = 4):
         """Warm up cache with common data sources."""
@@ -438,9 +419,7 @@ class CacheManager:
 
         if console:
             if console:
-                console.print(
-                    f"Warming up cache with {len(data_sources)} data sources...[/blue]"
-                )
+                console.print(f"Warming up cache with {len(data_sources)} data sources...[/blue]")
         start_time = time.time()
 
         def warm_single_source(source_path):
@@ -491,9 +470,7 @@ class CacheManager:
 
         # Warm up sources in parallel
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(warm_single_source, source) for source in data_sources
-            ]
+            futures = [executor.submit(warm_single_source, source) for source in data_sources]
 
             completed = 0
             for future in as_completed(futures):
@@ -507,15 +484,11 @@ class CacheManager:
                         console.print(f"[green]{result}[/green]")
 
                 if console:
-                    console.print(
-                        f"[blue]Progress: {completed}/{len(data_sources)}[/blue]"
-                    )
+                    console.print(f"[blue]Progress: {completed}/{len(data_sources)}[/blue]")
 
         elapsed_time = time.time() - start_time
         if console:
-            console.print(
-                f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s"
-            )
+            console.print(f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s")
 
         # Update stats
         self.stats["cache_warms"] = self.stats.get("cache_warms", 0) + 1
@@ -603,9 +576,7 @@ class CacheManager:
             stored_version = self.metadata.get(version_key, {}).get("version")
 
             if stored_version != CACHE_VERSION:
-                print(
-                    f"Cache version changed from {stored_version} to {CACHE_VERSION}. Invalidating all caches."
-                )
+                print(f"Cache version changed from {stored_version} to {CACHE_VERSION}. Invalidating all caches.")
 
                 # Unlink all cache files
                 for cache_file in self.cache_dir.glob("*.cache"):
@@ -613,9 +584,7 @@ class CacheManager:
                 for json_file in self.cache_dir.glob("*.json"):
                     json_file.unlink()
 
-                self.metadata = {
-                    version_key: {"version": CACHE_VERSION, "updated_at": time.time()}
-                }
+                self.metadata = {version_key: {"version": CACHE_VERSION, "updated_at": time.time()}}
                 self._save_metadata()
                 self.stats = {
                     "hits": 0,
@@ -630,9 +599,7 @@ class CacheManager:
         """Get cache statistics."""
         with self._lock:
             hit_rate = (
-                self.stats["hits"] / self.stats["total_requests"] * 100
-                if self.stats["total_requests"] > 0
-                else 0
+                self.stats["hits"] / self.stats["total_requests"] * 100 if self.stats["total_requests"] > 0 else 0
             )
 
             total_size = sum(info.get("size", 0) for info in self.metadata.values())
@@ -660,11 +627,7 @@ class CacheManager:
                         "size": info.get("size", 0),
                         "created": datetime.fromtimestamp(info.get("created", 0)),
                         "accessed": datetime.fromtimestamp(info.get("accessed", 0)),
-                        "expires": (
-                            datetime.fromtimestamp(info["expires"])
-                            if "expires" in info
-                            else None
-                        ),
+                        "expires": (datetime.fromtimestamp(info["expires"]) if "expires" in info else None),
                     }
                 )
 
@@ -703,7 +666,6 @@ def cached(cache_manager: Optional[CacheManager] = None, ttl: Optional[float] = 
 
             # Compute result and cache it
             result = func(*args, **kwargs)
-            cm.set(cache_key, result, ttl=ttl)
 
             return result
 
@@ -798,9 +760,7 @@ class DataCache:
 
         self.cache.set(cache_key, results, ttl)
 
-    def get_validation_results(
-        self, protocol_name: str, validation_config: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def get_validation_results(self, protocol_name: str, validation_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Get cached validation results."""
         cache_key = {
             "type": "validation_results",
@@ -880,9 +840,7 @@ def main() -> None:
     print("\nCache entries:")
     entries = cache.list_entries()
     for entry in entries[:3]:  # Show first 3 entries
-        print(
-            f"  Key: {entry['key'][:16]}... Size: {entry['size']} bytes Accessed: {entry['accessed']}"
-        )
+        print(f"  Key: {entry['key'][:16]}... Size: {entry['size']} bytes Accessed: {entry['accessed']}")
 
     if len(entries) > 3:
         print(f"  ... and {len(entries) - 3} more entries")

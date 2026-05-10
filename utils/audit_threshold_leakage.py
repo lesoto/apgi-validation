@@ -67,18 +67,12 @@ def _find_leaks(path: Path) -> list[tuple[int, str, ast.expr]]:
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     target_name = target.id.lower()
-                    if target_name in SUSPICIOUS_NAMES and _is_float_constant(
-                        node.value
-                    ):
+                    if target_name in SUSPICIOUS_NAMES and _is_float_constant(node.value):
                         findings.append((node.lineno, target.id, node.value))
         elif isinstance(node, ast.Call):
             call_name = _call_name(node)
             for kw in node.keywords:
-                if (
-                    kw.arg
-                    and kw.arg.lower() in SUSPICIOUS_NAMES
-                    and _is_float_constant(kw.value)
-                ):
+                if kw.arg and kw.arg.lower() in SUSPICIOUS_NAMES and _is_float_constant(kw.value):
                     if kw.arg.lower() == "alpha" and call_name in PLOTTING_CALLS:
                         continue
                     findings.append((node.lineno, kw.arg, kw.value))

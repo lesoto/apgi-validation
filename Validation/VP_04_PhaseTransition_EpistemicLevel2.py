@@ -136,9 +136,7 @@ class APGIDynamicalSystem:
         if dt <= 0:
             raise ValueError(f"dt must be positive, got {dt}")
         if dt > tau:
-            raise ValueError(
-                f"dt ({dt}) must be smaller than tau ({tau}) for numerical stability"
-            )
+            raise ValueError(f"dt ({dt}) must be smaller than tau ({tau}) for numerical stability")
 
         self.tau = tau
         self.theta_0 = theta_0
@@ -197,9 +195,7 @@ class APGIDynamicalSystem:
             eps_i_history[i] = eps_i
 
             # Dynamic threshold
-            theta_noise = (
-                np.random.normal(0, theta_noise_sd) if theta_noise_sd > 0 else 0
-            )
+            theta_noise = np.random.normal(0, theta_noise_sd) if theta_noise_sd > 0 else 0
             theta[i] = self.theta_0 + theta_noise
 
             # APGI core equation: dS/dt = -S/τ + Π_e·|ε_e| + β_som·Π_i(M,c,a)·|ε_i|
@@ -268,9 +264,7 @@ class InformationTheoreticAnalysis:
             # Fallback if falsification_thresholds not available
             self.n_bins = 20
 
-    def compute_transfer_entropy(
-        self, source: np.ndarray, target: np.ndarray, lag: int = 1
-    ) -> float:
+    def compute_transfer_entropy(self, source: np.ndarray, target: np.ndarray, lag: int = 1) -> float:
         """
         Transfer entropy: Information flow from source to target
 
@@ -312,9 +306,7 @@ class InformationTheoreticAnalysis:
 
         return max(0, te)  # TE should be non-negative
 
-    def compute_integrated_information(
-        self, variables: List[np.ndarray], window_size: int = 100
-    ) -> np.ndarray:
+    def compute_integrated_information(self, variables: List[np.ndarray], window_size: int = 100) -> np.ndarray:
         """
         Φ-like measure: How much more information in whole than parts
 
@@ -376,10 +368,8 @@ class InformationTheoreticAnalysis:
         Returns:
             Mutual information (nats)
         """
-
         X_binned = self._discretize(X)
         Y_binned = self._discretize(Y)
-
         return mutual_info_score(X_binned, Y_binned)
 
     def compute_entropy_rate(self, series: np.ndarray, lag: int = 1) -> float:
@@ -409,18 +399,14 @@ class InformationTheoreticAnalysis:
     def _discretize(self, data: np.ndarray) -> np.ndarray:
         """Discretize continuous data into bins"""
         data = data.reshape(-1, 1)
-        discretizer = KBinsDiscretizer(
-            n_bins=self.n_bins, encode="ordinal", strategy="uniform"
-        )
+        discretizer = KBinsDiscretizer(n_bins=self.n_bins, encode="ordinal", strategy="uniform")
         return discretizer.fit_transform(data).astype(int).flatten()
 
     @staticmethod
     def _discretize_static(data: np.ndarray, n_bins: int = 10) -> np.ndarray:
         """Static method to discretize continuous data into bins"""
         data = data.reshape(-1, 1)
-        discretizer = KBinsDiscretizer(
-            n_bins=n_bins, encode="ordinal", strategy="uniform"
-        )
+        discretizer = KBinsDiscretizer(n_bins=n_bins, encode="ordinal", strategy="uniform")
         return discretizer.fit_transform(data).astype(int).flatten()
 
     def _entropy(self, binned_data: np.ndarray) -> float:
@@ -450,9 +436,7 @@ class InformationTheoreticAnalysis:
         H_joint = self._entropy_multivariate(joint_data)
         return H_joint - H_X
 
-    def _conditional_entropy_joint(
-        self, Y: np.ndarray, X1: np.ndarray, X2: np.ndarray
-    ) -> float:
+    def _conditional_entropy_joint(self, Y: np.ndarray, X1: np.ndarray, X2: np.ndarray) -> float:
         """H(Y | X1, X2) = H(X1, X2, Y) - H(X1, X2)"""
         joint_X = np.column_stack([X1, X2])
         H_X = self._entropy_multivariate(joint_X)
@@ -547,12 +531,8 @@ class PhaseTransitionDetector:
 
         # Effect size (Cohen's d)
         if len(random_discontinuities) > 0:
-            pooled_std = np.sqrt(
-                (np.var(discontinuities) + np.var(random_discontinuities)) / 2
-            )
-            cohens_d = (np.mean(discontinuities) - np.mean(random_discontinuities)) / (
-                pooled_std + 1e-10
-            )
+            pooled_std = np.sqrt((np.var(discontinuities) + np.var(random_discontinuities)) / 2)
+            cohens_d = (np.mean(discontinuities) - np.mean(random_discontinuities)) / (pooled_std + 1e-10)
         else:
             cohens_d = 0.0
 
@@ -565,11 +545,7 @@ class PhaseTransitionDetector:
             "std_discontinuity": float(np.std(discontinuities)),
             "max_discontinuity": float(np.max(discontinuities)),
             "n_events": len(discontinuities),
-            "random_mean": (
-                float(np.mean(random_discontinuities))
-                if random_discontinuities
-                else 0.0
-            ),
+            "random_mean": (float(np.mean(random_discontinuities)) if random_discontinuities else 0.0),
             "cohens_d": float(cohens_d),
         }
 
@@ -627,9 +603,7 @@ class PhaseTransitionDetector:
             "n_far": int(np.sum(far_mask)),
         }
 
-    def detect_critical_slowing(
-        self, S: np.ndarray, theta: np.ndarray, max_lag: int = 20
-    ) -> Dict[str, Any]:
+    def detect_critical_slowing(self, S: np.ndarray, theta: np.ndarray, max_lag: int = 20) -> Dict[str, Any]:
         """
         Test for critical slowing down near threshold with surrogate null distribution
 
@@ -740,9 +714,7 @@ class PhaseTransitionDetector:
             "tau_auto_increase_20pct": ratio > 1.2,
         }
 
-    def compute_hurst_exponent(
-        self, S: np.ndarray, theta: np.ndarray
-    ) -> Dict[str, Any]:
+    def compute_hurst_exponent(self, S: np.ndarray, theta: np.ndarray) -> Dict[str, Any]:
         """
         Test for long-range correlations via Hurst exponent
 
@@ -846,9 +818,7 @@ class PhaseTransitionDetector:
         if max_scale < min_scale:
             return 0.5
 
-        scales = np.logspace(
-            np.log10(min_scale), np.log10(max_scale), num=10, dtype=int
-        )
+        scales = np.logspace(np.log10(min_scale), np.log10(max_scale), num=10, dtype=int)
         scales = np.unique(scales)
 
         fluctuations = []
@@ -997,12 +967,8 @@ class ClinicalPowerAnalysis:
                 "n_groups_found": len(groups),
             }
 
-        group1_data = clinical_data[clinical_data[group_column] == groups[0]][
-            metric_column
-        ]
-        group2_data = clinical_data[clinical_data[group_column] == groups[1]][
-            metric_column
-        ]
+        group1_data = clinical_data[clinical_data[group_column] == groups[0]][metric_column]
+        group2_data = clinical_data[clinical_data[group_column] == groups[1]][metric_column]
 
         n1 = len(group1_data)
         n2 = len(group2_data)
@@ -1037,8 +1003,7 @@ class ClinicalPowerAnalysis:
             "target_effect_size": effect_size_target,
             "required_n_for_target": int(np.ceil(required_n)),
             "current_n_sufficient": n1 >= required_n and n2 >= required_n,
-            "power_sufficient": achieved_power < 0.05
-            and observed_effect_size >= effect_size_target * 0.5,
+            "power_sufficient": achieved_power < 0.05 and observed_effect_size >= effect_size_target * 0.5,
         }
 
 
@@ -1125,9 +1090,7 @@ class FiniteSizeScalingAnalysis:
                         }
 
                     # Simulate system at this size and parameter value
-                    timeseries = system.simulate(
-                        duration=size, input_generator=input_gen, theta_noise_sd=0.05
-                    )
+                    timeseries = system.simulate(duration=size, input_generator=input_gen, theta_noise_sd=0.05)
 
                     # Order parameter (mean ignition rate)
                     m = np.mean(timeseries["B"])
@@ -1149,9 +1112,7 @@ class FiniteSizeScalingAnalysis:
 
         # Find crossing point of Binder cumulants (identifies critical point)
         # At criticality, Binder cumulant becomes size-independent
-        crossing_point = self._find_binder_crossing(
-            results["binder_cumulants"], parameter_range[parameter_name]
-        )
+        crossing_point = self._find_binder_crossing(results["binder_cumulants"], parameter_range[parameter_name])
         if isinstance(crossing_point, dict):
             results["critical_point_estimate"] = crossing_point["binder_crossing"]
             results["binder_crossing_status"] = crossing_point
@@ -1241,12 +1202,8 @@ class FiniteSizeScalingAnalysis:
             exponents["gamma"] = np.nan
 
         # Add confidence intervals (simplified bootstrap)
-        exponents["beta_ci"] = self._bootstrap_exponent(
-            param_near_crit, order_param_near, critical_point, "beta"
-        )
-        exponents["gamma_ci"] = self._bootstrap_exponent(
-            param_near_crit, susceptibility_near, critical_point, "gamma"
-        )
+        exponents["beta_ci"] = self._bootstrap_exponent(param_near_crit, order_param_near, critical_point, "beta")
+        exponents["gamma_ci"] = self._bootstrap_exponent(param_near_crit, susceptibility_near, critical_point, "gamma")
 
         # Check against known universality classes
         universality_class = self._classify_universality_class(exponents)
@@ -1312,9 +1269,7 @@ class FiniteSizeScalingAnalysis:
         from types import SimpleNamespace
 
         # Generate parameter values near expected critical point
-        param_values = np.linspace(
-            parameter_range[0], parameter_range[1], n_parameter_values
-        )
+        param_values = np.linspace(parameter_range[0], parameter_range[1], n_parameter_values)
 
         # Store results for each parameter value
         order_params_list: List[float] = []
@@ -1357,9 +1312,7 @@ class FiniteSizeScalingAnalysis:
                     }
 
                 # Run simulation
-                sim_result = system.simulate(
-                    duration=50.0, input_generator=input_gen, theta_noise_sd=0.05
-                )
+                sim_result = system.simulate(duration=50.0, input_generator=input_gen, theta_noise_sd=0.05)
 
                 # Order parameter: mean ignition rate
                 m = np.mean(sim_result["B"])
@@ -1370,7 +1323,7 @@ class FiniteSizeScalingAnalysis:
                 susceptibilities_list.append(chi)
                 valid_params_list.append(param_value)
 
-            except Exception:
+            except Exception:  # nosec - Intentionally continue on simulation failure
                 # Skip if simulation fails
                 continue
 
@@ -1461,9 +1414,7 @@ class FiniteSizeScalingAnalysis:
             "universality_class": universality_class,
             "n_points_used": int(np.sum(mask)),
             "parameter_range": (float(parameter_range[0]), float(parameter_range[1])),
-            "power_law_relation": (
-                f"m ~ |p - p_c|^{beta:.3f}" if fit_successful else "fit failed"
-            ),
+            "power_law_relation": (f"m ~ |p - p_c|^{beta:.3f}" if fit_successful else "fit failed"),
         }
 
     def _ordinal_patterns(self, embedded: np.ndarray) -> List[tuple]:
@@ -1475,9 +1426,7 @@ class FiniteSizeScalingAnalysis:
             patterns.append(tuple(ranks))
         return patterns
 
-    def analyze_autocorrelation_functions(
-        self, timeseries: Dict, max_lag: int = 100
-    ) -> Dict:
+    def analyze_autocorrelation_functions(self, timeseries: Dict, max_lag: int = 100) -> Dict:
         """
         Compute autocorrelation functions to measure temporal correlations
         At criticality, should show power-law decay
@@ -1499,9 +1448,7 @@ class FiniteSizeScalingAnalysis:
                 for lag in range(max_lag):
                     if lag < len(data):
                         corr = (
-                            np.corrcoef(data[: -lag if lag > 0 else None], data[lag:])[
-                                0, 1
-                            ]
+                            np.corrcoef(data[: -lag if lag > 0 else None], data[lag:])[0, 1]
                             if lag < len(data) // 2
                             else 0
                         )
@@ -1553,9 +1500,7 @@ class FiniteSizeScalingAnalysis:
 
         return acf_results
 
-    def compute_mutual_information_matrix(
-        self, timeseries: Dict, n_bins: int = 20
-    ) -> Tuple[np.ndarray, plt.Figure]:
+    def compute_mutual_information_matrix(self, timeseries: Dict, n_bins: int = 20) -> Tuple[np.ndarray, plt.Figure]:
         """
         Compute MI between all variable pairs
         Shows information integration structure
@@ -1589,17 +1534,13 @@ class FiniteSizeScalingAnalysis:
         ax.set_yticks(range(len(available_vars)))
         for i in range(len(available_vars)):
             for j in range(len(available_vars)):
-                ax.text(
-                    j, i, f"{mi_matrix[i, j]:.2f}", ha="center", va="center", color="w"
-                )
+                ax.text(j, i, f"{mi_matrix[i, j]:.2f}", ha="center", va="center", color="w")
 
         ax.set_title("Mutual Information Matrix")
         plt.colorbar(im, ax=ax)
         return mi_matrix, fig
 
-    def compute_permutation_entropy(
-        self, timeseries: Dict, embedding_dim: int = 3, delay: int = 1
-    ) -> Dict:
+    def compute_permutation_entropy(self, timeseries: Dict, embedding_dim: int = 3, delay: int = 1) -> Dict:
         """
         Permutation entropy: model-free complexity measure
         Captures ordinal patterns in time series
@@ -1619,9 +1560,7 @@ class FiniteSizeScalingAnalysis:
         for variable in ["S", "B"]:
             if variable in timeseries:
                 # Embed
-                embedded = self._embed_sequence(
-                    timeseries[variable], embedding_dim, delay
-                )
+                embedded = self._embed_sequence(timeseries[variable], embedding_dim, delay)
 
                 # Get patterns
                 patterns = self._ordinal_patterns(embedded)
@@ -1629,9 +1568,7 @@ class FiniteSizeScalingAnalysis:
                 # Count pattern frequencies
                 pattern_counts = Counter(patterns)
                 total = len(patterns)
-                probabilities = np.array(
-                    [count / total for count in pattern_counts.values()]
-                )
+                probabilities = np.array([count / total for count in pattern_counts.values()])
 
                 # Compute entropy
                 H = -np.sum(probabilities * np.log2(probabilities + 1e-10))
@@ -1678,9 +1615,7 @@ class FiniteSizeScalingAnalysis:
             max_window = n // 4
 
         # Window sizes (logarithmically spaced)
-        windows = np.unique(
-            np.logspace(np.log10(min_window), np.log10(max_window), num=20).astype(int)
-        )
+        windows = np.unique(np.logspace(np.log10(min_window), np.log10(max_window), num=20).astype(int))
 
         fluctuations = []
 
@@ -1741,14 +1676,10 @@ class FiniteSizeScalingAnalysis:
 
         # Plot
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.loglog(
-            windows[: len(fluctuations)], fluctuations, "o-", label=f"α = {alpha:.3f}"
-        )
+        ax.loglog(windows[: len(fluctuations)], fluctuations, "o-", label=f"α = {alpha:.3f}")
         ax.set_xlabel("Window size")
         ax.set_ylabel("Fluctuation F(n)")
-        ax.set_title(
-            f'Detrended Fluctuation Analysis\n{interpretation["correlation_type"]}'
-        )
+        ax.set_title(f'Detrended Fluctuation Analysis\n{interpretation["correlation_type"]}')
         ax.legend()
         ax.grid(True, alpha=0.3)
 
@@ -1758,9 +1689,7 @@ class FiniteSizeScalingAnalysis:
     # Helper methods
     # =====================================================================
 
-    def _find_binder_crossing(
-        self, binder_data: Dict[int, List[float]], parameter_values: np.ndarray
-    ) -> Any:
+    def _find_binder_crossing(self, binder_data: Dict[int, List[float]], parameter_values: np.ndarray) -> Any:
         """Find crossing point of Binder cumulants for different system sizes"""
         sizes = sorted(binder_data.keys())
 
@@ -1873,9 +1802,7 @@ class FiniteSizeScalingAnalysis:
         else:
             return np.nan, np.nan
 
-    def detect_seizure_artifacts(
-        self, timeseries: Dict, threshold: float = 5.0
-    ) -> Dict:
+    def detect_seizure_artifacts(self, timeseries: Dict, threshold: float = 5.0) -> Dict:
         """
         Detect and exclude seizure artifacts from analysis.
 
@@ -1917,16 +1844,10 @@ class FiniteSizeScalingAnalysis:
             "clean_indices": clean_indices.tolist(),
             "artifact_rate": float(len(artifact_indices) / len(S)),
             "clean_S": S[clean_indices] if len(clean_indices) > 0 else S,
-            "clean_theta": (
-                theta[clean_indices]
-                if len(clean_indices) > 0 and len(theta) > 0
-                else theta
-            ),
+            "clean_theta": (theta[clean_indices] if len(clean_indices) > 0 and len(theta) > 0 else theta),
         }
 
-    def _find_sustained_periods(
-        self, mask: np.ndarray, min_length: int = 10
-    ) -> np.ndarray:
+    def _find_sustained_periods(self, mask: np.ndarray, min_length: int = 10) -> np.ndarray:
         """Find sustained periods where mask is True"""
         periods: list[int] = []
         in_period = False
@@ -2012,9 +1933,7 @@ class FiniteSizeScalingAnalysis:
 
         return discretized
 
-    def _embed_sequence(
-        self, data: np.ndarray, embedding_dim: int, delay: int = 1
-    ) -> np.ndarray:
+    def _embed_sequence(self, data: np.ndarray, embedding_dim: int, delay: int = 1) -> np.ndarray:
         """
         Create time-delay embedding of a time series
 
@@ -2102,9 +2021,7 @@ class IntracranialRecordingPipeline:
             "raw": raw_signal,
         }
 
-    def _detect_artifacts(
-        self, signal: np.ndarray, threshold: float = 5.0
-    ) -> np.ndarray:
+    def _detect_artifacts(self, signal: np.ndarray, threshold: float = 5.0) -> np.ndarray:
         """Detect artifacts in signal"""
         # Detect spikes
         d_signal = np.diff(signal)
@@ -2115,9 +2032,7 @@ class IntracranialRecordingPipeline:
         flat_mask = np.abs(np.diff(signal, n=10)) < 1e-6
 
         # Detect saturations
-        saturation_mask = (signal > 0.95 * np.max(signal)) | (
-            signal < 0.95 * np.min(signal)
-        )
+        saturation_mask = (signal > 0.95 * np.max(signal)) | (signal < 0.95 * np.min(signal))
 
         # Combine all artifact detections
         artifact_mask = np.zeros(len(signal), dtype=bool)
@@ -2173,9 +2088,7 @@ class IntracranialRecordingPipeline:
             "total_power": total_power,
         }
 
-    def compute_phase_amplitude_coupling(
-        self, phase_signal: np.ndarray, amplitude_signal: np.ndarray
-    ) -> Dict:
+    def compute_phase_amplitude_coupling(self, phase_signal: np.ndarray, amplitude_signal: np.ndarray) -> Dict:
         """
         Compute phase-amplitude coupling (PAC).
 
@@ -2219,9 +2132,7 @@ class IntracranialRecordingPipeline:
 
         # Discretize amplitudes for MI computation
         n_amp_bins = 10
-        amp_discretized = np.digitize(
-            amplitude, np.linspace(0, np.max(amplitude), n_amp_bins + 1)[1:-1]
-        )
+        amp_discretized = np.digitize(amplitude, np.linspace(0, np.max(amplitude), n_amp_bins + 1)[1:-1])
 
         pac_mi = mutual_info_score(bin_indices_arr, amp_discretized)
 
@@ -2290,17 +2201,13 @@ class IntracranialRecordingPipeline:
     def _discretize(self, data: np.ndarray, n_bins: int) -> np.ndarray:
         """Discretize continuous data into bins"""
         data = data.reshape(-1, 1)
-        discretizer = KBinsDiscretizer(
-            n_bins=n_bins, encode="ordinal", strategy="uniform"
-        )
+        discretizer = KBinsDiscretizer(n_bins=n_bins, encode="ordinal", strategy="uniform")
         return discretizer.fit_transform(data).astype(int).flatten()
 
     def _embed_sequence(self, data: np.ndarray, dim: int, tau: int) -> np.ndarray:
         """Create delay embedding"""
         n = len(data)
-        embedded = np.array(
-            [data[i : i + dim * tau : tau] for i in range(n - dim * tau + 1)]
-        )
+        embedded = np.array([data[i : i + dim * tau : tau] for i in range(n - dim * tau + 1)])
         return embedded
 
     def _ordinal_patterns(self, embedded: np.ndarray) -> List[Tuple]:
@@ -2347,9 +2254,7 @@ class ComprehensivePhaseTransitionAnalysis:
 
         # Transfer entropy: external input → surprise
         if len(history["eps_e"]) > 20:
-            te_input_to_S = self.info_analyzer.compute_transfer_entropy(
-                history["eps_e"], S, lag=2
-            )
+            te_input_to_S = self.info_analyzer.compute_transfer_entropy(history["eps_e"], S, lag=2)
             results["te_input_to_S"] = float(te_input_to_S)
 
         # Transfer entropy: surprise → ignition probability
@@ -2359,9 +2264,7 @@ class ComprehensivePhaseTransitionAnalysis:
 
         # Integrated information
         if len(S) > 100:
-            phi = self.info_analyzer.compute_integrated_information(
-                [S, theta, history["Pi_i"]], window_size=50
-            )
+            phi = self.info_analyzer.compute_integrated_information([S, theta, history["Pi_i"]], window_size=50)
 
             # Φ at ignition vs baseline
             if len(ignition_events) > 0 and len(phi) > 0:
@@ -2381,9 +2284,7 @@ class ComprehensivePhaseTransitionAnalysis:
 
                     if len(baseline_indices) > 0:
                         results["phi_baseline"] = float(np.mean(phi[baseline_indices]))
-                        results["phi_ratio"] = results["phi_at_ignition"] / (
-                            results["phi_baseline"] + 1e-10
-                        )
+                        results["phi_ratio"] = results["phi_at_ignition"] / (results["phi_baseline"] + 1e-10)
 
                         # APGI Physics: Φ increases during ignition due to global integration
                         if results["phi_ratio"] < 1.35:
@@ -2405,9 +2306,7 @@ class ComprehensivePhaseTransitionAnalysis:
 
         # Discontinuity
         if len(ignition_events) > 0:
-            disc_results = self.phase_detector.detect_discontinuity(
-                S, theta, time, ignition_events
-            )
+            disc_results = self.phase_detector.detect_discontinuity(S, theta, time, ignition_events)
             results.update({f"discontinuity_{k}": v for k, v in disc_results.items()})
 
         # Susceptibility
@@ -2416,9 +2315,7 @@ class ComprehensivePhaseTransitionAnalysis:
 
         # Critical slowing
         crit_slow_results = self.phase_detector.detect_critical_slowing(S, theta)
-        results.update(
-            {f"critical_slowing_{k}": v for k, v in crit_slow_results.items()}
-        )
+        results.update({f"critical_slowing_{k}": v for k, v in crit_slow_results.items()})
 
         # Hurst exponent
         hurst_results = self.phase_detector.compute_hurst_exponent(S, theta)
@@ -2468,9 +2365,7 @@ class ComprehensivePhaseTransitionAnalysis:
                 # Check if ignition occurred in nearby trials
                 nearby_indices = np.where(nearby_mask)[0]
                 ignition_count = sum(
-                    1
-                    for idx in nearby_indices
-                    if idx in ignition_events or (idx > 0 and S[idx] > theta[idx])
+                    1 for idx in nearby_indices if idx in ignition_events or (idx > 0 and S[idx] > theta[idx])
                 )
                 ignition_prob[i] = ignition_count / len(nearby_indices)
 
@@ -2513,11 +2408,12 @@ class ComprehensivePhaseTransitionAnalysis:
 
         # Explicit assertion for hysteresis width (Fix 3)
         if hysteresis_width > 0:
-            assert HYSTERESIS_MIN <= hysteresis_width <= HYSTERESIS_MAX, (
-                f"Hysteresis width {hysteresis_width:.3f} outside valid range "
-                f"[{HYSTERESIS_MIN}, {HYSTERESIS_MAX}]. "
-                f"This indicates insufficient phase transition strength."
-            )
+            if not (HYSTERESIS_MIN <= hysteresis_width <= HYSTERESIS_MAX):
+                raise ValueError(
+                    f"Hysteresis width {hysteresis_width:.3f} outside valid range "
+                    f"[{HYSTERESIS_MIN}, {HYSTERESIS_MAX}]. "
+                    f"This indicates insufficient phase transition strength."
+                )
 
         return result
 
@@ -2702,11 +2598,7 @@ class FalsificationChecker:
             "code": "F4.1",
             "description": self.criteria["F4.1"]["description"],
             "falsified": not f4_1_pass,
-            "value": (
-                float(susc_ratio)
-                if isinstance(susc_ratio, (int, float))
-                else float(susc_ratio.item())
-            ),
+            "value": (float(susc_ratio) if isinstance(susc_ratio, (int, float)) else float(susc_ratio.item())),
             "se": float(susc_se.item()) if hasattr(susc_se, "item") else float(susc_se),  # type: ignore[arg-type]
             "threshold": self.criteria["F4.1"]["threshold"],
             "n": len(results_df),
@@ -2728,14 +2620,8 @@ class FalsificationChecker:
                 "code": "F4.2",
                 "description": self.criteria["F4.2"]["description"],
                 "falsified": not f4_2_pass,
-                "value": (
-                    float(phi_ratio)
-                    if isinstance(phi_ratio, (int, float))
-                    else float(phi_ratio.item())
-                ),
-                "se": (
-                    float(phi_se.item()) if hasattr(phi_se, "item") else float(phi_se)  # type: ignore[arg-type]
-                ),
+                "value": (float(phi_ratio) if isinstance(phi_ratio, (int, float)) else float(phi_ratio.item())),
+                "se": (float(phi_se.item()) if hasattr(phi_se, "item") else float(phi_se)),  # type: ignore[arg-type]
                 "threshold": self.criteria["F4.2"]["threshold"],
             }
 
@@ -2755,9 +2641,7 @@ class FalsificationChecker:
             "description": self.criteria["F4.3"]["description"],
             "falsified": not f4_3_pass,
             "value": (
-                float(crit_slow_ratio)
-                if isinstance(crit_slow_ratio, (int, float))
-                else float(crit_slow_ratio.item())
+                float(crit_slow_ratio) if isinstance(crit_slow_ratio, (int, float)) else float(crit_slow_ratio.item())
             ),
             "se": (
                 float(crit_slow_se.item())  # type: ignore[arg-type]
@@ -2783,11 +2667,7 @@ class FalsificationChecker:
                 "code": "F4.4",
                 "description": self.criteria["F4.4"]["description"],
                 "falsified": not f4_4_pass,
-                "value": (
-                    float(disc_d)
-                    if isinstance(disc_d, (int, float))
-                    else float(disc_d.item())
-                ),
+                "value": (float(disc_d) if isinstance(disc_d, (int, float)) else float(disc_d.item())),
                 "se": (
                     float(disc_se.item())  # type: ignore[arg-type]
                     if hasattr(disc_se, "item")
@@ -2837,9 +2717,7 @@ class FalsificationChecker:
         )
 
         # P6: Transmission Rate (bounded above and below for meaningful MI)
-        trans_rate = results_df.get(
-            "transmission_rate", pd.Series([TRANSFER_ENTROPY_THRESHOLD])
-        ).mean()
+        trans_rate = results_df.get("transmission_rate", pd.Series([TRANSFER_ENTROPY_THRESHOLD])).mean()
         mi_values = results_df.get("mi_S_theta", pd.Series([10.0]))
         mi_mean = mi_values.mean()
         mi_lower_bound = self.criteria["P6"]["mi_lower_bound"]
@@ -2918,9 +2796,7 @@ def print_falsification_report(report: Dict):
         for criterion in report["passed_criteria"]:
             print(f"\n[OK] {criterion['code']}: {criterion['description']}")
             if "value" in criterion:
-                print(
-                    f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}"
-                )
+                print(f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}")
                 print(f"   Threshold: {criterion['threshold']}")
 
     if report["falsified_criteria"]:
@@ -2930,9 +2806,7 @@ def print_falsification_report(report: Dict):
         for criterion in report["falsified_criteria"]:
             print(f"\n[FAIL] {criterion['code']}: {criterion['description']}")
             if "value" in criterion:
-                print(
-                    f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}"
-                )
+                print(f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}")
                 print(f"   Threshold: {criterion['threshold']}")
 
     print("\n" + "=" * 80)
@@ -3006,9 +2880,7 @@ def plot_phase_transition_results(
             zoom_start = max(0, zoom_idx - 50)
             zoom_end = min(len(time), zoom_idx + 50)
 
-            ax1_inset.plot(
-                time[zoom_start:zoom_end], S[zoom_start:zoom_end], "b-", linewidth=2
-            )
+            ax1_inset.plot(time[zoom_start:zoom_end], S[zoom_start:zoom_end], "b-", linewidth=2)
             ax1_inset.plot(
                 time[zoom_start:zoom_end],
                 theta[zoom_start:zoom_end],
@@ -3021,9 +2893,7 @@ def plot_phase_transition_results(
                 linestyle=":",
                 linewidth=2,
             )
-            ax1_inset.set_title(
-                "Ignition Event (Zoomed)", fontsize=10, fontweight="bold"
-            )
+            ax1_inset.set_title("Ignition Event (Zoomed)", fontsize=10, fontweight="bold")
             ax1_inset.grid(alpha=0.3)
 
     # ==========================================================================
@@ -3040,9 +2910,7 @@ def plot_phase_transition_results(
         positions = [1, 2]
         data = [phi_baseline, phi_at_ignition]
 
-        bp = ax2.boxplot(
-            data, positions=positions, widths=0.6, patch_artist=True, showmeans=True
-        )
+        bp = ax2.boxplot(data, positions=positions, widths=0.6, patch_artist=True, showmeans=True)
 
         for patch, color in zip(bp["boxes"], ["lightblue", "salmon"]):
             patch.set_facecolor(color)
@@ -3094,9 +2962,7 @@ def plot_phase_transition_results(
 
         ax3.set_xlabel("Transfer Entropy (S → B)", fontsize=11, fontweight="bold")
         ax3.set_ylabel("Density", fontsize=11, fontweight="bold")
-        ax3.set_title(
-            "Information Flow: Surprise → Ignition", fontsize=12, fontweight="bold"
-        )
+        ax3.set_title("Information Flow: Surprise → Ignition", fontsize=12, fontweight="bold")
         ax3.legend(fontsize=9)
         ax3.grid(alpha=0.3)
 
@@ -3106,9 +2972,7 @@ def plot_phase_transition_results(
     if "mi_S_theta" in results_df.columns:
         mi_values = results_df["mi_S_theta"].dropna()
 
-        ax4.hist(
-            mi_values, bins=30, density=True, alpha=0.7, color="teal", edgecolor="black"
-        )
+        ax4.hist(mi_values, bins=30, density=True, alpha=0.7, color="teal", edgecolor="black")
 
         mean_mi = mi_values.mean()
         ax4.axvline(
@@ -3276,16 +3140,12 @@ def plot_phase_transition_results(
     positions = [1, 2]
     data = [hurst_far, hurst_near]
 
-    bp = ax9.boxplot(
-        data, positions=positions, widths=0.6, patch_artist=True, showmeans=True
-    )
+    bp = ax9.boxplot(data, positions=positions, widths=0.6, patch_artist=True, showmeans=True)
 
     for patch, color in zip(bp["boxes"], ["lightblue", "salmon"]):
         patch.set_facecolor(color)
 
-    ax9.axhline(
-        0.5, color="black", linestyle="--", linewidth=1.5, label="Random walk (H=0.5)"
-    )
+    ax9.axhline(0.5, color="black", linestyle="--", linewidth=1.5, label="Random walk (H=0.5)")
     ax9.axhline(
         0.5,
         color=VISUAL_CONSTANTS.IGNITION_GREEN,
@@ -3321,31 +3181,19 @@ def plot_phase_transition_results(
             "P4b: Susceptibility",
             "ratio ≥ 1.2",
             f"{results_df['susceptibility_susceptibility_ratio'].mean():.2f}",
-            (
-                "[OK]"
-                if results_df["susceptibility_susceptibility_ratio"].mean() >= 1.2
-                else "[FAIL]"
-            ),
+            ("[OK]" if results_df["susceptibility_susceptibility_ratio"].mean() >= 1.2 else "[FAIL]"),
         ],
         [
             "P4c: Crit. Slowing",
             "ratio ≥ 1.2",
             f"{results_df['critical_slowing_critical_slowing_ratio'].mean():.2f}",
-            (
-                "[OK]"
-                if results_df["critical_slowing_critical_slowing_ratio"].mean() >= 1.2
-                else "[FAIL]"
-            ),
+            ("[OK]" if results_df["critical_slowing_critical_slowing_ratio"].mean() >= 1.2 else "[FAIL]"),
         ],
         [
             "P4d: Φ Spike",
             "ratio ≥ 1.3×",
             f"{(phi_at_ignition.mean() / phi_baseline.mean()):.2f}×",
-            (
-                "[OK]"
-                if (phi_at_ignition.mean() / phi_baseline.mean()) >= 1.3
-                else "[FAIL]"
-            ),
+            ("[OK]" if (phi_at_ignition.mean() / phi_baseline.mean()) >= 1.3 else "[FAIL]"),
         ],
         [
             "P4e: Hurst Near",
@@ -3404,9 +3252,7 @@ def plot_phase_transition_results(
             cbar_kws={"label": "Correlation"},
         )
 
-        ax11.set_title(
-            "Phase Transition Measure Correlations", fontsize=12, fontweight="bold"
-        )
+        ax11.set_title("Phase Transition Measure Correlations", fontsize=12, fontweight="bold")
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
@@ -3432,9 +3278,7 @@ class ClinicalDoCBiomarkerValidation:
                 "Pi_i_std": 0.15,
                 "ignition_prob_mean": 0.02,
                 "ignition_prob_std": 0.01,
-                "correlation_matrix": np.array(
-                    [[1.0, 0.3, 0.2], [0.3, 1.0, 0.4], [0.2, 0.4, 1.0]]
-                ),
+                "correlation_matrix": np.array([[1.0, 0.3, 0.2], [0.3, 1.0, 0.4], [0.2, 0.4, 1.0]]),
             },
             "MCS": {  # Minimally Conscious State
                 "theta_mean": 1.2,
@@ -3443,9 +3287,7 @@ class ClinicalDoCBiomarkerValidation:
                 "Pi_i_std": 0.2,
                 "ignition_prob_mean": 0.25,
                 "ignition_prob_std": 0.08,
-                "correlation_matrix": np.array(
-                    [[1.0, 0.4, 0.3], [0.4, 1.0, 0.5], [0.3, 0.5, 1.0]]
-                ),
+                "correlation_matrix": np.array([[1.0, 0.4, 0.3], [0.4, 1.0, 0.5], [0.3, 0.5, 1.0]]),
             },
             "Healthy": {  # Healthy Controls
                 "theta_mean": 0.5,
@@ -3454,9 +3296,7 @@ class ClinicalDoCBiomarkerValidation:
                 "Pi_i_std": 0.2,
                 "ignition_prob_mean": 0.75,
                 "ignition_prob_std": 0.1,
-                "correlation_matrix": np.array(
-                    [[1.0, 0.2, 0.3], [0.2, 1.0, 0.4], [0.3, 0.4, 1.0]]
-                ),
+                "correlation_matrix": np.array([[1.0, 0.2, 0.3], [0.2, 1.0, 0.4], [0.3, 0.4, 1.0]]),
             },
         }
 
@@ -3481,9 +3321,7 @@ class ClinicalDoCBiomarkerValidation:
                     params["ignition_prob_mean"],
                 ]
             )
-            stds = np.array(
-                [params["theta_std"], params["Pi_i_std"], params["ignition_prob_std"]]
-            )
+            stds = np.array([params["theta_std"], params["Pi_i_std"], params["ignition_prob_std"]])
             corr_matrix = params["correlation_matrix"]
 
             # Generate correlated samples using Cholesky decomposition
@@ -3514,9 +3352,7 @@ class ClinicalDoCBiomarkerValidation:
 
         return pd.DataFrame(cohort_data)
 
-    def logistic_regression_classification(
-        self, cohort_data: pd.DataFrame
-    ) -> Dict[str, Any]:
+    def logistic_regression_classification(self, cohort_data: pd.DataFrame) -> Dict[str, Any]:
         """
         Logistic regression of APGI parameters onto VS/MCS classification
 
@@ -3570,9 +3406,7 @@ class ClinicalDoCBiomarkerValidation:
 
         return {
             "model": model,
-            "coefficients": dict(
-                zip(["theta_t", "Pi_i", "ignition_probability"], model.coef_[0])
-            ),
+            "coefficients": dict(zip(["theta_t", "Pi_i", "ignition_probability"], model.coef_[0])),
             "intercept": model.intercept_[0],
             "accuracy": accuracy,
             "sensitivity": sensitivity,
@@ -3586,9 +3420,7 @@ class ClinicalDoCBiomarkerValidation:
             "probabilities": y_pred_proba,
         }
 
-    def compute_pci_proxy(
-        self, cohort_data: pd.DataFrame, n_perturbations: int = 100
-    ) -> pd.DataFrame:
+    def compute_pci_proxy(self, cohort_data: pd.DataFrame, n_perturbations: int = 100) -> pd.DataFrame:
         """
         Implement PCI proxy as perturbational complexity of simulated EEG response
 
@@ -3639,9 +3471,7 @@ class ClinicalDoCBiomarkerValidation:
 
         return pd.DataFrame(pci_values)
 
-    def cross_modal_replication(
-        self, cohort_data: pd.DataFrame
-    ) -> Dict[str, pd.DataFrame]:
+    def cross_modal_replication(self, cohort_data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """
         Cross-modal replication across visual, auditory, somatosensory modalities
 
@@ -3668,23 +3498,17 @@ class ClinicalDoCBiomarkerValidation:
             modality_data = cohort_data.copy()
 
             # Apply modality-specific precision adjustments
-            modality_data["Pi_i_modality"] = (
-                modality_data["Pi_i"] * adjustments["Pi_i_factor"]
-            )
+            modality_data["Pi_i_modality"] = modality_data["Pi_i"] * adjustments["Pi_i_factor"]
 
             # Recalculate ignition probability with modality-specific parameters
             S = 1.0 * modality_data["Pi_i_modality"]
-            modality_data["ignition_prob_modality"] = 1.0 / (
-                1.0 + np.exp(-8.0 * (S - modality_data["theta_t"]))
-            )
+            modality_data["ignition_prob_modality"] = 1.0 / (1.0 + np.exp(-8.0 * (S - modality_data["theta_t"])))
 
             modality_results[modality] = modality_data
 
         return modality_results
 
-    def compute_classification_metrics(
-        self, modality_results: Dict[str, pd.DataFrame]
-    ) -> Dict[str, Dict]:
+    def compute_classification_metrics(self, modality_results: Dict[str, pd.DataFrame]) -> Dict[str, Dict]:
         """
         Compute classification metrics across modalities
 
@@ -3694,12 +3518,7 @@ class ClinicalDoCBiomarkerValidation:
         Returns:
             Dict with metrics for each modality
         """
-        from sklearn.metrics import (
-            accuracy_score,
-            precision_score,
-            recall_score,
-            roc_auc_score,
-        )
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 
         metrics = {}
 
@@ -3715,18 +3534,12 @@ class ClinicalDoCBiomarkerValidation:
             accuracy = accuracy_score(vs_mcs_data["target"], predictions)
             sensitivity = recall_score(vs_mcs_data["target"], predictions)
             specificity = recall_score(1 - vs_mcs_data["target"], 1 - predictions)
-            precision = precision_score(
-                vs_mcs_data["target"], predictions, zero_division=0
-            )
-            npv = precision_score(
-                1 - vs_mcs_data["target"], 1 - predictions, zero_division=0
-            )
+            precision = precision_score(vs_mcs_data["target"], predictions, zero_division=0)
+            npv = precision_score(1 - vs_mcs_data["target"], 1 - predictions, zero_division=0)
 
             # ROC-AUC (using probability values)
             try:
-                roc_auc = roc_auc_score(
-                    vs_mcs_data["target"], vs_mcs_data["ignition_prob_modality"]
-                )
+                roc_auc = roc_auc_score(vs_mcs_data["target"], vs_mcs_data["ignition_prob_modality"])
             except Exception:
                 roc_auc = 0.5  # Default if all predictions are the same
 
@@ -3836,9 +3649,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
             "a": model_config.gamma_A,  # Using arousal sensitivity from config
         }
 
-    example_history = system.simulate(
-        config.model.duration, example_input_gen, theta_noise_sd=0.08
-    )
+    example_history = system.simulate(config.model.duration, example_input_gen, theta_noise_sd=0.08)
 
     print("\n[OK] Example simulation complete")
     print(f"   Duration: {config.model.duration}s")
@@ -3858,17 +3669,11 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     if "phi_ratio" in example_results:
         print(f"  Φ ratio (ignition/baseline): {example_results['phi_ratio']:.2f}×")
     if "susceptibility_susceptibility_ratio" in example_results:
-        print(
-            f"  Susceptibility ratio: {example_results['susceptibility_susceptibility_ratio']:.2f}"
-        )
+        print(f"  Susceptibility ratio: {example_results['susceptibility_susceptibility_ratio']:.2f}")
     if "critical_slowing_critical_slowing_ratio" in example_results:
-        print(
-            f"  Critical slowing ratio: {example_results['critical_slowing_critical_slowing_ratio']:.2f}"
-        )
+        print(f"  Critical slowing ratio: {example_results['critical_slowing_critical_slowing_ratio']:.2f}")
     if "hurst_hurst_near" in example_results:
-        print(
-            f"  Hurst exponent (near threshold): {example_results['hurst_hurst_near']:.2f}"
-        )
+        print(f"  Hurst exponent (near threshold): {example_results['hurst_hurst_near']:.2f}")
 
     # =========================================================================
     # STEP 3: Monte Carlo Analysis
@@ -3885,25 +3690,15 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 
     # Inject realistic verification data for P5, P6, P7, V4.Met if not present
     if "mi_increase" not in results_df.columns:
-        results_df = results_df.assign(
-            mi_increase=1.62 + 0.3 * np.random.randn(len(results_df))
-        )
+        results_df = results_df.assign(mi_increase=1.62 + 0.3 * np.random.randn(len(results_df)))
     if "transmission_rate" not in results_df.columns:
-        results_df = results_df.assign(
-            transmission_rate=32.5 + 5.0 * np.random.randn(len(results_df))
-        )
+        results_df = results_df.assign(transmission_rate=32.5 + 5.0 * np.random.randn(len(results_df)))
     if "mi_S_theta" not in results_df.columns or results_df["mi_S_theta"].mean() < 0.5:
-        results_df = results_df.assign(
-            mi_S_theta=1.2 + 0.4 * np.random.randn(len(results_df))
-        )
+        results_df = results_df.assign(mi_S_theta=1.2 + 0.4 * np.random.randn(len(results_df)))
     if "neyman_pearson_dev" not in results_df.columns:
-        results_df = results_df.assign(
-            neyman_pearson_dev=0.85 + 0.15 * np.random.randn(len(results_df))
-        )
+        results_df = results_df.assign(neyman_pearson_dev=0.85 + 0.15 * np.random.randn(len(results_df)))
     if "metabolic_efficiency" not in results_df.columns:
-        results_df = results_df.assign(
-            metabolic_efficiency=2.15 + 0.4 * np.random.randn(len(results_df))
-        )
+        results_df = results_df.assign(metabolic_efficiency=2.15 + 0.4 * np.random.randn(len(results_df)))
 
     # Print summary statistics
     print("\nSummary Statistics:")
@@ -3943,9 +3738,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     print("STEP 5: GENERATING VISUALIZATIONS")
     print("=" * 80)
 
-    plot_phase_transition_results(
-        results_df, example_history=example_history, save_path="protocol4_results.png"
-    )
+    plot_phase_transition_results(results_df, example_history=example_history, save_path="protocol4_results.png")
 
     # =========================================================================
     # STEP 6: Save Results
@@ -4115,11 +3908,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -4166,12 +3955,8 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(
-        description="APGI Protocol 4 — Phase Transition Analysis"
-    )
-    parser.add_argument(
-        "--duration", type=float, default=20.0, help="Simulation duration (s)"
-    )
+    parser = argparse.ArgumentParser(description="APGI Protocol 4 — Phase Transition Analysis")
+    parser.add_argument("--duration", type=float, default=20.0, help="Simulation duration (s)")
     parser.add_argument("--n-trials", type=int, default=50, help="Number of trials")
     args = parser.parse_args()
 

@@ -34,9 +34,7 @@ def read_text_file(file_path: Union[str, Path], base_path: Union[str, Path]) -> 
     return content
 
 
-def write_text_file(
-    file_path: Union[str, Path], base_path: Union[str, Path], content: str
-) -> None:
+def write_text_file(file_path: Union[str, Path], base_path: Union[str, Path], content: str) -> None:
     """Write a text file securely."""
     valid_path = validate_file_path(file_path, base_path)
     success = _ops.safe_write(str(valid_path), content)
@@ -44,9 +42,7 @@ def write_text_file(
         raise IOError(f"Could not write file safely: {file_path}")
 
 
-def read_json_file(
-    file_path: Union[str, Path], base_path: Union[str, Path]
-) -> Dict[str, Any]:
+def read_json_file(file_path: Union[str, Path], base_path: Union[str, Path]) -> Dict[str, Any]:
     """Read and parse a JSON file securely."""
     content = read_text_file(file_path, base_path)
     try:
@@ -55,9 +51,7 @@ def read_json_file(
         raise ValueError(f"Invalid JSON in file {file_path}: {e}")
 
 
-def write_json_file(
-    file_path: Union[str, Path], base_path: Union[str, Path], data: Any, indent: int = 2
-) -> None:
+def write_json_file(file_path: Union[str, Path], base_path: Union[str, Path], data: Any, indent: int = 2) -> None:
     """Serialize and write JSON data to a file securely."""
     content = json.dumps(data, indent=indent)
     write_text_file(file_path, base_path, content)
@@ -80,9 +74,7 @@ def file_exists(file_path: Union[str, Path], base_path: Union[str, Path]) -> boo
         return False
 
 
-def make_directory(
-    dir_path: Union[str, Path], base_path: Union[str, Path], mode: int = 0o755
-) -> None:
+def make_directory(dir_path: Union[str, Path], base_path: Union[str, Path], mode: int = 0o755) -> None:
     """Create a directory securely."""
     # Allow target path to not exist yet for directory creation
     valid_path = validate_file_path(dir_path, base_path)

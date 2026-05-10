@@ -111,7 +111,6 @@ def test_with_timeout_success():
             target = kwargs.get("target")
             # The target is _timeout_target with its arguments already bound
             if target:
-                # Call the target with its arguments (func, args, kwargs, result, exception)
                 # But we need to extract the actual function and its arguments from the kwargs
                 # For simplicity, we'll mock the result by accessing the manager lists
                 func = args[0] if args else fast_func
@@ -186,10 +185,7 @@ def test_run_with_timeout_success():
 
         mock_process.side_effect = side_effect
 
-        assert (
-            run_with_timeout(fast_func, args=(3,), kwargs={"b": 4}, timeout_seconds=1.0)
-            == 7
-        )
+        assert run_with_timeout(fast_func, args=(3,), kwargs={"b": 4}, timeout_seconds=1.0) == 7
 
 
 def test_run_with_timeout_exception():
@@ -237,9 +233,7 @@ def test_run_subprocess_with_timeout_success(mock_popen):
     mock_process.returncode = 0
     mock_popen.return_value = mock_process
 
-    result = run_subprocess_with_timeout(
-        ["ls"], timeout_seconds=1.0, cwd="/tmp", env={"A": "1"}, encoding="utf-8"
-    )
+    result = run_subprocess_with_timeout(["ls"], timeout_seconds=1.0, cwd="/tmp", env={"A": "1"}, encoding="utf-8")
 
     assert result.returncode == 0
     assert result.stdout == "output"
@@ -254,9 +248,7 @@ def test_run_subprocess_with_timeout_success(mock_popen):
 @patch("subprocess.Popen")
 def test_run_subprocess_with_timeout_expired(mock_popen):
     mock_process = Mock()
-    mock_process.communicate.side_effect = subprocess.TimeoutExpired(
-        cmd=["ls"], timeout=0.1
-    )
+    mock_process.communicate.side_effect = subprocess.TimeoutExpired(cmd=["ls"], timeout=0.1)
     mock_popen.return_value = mock_process
 
     with pytest.raises(TimeoutError, match="Subprocess timed out"):

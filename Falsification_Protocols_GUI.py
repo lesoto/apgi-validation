@@ -27,6 +27,9 @@ except ImportError:
 # Fix temp directory and cache issues for matplotlib/sklearn
 import tempfile
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 os.environ["TMPDIR"] = tempfile.gettempdir()
 os.environ["MPLCONFIGDIR"] = os.path.join(tempfile.gettempdir(), "matplotlib_cache")
 
@@ -38,15 +41,12 @@ cache_dirs = [
 for cache_dir in cache_dirs:
     try:
         os.makedirs(cache_dir, exist_ok=True)
-    except Exception:
-        pass
+    except (OSError, PermissionError) as e:
+        logger.warning(f"Failed to create cache directory {cache_dir}: {e}")
 
 # Suppress lifelines and pandas FutureWarnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="lifelines")
 warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
-
-# Set up logger
-logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -613,16 +613,12 @@ class ProtocolRunnerGUI:
         main_frame.rowconfigure(2, weight=1)
 
         # Title
-        title_label = ttk.Label(
-            main_frame, text="APGI Falsification Protocols", font=("Arial", 16, "bold")
-        )
+        title_label = ttk.Label(main_frame, text="APGI Falsification Protocols", font=("Arial", 16, "bold"))
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         # Create notebook for tabs
         self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
-        )
+        self.notebook.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
 
         # Protocols tab
         protocols_frame = ttk.Frame(self.notebook)
@@ -636,13 +632,9 @@ class ProtocolRunnerGUI:
 
         # Output console
         console_frame = ttk.LabelFrame(main_frame, text="Output Console", padding="10")
-        console_frame.grid(
-            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
-        )
+        console_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        self.output_console = scrolledtext.ScrolledText(
-            console_frame, height=15, width=80
-        )
+        self.output_console = scrolledtext.ScrolledText(console_frame, height=15, width=80)
         self.output_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         console_frame.columnconfigure(0, weight=1)
@@ -650,16 +642,12 @@ class ProtocolRunnerGUI:
 
         # Status bar and clear console button frame
         status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(
-            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0)
-        )
+        status_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
         status_frame.columnconfigure(1, weight=1)
 
         # Status bar
         self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(
-            status_frame, textvariable=self.status_var, relief=tk.SUNKEN
-        )
+        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
         status_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
 
         # Progress bar
@@ -671,22 +659,16 @@ class ProtocolRunnerGUI:
             mode="determinate",
             length=300,
         )
-        self.progress_bar.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
+        self.progress_bar.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
 
         # Control buttons
         button_frame = ttk.Frame(status_frame)
         button_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
-        clear_btn = ttk.Button(
-            button_frame, text="Clear Console", command=self.clear_console
-        )
+        clear_btn = ttk.Button(button_frame, text="Clear Console", command=self.clear_console)
         clear_btn.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.stop_btn = ttk.Button(
-            button_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED
-        )
+        self.stop_btn = ttk.Button(button_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT)
 
         # Configure tab order for keyboard navigation
@@ -698,9 +680,7 @@ class ProtocolRunnerGUI:
         parent_frame.rowconfigure(0, weight=1)
 
         # Protocol buttons frame
-        button_frame = ttk.LabelFrame(
-            parent_frame, text="Select Protocol", padding="10"
-        )
+        button_frame = ttk.LabelFrame(parent_frame, text="Select Protocol", padding="10")
         button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         # Create 6 buttons in 2x3 grid
@@ -711,9 +691,7 @@ class ProtocolRunnerGUI:
             btn = ttk.Button(
                 button_frame,
                 text=protocol_name.split(": ")[1],
-                command=lambda info=protocol_info, name=protocol_name: self.select_protocol(
-                    name, info
-                ),
+                command=lambda info=protocol_info, name=protocol_name: self.select_protocol(name, info),
             )
             btn.grid(row=row, column=col, padx=5, pady=5, sticky=(tk.W, tk.E))
 
@@ -725,9 +703,7 @@ class ProtocolRunnerGUI:
             button_frame.columnconfigure(col, weight=1)
 
         # Selected protocol display
-        selected_frame = ttk.LabelFrame(
-            parent_frame, text="Selected Protocol", padding="10"
-        )
+        selected_frame = ttk.LabelFrame(parent_frame, text="Selected Protocol", padding="10")
         selected_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
 
         self.selected_protocol_label = ttk.Label(
@@ -766,35 +742,25 @@ class ProtocolRunnerGUI:
         selector_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         ttk.Label(selector_frame, text="Configure parameters for:").pack(side=tk.LEFT)
-        self.protocol_selector = ttk.Combobox(
-            selector_frame, values=list(self.protocols.keys()), state="readonly"
-        )
+        self.protocol_selector = ttk.Combobox(selector_frame, values=list(self.protocols.keys()), state="readonly")
         self.protocol_selector.pack(side=tk.LEFT, padx=(10, 0))
         self.protocol_selector.bind("<<ComboboxSelected>>", self.on_protocol_selected)
 
         # Parameters frame
-        self.params_frame = ttk.LabelFrame(
-            parent_frame, text="Parameters", padding="10"
-        )
+        self.params_frame = ttk.LabelFrame(parent_frame, text="Parameters", padding="10")
         self.params_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Scrollable frame for parameters
         self.params_canvas = tk.Canvas(self.params_frame, height=300)
-        self.params_scrollbar = ttk.Scrollbar(
-            self.params_frame, orient="vertical", command=self.params_canvas.yview
-        )
+        self.params_scrollbar = ttk.Scrollbar(self.params_frame, orient="vertical", command=self.params_canvas.yview)
         self.params_scrollable_frame = ttk.Frame(self.params_canvas)
 
         self.params_scrollable_frame.bind(
             "<Configure>",
-            lambda e: self.params_canvas.configure(
-                scrollregion=self.params_canvas.bbox("all")
-            ),
+            lambda e: self.params_canvas.configure(scrollregion=self.params_canvas.bbox("all")),
         )
 
-        self.params_canvas.create_window(
-            (0, 0), window=self.params_scrollable_frame, anchor="nw"
-        )
+        self.params_canvas.create_window((0, 0), window=self.params_scrollable_frame, anchor="nw")
         self.params_canvas.configure(yscrollcommand=self.params_scrollbar.set)
 
         self.params_canvas.pack(side="left", fill="both", expand=True)
@@ -804,12 +770,10 @@ class ProtocolRunnerGUI:
         control_frame = ttk.Frame(parent_frame)
         control_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
 
-        ttk.Button(
-            control_frame, text="Load Defaults", command=self.load_default_parameters
-        ).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(
-            control_frame, text="Save Parameters", command=self.save_parameters
-        ).pack(side=tk.LEFT)
+        ttk.Button(control_frame, text="Load Defaults", command=self.load_default_parameters).pack(
+            side=tk.LEFT, padx=(0, 10)
+        )
+        ttk.Button(control_frame, text="Save Parameters", command=self.save_parameters).pack(side=tk.LEFT)
 
     def select_protocol(self, protocol_name, protocol_info):
         """Select a protocol for running."""
@@ -884,9 +848,7 @@ class ProtocolRunnerGUI:
                 )
             else:  # string
                 var = tk.StringVar(value=param_config["default"])
-                widget = ttk.Entry(
-                    self.params_scrollable_frame, textvariable=var, width=17
-                )
+                widget = ttk.Entry(self.params_scrollable_frame, textvariable=var, width=17)
 
             widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
 
@@ -907,9 +869,7 @@ class ProtocolRunnerGUI:
             if "parameters" in protocol_info:
                 self.parameter_values[protocol_name] = {}
                 for param_name, param_config in protocol_info["parameters"].items():
-                    self.parameter_values[protocol_name][param_name] = param_config[
-                        "default"
-                    ]
+                    self.parameter_values[protocol_name][param_name] = param_config["default"]
 
     def save_parameters(self):
         """Save current parameter values with validation."""
@@ -926,9 +886,7 @@ class ProtocolRunnerGUI:
                     value = widget_info["var"].get()
                     self.parameter_values[selected][param_name] = value
                 except Exception as e:
-                    messagebox.showerror(
-                        "Update Error", f"Error updating {param_name}: {e}"
-                    )
+                    messagebox.showerror("Update Error", f"Error updating {param_name}: {e}")
                     return
 
         # Validate parameter values
@@ -948,9 +906,7 @@ class ProtocolRunnerGUI:
                                 f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
                     except (ValueError, TypeError):
-                        validation_errors.append(
-                            f"{param_name}: Invalid float value '{current_value}'"
-                        )
+                        validation_errors.append(f"{param_name}: Invalid float value '{current_value}'")
 
                 elif param_config["type"] == "int":
                     try:
@@ -960,9 +916,7 @@ class ProtocolRunnerGUI:
                                 f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
                     except (ValueError, TypeError):
-                        validation_errors.append(
-                            f"{param_name}: Invalid integer value '{current_value}'"
-                        )
+                        validation_errors.append(f"{param_name}: Invalid integer value '{current_value}'")
 
                 elif param_config["type"] == "str":
                     # String validation - check if it's a valid format
@@ -973,13 +927,9 @@ class ProtocolRunnerGUI:
 
                             value_list = json.loads(current_value)
                             if not isinstance(value_list, list) or len(value_list) != 2:
-                                validation_errors.append(
-                                    f"{param_name}: Must be in format [min, max]"
-                                )
+                                validation_errors.append(f"{param_name}: Must be in format [min, max]")
                         except (json.JSONDecodeError, TypeError):
-                            validation_errors.append(
-                                f"{param_name}: Invalid range format '{current_value}'"
-                            )
+                            validation_errors.append(f"{param_name}: Invalid range format '{current_value}'")
 
         if validation_errors:
             messagebox.showerror(
@@ -997,9 +947,7 @@ class ProtocolRunnerGUI:
             config_dir = project_root / "config"
             config_dir.mkdir(parents=True, exist_ok=True)
 
-            config_file = (
-                config_dir / f"{selected.lower().replace(' ', '_')}_params.json"
-            )
+            config_file = config_dir / f"{selected.lower().replace(' ', '_')}_params.json"
             with open(config_file, "w", encoding="utf-8") as f:
                 json.dump(self.parameter_values[selected], f, indent=2)
 
@@ -1032,9 +980,7 @@ class ProtocolRunnerGUI:
         # Run protocols in a separate thread
         def run_all_thread():
             total = len(self.protocols)
-            for idx, (protocol_name, protocol_info) in enumerate(
-                self.protocols.items(), 1
-            ):
+            for idx, (protocol_name, protocol_info) in enumerate(self.protocols.items(), 1):
                 if self.stop_event.is_set():
                     self.log_message("=== Run All stopped by user ===")
                     break
@@ -1077,9 +1023,7 @@ class ProtocolRunnerGUI:
             # Load the protocol module
             file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
 
-            spec = importlib.util.spec_from_file_location(
-                protocol_info["file"], file_path
-            )
+            spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -1128,9 +1072,8 @@ class ProtocolRunnerGUI:
                     self.log_message("  Running run_falsification from module scope...")
                     result = module.run_falsification()
                     status = "Done"
-                    if result and isinstance(result, dict):
-                        status = result.get("status", "Done")
-                    elif result is None:
+                    status = result.get("status", "Done")
+                    if result is None:
                         status = "ERROR (Returned None)"
                     self.log_message(f"  Protocol completed: {status}")
 
@@ -1156,9 +1099,7 @@ class ProtocolRunnerGUI:
                         "population_size": configured_params.get("population_size", 50),
                         "n_generations": configured_params.get("n_generations", 100),
                         "mutation_rate": configured_params.get("mutation_rate", 0.1),
-                        "selection_pressure": configured_params.get(
-                            "selection_pressure", 2.0
-                        ),
+                        "selection_pressure": configured_params.get("selection_pressure", 2.0),
                     }
                     instance = cls(stop_event=self.stop_event, **config)
                     result = instance.run_evolution()
@@ -1178,13 +1119,10 @@ class ProtocolRunnerGUI:
                     elif hasattr(instance, "run_falsification"):
                         result = instance.run_falsification()
                     else:
-                        self.log_message(
-                            "  WARNING: No standard execution method found. Result will be empty."
-                        )
+                        self.log_message("  WARNING: No standard execution method found. Result will be empty.")
                         result = {"status": "Incomplete", "warning": "No runner found"}
 
             # FIX: Actually save the result instead of an empty dict
-            self._save_results(result, protocol_info["file"])
             self.log_message("  Protocol completed successfully")
 
         except Exception as e:
@@ -1225,9 +1163,10 @@ class ProtocolRunnerGUI:
                 try:
                     value = widget_info["var"].get()
                     params[param_name] = value
-                except Exception:
+                except Exception as e:
                     # Use default value if widget access fails
-                    pass
+                    logger.warning(f"Failed to get value for parameter {param_name}: {e}")
+                    continue
 
         # Merge with protocol info
         protocol_info_with_params = protocol_info.copy()
@@ -1361,32 +1300,20 @@ class ProtocolRunnerGUI:
                     sys.path.insert(0, project_root)
 
                 # Load the protocol module
-                file_path = os.path.join(
-                    os.path.dirname(__file__), protocol_info["file"]
-                )
+                file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
 
                 # Validate file path to prevent path traversal
                 # Check for path traversal attempts
-                if ".." in protocol_info["file"] or protocol_info["file"].startswith(
-                    "/"
-                ):
-                    raise ValueError(
-                        f"Invalid protocol path: {protocol_info['file']} (contains path traversal)"
-                    )
+                if ".." in protocol_info["file"] or protocol_info["file"].startswith("/"):
+                    raise ValueError(f"Invalid protocol path: {protocol_info['file']} (contains path traversal)")
 
                 # Resolve and validate it's within project directory
                 try:
-                    Path(file_path).resolve().relative_to(
-                        Path(os.path.dirname(__file__)).resolve()
-                    )
+                    Path(file_path).resolve().relative_to(Path(os.path.dirname(__file__)).resolve())
                 except ValueError:
-                    raise ValueError(
-                        f"Invalid protocol path: {protocol_info['file']} (outside project directory)"
-                    )
+                    raise ValueError(f"Invalid protocol path: {protocol_info['file']} (outside project directory)")
 
-                spec = importlib.util.spec_from_file_location(
-                    protocol_info["file"], file_path
-                )
+                spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 self.module = module
@@ -1414,9 +1341,7 @@ class ProtocolRunnerGUI:
                         else:
                             validated_params[key] = num_value
                     except (ValueError, TypeError) as e:
-                        self.log_message(
-                            f"Warning: Invalid value for {key}: {value}. Error: {e}. Using default."
-                        )
+                        self.log_message(f"Warning: Invalid value for {key}: {value}. Error: {e}. Using default.")
                         # Don't add invalid params to validated_params
 
                 if protocol_info["class"] == "FalsificationAggregator":
@@ -1430,23 +1355,15 @@ class ProtocolRunnerGUI:
                     elif protocol_info["class"] == "APGIActiveInferenceAgent":
                         results = self._handle_apgi_agent(cls, module, validated_params)
                     elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                        results = self._handle_iowa_gambling(
-                            cls, module, validated_params
-                        )
+                        results = self._handle_iowa_gambling(cls, module, validated_params)
                     elif hasattr(module, "run_falsification"):
                         # Fallback to module-level run_falsification
-                        self.log_message(
-                            "Running run_falsification from module scope..."
-                        )
+                        self.log_message("Running run_falsification from module scope...")
                         results = module.run_falsification()
                     elif hasattr(cls, "run_full_experiment"):
-                        results = self._handle_run_full_experiment(
-                            cls, validated_params
-                        )
+                        results = self._handle_run_full_experiment(cls, validated_params)
                     elif hasattr(cls, "run_phase_transition_analysis"):
-                        results = self._handle_phase_transition(
-                            cls, module, validated_params
-                        )
+                        results = self._handle_phase_transition(cls, module, validated_params)
                     elif hasattr(cls, "run_evolution"):
                         results = self._handle_evolution(cls, validated_params)
                     else:
@@ -1498,9 +1415,7 @@ class ProtocolRunnerGUI:
         if validation_dir.exists():
             result_files = [str(f) for f in sorted(validation_dir.glob("*.json"))]
 
-        self.log_message(
-            f"Framework Aggregator: found {len(result_files)} result file(s) in {validation_dir}"
-        )
+        self.log_message(f"Framework Aggregator: found {len(result_files)} result file(s) in {validation_dir}")
 
         run_fn = getattr(module, "run_framework_falsification", None)
         if run_fn is None:
@@ -1523,8 +1438,7 @@ class ProtocolRunnerGUI:
                     "message": "No previous validation results found. Run individual protocols first.",
                 }
 
-        status = result.get("status", "Done") if isinstance(result, dict) else "Done"
-        self.log_message(f"Framework Aggregator completed: {status}")
+        self.log_message(f"Framework Aggregator completed: {result.get('status', 'UNKNOWN')}")
         return result
 
     def _handle_network_comparison(self, cls, params):
@@ -1540,7 +1454,6 @@ class ProtocolRunnerGUI:
         result = instance.run_full_experiment()
         self.log_message("Network Comparison Experiment completed")
         self.log_message(f"Results: {type(result)}")
-        return {"result": result, "type": "NetworkComparisonExperiment"}
 
     def _handle_apgi_agent(self, cls, module, params):
         """Run the full falsification protocol for APGI agent with configured parameters."""
@@ -1551,7 +1464,6 @@ class ProtocolRunnerGUI:
                 # Run the full protocol
                 result = run_func()
                 self.log_message(f"APGI Agent falsification completed: {result}")
-                return {"result": result, "type": "APGIActiveInferenceAgent"}
             else:
                 # Fallback to old behavior with configured parameters
                 config = {
@@ -1588,10 +1500,7 @@ class ProtocolRunnerGUI:
             if run_func:
                 # Run the full protocol
                 result = run_func()
-                self.log_message(
-                    f"Iowa Gambling Task falsification completed: {result}"
-                )
-                return {"result": result, "type": "IowaGamblingTaskEnvironment"}
+                self.log_message(f"Iowa Gambling Task falsification completed: {result}")
             else:
                 # Fallback to old behavior with configured parameters
                 n_trials = params.get("n_trials", 100)
@@ -1606,8 +1515,7 @@ class ProtocolRunnerGUI:
                     reward, intero_cost, obs, done = env.step(action)
                     total_reward += reward
                     self.log_message(
-                        f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, "
-                        f"InteroCost={intero_cost:.2f}"
+                        f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, " f"InteroCost={intero_cost:.2f}"
                     )
 
                 self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
@@ -1630,16 +1538,12 @@ class ProtocolRunnerGUI:
                 # These are expected when parameters don't match constructor signature
                 logger.warning(f"Parameter mismatch for {cls.__name__}: {e}")
                 instance = cls()  # Create instance with defaults
-                self.log_message(
-                    "Warning: Could not apply configured parameters, using defaults"
-                )
+                self.log_message("Warning: Could not apply configured parameters, using defaults")
             except Exception as e:
                 # Log unexpected errors but don't suppress them
                 logger.warning(f"Unexpected error in application: {e}")
                 instance = cls()  # Create instance with defaults
-                self.log_message(
-                    "Warning: Could not apply configured parameters, using defaults"
-                )
+                self.log_message("Warning: Could not apply configured parameters, using defaults")
 
             result = instance.run_full_experiment()
             self.log_message(f"Experiment completed: {type(result)}")
@@ -1662,8 +1566,9 @@ class ProtocolRunnerGUI:
             if hasattr(surprise_system, param_name):
                 try:
                     setattr(surprise_system, param_name, value)
-                except Exception as _:  # noqa: F841
-                    pass  # Skip parameters that can't be set
+                except Exception as e:  # noqa: F841
+                    logger.warning(f"Failed to set parameter {param_name}: {e}")
+                    continue  # Skip parameters that can't be set
 
         instance = cls(surprise_system)
         result = instance.run_phase_transition_analysis()
@@ -1703,9 +1608,7 @@ class ProtocolRunnerGUI:
             self.log_message(f"Created {cls.__name__} instance with parameters")
         except TypeError:
             instance = cls()  # Create instance with defaults
-            self.log_message(
-                "Warning: Could not apply configured parameters, using defaults"
-            )
+            self.log_message("Warning: Could not apply configured parameters, using defaults")
 
         # Try to find any standard run method
         self.log_message(f"Attempting to run {cls.__name__}...")
@@ -1805,9 +1708,7 @@ def main():
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(
-        description="APGI Falsification Protocols GUI / Headless Runner"
-    )
+    parser = argparse.ArgumentParser(description="APGI Falsification Protocols GUI / Headless Runner")
     parser.add_argument(
         "--headless",
         action="store_true",
@@ -1836,9 +1737,7 @@ def main():
                     from utils.auth_adapter import get_auth_manager
 
                     auth_manager = get_auth_manager()
-                    dev_token = auth_manager.generate_token(
-                        "dev_user", Role.RESEARCHER, 24
-                    )  # 24 hour expiry
+                    dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)  # 24 hour expiry
                     print("Development mode: Generated token (valid 24 hours)")
                     args.token = dev_token
                 except Exception as e:

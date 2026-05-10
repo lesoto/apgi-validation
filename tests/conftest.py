@@ -76,15 +76,50 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
+# Define safe functions at module level for Python 3.14 compatibility
+def _safe_amin(a, axis=None, out=None, keepdims=False, initial=None, where=True):
+    """Safe amin that handles _NoValueType initial parameter."""
+    if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
+        initial = None
+    import numpy as np
+
+    _original_amin = np.amin
+    return _original_amin(
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
+
+
+def _safe_amax(a, axis=None, out=None, keepdims=False, initial=None, where=True):
+    """Safe amax that handles _NoValueType initial parameter."""
+    if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
+        initial = None
+    import numpy as np
+
+    _original_amax = np.amax
+    return _original_amax(
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
+
+
 # Python 3.14 compatibility fixes for NumPy/SciPy
 if sys.version_info >= (3, 14):
-    # Comprehensive patching for Python 3.14 compatibility issues
+    # Comprehensive patching for NumPy/SciPy compatibility issues
     try:
         import numpy as np
 
@@ -107,15 +142,9 @@ if sys.version_info >= (3, 14):
             # SciPy imports and can cause widespread collection-time failures.
 
             # Define safe functions at module level
-            def _safe_amin(
-                a, axis=None, out=None, keepdims=False, initial=None, where=True
-            ):
+            def _safe_amin(a, axis=None, out=None, keepdims=False, initial=None, where=True):
                 """Safe amin that handles _NoValueType initial parameter."""
-                if (
-                    initial is not None
-                    and hasattr(initial, "__class__")
-                    and "_NoValueType" in str(type(initial))
-                ):
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
                     initial = None
                 return _original_amin(
                     a,
@@ -126,15 +155,9 @@ if sys.version_info >= (3, 14):
                     where=where,
                 )
 
-            def _safe_amax(
-                a, axis=None, out=None, keepdims=False, initial=None, where=True
-            ):
+            def _safe_amax(a, axis=None, out=None, keepdims=False, initial=None, where=True):
                 """Safe amax that handles _NoValueType initial parameter."""
-                if (
-                    initial is not None
-                    and hasattr(initial, "__class__")
-                    and "_NoValueType" in str(type(initial))
-                ):
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
                     initial = None
                 return _original_amax(
                     a,
@@ -163,11 +186,7 @@ if sys.version_info >= (3, 14):
                 where=np._NoValue,
             ):
                 """Safe prod that handles _NoValueType initial parameter."""
-                if (
-                    initial is not None
-                    and hasattr(initial, "__class__")
-                    and "_NoValueType" in str(type(initial))
-                ):
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
                     # Preserve NumPy identity behavior for empty products.
                     # `np.prod([])` should be 1, and passing `initial=None` can
                     # trigger "ufunc has no identity" errors for empty reductions.
@@ -192,11 +211,7 @@ if sys.version_info >= (3, 14):
                 where=np._NoValue,
             ):
                 """Safe sum that handles zero-size arrays and broadcasting issues."""
-                if (
-                    initial is not None
-                    and hasattr(initial, "__class__")
-                    and "_NoValueType" in str(type(initial))
-                ):
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
                     # Preserve NumPy identity behavior for empty sums.
                     initial = 0
                 try:
@@ -227,13 +242,9 @@ if sys.version_info >= (3, 14):
                     if "zero-size array to reduction operation" in str(e):
                         # Handle zero-size arrays by returning appropriate result
                         if hasattr(x1, "size") and x1.size == 0:
-                            return np.array(
-                                [], dtype=x1.dtype if hasattr(x1, "dtype") else float
-                            )
+                            return np.array([], dtype=x1.dtype if hasattr(x1, "dtype") else float)
                         elif hasattr(x2, "size") and x2.size == 0:
-                            return np.array(
-                                [], dtype=x2.dtype if hasattr(x2, "dtype") else float
-                            )
+                            return np.array([], dtype=x2.dtype if hasattr(x2, "dtype") else float)
                     raise
 
             # Safe reshape that handles zero-size arrays
@@ -301,7 +312,7 @@ if sys.version_info >= (3, 14):
             np.argmax = _add_reduce_method(_safe_argmax, _original_argmax)
             np.prod = _add_reduce_method(_safe_prod, _original_prod)
             np.sum = _add_reduce_method(_safe_sum, _original_sum)
-            np.reshape = _safe_reshape
+            np.reshape = _safe_reshape  # type: ignore[assignment]
             # Do not replace `np.multiply` (ufunc) — SciPy expects a real ufunc here.
 
         # Fix 5: Handle NumPy array rounding compatibility
@@ -320,16 +331,13 @@ if sys.version_info >= (3, 14):
                         return _original_round(float(x.item()), *args, **kwargs)
                     # For arrays, apply element-wise
                     if hasattr(x, "flat"):
-                        return np.array(
-                            [
-                                _original_round(float(val), *args, **kwargs)
-                                for val in x.flat
-                            ]
-                        ).reshape(x.shape)
+                        return np.array([_original_round(float(val), *args, **kwargs) for val in x.flat]).reshape(
+                            x.shape
+                        )
                     return x  # Return as-is if we can't handle it
             return _original_round(x, *args, **kwargs)
 
-        builtins.round = _safe_round
+        builtins.round = _safe_round  # type: ignore[assignment]
 
         # Fix 2: Handle _CopyMode enum issues
         if hasattr(np, "_globals"):
@@ -370,7 +378,7 @@ if sys.version_info >= (3, 14):
                     return _original_array(obj, *args, **kwargs)
                 raise
 
-        np.array = _safe_array
+        np.array = _safe_array  # type: ignore[assignment]
 
         # Fix 4: Handle VoidDType issues
         if hasattr(np, "dtypes") and not hasattr(np.dtypes, "VoidDType"):
@@ -617,26 +625,10 @@ def sample_data():
 
     return {
         "timestamps": time.tolist(),
-        "surprise": (
-            0.2
-            + 0.1 * np.sin(2 * np.pi * 0.1 * time)
-            + 0.05 * np.random.randn(n_samples)
-        ).tolist(),
-        "threshold": (
-            0.5
-            + 0.02 * np.sin(2 * np.pi * 0.05 * time)
-            + 0.01 * np.random.randn(n_samples)
-        ).tolist(),
-        "metabolic": (
-            1.0
-            + 0.1 * np.sin(2 * np.pi * 0.2 * time)
-            + 0.05 * np.random.randn(n_samples)
-        ).tolist(),
-        "arousal": (
-            0.8
-            + 0.1 * np.sin(2 * np.pi * 0.15 * time)
-            + 0.03 * np.random.randn(n_samples)
-        ).tolist(),
+        "surprise": (0.2 + 0.1 * np.sin(2 * np.pi * 0.1 * time) + 0.05 * np.random.randn(n_samples)).tolist(),
+        "threshold": (0.5 + 0.02 * np.sin(2 * np.pi * 0.05 * time) + 0.01 * np.random.randn(n_samples)).tolist(),
+        "metabolic": (1.0 + 0.1 * np.sin(2 * np.pi * 0.2 * time) + 0.05 * np.random.randn(n_samples)).tolist(),
+        "arousal": (0.8 + 0.1 * np.sin(2 * np.pi * 0.15 * time) + 0.03 * np.random.randn(n_samples)).tolist(),
     }
 
 
@@ -654,9 +646,7 @@ def raises_fixture():
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             if exc_type is None:
-                pytest.fail(
-                    f"Expected {self.expected_exception.__name__} to be raised, but no exception was raised"
-                )
+                pytest.fail(f"Expected {self.expected_exception.__name__} to be raised, but no exception was raised")
             if not isinstance(exc_val, self.expected_exception):
                 pytest.fail(
                     f"Expected {self.expected_exception.__name__} to be raised, but got {exc_type.__name__}: {exc_val}"
@@ -842,9 +832,7 @@ def flaky_operation():
                 last_exception = e
                 if attempt < max_attempts - 1:
                     # Exponential backoff with jitter
-                    wait_time = (
-                        backoff_factor * (2**attempt) * (0.5 + np.random.random() * 0.5)
-                    )
+                    wait_time = backoff_factor * (2**attempt) * (0.5 + np.random.random() * 0.5)
                     time.sleep(wait_time)
 
         # All attempts failed, raise the last exception
@@ -863,9 +851,7 @@ def flaky_operation():
 
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
+    config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line("markers", "unit: marks tests as unit tests")
     config.addinivalue_line("markers", "performance: marks tests as performance tests")
@@ -912,9 +898,7 @@ def create_test_yaml(file_path: Path, data: dict):
         yaml.dump(data, f)
 
 
-def assert_performance_within_tolerance(
-    actual_time: float, expected_time: float, tolerance: float
-):
+def assert_performance_within_tolerance(actual_time: float, expected_time: float, tolerance: float):
     """Assert that performance is within acceptable tolerance."""
     lower_bound = expected_time * (1 - tolerance)
     upper_bound = expected_time * (1 + tolerance)

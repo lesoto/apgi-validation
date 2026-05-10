@@ -19,13 +19,7 @@ def test_root_threshold_shim_removed():
 
 def test_all_threshold_constants_exported_from_utils():
     """Test that all important threshold constants are exported from utils/__init__.py."""
-    from utils import (
-        F1_1_ALPHA,
-        F1_1_MIN_ADVANTAGE_PCT,
-        F1_1_MIN_COHENS_D,
-        F5_3_FALSIFICATION_RATIO,
-        F6_2_MIN_R2,
-    )
+    from utils import F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT, F1_1_MIN_COHENS_D, F5_3_FALSIFICATION_RATIO, F6_2_MIN_R2
 
     # Verify they're all accessible and have correct types
     assert isinstance(F1_1_MIN_ADVANTAGE_PCT, float)
@@ -35,9 +29,7 @@ def test_all_threshold_constants_exported_from_utils():
     assert isinstance(F5_3_FALSIFICATION_RATIO, float)
 
     # Verify key values match canonical file
-    from utils.falsification_thresholds import (
-        F5_3_FALSIFICATION_RATIO as canonical_F5_3_FALSIFICATION_RATIO,
-    )
+    from utils.falsification_thresholds import F5_3_FALSIFICATION_RATIO as canonical_F5_3_FALSIFICATION_RATIO
     from utils.falsification_thresholds import F6_2_MIN_R2 as canonical_F6_2_MIN_R2
 
     assert F6_2_MIN_R2 == canonical_F6_2_MIN_R2

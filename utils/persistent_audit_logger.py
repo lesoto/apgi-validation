@@ -95,9 +95,7 @@ class PersistentAuditLogger:
 
             # Update statistics
             self.stats["total_operations"] += 1
-            self.stats["by_operation"][operation] = (
-                self.stats["by_operation"].get(operation, 0) + 1
-            )
+            self.stats["by_operation"][operation] = self.stats["by_operation"].get(operation, 0) + 1
             if success:
                 self.stats["by_status"]["success"] += 1
             else:
@@ -183,15 +181,11 @@ class PersistentAuditLogger:
         # Add new handler
         handler = logging.FileHandler(self.log_file)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(operation)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(operation)s | %(message)s")
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def get_recent_operations(
-        self, operation: Optional[str] = None, limit: int = 100
-    ) -> List[Dict]:
+    def get_recent_operations(self, operation: Optional[str] = None, limit: int = 100) -> List[Dict]:
         """
         Get recent operations from audit trail.
 
@@ -204,9 +198,7 @@ class PersistentAuditLogger:
         """
         with self._lock:
             if operation:
-                filtered = [
-                    op for op in self.audit_trail if op["operation"] == operation
-                ]
+                filtered = [op for op in self.audit_trail if op["operation"] == operation]
                 return filtered[-limit:]
             return self.audit_trail[-limit:]
 
@@ -281,9 +273,7 @@ def get_persistent_audit_logger() -> PersistentAuditLogger:
     return _persistent_audit_logger
 
 
-def log_operation_persistent(
-    operation: str, details: Dict, success: bool = True, error: Optional[str] = None
-) -> None:
+def log_operation_persistent(operation: str, details: Dict, success: bool = True, error: Optional[str] = None) -> None:
     """
     Log operation to persistent audit logger.
 
@@ -298,29 +288,21 @@ def log_operation_persistent(
 
 
 # Convenience functions for common operations
-def log_read_persistent(
-    file_path: str, success: bool = True, error: Optional[str] = None
-) -> None:
+def log_read_persistent(file_path: str, success: bool = True, error: Optional[str] = None) -> None:
     """Log file read operation."""
     log_operation_persistent("read", {"file_path": file_path}, success, error)
 
 
-def log_write_persistent(
-    file_path: str, success: bool = True, error: Optional[str] = None
-) -> None:
+def log_write_persistent(file_path: str, success: bool = True, error: Optional[str] = None) -> None:
     """Log file write operation."""
     log_operation_persistent("write", {"file_path": file_path}, success, error)
 
 
-def log_delete_persistent(
-    file_path: str, success: bool = True, error: Optional[str] = None
-) -> None:
+def log_delete_persistent(file_path: str, success: bool = True, error: Optional[str] = None) -> None:
     """Log file delete operation."""
     log_operation_persistent("delete", {"file_path": file_path}, success, error)
 
 
-def log_import_persistent(
-    module_name: str, success: bool = True, error: Optional[str] = None
-) -> None:
+def log_import_persistent(module_name: str, success: bool = True, error: Optional[str] = None) -> None:
     """Log module import operation."""
     log_operation_persistent("import", {"module": module_name}, success, error)

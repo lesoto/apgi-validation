@@ -8,18 +8,19 @@
 | **FP-2** | Framework Paper | Agent Comparison / Convergence Benchmark | `FP_02_AgentComparison_ConvergenceBenchmark.py` |
 | **FP-3** | Framework Paper | Framework-Level Multi-Protocol | `FP_03_FrameworkLevel_MultiProtocol.py` |
 | **FP-4** | Epistemic Architecture Paper | Information-Theoretic Phase Transition | `FP_04_PhaseTransition_EpistemicArchitecture.py` |
-| **FP-5** | Multi-Scale Consciousness Paper | Survival Analysis / Time to Ignition | `FP_05_SurvivalAnalysis_TimeToIgnition.py` |
-| **FP-6** | Liquid Networks Paper | Perturbation Resilience Testing | `FP_06_Perturbation_Resilience.py` |
-| **FP-7** | Framework Paper | Behavioral Space Coverage | `FP_07_Diversity_BehavioralSpaceCoverage.py` |
-| **FP-8** | Framework Paper | Meta-Learning / Few-Shot Adaptation | `FP_08_MetaLearning_FewShotAdaptation.py` |
-| **FP-9** | Epistemic Architecture Paper | Temporal Dynamics / Sequence Sensitivity | `FP_09_TemporalDynamics_SequenceSensitivity.py` |
-| **FP-10** | Epistemic Architecture Paper | Adversarial robustness testing | `FP_10_Adversarial_AttackResistance.py` |
-| **FP-11** | Liquid Networks Paper | Resource Efficiency / Computational Cost | `FP_11_ResourceEfficiency_ComputationalCost.py` |
-| **FP-12** | All Papers | Framework-Level Aggregator | `FP_12_Falsification_Aggregator.py` |
+| **FP-5** | Multi-Scale Consciousness Paper | Evolutionary Plausibility | `FP_05_EvolutionaryPlausibility.py` |
+| **FP-6** | Liquid Networks Paper | Perturbation Resilience Testing | `FP_06_LiquidNetwork_EnergyBenchmark.py` |
+| **FP-7** | Framework Paper | Mathematical Consistency | `FP_07_MathematicalConsistency.py` |
+| **FP-8** | Framework Paper | Parameter Sensitivity / Identifiability | `FP_08_ParameterSensitivity_Identifiability.py` |
+| **FP-9** | Epistemic Architecture Paper | Neural Signatures / P3b HE(P) | `FP_09_NeuralSignatures_P3b_HEP.py` |
+| **FP-10** | Framework Paper | Bayesian Estimation / MCMC | `FP_10_BayesianEstimation_MCMC.py` |
+| **FP-11** | Liquid Networks Paper | Network Dynamics / Echo State | `FP_11_LiquidNetworkDynamics_EchoState.py` |
+| **FP-12** | Cross-Species Scaling | Cross-Species Scaling | `FP_12_CrossSpeciesScaling.py` |
+| **FP-ALL** | All Papers | Framework-Level Aggregator | `FP_12_Falsification_Aggregator.py` |
 
 ***
 
-### APGI Validation Protocols (Corrected Filenames)
+### APGI Validation Protocols
 
 | **ID** | **Paper Protocol / Context** | **Protocol Name** | **Actual Repo Filename** |
 | :--- | :--- | :--- | :--- |
@@ -40,4 +41,8 @@
 | **VP-15** | Paper Protocol 5 | fMRI Anticipation (vmPFC Focus) | `VP_15_fMRI_Anticipation_vmPFC.py` |
 | **VP-16** | Epistemic Tier L1 | Metabolic ATP Ground Truth (³¹P-MRS) | `VP_16_Metabolic_ATP_GroundTruth.py` |
 | **VP-17** | Prediction P11 | Allen Visual Coding / Fatigue Dynamics | `VP_17_AllenVisualCoding_Fatigue.py` |
+| **VP-18** | EEG Microstate Analysis | GFP P3b (Global Field Power) | `VP_18_EEG_Microstate_GFP_P3b.py` |
+| **VP-19** | Information Erasure | Multi-Voxel Pattern Analysis (MVPA) | `VP_19_InformationErasure_MVPA.py` |
+| **VP-20** | Empirical iEEG | Intracranial EEG Analysis | `VP_20_Empirical_iEEG.py` |
+| **VP-21** | Free Energy Prediction | Prediction Error Analysis | `VP_21_FreeEnergy_PredictionError.py` |
 | **VP-ALL** | Master Orchestrator | Framework-Level Validation Aggregator | `VP_ALL_Aggregator.py` |

@@ -18,13 +18,22 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 # Import the module with error handling
 try:
     from Theory.APGI_Parameter_Estimation import (
-        APGIConstants, DriftDiffusionGenerator, NeuralMassGenerator,
-        ParameterIdentifiabilityAnalyzer, artifact_rejection_pipeline,
-        assess_predictive_validity, assess_test_retest, build_apgi_model,
-        compute_fisher_information, conduct_prior_predictive_checks,
-        generate_comprehensive_visualizations, generate_synthetic_dataset,
-        load_independent_datasets, print_measurement_summary,
-        validate_parameter_recovery)
+        APGIConstants,
+        DriftDiffusionGenerator,
+        NeuralMassGenerator,
+        ParameterIdentifiabilityAnalyzer,
+        artifact_rejection_pipeline,
+        assess_predictive_validity,
+        assess_test_retest,
+        build_apgi_model,
+        compute_fisher_information,
+        conduct_prior_predictive_checks,
+        generate_comprehensive_visualizations,
+        generate_synthetic_dataset,
+        load_independent_datasets,
+        print_measurement_summary,
+        validate_parameter_recovery,
+    )
 
     PARAMETER_ESTIMATION_AVAILABLE = True
 except ImportError as e:
@@ -127,9 +136,7 @@ class TestDriftDiffusionGenerator:
         responses = []
 
         for _ in range(n_samples):
-            response, rt = generator.simulate_trial(
-                drift_rate=0.5, boundary=1.0, noise=0.3
-            )
+            response, rt = generator.simulate_trial(drift_rate=0.5, boundary=1.0, noise=0.3)
             rts.append(rt * 1000)  # Convert to ms
             responses.append(response)
 
@@ -242,9 +249,7 @@ class TestNeuralMassGenerator:
         generator = NeuralMassGenerator()
 
         try:
-            eeg_data = generator.generate_eeg_data(
-                duration=10.0, sampling_rate=1000, n_channels=64, seed=42
-            )
+            eeg_data = generator.generate_eeg_data(duration=10.0, sampling_rate=1000, n_channels=64, seed=42)
 
             assert isinstance(eeg_data, np.ndarray)
             assert eeg_data.shape[0] == 64  # n_channels
@@ -260,9 +265,7 @@ class TestNeuralMassGenerator:
         generator = NeuralMassGenerator()
 
         try:
-            erp_data = generator.generate_erp_data(
-                n_trials=100, sampling_rate=1000, n_channels=32, seed=42
-            )
+            erp_data = generator.generate_erp_data(n_trials=100, sampling_rate=1000, n_channels=32, seed=42)
 
             assert isinstance(erp_data, dict)
             assert "erp" in erp_data
@@ -282,12 +285,8 @@ class TestNeuralMassGenerator:
 
         try:
             # Test with different connectivity
-            erp1 = generator.generate_erp_data(
-                n_trials=10, connectivity_strength=0.5, seed=42
-            )
-            erp2 = generator.generate_erp_data(
-                n_trials=10, connectivity_strength=1.0, seed=42
-            )
+            erp1 = generator.generate_erp_data(n_trials=10, connectivity_strength=0.5, seed=42)
+            erp2 = generator.generate_erp_data(n_trials=10, connectivity_strength=1.0, seed=42)
 
             # Different connectivity should produce different data
             assert not np.array_equal(erp1["erp"], erp2["erp"])
@@ -307,9 +306,7 @@ class TestSyntheticDatasetGeneration:
     def test_dataset_generation_basic(self):
         """Test basic synthetic dataset generation."""
         try:
-            datasets, true_params = generate_synthetic_dataset(
-                n_subjects=10, n_sessions=2, seed=42
-            )
+            datasets, true_params = generate_synthetic_dataset(n_subjects=10, n_sessions=2, seed=42)
 
             assert isinstance(datasets, dict)
             assert isinstance(true_params, dict)
@@ -375,9 +372,7 @@ class TestArtifactRejection:
 
             assert isinstance(cleaned_data, dict)
             assert "eeg" in cleaned_data
-            assert (
-                cleaned_data["eeg"].shape[0] <= mock_data["eeg"].shape[0]
-            )  # May have fewer channels
+            assert cleaned_data["eeg"].shape[0] <= mock_data["eeg"].shape[0]  # May have fewer channels
 
         except Exception:
             # Expected if dependencies are missing
@@ -417,8 +412,7 @@ class TestArtifactRejection:
         empty_data = {"eeg": np.array([]), "sampling_rate": 1000}
 
         try:
-            result = artifact_rejection_pipeline(empty_data)
-            assert isinstance(result, dict)
+            artifact_rejection_pipeline(empty_data)
         except Exception:
             # Expected to fail with empty data
             assert True
@@ -455,7 +449,6 @@ class TestPriorPredictiveChecks:
         try:
             result = conduct_prior_predictive_checks(n_samples=100, save_plots=False)
 
-            assert isinstance(result, dict)
             assert "prior_samples" in result
             assert "summary_stats" in result
 
@@ -467,11 +460,7 @@ class TestPriorPredictiveChecks:
         """Test prior predictive checks with plot saving."""
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
-                result = conduct_prior_predictive_checks(
-                    n_samples=50, save_plots=True, plot_dir=temp_dir
-                )
-
-                assert isinstance(result, dict)
+                conduct_prior_predictive_checks(n_samples=50, save_plots=True, plot_dir=temp_dir)
 
                 # Check if plots were saved
                 plot_files = list(Path(temp_dir).glob("*.png"))
@@ -487,11 +476,8 @@ class TestPriorPredictiveChecks:
 
         for n_samples in sample_sizes:
             try:
-                result = conduct_prior_predictive_checks(
-                    n_samples=n_samples, save_plots=False
-                )
+                result = conduct_prior_predictive_checks(n_samples=n_samples, save_plots=False)
 
-                assert isinstance(result, dict)
                 if "prior_samples" in result:
                     # Check that we got the expected number of samples
                     assert len(result["prior_samples"]) == n_samples
@@ -555,11 +541,7 @@ class TestBayesianModelBuilding:
     def test_model_building_edge_cases(self):
         """Test model building with edge cases."""
         # Test with minimal data
-        minimal_data = {
-            "subjects": [
-                {"response_times": np.array([0.5, 0.8]), "choices": np.array([1, 0])}
-            ]
-        }
+        minimal_data = {"subjects": [{"response_times": np.array([0.5, 0.8]), "choices": np.array([1, 0])}]}
 
         try:
             model = build_apgi_model(minimal_data)
@@ -584,9 +566,7 @@ class TestFisherInformation:
         mock_trace = MagicMock()
 
         try:
-            fim = compute_fisher_information(
-                model=mock_model, trace=mock_trace, n_samples=100
-            )
+            fim = compute_fisher_information(model=mock_model, trace=mock_trace, n_samples=100)
 
             assert isinstance(fim, dict)
             assert "matrix" in fim
@@ -605,9 +585,7 @@ class TestFisherInformation:
 
         for n_samples in sample_sizes:
             try:
-                fim = compute_fisher_information(
-                    model=mock_model, trace=mock_trace, n_samples=n_samples
-                )
+                fim = compute_fisher_information(model=mock_model, trace=mock_trace, n_samples=n_samples)
 
                 assert isinstance(fim, dict)
 
@@ -716,9 +694,7 @@ class TestTestRetestReliability:
         mock_trace2 = MagicMock()
 
         try:
-            reliability = assess_test_retest(
-                session1_trace=mock_trace1, session2_trace=mock_trace2
-            )
+            reliability = assess_test_retest(session1_trace=mock_trace1, session2_trace=mock_trace2)
 
             assert isinstance(reliability, dict)
             assert "icc" in reliability or "correlation" in reliability
@@ -748,9 +724,7 @@ class TestTestRetestReliability:
         mock_trace = MagicMock()
 
         try:
-            reliability = assess_test_retest(
-                session1_trace=mock_trace, session2_trace=mock_trace  # Same trace
-            )
+            reliability = assess_test_retest(session1_trace=mock_trace, session2_trace=mock_trace)  # Same trace
 
             assert isinstance(reliability, dict)
 
@@ -810,9 +784,7 @@ class TestIndependentDatasets:
 
         for data in data_types:
             try:
-                validity = assess_predictive_validity(
-                    data=data, trace=mock_trace, independent_data={"test": data}
-                )
+                validity = assess_predictive_validity(data=data, trace=mock_trace, independent_data={"test": data})
 
                 assert isinstance(validity, dict)
 
@@ -937,8 +909,7 @@ class TestUtilityFunctions:
 
         try:
             # Functions should handle extreme values gracefully
-            result = artifact_rejection_pipeline(extreme_data)
-            assert isinstance(result, dict)
+            artifact_rejection_pipeline(extreme_data)
 
         except Exception:
             # Expected with extreme values

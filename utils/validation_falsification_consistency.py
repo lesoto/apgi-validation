@@ -57,12 +57,8 @@ class ValidationFalsificationConsistency:
 
         # Example: FP-01 assumes interoceptive precision modulates thresholds
         # VP-08 should confirm this psychophysically
-        fp01_prediction = self.fp_results.get("FP_01_ActiveInference", {}).get(
-            "P1.1", {}
-        )
-        vp08_validation = self.vp_results.get(
-            "VP_08_Psychophysical_ThresholdEstimation", {}
-        ).get("P1.1", {})
+        fp01_prediction = self.fp_results.get("FP_01_ActiveInference", {}).get("P1.1", {})
+        vp08_validation = self.vp_results.get("VP_08_Psychophysical_ThresholdEstimation", {}).get("P1.1", {})
 
         if fp01_prediction.get("passed") and not vp08_validation.get("passed"):
             issues.append(
@@ -83,12 +79,8 @@ class ValidationFalsificationConsistency:
 
         # Example: FP-02 assumes agent convergence
         # VP-03 should validate that agents actually converge
-        fp02_convergence = self.fp_results.get(
-            "FP_02_AgentComparison_ConvergenceBenchmark", {}
-        ).get("P3.conv", {})
-        vp03_validation = self.vp_results.get(
-            "VP_03_ActiveInference_AgentSimulations", {}
-        ).get("P3.conv", {})
+        fp02_convergence = self.fp_results.get("FP_02_AgentComparison_ConvergenceBenchmark", {}).get("P3.conv", {})
+        vp03_validation = self.vp_results.get("VP_03_ActiveInference_AgentSimulations", {}).get("P3.conv", {})
 
         if fp02_convergence.get("passed") and not vp03_validation.get("passed"):
             issues.append(
@@ -303,9 +295,7 @@ class ValidationFalsificationConsistency:
         # Use provided results or fall back to initialized results
         fp01 = fp01_results or self.fp_results.get("FP_01_ActiveInference", {})
         vp07 = vp07_results or self.vp_results.get("VP_07_TMS_CausalInterventions", {})
-        vp10 = vp10_results or self.vp_results.get(
-            "VP_10_CausalManipulations_Priority2", {}
-        )
+        vp10 = vp10_results or self.vp_results.get("VP_10_CausalManipulations_Priority2", {})
 
         # Extract relevant predictions
         fp01_threshold_dynamics = fp01.get("F1.4", {})
@@ -335,9 +325,7 @@ class ValidationFalsificationConsistency:
         }
 
         if not passed:
-            result["alert"] = (
-                "COUPLING ERROR: TMS effects inconsistent with active inference predictions"
-            )
+            result["alert"] = "COUPLING ERROR: TMS effects inconsistent with active inference predictions"
             result["recommendation"] = (
                 "Verify that TMS to dlPFC shifts threshold in direction predicted by FP-01. "
                 "If FP-01 predicts threshold adaptation (τ_θ), TMS should modulate this parameter."
@@ -365,19 +353,12 @@ class ValidationFalsificationConsistency:
             "assumption_violations": len(assumption_issues),
             "missing_validations": len(validation_issues),
             "contradictions": len(contradiction_issues),
-            "high_severity_issues": len(
-                [i for i in all_issues if i.severity == "HIGH"]
-            ),
-            "medium_severity_issues": len(
-                [i for i in all_issues if i.severity == "MEDIUM"]
-            ),
+            "high_severity_issues": len([i for i in all_issues if i.severity == "HIGH"]),
+            "medium_severity_issues": len([i for i in all_issues if i.severity == "MEDIUM"]),
             "low_severity_issues": len([i for i in all_issues if i.severity == "LOW"]),
             "issues": all_issues,
             "recommendations": self._generate_recommendations(all_issues),
-            "ready_for_falsification": len(
-                [i for i in all_issues if i.severity == "HIGH"]
-            )
-            == 0,
+            "ready_for_falsification": len([i for i in all_issues if i.severity == "HIGH"]) == 0,
         }
 
         return summary
@@ -388,32 +369,22 @@ class ValidationFalsificationConsistency:
 
         # Group issues by type
         contradictions = [i for i in issues if i.issue_type == "CONTRADICTION"]
-        missing_validations = [
-            i for i in issues if i.issue_type == "MISSING_VALIDATION"
-        ]
+        missing_validations = [i for i in issues if i.issue_type == "MISSING_VALIDATION"]
         assumptions = [i for i in issues if i.issue_type == "ASSUMPTION_VIOLATION"]
 
         # Prioritize high-severity issues
         high_priority = [i for i in issues if i.severity == "HIGH"]
 
         if high_priority:
-            recommendations.append(
-                "CRITICAL: Resolve high-severity consistency issues before framework falsification"
-            )
+            recommendations.append("CRITICAL: Resolve high-severity consistency issues before framework falsification")
 
         if contradictions:
-            recommendations.append(
-                "Review contradictory validation-falsification results and resolve discrepancies"
-            )
+            recommendations.append("Review contradictory validation-falsification results and resolve discrepancies")
 
         if missing_validations:
-            recommendations.append(
-                "Run missing validation protocols to complete framework evaluation"
-            )
+            recommendations.append("Run missing validation protocols to complete framework evaluation")
 
         if assumptions:
-            recommendations.append(
-                "Review framework assumptions and adjust validation protocol coverage"
-            )
+            recommendations.append("Review framework assumptions and adjust validation protocol coverage")
 
         return recommendations

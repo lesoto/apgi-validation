@@ -13,12 +13,17 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.security_audit_logger import (SecurityAuditLogger,
-                                         audit_file_operation,
-                                         audit_path_resolution,
-                                         audit_permission_check,
-                                         get_audit_logger, log_delete,
-                                         log_import, log_read, log_write)
+from utils.security_audit_logger import (
+    SecurityAuditLogger,
+    audit_file_operation,
+    audit_path_resolution,
+    audit_permission_check,
+    get_audit_logger,
+    log_delete,
+    log_import,
+    log_read,
+    log_write,
+)
 
 
 class TestSecurityAuditLoggerInit:
@@ -114,9 +119,7 @@ class TestLogPathResolution:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        logger.log_path_resolution(
-            "../file.txt", "/absolute/path/file.txt", method="resolve"
-        )
+        logger.log_path_resolution("../file.txt", "/absolute/path/file.txt", method="resolve")
 
         assert len(logger.audit_trail) == 1
         entry = logger.audit_trail[0]
@@ -131,9 +134,7 @@ class TestLogPathResolution:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        logger.log_path_resolution(
-            "../file.txt", "unknown", method="resolve", success=False
-        )
+        logger.log_path_resolution("../file.txt", "unknown", method="resolve", success=False)
 
         assert len(logger.audit_trail) == 1
         entry = logger.audit_trail[0]
@@ -148,9 +149,7 @@ class TestLogPermissionCheck:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        logger.log_permission_check(
-            "/test/file.txt", "read", granted=True, user="test_user"
-        )
+        logger.log_permission_check("/test/file.txt", "read", granted=True, user="test_user")
 
         assert len(logger.audit_trail) == 1
         entry = logger.audit_trail[0]
@@ -165,9 +164,7 @@ class TestLogPermissionCheck:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        logger.log_permission_check(
-            "/test/file.txt", "write", granted=False, user="test_user"
-        )
+        logger.log_permission_check("/test/file.txt", "write", granted=False, user="test_user")
 
         assert len(logger.audit_trail) == 1
         entry = logger.audit_trail[0]
@@ -330,9 +327,7 @@ class TestSearchAuditTrail:
         logger.log_file_access("write", "/test/file1.txt", user="user1")
         logger.log_file_access("read", "/test/file2.txt", user="user1")
 
-        results = logger.search_audit_trail(
-            operation="read", file_path="/test/file1.txt", user="user1"
-        )
+        results = logger.search_audit_trail(operation="read", file_path="/test/file1.txt", user="user1")
         assert len(results) == 1
 
 

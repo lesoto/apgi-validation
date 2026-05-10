@@ -23,17 +23,12 @@ class TestFalsificationProtocol5(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.mock_data = {
-            "evolutionary_steps": [
-                {"generation": i, "fitness": 0.5 + i * 0.05} for i in range(20)
-            ]
-        }
+        self.mock_data = {"evolutionary_steps": [{"generation": i, "fitness": 0.5 + i * 0.05} for i in range(20)]}
 
     def test_evolutionary_emergence_initialization(self):
         """Test FP-5 protocol initialization."""
         try:
-            from Falsification.FP_05_EvolutionaryPlausibility import \
-                EvolutionaryAPGIEmergence as FP5
+            from Falsification.FP_05_EvolutionaryPlausibility import EvolutionaryAPGIEmergence as FP5
 
             protocol = FP5()
             self.assertIsNotNone(protocol)
@@ -78,9 +73,7 @@ class TestFalsificationProtocol6(unittest.TestCase):
         # Check that we have results for all architectures
         self.assertEqual(len(results), 3)
         # Transformer should have higher accuracy but more params
-        self.assertGreater(
-            results["transformer"]["accuracy"], results["mlp"]["accuracy"]
-        )
+        self.assertGreater(results["transformer"]["accuracy"], results["mlp"]["accuracy"])
 
     def test_inductive_bias_metrics(self):
         """Test inductive bias quantification."""
@@ -184,9 +177,7 @@ class TestFalsificationProtocol8(unittest.TestCase):
         estimated_threshold = self.stimulus_levels[estimated_idx]
 
         # Should be close to true threshold
-        self.assertLess(
-            abs(estimated_threshold - true_threshold), 0.25
-        )  # Relaxed tolerance
+        self.assertLess(abs(estimated_threshold - true_threshold), 0.25)  # Relaxed tolerance
 
     def test_adaptive_staircase(self):
         """Test adaptive staircase procedure."""
@@ -326,9 +317,7 @@ class TestFalsificationProtocol11(unittest.TestCase):
 
         # Should be close to true values
         for key in true_params:
-            self.assertLess(
-                abs(recovered[key] - true_params[key]), 0.15  # Within 15% tolerance
-            )
+            self.assertLess(abs(recovered[key] - true_params[key]), 0.15)  # Within 15% tolerance
 
 
 class TestFalsificationProtocol12(unittest.TestCase):

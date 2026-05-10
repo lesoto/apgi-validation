@@ -72,22 +72,17 @@ class PerformanceGateEnforcer:
 
                 if status == GateStatus.FAILED and gate.critical:
                     overall_status = GateStatus.FAILED
-                elif (
-                    status == GateStatus.WARNING and overall_status == GateStatus.PASSED
-                ):
+                elif status == GateStatus.WARNING and overall_status == GateStatus.PASSED:
                     overall_status = GateStatus.WARNING
 
                 self.logger.info(
-                    f"Gate '{gate.name}': {status.value} "
-                    f"({value} {gate.unit} {gate.comparison} {gate.threshold})"
+                    f"Gate '{gate.name}': {status.value} " f"({value} {gate.unit} {gate.comparison} {gate.threshold})"
                 )
 
             except Exception as e:
                 self.logger.error(f"Gate '{gate.name}' check failed: {e}")
                 self.results[gate.name] = {
-                    "status": (
-                        GateStatus.FAILED if gate.critical else GateStatus.WARNING
-                    ),
+                    "status": (GateStatus.FAILED if gate.critical else GateStatus.WARNING),
                     "message": f"Check failed: {e}",
                 }
                 if gate.critical:
@@ -125,8 +120,7 @@ class PerformanceGateEnforcer:
                 lines.append(f"   {gate.description}")
                 if "value" in result:
                     lines.append(
-                        f"   Result: {result['value']} {result['unit']} "
-                        f"{gate.comparison} {result['threshold']}"
+                        f"   Result: {result['value']} {result['unit']} " f"{gate.comparison} {result['threshold']}"
                     )
                 lines.append(f"   Status: {result['status'].value}")
                 lines.append("")
@@ -156,9 +150,7 @@ def create_protocol_runtime_gate(
     )
 
 
-def create_memory_usage_gate(
-    protocol_name: str, max_memory_mb: float, critical: bool = True
-) -> PerformanceGate:
+def create_memory_usage_gate(protocol_name: str, max_memory_mb: float, critical: bool = True) -> PerformanceGate:
     """Create a memory usage gate for a specific protocol."""
 
     def check_memory() -> float:
@@ -179,9 +171,7 @@ def create_memory_usage_gate(
     )
 
 
-def create_throughput_gate(
-    operation_name: str, min_throughput: float, critical: bool = False
-) -> PerformanceGate:
+def create_throughput_gate(operation_name: str, min_throughput: float, critical: bool = False) -> PerformanceGate:
     """Create a throughput gate for an operation."""
 
     def check_throughput() -> float:

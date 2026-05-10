@@ -17,10 +17,7 @@ class TestStandard:
 
     def test_standard_creation(self):
         """Test creating a standard."""
-        from utils.seven_standards_registry import (
-            StandardCategory,
-            ValidationCriterion,
-        )
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         standard = Standard(
             standard_id="TEST-001",
@@ -66,10 +63,7 @@ class TestStandardsRegistry:
 
     def test_register_standard(self):
         """Test registering a standard."""
-        from utils.seven_standards_registry import (
-            StandardCategory,
-            ValidationCriterion,
-        )
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         registry = StandardsRegistry()
         standard = Standard(
@@ -97,10 +91,7 @@ class TestStandardsRegistry:
 
     def test_get_standard(self):
         """Test retrieving a standard."""
-        from utils.seven_standards_registry import (
-            StandardCategory,
-            ValidationCriterion,
-        )
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         registry = StandardsRegistry()
         standard = Standard(

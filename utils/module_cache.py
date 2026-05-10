@@ -45,13 +45,11 @@ class ModuleCache:
         """Compute hash of file contents for cache invalidation."""
         try:
             with open(file_path, "rb") as f:
-                return hashlib.md5(f.read()).hexdigest()
+                return hashlib.sha256(f.read()).hexdigest()
         except Exception:
             return None
 
-    def get(
-        self, module_path: Path, module_name: Optional[str] = None
-    ) -> Optional[Any]:
+    def get(self, module_path: Path, module_name: Optional[str] = None) -> Optional[Any]:
         """Get module from cache or load and cache it."""
         module_name = module_name or module_path.stem
         cache_key = str(module_path.resolve())
@@ -69,14 +67,8 @@ class ModuleCache:
                 else:
                     # Check if file has changed
                     current_hash = self._compute_file_hash(module_path)
-                    if (
-                        current_hash
-                        and entry.file_hash
-                        and current_hash != entry.file_hash
-                    ):
-                        logger.debug(
-                            f"File changed for {module_name}, invalidating cache"
-                        )
+                    if current_hash and entry.file_hash and current_hash != entry.file_hash:
+                        logger.debug(f"File changed for {module_name}, invalidating cache")
                         del self._cache[cache_key]
                         self._misses += 1
                     else:
@@ -204,25 +196,13 @@ class ModuleCache:
         project_root = Path(__file__).parent.parent
 
         common_modules = {
-            "SurpriseIgnitionSystem": project_root
-            / "Falsification"
-            / "FP_ALL_Aggregator.py",
-            "CrossSpeciesScaling": project_root
-            / "Theory"
-            / "APGI_Cross_Species_Scaling.py",
-            "APGIMultimodalIntegration": project_root
-            / "Theory"
-            / "APGI_Multimodal_Integration.py",
-            "APGIParameterEstimation": project_root
-            / "Theory"
-            / "APGI_Parameter_Estimation.py",
-            "APGIPsychologicalStates": project_root
-            / "Theory"
-            / "APGI_Psychological_States.py",
+            "SurpriseIgnitionSystem": project_root / "Falsification" / "FP_ALL_Aggregator.py",
+            "CrossSpeciesScaling": project_root / "Theory" / "APGI_Cross_Species_Scaling.py",
+            "APGIMultimodalIntegration": project_root / "Theory" / "APGI_Multimodal_Integration.py",
+            "APGIParameterEstimation": project_root / "Theory" / "APGI_Parameter_Estimation.py",
+            "APGIPsychologicalStates": project_root / "Theory" / "APGI_Psychological_States.py",
             "APGIMasterValidator": project_root / "Validation" / "Master_Validation.py",
-            "APGIValidationPipeline": project_root
-            / "Validation"
-            / "VP_01_SyntheticEEG_MLClassification.py",
+            "APGIValidationPipeline": project_root / "Validation" / "VP_01_SyntheticEEG_MLClassification.py",
         }
 
         self.preload_modules(common_modules)
@@ -242,17 +222,13 @@ def get_module_cache() -> ModuleCache:
     return _module_cache
 
 
-def cached_import(
-    module_path: Path, module_name: Optional[str] = None
-) -> Optional[Any]:
+def cached_import(module_path: Path, module_name: Optional[str] = None) -> Optional[Any]:
     """Import module using cache."""
     cache = get_module_cache()
     return cache.get(module_path, module_name)
 
 
-def secure_cached_import(
-    module_path: Path, module_name: Optional[str] = None
-) -> Optional[Any]:
+def secure_cached_import(module_path: Path, module_name: Optional[str] = None) -> Optional[Any]:
     """Import module using cache with security validation."""
     return cached_import(module_path, module_name)
 

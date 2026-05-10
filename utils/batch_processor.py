@@ -18,17 +18,38 @@ import os
 import sys
 import threading
 import time
-from concurrent.futures import (
-    ProcessPoolExecutor,
-    ThreadPoolExecutor,
-    as_completed,
-)
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+
+
+def convert_numpy_to_json(data: Any, output_path: Path) -> None:
+    """Secure JSON serialization that handles numpy arrays and complex objects."""
+
+    def convert_numpy(obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {k: convert_numpy(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_numpy(item) for item in obj]
+        elif hasattr(obj, "__dict__"):
+            return convert_numpy(obj.__dict__)
+        else:
+            return obj
+
+    converted_data = convert_numpy(data)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(converted_data, f, indent=2, default=str)
+
 
 # Define PROJECT_ROOT for secure path validation
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -174,10 +195,7 @@ def _validate_secret_key(key_bytes: bytes) -> None:
     try:
         # Check if all bytes are valid hex characters
         hex_string = key_bytes.decode("ascii")
-        if (
-            all(c in "0123456789abcdefABCDEF" for c in hex_string)
-            and len(hex_string) % 2 == 0
-        ):
+        if all(c in "0123456789abcdefABCDEF" for c in hex_string) and len(hex_string) % 2 == 0:
             # Decode hex to get actual key bytes
             actual_key_bytes = binascii.unhexlify(hex_string)
             key_bytes = actual_key_bytes
@@ -230,11 +248,7 @@ def secure_json_dump(obj: Any, file_path: Path) -> None:
                 suggestions=["Set PICKLE_SECRET_KEY environment variable"],
                 user_action="Set the required environment variable before using secure serialization functions",
             )
-        key_bytes = (
-            PICKLE_SECRET_KEY.encode()
-            if isinstance(PICKLE_SECRET_KEY, str)
-            else PICKLE_SECRET_KEY
-        )
+        key_bytes = PICKLE_SECRET_KEY.encode() if isinstance(PICKLE_SECRET_KEY, str) else PICKLE_SECRET_KEY
 
     # Generate HMAC signature for JSON data
     json_data = json.dumps(obj, default=str, indent=2).encode("utf-8")
@@ -267,11 +281,7 @@ def secure_json_load(file_path: Path) -> Any:
                 suggestions=["Set PICKLE_SECRET_KEY environment variable"],
                 user_action="Set the required environment variable before using secure serialization functions",
             )
-        key_bytes = (
-            PICKLE_SECRET_KEY.encode()
-            if isinstance(PICKLE_SECRET_KEY, str)
-            else PICKLE_SECRET_KEY
-        )
+        key_bytes = PICKLE_SECRET_KEY.encode() if isinstance(PICKLE_SECRET_KEY, str) else PICKLE_SECRET_KEY
 
     with open(file_path, "rb") as f:
         # Read signature length
@@ -300,9 +310,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # Load modules with hyphens using importlib
-formal_model_path = (
-    PROJECT_ROOT / "Falsification" / "FP_04_PhaseTransition_EpistemicArchitecture.py"
-)
+formal_model_path = PROJECT_ROOT / "Falsification" / "FP_04_PhaseTransition_EpistemicArchitecture.py"
 if formal_model_path.exists():
     formal_model_spec = importlib.util.spec_from_file_location(
         "SurpriseIgnitionSystem",
@@ -317,15 +325,17 @@ if formal_model_path.exists():
                 sys.path.insert(0, str(PROJECT_ROOT))
             # Pre-load utils to ensure it's in sys.modules
             try:
-                utils_spec = importlib.util.spec_from_file_location(
-                    "utils", PROJECT_ROOT / "utils" / "__init__.py"
-                )
+                utils_spec = importlib.util.spec_from_file_location("utils", PROJECT_ROOT / "utils" / "__init__.py")
                 if utils_spec and utils_spec.loader:
                     utils_module = importlib.util.module_from_spec(utils_spec)
                     sys.modules["utils"] = utils_module
                     utils_spec.loader.exec_module(utils_module)
-            except Exception:
-                pass  # utils may already be loaded
+            except Exception as e:
+                # utils may already be loaded, log for debugging
+                import logging
+
+                logging.getLogger(__name__).debug(f"Utils module loading failed: {e}")
+                pass
             formal_model_spec.loader.exec_module(formal_model_module)
             SurpriseIgnitionSystem = formal_model_module.SurpriseIgnitionSystem
         else:
@@ -387,9 +397,7 @@ def _validate_secure_path(path: Path, allowed_root: Path) -> None:
     try:
         resolved_path.relative_to(allowed_root)
     except ValueError:
-        raise ValueError(
-            f"Path resolves outside allowed directory: {resolved_path} not within {allowed_root}"
-        )
+        raise ValueError(f"Path resolves outside allowed directory: {resolved_path} not within {allowed_root}")
 
     # Additional check: ensure no symlinks point outside
     if resolved_path != path.resolve():
@@ -397,9 +405,7 @@ def _validate_secure_path(path: Path, allowed_root: Path) -> None:
         try:
             resolved_path.relative_to(allowed_root)
         except ValueError:
-            raise ValueError(
-                f"Symlink resolves outside allowed directory: {resolved_path} not within {allowed_root}"
-            )
+            raise ValueError(f"Symlink resolves outside allowed directory: {resolved_path} not within {allowed_root}")
 
 
 def load_validation_module(protocol):
@@ -433,9 +439,7 @@ def load_validation_module(protocol):
         for protocol_name, path_value in module_map.items():
             # Check for path traversal attempts
             if ".." in path_value or path_value.startswith("/"):
-                raise ValueError(
-                    f"Invalid protocol path in module_map for {protocol_name}: {path_value}"
-                )
+                raise ValueError(f"Invalid protocol path in module_map for {protocol_name}: {path_value}")
             # Resolve and validate it's within PROJECT_ROOT
             full_path = PROJECT_ROOT / path_value
             _validate_secure_path(full_path, PROJECT_ROOT)
@@ -445,9 +449,7 @@ def load_validation_module(protocol):
 
         module_path = PROJECT_ROOT / module_map[protocol]
         if not module_path.exists():
-            raise FileNotFoundError(
-                f"Validation protocol module not found: {module_path}"
-            )
+            raise FileNotFoundError(f"Validation protocol module not found: {module_path}")
 
         # Validate that path is within PROJECT_ROOT to prevent traversal
         _validate_secure_path(module_path, PROJECT_ROOT)
@@ -505,19 +507,13 @@ class BatchProcessor:
 
         # Use provided values or fall back to config
         self.max_workers = max_workers or self.config.get_max_workers()
-        self.use_processes = (
-            use_processes
-            if use_processes is not None
-            else self.config.get("use_processes", False)
-        )
+        self.use_processes = use_processes if use_processes is not None else self.config.get("use_processes", False)
 
         self.jobs: List[BatchJob] = []
         self.results: Dict[str, Any] = {}
 
         # Choose executor type
-        self.executor_class = (
-            ProcessPoolExecutor if self.use_processes else ThreadPoolExecutor
-        )
+        self.executor_class = ProcessPoolExecutor if self.use_processes else ThreadPoolExecutor
 
     def add_simulation_job(
         self,
@@ -637,9 +633,7 @@ class BatchProcessor:
 
         # Run simulation
         duration = steps * dt
-        results = system.simulate(
-            duration=duration, dt=dt, input_generator=input_generator
-        )
+        results = system.simulate(duration=duration, dt=dt, input_generator=input_generator)
 
         return {
             "job_id": job.job_id,
@@ -647,12 +641,8 @@ class BatchProcessor:
             "results": results,
             "summary": {
                 "total_ignitions": np.sum(results["B"]),
-                "mean_surprise": (
-                    np.mean(results["S"]) if len(results["S"]) > 0 else 0.0
-                ),
-                "mean_threshold": (
-                    np.mean(results["theta"]) if len(results["theta"]) > 0 else 0.0
-                ),
+                "mean_surprise": (np.mean(results["S"]) if len(results["S"]) > 0 else 0.0),
+                "mean_threshold": (np.mean(results["theta"]) if len(results["theta"]) > 0 else 0.0),
                 "final_state": {
                     "S": results["S"][-1] if len(results["S"]) > 0 else 0.0,
                     "theta": results["theta"][-1] if len(results["theta"]) > 0 else 0.0,
@@ -747,16 +737,12 @@ class BatchProcessor:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(job.result, f, indent=2, default=str)
         elif job.output_file.endswith(".pkl"):
+            # Use secure JSON serialization instead of pickle for security
             secure_json_dump(job.result, output_path)
         elif job.output_file.endswith(".csv"):
-            if isinstance(job.result, dict) and "results" in job.result:
-                # Save simulation results as CSV
-                df = pd.DataFrame(job.result["results"])
-                df.to_csv(output_path, index=False)
-            else:
-                # Save summary as CSV
-                df = pd.DataFrame([job.result])
-                df.to_csv(output_path, index=False)
+            # Save simulation results as CSV
+            df = pd.DataFrame(job.result["results"])
+            df.to_csv(output_path, index=False)
         else:
             # Default to JSON
             with open(output_path.with_suffix(".json"), "w", encoding="utf-8") as f:
@@ -783,9 +769,7 @@ class BatchProcessor:
 
         # Run jobs and collect results
         self._run_regular_jobs(regular_jobs, completed_jobs, failed_jobs, pbar)
-        self._run_memory_intensive_jobs(
-            memory_intensive_jobs, completed_jobs, failed_jobs, pbar
-        )
+        self._run_memory_intensive_jobs(memory_intensive_jobs, completed_jobs, failed_jobs, pbar)
         self._retry_failed_jobs(failed_jobs, completed_jobs, pbar)
 
         # Cleanup progress bar
@@ -825,9 +809,7 @@ class BatchProcessor:
         try:
             with self.executor_class(max_workers=self.max_workers) as executor:
                 # Submit regular jobs
-                future_to_job = {
-                    executor.submit(self.run_job, job): job for job in regular_jobs
-                }
+                future_to_job = {executor.submit(self.run_job, job): job for job in regular_jobs}
 
                 # Collect results
                 for future in as_completed(future_to_job):
@@ -849,16 +831,12 @@ class BatchProcessor:
             # Add all regular jobs to failed list for sequential processing
             failed_jobs.extend(regular_jobs)
 
-    def _run_memory_intensive_jobs(
-        self, memory_intensive_jobs, completed_jobs, failed_jobs, pbar
-    ):
+    def _run_memory_intensive_jobs(self, memory_intensive_jobs, completed_jobs, failed_jobs, pbar):
         """Run memory-intensive jobs sequentially."""
         if not memory_intensive_jobs:
             return
 
-        print(
-            f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially..."
-        )
+        print(f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially...")
         for job in memory_intensive_jobs:
             try:
                 print(f"Running {job.job_id} (memory-intensive)...")

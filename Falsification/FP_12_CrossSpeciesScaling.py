@@ -72,9 +72,7 @@ class LiquidTimeConstantChecker:
     def __init__(self) -> None:
         self.ltc_results: Dict[str, Any] = {}
 
-    def check_ltc(
-        self, spectral_radius: float = 0.98, leak_rate: float = 0.01, n_nodes: int = 100
-    ) -> Dict[str, Any]:
+    def check_ltc(self, spectral_radius: float = 0.98, leak_rate: float = 0.01, n_nodes: int = 100) -> Dict[str, Any]:
         """Simulates an ESN to measure integration windows and transition times.
 
         CRITICAL FIX: Uses leak_rate=0.01 (was 0.1) for longer integration windows.
@@ -111,12 +109,8 @@ class LiquidTimeConstantChecker:
         # Integration Windows (Autocorrelation decay to 1/e)
         # Sample more neurons for robust median estimate
         sample_indices = np.random.choice(n_nodes, size=min(20, n_nodes), replace=False)
-        ltc_windows = [
-            self._estimate_window(states[:, i], dt_ms) for i in sample_indices
-        ]
-        rnn_windows = [
-            self._estimate_window(rnn_states[:, i], dt_ms) for i in sample_indices
-        ]
+        ltc_windows = [self._estimate_window(states[:, i], dt_ms) for i in sample_indices]
+        rnn_windows = [self._estimate_window(rnn_states[:, i], dt_ms) for i in sample_indices]
 
         ltc_median = float(np.median(ltc_windows))
         rnn_median = float(np.median(rnn_windows))
@@ -195,9 +189,7 @@ class LiquidTimeConstantChecker:
         n = len(signal)
         lags = np.arange(1, min(n, 600))
         for lag in lags:
-            c = np.sum((signal[: n - lag] - mean) * (signal[lag:] - mean)) / (
-                (n - lag) * var
-            )
+            c = np.sum((signal[: n - lag] - mean) * (signal[lag:] - mean)) / ((n - lag) * var)
             if c < 0.368:
                 return float(lag * dt_ms)
         return float(lags[-1] * dt_ms)
@@ -308,9 +300,7 @@ class CrossSpeciesScalingAnalyzer:
             _logger.warning(f"Failed to extract GA seed from VP-5: {e}")
             return None
 
-    def validate_exponents_with_2sd_window(
-        self, observed_exponents: Dict[str, float]
-    ) -> Dict[str, Any]:
+    def validate_exponents_with_2sd_window(self, observed_exponents: Dict[str, float]) -> Dict[str, Any]:
         """Validate observed exponents against expected ±2 SD window.
 
         FP-12 Fix 5: Implement ±2 SD window validation per comprehensive analysis.
@@ -406,8 +396,7 @@ class CrossSpeciesScalingAnalyzer:
         }
 
         species_masses: list[float] = [
-            float(s.get("brain_mass_g", 0.0))  # type: ignore[arg-type,index]
-            for s in species_data.values()
+            float(s.get("brain_mass_g", 0.0)) for s in species_data.values()  # type: ignore[arg-type,index]
         ]
 
         # Simulated parameters following power law M^exp (with noise)
@@ -419,9 +408,7 @@ class CrossSpeciesScalingAnalyzer:
 
         for param, exp in self.expected.items():
             true_exp = exp + float(np.random.normal(0, 0.02))  # Add slight noise
-            values: list[float] = [
-                1.0 * (float(m) / 1350.0) ** float(true_exp) for m in species_masses
-            ]
+            values: list[float] = [1.0 * (float(m) / 1350.0) ** float(true_exp) for m in species_masses]
 
             # Regression on log-log space to get OBSERVED exponents
             log_m = np.log10(np.array(species_masses, dtype=float))
@@ -476,10 +463,7 @@ class CrossSpeciesScalingAnalyzer:
         results["exponent_comparison"] = {
             "expected": self.expected,
             "observed": observed_exponents,
-            "differences": {
-                k: observed_exponents.get(k, 0) - self.expected.get(k, 0)
-                for k in self.expected.keys()
-            },
+            "differences": {k: observed_exponents.get(k, 0) - self.expected.get(k, 0) for k in self.expected.keys()},
             "vp5_integration": self.vp5_genome_data is not None,
         }
 
@@ -703,17 +687,13 @@ def run_comprehensive_cross_species_analysis(
     # Fix 3: PIC for each parameter
     pic_results: Dict[str, Any] = {}
     if "exponent_comparison" in scaling_results:
-        for param, exp_val in scaling_results["exponent_comparison"][
-            "observed"
-        ].items():
+        for param, exp_val in scaling_results["exponent_comparison"]["observed"].items():
             species_param_values = {}
             for sp in species_masses.keys():
                 # Generate synthetic parameter values based on scaling
                 mass_ratio = species_masses[sp] / 1350.0
                 species_param_values[sp] = mass_ratio**exp_val
-            pic_results[param] = compute_phylogenetic_independent_contrasts(
-                species_param_values
-            )
+            pic_results[param] = compute_phylogenetic_independent_contrasts(species_param_values)
 
     # Fix 4: Kruskal-Wallis
     kruskal_results = run_kruskal_wallis_test(species_windows)
@@ -775,9 +755,7 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
     named_predictions = {
         "P12.a": {
             "passed": bool(
-                scaling_results["pi_i"]["passed"]
-                and scaling_results["theta_t"]["passed"]
-                and all_2sd_passed
+                scaling_results["pi_i"]["passed"] and scaling_results["theta_t"]["passed"] and all_2sd_passed
             ),
             "actual": f"Scaling exponents: pi={scaling_results['pi_i']['observed_exponent']:.2f}, theta={scaling_results['theta_t']['observed_exponent']:.2f}, 2SD_pass={all_2sd_passed}",
             "threshold": "Within ±0.10 of expected allometric exponents AND ±2 SD window",
@@ -859,9 +837,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     result = run_protocol_main()
     print("\nFP-12 Execution Result:")
-    print(
-        f"Status: {'PASSED' if result.metadata.get('passed', False) else 'FALSIFIED'}"
-    )
+    print(f"Status: {'PASSED' if result.metadata.get('passed', False) else 'FALSIFIED'}")
     print(f"Score: {result.completion_percentage}/100")
     print(f"Summary: {result.metadata.get('summary', 'No summary available')}")
     print("\nNamed Predictions:")
@@ -901,9 +877,7 @@ def _save_fp12_outputs(results: Dict[str, Any]) -> None:
     try:
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(
-                ["prediction_id", "passed", "actual", "threshold", "description"]
-            )
+            writer.writerow(["prediction_id", "passed", "actual", "threshold", "description"])
 
             for pred_id, data in results.get("named_predictions", {}).items():
                 writer.writerow(
@@ -964,21 +938,15 @@ def _save_fp12_outputs(results: Dict[str, Any]) -> None:
 
         from utils.protocol_visualization import ProtocolVisualizer
 
-        visualizer = ProtocolVisualizer(
-            12, output_dir="validation_results/visualizations"
-        )
-        success = visualizer.create_custom_plot(
-            fp12_custom_plot, "Cross-Species Scaling"
-        )
+        visualizer = ProtocolVisualizer(12, output_dir="validation_results/visualizations")
+        success = visualizer.create_custom_plot(fp12_custom_plot, "Cross-Species Scaling")
         if success:
             if os.path.exists("validation_results/visualizations/protocol12.png"):
                 os.rename(
                     "validation_results/visualizations/protocol12.png",
                     "validation_results/visualizations/protocol12_results.png",
                 )
-            print(
-                "✓ Generated validation_results/visualizations/protocol12_results.png"
-            )
+            print("✓ Generated validation_results/visualizations/protocol12_results.png")
         else:
             print("⚠ Failed to generate protocol12_results.png visualization")
     except ImportError:
@@ -992,9 +960,7 @@ if __name__ == "__main__":
     print("\n=== FP-12 Cross-Species Scaling & LTC ===")
     print(f"Status: {results['status']}")
     for pred, data in results["named_predictions"].items():
-        print(
-            f"{pred}: {'PASS' if data['passed'] else 'FAIL'} - {data.get('actual', '')}"
-        )
+        print(f"{pred}: {'PASS' if data['passed'] else 'FAIL'} - {data.get('actual', '')}")
 
     # Save all output formats
     _save_fp12_outputs(results)
@@ -1039,9 +1005,7 @@ def apply_cross_species_scaling(species_data, expected_exponents=None):
     return analyzer.run_scaling_analysis(expected_exponents)
 
 
-def validate_scaling_laws(
-    observed_exponents, expected_exponents=None, expected_std_devs=None
-):
+def validate_scaling_laws(observed_exponents, expected_exponents=None, expected_std_devs=None):
     """Alias for validate_exponents_with_2sd_window for test compatibility."""
     analyzer = CrossSpeciesScalingAnalyzer(expected_exponents, expected_std_devs)
     return analyzer.validate_exponents_with_2sd_window(observed_exponents)

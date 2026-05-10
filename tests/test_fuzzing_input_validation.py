@@ -2,7 +2,7 @@
 Fuzzing tests for all public input-validation surfaces.
 
 This module tests input validation functions with:
-- Random fuzzed inputs
+    - Random fuzzed inputs
 - Boundary value analysis
 - Malformed/attack payloads
 - Type confusion attacks
@@ -45,18 +45,14 @@ class TestFuzzedPathValidation:
             # Expected exceptions for invalid paths
             pass
         except Exception as e:
-            pytest.fail(
-                f"Path validation crashed on input {fuzzed_path!r}: {type(e).__name__}: {e}"
-            )
+            pytest.fail(f"Path validation crashed on input {fuzzed_path!r}: {type(e).__name__}: {e}")
 
     @given(st.text(alphabet=string.printable, min_size=0, max_size=1000))
     @settings(max_examples=100, deadline=None)
     def test_fuzzed_path_with_special_characters(self, fuzzed_content):
         """Test paths containing special characters, null bytes, and control characters."""
         # Create a temporary file with fuzzed content in the name (safely)
-        safe_content = "".join(c for c in fuzzed_content if c.isalnum() or c in "._-")[
-            :100
-        ]
+        safe_content = "".join(c for c in fuzzed_content if c.isalnum() or c in "._-")[:100]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / f"test_{safe_content}.txt"
@@ -109,7 +105,7 @@ class TestFuzzedJsonValidation:
                 result = secure_load_json(test_file)
                 # If it parses, result should be dict or None
                 if result is not None:
-                    assert isinstance(result, dict)
+                    assert isinstance(result, dict), "Result should be dict when not None"
             except (json.JSONDecodeError, ValueError, TypeError):
                 pass  # Expected for invalid JSON
             except Exception as e:
@@ -135,8 +131,7 @@ class TestFuzzedJsonValidation:
             test_file.write_text(json.dumps(data))
 
             try:
-                result = secure_load_json(test_file)
-                assert isinstance(result, dict)
+                secure_load_json(test_file)
             except Exception as e:
                 pytest.fail(f"Valid JSON should load: {e}")
         finally:
@@ -201,9 +196,7 @@ class TestFuzzedEnvironmentVariables:
             # Valid keys: uppercase letters, digits, underscores
             # First char can be uppercase or underscore
             # Underscore-only keys like "_" are valid
-            assert all(
-                c.isupper() or c.isdigit() or c == "_" for c in fuzzed_key
-            ), f"Invalid chars in: {fuzzed_key}"
+            assert all(c.isupper() or c.isdigit() or c == "_" for c in fuzzed_key), f"Invalid chars in: {fuzzed_key}"
             # First char must be uppercase letter or underscore
             assert (
                 fuzzed_key[0].isupper() or fuzzed_key[0] == "_"

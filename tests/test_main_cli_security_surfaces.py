@@ -27,9 +27,7 @@ def test_cli_rejects_invalid_token(monkeypatch):
     import main
 
     runner = CliRunner()
-    result = runner.invoke(
-        main.cli, ["--token", "not-a-jwt", "config-group", "explain"]
-    )
+    result = runner.invoke(main.cli, ["--token", "not-a-jwt", "config-group", "explain"])
     assert result.exit_code != 0
     assert (
         "Invalid or expired security token" in result.output
@@ -112,9 +110,7 @@ def test_config_versioning_commands(monkeypatch):
     r2 = runner.invoke(main.cli, ["--token", token, "config-versions", "--limit", "1"])
     assert r2.exit_code == 0
 
-    r3 = runner.invoke(
-        main.cli, ["--token", token, "config-restore", "--version-id", version_id]
-    )
+    r3 = runner.invoke(main.cli, ["--token", token, "config-restore", "--version-id", version_id])
     assert r3.exit_code == 0
 
     r4 = runner.invoke(main.cli, ["--token", token, "config-diff"])

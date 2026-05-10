@@ -61,9 +61,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.constants import VISUAL_CONSTANTS
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -88,9 +86,7 @@ class ODEParameters:
     theta_base: float = 0.5  # baseline threshold
     sigma_S: float = 0.02  # signal noise amplitude
     sigma_theta: float = 0.005  # threshold noise amplitude
-    kappa_theta: float = (
-        0.5  # homeostatic theta restoring rate (prevents unbounded drift)
-    )
+    kappa_theta: float = 0.5  # homeostatic theta restoring rate (prevents unbounded drift)
 
 
 class APGILNNODESystem:
@@ -132,9 +128,9 @@ class APGILNNODESystem:
         B = self.ignition_prob(S, theta)
         dBdS = self.p.alpha * B * (1.0 - B)
         dS = -(S - S_input) / self.p.tau_S + dBdS * (S - theta)
-        dtheta = self.p.eta * (
-            self.p.C_metabolic - self.p.V_information
-        ) - self.p.kappa_theta * (theta - self.p.theta_base)
+        dtheta = self.p.eta * (self.p.C_metabolic - self.p.V_information) - self.p.kappa_theta * (
+            theta - self.p.theta_base
+        )
         return np.array([dS, dtheta])
 
     def jacobian_analytic(self, x: np.ndarray, S_input: float) -> np.ndarray:
@@ -164,9 +160,7 @@ class APGILNNODESystem:
         )
         return J
 
-    def jacobian_numerical(
-        self, x: np.ndarray, S_input: float, eps: float = 1e-5
-    ) -> np.ndarray:
+    def jacobian_numerical(self, x: np.ndarray, S_input: float, eps: float = 1e-5) -> np.ndarray:
         """Numerical finite-difference Jacobian of f (same effective vector field)."""
         n = len(x)
         J = np.zeros((n, n))
@@ -187,8 +181,7 @@ class APGILNNODESystem:
         max_diff = float(np.max(np.abs(J_analytic - J_numeric)))
         match = max_diff < tol
         logger.debug(
-            f"Jacobian verification: max|J_analytic - J_numeric|={max_diff:.2e}, "
-            f"tol={tol:.2e}, match={match}"
+            f"Jacobian verification: max|J_analytic - J_numeric|={max_diff:.2e}, " f"tol={tol:.2e}, match={match}"
         )
         return match
 
@@ -343,7 +336,6 @@ class BifurcationSignatures:
                 dS = -(S - S_input) / tau_S * dt
                 dS += sigma_S * np.sqrt(dt) * rng.standard_normal()
                 S += dS
-            S_finals[trial] = S
 
         var_S = float(np.var(S_finals))
         if len(S_finals) > 1:
@@ -359,6 +351,19 @@ class BifurcationSignatures:
             ac1_S=float(np.clip(ac1, -1.0, 1.0)),
             bimodality_b=float(b) if not np.isnan(b) else 0.0,
         )
+
+
+def sarles_b(self, x: np.ndarray) -> float:
+    """Sarle's bimodality coefficient b = (skew² + 1) / kurtosis."""
+    n = len(x)
+    if n < 4:
+        return float("nan")
+    skew = float(scipy.stats.skew(x))
+    kurt = float(scipy.stats.kurtosis(x, fisher=True))  # excess kurtosis
+    denom = kurt + 3.0 * ((n - 1.0) ** 2) / ((n - 2.0) * (n - 3.0))
+    if abs(denom) < 1e-10:
+        return float("nan")
+    return (skew**2 + 1.0) / denom
 
     def run_full_sweep_with_stochastic(
         self,
@@ -426,8 +431,7 @@ class EmpiricalPredictions:
             observable=("Lag-1 autocorrelation (AC1) of high-gamma power (70–150 Hz)"),
             measurement_window="100–300 ms before ignition event (P3b onset)",
             test_statistic=(
-                "Kendall τ of AC1 vs. time-to-ignition across trials; "
-                "paired t-test vs. suprathreshold control"
+                "Kendall τ of AC1 vs. time-to-ignition across trials; " "paired t-test vs. suprathreshold control"
             ),
             alpha_criterion=0.05,
             sample_size_estimate=20,
@@ -442,15 +446,10 @@ class EmpiricalPredictions:
             prediction_id="BP2_variance_inflation",
             observable="Single-trial P3b amplitude variance",
             measurement_window="300–500 ms post-stimulus (P3b window)",
-            test_statistic=(
-                "Levene's test: variance at threshold vs. suprathreshold stimuli"
-            ),
+            test_statistic=("Levene's test: variance at threshold vs. suprathreshold stimuli"),
             alpha_criterion=0.05,
             sample_size_estimate=24,
-            expected_direction=(
-                "Higher amplitude variance for near-threshold stimuli "
-                "vs. clearly suprathreshold"
-            ),
+            expected_direction=("Higher amplitude variance for near-threshold stimuli " "vs. clearly suprathreshold"),
             falsification_condition=(
                 "If P3b variance does not differ significantly between "
                 "threshold and suprathreshold conditions, variance-inflation "
@@ -461,28 +460,19 @@ class EmpiricalPredictions:
             prediction_id="BP3_flickering",
             observable="Single-trial amplitude distribution shape",
             measurement_window="200–400 ms pre-ignition",
-            test_statistic=(
-                "Hartigan's dip test for bimodality on single-trial "
-                "high-gamma amplitude at threshold"
-            ),
+            test_statistic=("Hartigan's dip test for bimodality on single-trial " "high-gamma amplitude at threshold"),
             alpha_criterion=0.05,
             sample_size_estimate=20,
-            expected_direction=(
-                "Bimodal distribution at threshold; unimodal above/below"
-            ),
+            expected_direction=("Bimodal distribution at threshold; unimodal above/below"),
             falsification_condition=(
-                "If distribution is unimodal at threshold (dip test p > 0.05), "
-                "flickering signature is absent."
+                "If distribution is unimodal at threshold (dip test p > 0.05), " "flickering signature is absent."
             ),
         ),
         EmpiricalPrediction(
             prediction_id="BP4_asymmetric_recovery",
             observable="Return-to-baseline latency of high-gamma envelope",
             measurement_window="0–500 ms post-stimulus",
-            test_statistic=(
-                "Paired t-test: recovery latency for conscious vs. "
-                "unconscious near-threshold events"
-            ),
+            test_statistic=("Paired t-test: recovery latency for conscious vs. " "unconscious near-threshold events"),
             alpha_criterion=0.05,
             sample_size_estimate=20,
             expected_direction=(
@@ -570,9 +560,7 @@ def plot_bifurcation_signatures(
     )
 
     # 2. Variance inflation
-    var_clipped = np.clip(
-        sweep.variance_trace, 0, np.percentile(sweep.variance_trace, 95) * 1.5
-    )
+    var_clipped = np.clip(sweep.variance_trace, 0, np.percentile(sweep.variance_trace, 95) * 1.5)
     ax2.plot(S_vals, var_clipped, color="#155724", linewidth=2)
     ax2.axvline(theta, color="#721c24", linestyle="--", linewidth=1, label="S = θₜ")
     ax2.set_xlabel("S_input")
@@ -615,7 +603,8 @@ def plot_bifurcation_signatures(
     if save_path is None:
         import tempfile
 
-        save_path = tempfile.mktemp(suffix="_bifurcation_signatures.png")
+        with tempfile.NamedTemporaryFile(suffix="_bifurcation_signatures.png", delete=False) as tmp_file:
+            save_path = tmp_file.name
 
     plt.savefig(save_path, dpi=100, bbox_inches="tight")
     plt.close(fig)
@@ -679,31 +668,20 @@ class APGILNNBifurcationAnalysis:
 
         bif_idx = sweep.bifurcation_idx
         lambda1_at_bif = float(sweep.lambda1_trace[bif_idx])
-        pre_slice = (
-            sweep.lambda1_trace[:bif_idx] if bif_idx > 0 else sweep.lambda1_trace[:1]
-        )
+        pre_slice = sweep.lambda1_trace[:bif_idx] if bif_idx > 0 else sweep.lambda1_trace[:1]
         post_slice = (
-            sweep.lambda1_trace[bif_idx + 1 :]
-            if bif_idx < len(sweep.lambda1_trace) - 1
-            else sweep.lambda1_trace[-1:]
+            sweep.lambda1_trace[bif_idx + 1 :] if bif_idx < len(sweep.lambda1_trace) - 1 else sweep.lambda1_trace[-1:]
         )
         lambda1_pre = float(np.mean(pre_slice))
         lambda1_post = float(np.mean(post_slice))
         ac1_at_bif = float(sweep.ac1_trace[bif_idx])
         pre_ac1_start = max(0, bif_idx - 20)
-        ac1_pre_slice = (
-            sweep.ac1_trace[pre_ac1_start:bif_idx]
-            if bif_idx > 0
-            else sweep.ac1_trace[:1]
-        )
+        ac1_pre_slice = sweep.ac1_trace[pre_ac1_start:bif_idx] if bif_idx > 0 else sweep.ac1_trace[:1]
         ac1_pre = float(np.mean(ac1_pre_slice))
         var_at_bif = float(sweep.variance_trace[bif_idx])
 
         logger.info(f"  Bifurcation point index: {bif_idx} / 200")
-        logger.info(
-            f"  S at bifurcation: {float(sweep.S_values[bif_idx]):.4f} "
-            f"(θ_base={theta:.4f})"
-        )
+        logger.info(f"  S at bifurcation: {float(sweep.S_values[bif_idx]):.4f} " f"(θ_base={theta:.4f})")
         logger.info(f"  λ₁ at bifurcation: {lambda1_at_bif:.4f} (expected ≈ 0)")
         logger.info(f"  λ₁ pre-bifurcation mean: {lambda1_pre:.4f}")
         logger.info(f"  λ₁ post-bifurcation mean: {lambda1_post:.4f}")

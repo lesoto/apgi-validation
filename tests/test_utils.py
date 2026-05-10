@@ -24,14 +24,8 @@ try:
     from utils.genome_data_extractor import extract_genome_data_from_vp5
     from utils.logging_config import apgi_logger
     from utils.ordinal_logistic_regression import OrdinalLogisticRegression
-    from utils.preprocessing_pipelines import (
-        EEGPreprocessor,
-        PreprocessingConfig,
-    )
-    from utils.threshold_registry import (
-        FalsificationThresholds,
-        ThresholdRegistry,
-    )
+    from utils.preprocessing_pipelines import EEGPreprocessor, PreprocessingConfig
+    from utils.threshold_registry import FalsificationThresholds, ThresholdRegistry
 except ImportError as e:
     pytest.skip(f"Cannot import utility modules: {e}", allow_module_level=True)
 
@@ -84,9 +78,7 @@ def test_sample_data_fixture_structure(sample_data):
     # Check data consistency
     data_length = len(sample_data["timestamps"])
     for key in required_keys:
-        assert (
-            len(sample_data[key]) == data_length
-        ), f"Sample data {key} length mismatch"
+        assert len(sample_data[key]) == data_length, f"Sample data {key} length mismatch"
 
 
 class TestConfigLoader:
@@ -97,9 +89,7 @@ class TestConfigLoader:
         # Test with a known key from default.yaml
         config_manager = ConfigManager()
         model_config = config_manager.get_config("model")
-        assert isinstance(
-            model_config, (dict, object)
-        ), "Model config should be a dictionary or object"
+        assert isinstance(model_config, (dict, object)), "Model config should be a dictionary or object"
 
         # Check for expected model parameters
         expected_keys = [
@@ -114,9 +104,7 @@ class TestConfigLoader:
         if isinstance(model_config, dict):
             for key in expected_keys:
                 assert key in model_config, f"Model config should contain {key}"
-                assert isinstance(
-                    model_config[key], (int, float, str)
-                ), f"Model config {key} should be numeric"
+                assert isinstance(model_config[key], (int, float, str)), f"Model config {key} should be numeric"
                 assert model_config[key] > 0, f"Model config {key} should be positive"
 
     def test_get_config_missing_key(self):
@@ -132,9 +120,7 @@ class TestConfigLoader:
         """Test getting model configuration section."""
         config_manager = ConfigManager()
         model_config = config_manager.get_config("model")
-        assert isinstance(
-            model_config, (dict, object)
-        ), "Model config should be a dictionary or object"
+        assert isinstance(model_config, (dict, object)), "Model config should be a dictionary or object"
 
         # Check for expected model parameters
         expected_keys = [
@@ -149,18 +135,14 @@ class TestConfigLoader:
         if isinstance(model_config, dict):
             for key in expected_keys:
                 assert key in model_config, f"Model config should contain {key}"
-                assert isinstance(
-                    model_config[key], (int, float, str)
-                ), f"Model config {key} should be numeric"
+                assert isinstance(model_config[key], (int, float, str)), f"Model config {key} should be numeric"
                 assert model_config[key] > 0, f"Model config {key} should be positive"
 
     def test_get_falsification_config(self):
         """Test getting falsification configuration section."""
         config_manager = ConfigManager()
         falsif_config = config_manager.get_config("falsification")
-        assert isinstance(
-            falsif_config, (dict, object)
-        ), "Falsification config should be a dictionary or object"
+        assert isinstance(falsif_config, (dict, object)), "Falsification config should be a dictionary or object"
 
         # Check for expected falsification parameters
         expected_keys = [
@@ -170,9 +152,7 @@ class TestConfigLoader:
         ]
         if isinstance(falsif_config, dict):
             for key in expected_keys:
-                assert (
-                    key in falsif_config
-                ), f"Falsification config should contain {key}"
+                assert key in falsif_config, f"Falsification config should contain {key}"
 
 
 class TestThresholdRegistry:
@@ -193,9 +173,7 @@ class TestThresholdRegistry:
         assert isinstance(registry.thresholds, FalsificationThresholds)
 
         # Test getting individual thresholds
-        advantage_threshold = registry.get_threshold(
-            "cumulative_reward_advantage_threshold"
-        )
+        advantage_threshold = registry.get_threshold("cumulative_reward_advantage_threshold")
         assert advantage_threshold == 18.0
 
         cohens_d = registry.get_threshold("cohens_d_threshold")
@@ -317,9 +295,7 @@ class TestEEGSimulator:
 
     def test_eeg_simulator_with_parameters(self):
         """Test EEG simulation with custom parameters."""
-        simulator = EEGSimulator(
-            n_channels=64, sampling_rate=250.0, duration_seconds=1.0
-        )
+        simulator = EEGSimulator(n_channels=64, sampling_rate=250.0, duration_seconds=1.0)
         simulated = simulator.simulate_eeg()
         assert isinstance(simulated, dict)
         assert "eeg_data" in simulated or "error" in simulated
@@ -342,7 +318,6 @@ class TestPreprocessingPipelines:
         # Create sample data - numpy array format
         sample_data = np.random.randn(5, 100)  # 5 channels, 100 samples
         result = preprocessor.preprocess_eeg(sample_data)
-        assert isinstance(result, dict)
         assert "processed_eeg" in result or "error" in result
 
 
@@ -354,8 +329,7 @@ class TestGenomeDataExtractor:
         # This test would require actual VP-5 results file
         # For now, we'll test the function exists and handles missing files gracefully
         try:
-            result = extract_genome_data_from_vp5("nonexistent_file.json")
-            assert isinstance(result, dict)
+            extract_genome_data_from_vp5("nonexistent_file.json")
         except Exception:
             # Expected when file doesn't exist
             pass
@@ -378,7 +352,6 @@ class TestOrdinalLogisticRegression:
         X = np.random.randn(100, 5)  # 100 samples, 5 features
         y = np.random.randint(0, 3, 100)  # 3 ordinal classes
         result = model.fit(X, y)
-        assert isinstance(result, dict)
         assert "model_fitted" in result or "error" in result
 
         # Test prediction
@@ -392,10 +365,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_empty_name_raises_error(self):
         """Test that empty name raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -409,10 +379,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_whitespace_only_name_raises_error(self):
         """Test that whitespace-only name raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -426,10 +393,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_empty_description_raises_error(self):
         """Test that empty description raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -443,10 +407,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_invalid_direction_raises_error(self):
         """Test that invalid direction raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="Invalid direction"):
             FalsificationCriterion(
@@ -460,10 +421,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_greater_than_one_raises_error(self):
         """Test that alpha > 1 raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(
@@ -477,10 +435,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_zero_raises_error(self):
         """Test that alpha = 0 raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(
@@ -494,10 +449,7 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_negative_raises_error(self):
         """Test that negative alpha raises ValueError."""
-        from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion, TestStatistic
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(

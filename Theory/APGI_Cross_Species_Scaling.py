@@ -1,4 +1,5 @@
 """
+
 =============================================================================
 APGI CROSS-SPECIES SCALING MODEL
 =============================================================================
@@ -115,9 +116,7 @@ class CrossSpeciesScaling:
         pci_pred = np.array([self.compute_predicted_pci(m) for m in mass_range])
 
         plt.figure(figsize=(10, 6))
-        plt.loglog(
-            mass_range, pci_pred, "k--", alpha=0.5, label="Prediction (Mass^0.32)"
-        )
+        plt.loglog(mass_range, pci_pred, "k--", alpha=0.5, label="Prediction (Mass^0.32)")
         for i, name in enumerate(species_names):
             plt.scatter(masses[i], pci_emp[i], s=100, label=name)
 
@@ -149,12 +148,8 @@ def predict_species_consciousness(
     intrinsic_timescale = 0.15 * (brain_mass / 0.4) ** 0.28  # Mouse baseline
 
     # Calculate encephalization quotient
-    expected_brain_mass = (
-        0.12 * species_params.body_mass_kg**0.75
-    )  # General mammalian scaling
-    encephalization_quotient = (
-        brain_mass / expected_brain_mass if expected_brain_mass > 0 else 1.0
-    )
+    expected_brain_mass = 0.12 * species_params.body_mass_kg**0.75  # General mammalian scaling
+    encephalization_quotient = brain_mass / expected_brain_mass if expected_brain_mass > 0 else 1.0
 
     return {
         "predicted_pci": predicted_pci,

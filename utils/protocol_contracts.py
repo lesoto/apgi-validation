@@ -56,7 +56,5 @@ class ProtocolContractRegistry:
                     protocol_name=protocol_id,
                 )
 
-            diagnostics[protocol_id] = (
-                f"OK schema={contract.schema_version} entrypoint={contract.entrypoint}"
-            )
+            diagnostics[protocol_id] = f"OK schema={contract.schema_version} entrypoint={contract.entrypoint}"
         return diagnostics

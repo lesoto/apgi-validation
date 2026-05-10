@@ -70,9 +70,7 @@ class CrashRecovery:
         # Check for previous crash on startup
         self._check_for_crash()
 
-    def save_state(
-        self, state_data: Dict[str, Any], crash_info: Optional[Dict[str, Any]] = None
-    ):
+    def save_state(self, state_data: Dict[str, Any], crash_info: Optional[Dict[str, Any]] = None):
         """Save the current application state."""
         self.current_state = RecoveryState(
             app_name=self.app_name,
@@ -139,9 +137,7 @@ class CrashRecovery:
             return
 
         self._stop_auto_save.clear()
-        self._auto_save_thread = threading.Thread(
-            target=self._auto_save_worker, args=(get_state_func,), daemon=True
-        )
+        self._auto_save_thread = threading.Thread(target=self._auto_save_worker, args=(get_state_func,), daemon=True)
         self._auto_save_thread.start()
 
     def stop_auto_save(self):
@@ -161,9 +157,7 @@ class CrashRecovery:
                 if state_data:
                     self.save_state(state_data)
                     consecutive_failures = 0  # Reset on success
-                    current_delay = (
-                        self.auto_save_interval
-                    )  # Reset delay to base interval
+                    current_delay = self.auto_save_interval  # Reset delay to base interval
                 else:
                     consecutive_failures += 1
                     apgi_logger.logger.warning(
@@ -190,9 +184,7 @@ class CrashRecovery:
                     self.auto_save_max_delay,
                 )
                 # Add small random jitter to prevent thundering herd
-                jitter = (
-                    current_delay * 0.1 * (0.5 - time.time() % 1)
-                )  # Small random variation
+                jitter = current_delay * 0.1 * (0.5 - time.time() % 1)  # Small random variation
                 current_delay = max(self.auto_save_interval, current_delay + jitter)
 
     def _check_for_crash(self):
@@ -201,9 +193,7 @@ class CrashRecovery:
             state = self.load_state()
             if state and state.crash_info:
                 self._log_crash(state.crash_info)
-                print(
-                    f"Previous crash detected at {datetime.fromtimestamp(state.timestamp)}"
-                )
+                print(f"Previous crash detected at {datetime.fromtimestamp(state.timestamp)}")
                 print(f"Recovery attempts: {state.recovery_attempts}")
 
     def _log_crash(self, crash_info: Dict[str, Any]):
@@ -231,9 +221,7 @@ class CrashRecovery:
         self._clear_recovery_state()
         self.current_state = None
 
-    def handle_crash(
-        self, exception: Exception, additional_info: Optional[Dict[str, Any]] = None
-    ):
+    def handle_crash(self, exception: Exception, additional_info: Optional[Dict[str, Any]] = None):
         """Handle an application crash."""
         crash_info = {
             "error": str(exception),
@@ -248,7 +236,11 @@ class CrashRecovery:
         if hasattr(self, "_get_current_state"):
             try:
                 current_state_data = self._get_current_state()
-            except Exception:
+            except Exception as e:
+                # Log error for debugging purposes
+                import logging
+
+                logging.getLogger(__name__).debug(f"Failed to get current state: {e}")
                 pass
 
         self.save_state(current_state_data or {}, crash_info)

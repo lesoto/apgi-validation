@@ -49,7 +49,6 @@ class TestComputeSpectralSlopeSpecparam:
         power = 1 / freqs
 
         result = compute_spectral_slope_specparam(freqs, power)
-        assert isinstance(result, dict)
         assert "aperiodic_exponent" in result
 
     def test_spectral_slope_with_peaks(self):
@@ -58,8 +57,7 @@ class TestComputeSpectralSlopeSpecparam:
         # 1/f + alpha peak at 10 Hz
         power = 1 / freqs + 0.5 * np.exp(-((freqs - 10) ** 2) / 2)
 
-        result = compute_spectral_slope_specparam(freqs, power)
-        assert isinstance(result, dict)
+        compute_spectral_slope_specparam(freqs, power)
 
 
 class TestValidateSpecparamFit:

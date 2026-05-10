@@ -19,9 +19,7 @@ import yaml
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEFAULT_CONFIG_PATH = (
-    Path(__file__).parent.parent / "config" / "default_apgi_config.yaml"
-)
+DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "config" / "default_apgi_config.yaml"
 
 
 class APGISettings(BaseSettings):
@@ -43,7 +41,12 @@ class APGISettings(BaseSettings):
         file_secret_settings,
     ):
         # Ensure environment variables override YAML/init-provided defaults.
-        return env_settings, init_settings, dotenv_settings, file_secret_settings
+        return (
+            env_settings,
+            init_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
 
     # Network architecture
     input_size: int = 64
@@ -164,9 +167,7 @@ class APGISettings(BaseSettings):
     reservoir_sparsity: float = 0.5
 
     # Optional provenance
-    config_path: Optional[str] = Field(
-        default=None, description="Resolved YAML path used"
-    )
+    config_path: Optional[str] = Field(default=None, description="Resolved YAML path used")
 
     @classmethod
     def from_yaml(cls, path: Path) -> "APGISettings":

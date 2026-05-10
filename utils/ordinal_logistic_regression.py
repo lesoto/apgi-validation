@@ -53,9 +53,7 @@ class OrdinalLogisticRegression:
         self.coefficients = None  # β values
         self.fitted = False
 
-    def _negative_log_likelihood(
-        self, params: np.ndarray, X: np.ndarray, y: np.ndarray
-    ) -> float:
+    def _negative_log_likelihood(self, params: np.ndarray, X: np.ndarray, y: np.ndarray) -> float:
         """
         Compute negative log-likelihood for ordinal logistic regression.
 
@@ -109,9 +107,7 @@ class OrdinalLogisticRegression:
 
         return nll
 
-    def fit(
-        self, X: np.ndarray, y: np.ndarray, init_params: Optional[np.ndarray] = None
-    ) -> Dict[str, Any]:
+    def fit(self, X: np.ndarray, y: np.ndarray, init_params: Optional[np.ndarray] = None) -> Dict[str, Any]:
         """
         Fit ordinal logistic regression model.
 
@@ -127,9 +123,7 @@ class OrdinalLogisticRegression:
 
         # Validate dimensions
         if len(y) != n_samples:
-            raise ValueError(
-                f"X and y must have same number of samples. Got X: {n_samples}, y: {len(y)}"
-            )
+            raise ValueError(f"X and y must have same number of samples. Got X: {n_samples}, y: {len(y)}")
 
         # Validate y values are in valid range
         if np.any(y < 0) or np.any(y >= self.n_categories):
@@ -203,9 +197,7 @@ class OrdinalLogisticRegression:
             "accuracy": accuracy,
             "null_deviance": null_deviance,
             "residual_deviance": residual_deviance,
-            "deviance_reduction": (null_deviance - residual_deviance)
-            / null_deviance
-            * 100,
+            "deviance_reduction": (null_deviance - residual_deviance) / null_deviance * 100,
         }
 
     def _compute_null_deviance(self, y: np.ndarray) -> float:
@@ -288,9 +280,7 @@ class OrdinalLogisticRegression:
         predictions = np.argmax(probs, axis=1)
         return predictions
 
-    def get_coefficient_significance(
-        self, X: np.ndarray, y: np.ndarray
-    ) -> Dict[str, Any]:
+    def get_coefficient_significance(self, X: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
         """
         Compute significance tests for coefficients using likelihood ratio test.
 
@@ -319,9 +309,7 @@ class OrdinalLogisticRegression:
             # Compute reduced model likelihood
             params_reduced = np.concatenate([self.thresholds, beta_reduced])
             ll_reduced = -self._negative_log_likelihood(params_reduced, X_reduced, y)
-            ll_full = -self._negative_log_likelihood(
-                np.concatenate([self.thresholds, self.coefficients]), X, y
-            )
+            ll_full = -self._negative_log_likelihood(np.concatenate([self.thresholds, self.coefficients]), X, y)
 
             # Likelihood ratio statistic
             lr_stat = 2 * (ll_full - ll_reduced)
@@ -371,9 +359,7 @@ def analyze_clinical_gradient_ordinal(
     # Extract features
     X = patient_data[feature_columns].values
     X = X.astype(float)  # Ensure float type
-    X = (
-        X.reshape(-1, X.shape[1]) if len(X.shape) == 2 else X.reshape(-1, 1)
-    )  # Ensure 2D array
+    X = X.reshape(-1, X.shape[1]) if len(X.shape) == 2 else X.reshape(-1, 1)  # Ensure 2D array
 
     # Fit ordinal logistic regression
     olr = OrdinalLogisticRegression(n_categories=len(category_order))
@@ -402,9 +388,7 @@ def analyze_clinical_gradient_ordinal(
 
     # Compute proportional odds assumption test (simplified)
     # Test if coefficients are consistent across thresholds
-    proportional_odds_pass = (
-        True  # Simplified - full test would require separate models
-    )
+    proportional_odds_pass = True  # Simplified - full test would require separate models
 
     return {
         "model_fitted": fit_results["success"],
@@ -444,9 +428,7 @@ def compare_ordinal_vs_anova(
         Dictionary comparing both methods
     """
     # Ordinal logistic regression
-    ordinal_results = analyze_clinical_gradient_ordinal(
-        patient_data, feature_columns, category_column
-    )
+    ordinal_results = analyze_clinical_gradient_ordinal(patient_data, feature_columns, category_column)
 
     # ANOVA (simplified comparison)
     from scipy import stats
@@ -474,9 +456,7 @@ def compare_ordinal_vs_anova(
     cohens_d_values = []
     for i in range(len(groups)):
         for j in range(i + 1, len(groups)):
-            pooled_std = np.sqrt(
-                (np.var(groups[i], ddof=1) + np.var(groups[j], ddof=1)) / 2
-            )
+            pooled_std = np.sqrt((np.var(groups[i], ddof=1) + np.var(groups[j], ddof=1)) / 2)
             d = (np.mean(groups[i]) - np.mean(groups[j])) / pooled_std
             cohens_d_values.append(d)
 
@@ -484,9 +464,7 @@ def compare_ordinal_vs_anova(
         "ordinal_logistic": {
             "accuracy": ordinal_results["accuracy"],
             "deviance_reduction_pct": ordinal_results["deviance_reduction_pct"],
-            "significant_coefficients": np.sum(
-                ordinal_results["significant_coefficients"]
-            ),
+            "significant_coefficients": np.sum(ordinal_results["significant_coefficients"]),
             "n_significant": np.sum(ordinal_results["significant_coefficients"]),
             "method": "Ordinal Logistic Regression (Preferred for ordinal outcomes)",
         },
@@ -494,9 +472,7 @@ def compare_ordinal_vs_anova(
             "f_statistic": f_stat,
             "p_value": p_value_anova,
             "cohens_d_values": cohens_d_values,
-            "mean_abs_cohens_d": (
-                np.mean([abs(d) for d in cohens_d_values]) if cohens_d_values else 0
-            ),
+            "mean_abs_cohens_d": (np.mean([abs(d) for d in cohens_d_values]) if cohens_d_values else 0),
             "method": "ANOVA + Cohen's d (Simpler but less appropriate for ordinal outcomes)",
         },
         "recommendation": (
@@ -560,9 +536,7 @@ if __name__ == "__main__":
     print(f"Per-class accuracy: {results['per_class_accuracy']}")
 
     # Compare with ANOVA
-    comparison = compare_ordinal_vs_anova(
-        patient_data, feature_columns=["p3b_reduction", "ignition_reduction"]
-    )
+    comparison = compare_ordinal_vs_anova(patient_data, feature_columns=["p3b_reduction", "ignition_reduction"])
 
     print("\nComparison with ANOVA:")
     print(f"Ordinal accuracy: {comparison['ordinal_logistic']['accuracy']:.3f}")

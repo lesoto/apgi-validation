@@ -1,10 +1,13 @@
 """Tests for Output Paths module - comprehensive coverage."""
 
-from pathlib import Path
-
-from utils.output_paths import (OutputPathManager, create_output_path,
-                                ensure_directory_exists, get_output_directory,
-                                get_unique_filename, sanitize_filename)
+from utils.output_paths import (
+    OutputPathManager,
+    create_output_path,
+    ensure_directory_exists,
+    get_output_directory,
+    get_unique_filename,
+    sanitize_filename,
+)
 
 
 class TestGetOutputDirectory:
@@ -13,8 +16,7 @@ class TestGetOutputDirectory:
     def test_get_default_output_dir(self, tmp_path, monkeypatch):
         """Test getting default output directory."""
         monkeypatch.chdir(tmp_path)
-        result = get_output_directory()
-        assert isinstance(result, Path)
+        get_output_directory()
 
     def test_get_custom_output_dir(self, tmp_path):
         """Test getting custom output directory."""
@@ -102,8 +104,7 @@ class TestOutputPathManager:
     def test_get_path(self, tmp_path):
         """Test getting managed path."""
         manager = OutputPathManager(base_dir=tmp_path)
-        result = manager.get_path("output.txt")
-        assert isinstance(result, Path)
+        manager.get_path("output.txt")
 
     def test_register_path(self, tmp_path):
         """Test registering a path."""

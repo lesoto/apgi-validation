@@ -24,19 +24,12 @@ if str(project_root) not in sys.path:
 from utils.error_handler import ConfigurationError, DataError, ValidationError
 
 try:
-    from utils.preprocessing_pipelines import (
-        MultimodalPreprocessingPipeline,
-        PreprocessingConfig,
-    )
+    from utils.preprocessing_pipelines import MultimodalPreprocessingPipeline, PreprocessingConfig
 except ImportError as exc:
-    raise ImportError(
-        "Could not import preprocessing pipelines. Ensure utils.preprocessing_pipelines exists."
-    ) from exc
+    raise ImportError("Could not import preprocessing pipelines. Ensure utils.preprocessing_pipelines exists.") from exc
 
 try:
-    from utils.sample_data_generator import (
-        SampleDataGenerator as SampleDataGeneratorClass,
-    )
+    from utils.sample_data_generator import SampleDataGenerator as SampleDataGeneratorClass
     from utils.sample_data_generator import generate_sample_multimodal_data
 except ImportError as exc:
     raise ImportError(
@@ -51,9 +44,7 @@ logger = logging.getLogger(__name__)
 class ValidationPipelineConnector:
     """Connects preprocessing pipelines with validation protocols."""
 
-    def __init__(
-        self, config: Optional[Union[Dict[str, Any], PreprocessingConfig]] = None
-    ):
+    def __init__(self, config: Optional[Union[Dict[str, Any], PreprocessingConfig]] = None):
         """Initialize connector with optional preprocessing configuration."""
         if config is None:
             self.config = PreprocessingConfig()
@@ -93,8 +84,7 @@ class ValidationPipelineConnector:
             if use_synthetic or not input_data:
                 if not self._data_generator_available:
                     error_msg = (
-                        "Synthetic data generation unavailable - "
-                        "SampleDataGeneratorClass failed to initialize"
+                        "Synthetic data generation unavailable - " "SampleDataGeneratorClass failed to initialize"
                     )
                     logger.error(error_msg)
                     return {
@@ -103,13 +93,9 @@ class ValidationPipelineConnector:
                         "error": error_msg,
                         "metadata": {"source": "synthetic_unavailable"},
                     }
-                data = self._generate_protocol_specific_data(
-                    validation_protocol, **kwargs
-                )
+                data = self._generate_protocol_specific_data(validation_protocol, **kwargs)
                 with self._log_lock:
-                    self.connection_log.append(
-                        f"Generated synthetic data for Protocol {validation_protocol}"
-                    )
+                    self.connection_log.append(f"Generated synthetic data for Protocol {validation_protocol}")
             else:
                 data = self._load_and_preprocess_data(input_data, validation_protocol)
                 with self._log_lock:
@@ -117,9 +103,7 @@ class ValidationPipelineConnector:
                         f"Loaded and preprocessed {input_data} for Protocol {validation_protocol}"
                     )
 
-            compatibility_check = self._validate_protocol_compatibility(
-                data, validation_protocol
-            )
+            compatibility_check = self._validate_protocol_compatibility(data, validation_protocol)
 
             return {
                 "status": "success",
@@ -168,9 +152,7 @@ class ValidationPipelineConnector:
         )
         return generate_sample_multimodal_data(**config)
 
-    def _load_and_preprocess_data(
-        self, input_path: Union[str, Path], protocol: int
-    ) -> pd.DataFrame:
+    def _load_and_preprocess_data(self, input_path: Union[str, Path], protocol: int) -> pd.DataFrame:
         """Load and preprocess data for validation protocol."""
         input_path = Path(input_path)
 
@@ -196,9 +178,7 @@ class ValidationPipelineConnector:
                 return pd.DataFrame(data)
         return pd.read_csv(processed_file)
 
-    def _validate_protocol_compatibility(
-        self, data: pd.DataFrame, protocol: int
-    ) -> Dict[str, Any]:
+    def _validate_protocol_compatibility(self, data: pd.DataFrame, protocol: int) -> Dict[str, Any]:
         """Validate that data meets protocol requirements."""
         if not isinstance(data, pd.DataFrame):
             raise ValidationError("Expected pandas DataFrame", data_field="data")
@@ -224,9 +204,7 @@ class ValidationPipelineConnector:
             12: ["EEG_Cz", "pupil_diameter"],
         }
 
-        required_cols = protocol_requirements.get(
-            protocol, ["EEG_Cz", "pupil_diameter"]
-        )
+        required_cols = protocol_requirements.get(protocol, ["EEG_Cz", "pupil_diameter"])
         compatibility["required_columns"] = required_cols
         data_columns = list(data.columns)
         missing_cols = [col for col in required_cols if col not in data_columns]
@@ -234,9 +212,7 @@ class ValidationPipelineConnector:
 
         if missing_cols:
             compatibility["valid"] = False
-            compatibility["warnings"].append(
-                f"Missing required columns: {', '.join(missing_cols)}"
-            )
+            compatibility["warnings"].append(f"Missing required columns: {', '.join(missing_cols)}")
 
         if len(data) < 100:
             compatibility["warnings"].append("Small dataset size (< 100 samples)")
@@ -253,9 +229,7 @@ class ValidationPipelineConnector:
         n_samples: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Run validation with integrated preprocessing pipeline."""
-        logger.info(
-            "Running validation with pipeline for Protocol %s", validation_protocol
-        )
+        logger.info("Running validation with pipeline for Protocol %s", validation_protocol)
 
         # Prepare data for validation
         kwargs = {}
@@ -277,9 +251,7 @@ class ValidationPipelineConnector:
             "data_shape": preparation_result["metadata"]["data_shape"],
             "source": preparation_result["metadata"]["source"],
             "compatibility": preparation_result["metadata"]["compatibility"],
-            "preprocessing_applied": preparation_result["metadata"][
-                "preprocessing_applied"
-            ],
+            "preprocessing_applied": preparation_result["metadata"]["preprocessing_applied"],
         }
 
         return preparation_result

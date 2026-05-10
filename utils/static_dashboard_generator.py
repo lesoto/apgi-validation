@@ -16,9 +16,7 @@ _performance_profiler: Any = None
 
 try:
     from utils.logging_config import apgi_logger as actual_logger
-    from utils.performance_profiler import (
-        performance_profiler as actual_profiler,
-    )
+    from utils.performance_profiler import performance_profiler as actual_profiler
 
     _apgi_logger = actual_logger
     _performance_profiler = actual_profiler
@@ -56,9 +54,7 @@ class StaticDashboardGenerator:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         except (OSError, PermissionError) as e:
             # Fallback to current directory if we can't create the output dir
-            warnings.warn(
-                f"Could not create {self.output_dir}: {e}. Using current directory."
-            )
+            warnings.warn(f"Could not create {self.output_dir}: {e}. Using current directory.")
             self.output_dir = Path(".")
 
     def generate_system_dashboard(self) -> str:

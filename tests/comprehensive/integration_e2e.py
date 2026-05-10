@@ -166,10 +166,7 @@ class IntegrationTestSuite:
 
             # Verify serialization
             serialized = result.to_dict()
-            passed = (
-                serialized["protocol_id"] == "TEST-01"
-                and len(serialized["named_predictions"]) == 1
-            )
+            passed = serialized["protocol_id"] == "TEST-01" and len(serialized["named_predictions"]) == 1
         except Exception as e:
             passed = False
             print(f"  Schema integration error: {e}")
@@ -197,8 +194,7 @@ class IntegrationTestSuite:
         passed = True
         for constant_name, expected_value in consistency_checks:
             try:
-                from utils.constants import (TMS_MOTOR_THRESHOLD_ADJUST,
-                                             TMS_PULSE_WIDTH_MS)
+                from utils.constants import TMS_MOTOR_THRESHOLD_ADJUST, TMS_PULSE_WIDTH_MS
 
                 if constant_name == "TMS_PULSE_WIDTH_MS":
                     actual = TMS_PULSE_WIDTH_MS
@@ -269,9 +265,7 @@ class IntegrationTestSuite:
 
         # Test with temporary JSON database
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
                 db_path = f.name
                 # Write test data
                 json.dump({"test": "data"}, f)
@@ -480,9 +474,7 @@ class IntegrationTestSuite:
             checkpoints=checkpoints,
         )
         self.e2e_results.append(result)
-        print(
-            f"  {'✓' if passed else '✗'} Real-world workflow ({len(workflow_steps)} steps)"
-        )
+        print(f"  {'✓' if passed else '✗'} Real-world workflow ({len(workflow_steps)} steps)")
 
     def _generate_report(self) -> Dict[str, Any]:
         """Generate comprehensive report."""
@@ -497,11 +489,7 @@ class IntegrationTestSuite:
                 "total": total_integration,
                 "passed": passed_integration,
                 "failed": total_integration - passed_integration,
-                "pass_rate": (
-                    passed_integration / total_integration * 100
-                    if total_integration > 0
-                    else 0
-                ),
+                "pass_rate": (passed_integration / total_integration * 100 if total_integration > 0 else 0),
                 "results": [
                     {
                         "test_name": r.test_name,
@@ -531,12 +519,9 @@ class IntegrationTestSuite:
             "overall": {
                 "total": total_integration + total_e2e,
                 "passed": passed_integration + passed_e2e,
-                "failed": (total_integration - passed_integration)
-                + (total_e2e - passed_e2e),
+                "failed": (total_integration - passed_integration) + (total_e2e - passed_e2e),
                 "pass_rate": (
-                    (passed_integration + passed_e2e)
-                    / (total_integration + total_e2e)
-                    * 100
+                    (passed_integration + passed_e2e) / (total_integration + total_e2e) * 100
                     if (total_integration + total_e2e) > 0
                     else 0
                 ),
@@ -550,19 +535,13 @@ class IntegrationTestSuite:
         print(f"{'=' * 80}")
 
         integ = report["integration_tests"]
-        print(
-            f"Integration Tests: {integ['passed']}/{integ['total']} passed ({integ['pass_rate']:.1f}%)"
-        )
+        print(f"Integration Tests: {integ['passed']}/{integ['total']} passed ({integ['pass_rate']:.1f}%)")
 
         e2e = report["e2e_tests"]
-        print(
-            f"E2E Tests: {e2e['passed']}/{e2e['total']} passed ({e2e['pass_rate']:.1f}%)"
-        )
+        print(f"E2E Tests: {e2e['passed']}/{e2e['total']} passed ({e2e['pass_rate']:.1f}%)")
 
         overall = report["overall"]
-        print(
-            f"\nOverall: {overall['passed']}/{overall['total']} passed ({overall['pass_rate']:.1f}%)"
-        )
+        print(f"\nOverall: {overall['passed']}/{overall['total']} passed ({overall['pass_rate']:.1f}%)")
 
         if overall["failed"] == 0:
             print("\n✅ All integration and E2E tests passed!")

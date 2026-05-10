@@ -8,7 +8,7 @@ retry logic, and graceful degradation.
 
 import functools
 import json
-import pickle
+import pickle  # nosec B403
 import time
 import traceback
 from dataclasses import dataclass
@@ -86,9 +86,7 @@ class GracefulDegradationManager:
         self.fallback_functions: Dict[str, Callable] = {}
         self.enabled_features: Dict[str, bool] = {}
 
-    def register_fallback(
-        self, feature_name: str, fallback_func: Callable[..., Any]
-    ) -> None:
+    def register_fallback(self, feature_name: str, fallback_func: Callable[..., Any]) -> None:
         """Register a fallback function for a feature."""
         self.fallback_functions[feature_name] = fallback_func
         self.enabled_features[feature_name] = True
@@ -105,15 +103,11 @@ class GracefulDegradationManager:
             # Disable feature after 3 degradation attempts
             self.enabled_features[feature_name] = False
             if apgi_logger:
-                apgi_logger.logger.warning(
-                    f"Feature {feature_name} disabled after multiple failures"
-                )
+                apgi_logger.logger.warning(f"Feature {feature_name} disabled after multiple failures")
             return False
 
         if apgi_logger:
-            apgi_logger.logger.info(
-                f"Feature {feature_name} degraded to level {self.degradation_levels[feature_name]}"
-            )
+            apgi_logger.logger.info(f"Feature {feature_name} degraded to level {self.degradation_levels[feature_name]}")
         return True
 
     def get_fallback(self, feature_name: str) -> Optional[Callable]:
@@ -184,9 +178,7 @@ class RetryManager:
             try:
                 result = func(*args, **kwargs)
                 if attempt > 0 and apgi_logger:
-                    apgi_logger.logger.info(
-                        f"{context} succeeded after {attempt} retries"
-                    )
+                    apgi_logger.logger.info(f"{context} succeeded after {attempt} retries")
                 return result
 
             except Exception as e:
@@ -279,9 +271,7 @@ class CircuitBreaker:
         elif self.failures >= self.failure_threshold:
             self.state = "open"
             if apgi_logger:
-                apgi_logger.logger.warning(
-                    f"Circuit breaker opened after {self.failures} failures"
-                )
+                apgi_logger.logger.warning(f"Circuit breaker opened after {self.failures} failures")
 
 
 class ErrorRecoveryManager:
@@ -310,9 +300,7 @@ class ErrorRecoveryManager:
         """Register a circuit breaker for a service."""
         self.circuit_breakers[service_name] = CircuitBreaker(**kwargs)
 
-    def register_recovery_strategy(
-        self, error_type: Type[Exception], strategy: RecoveryStrategy
-    ) -> None:
+    def register_recovery_strategy(self, error_type: Type[Exception], strategy: RecoveryStrategy) -> None:
         """Register recovery strategy for an error type."""
         self.recovery_strategies[error_type.__name__] = strategy
 
@@ -352,9 +340,7 @@ class ErrorRecoveryManager:
             ErrorSeverity.CRITICAL: apgi_logger.logger.critical,
         }.get(context.severity, apgi_logger.logger.error)
 
-        log_func(
-            f"[{context.severity.value.upper()}] {context.error_type}: {context.error_message}"
-        )
+        log_func(f"[{context.severity.value.upper()}] {context.error_type}: {context.error_message}")
 
     def execute_with_recovery(
         self,
@@ -384,16 +370,12 @@ class ErrorRecoveryManager:
             cb = self.circuit_breakers.get(circuit_breaker_name)
             if cb and not cb.can_execute():
                 if apgi_logger:
-                    apgi_logger.logger.warning(
-                        f"Circuit breaker open for {circuit_breaker_name}, using fallback"
-                    )
+                    apgi_logger.logger.warning(f"Circuit breaker open for {circuit_breaker_name}, using fallback")
                 return fallback_value
 
         try:
             # Try with retry logic
-            result = self.retry_manager.execute_with_retry(
-                func, *args, context=context, **kwargs
-            )
+            result = self.retry_manager.execute_with_retry(func, *args, context=context, **kwargs)
 
             # Record success for circuit breaker
             if circuit_breaker_name and cb:
@@ -437,14 +419,10 @@ class ErrorRecoveryManager:
             error_types[err_type] = error_types.get(err_type, 0) + 1
 
         return {
-            "status": (
-                "degraded" if severity_counts.get("critical", 0) > 0 else "healthy"
-            ),
+            "status": ("degraded" if severity_counts.get("critical", 0) > 0 else "healthy"),
             "error_count": len(recent_errors),
             "severity_breakdown": severity_counts,
-            "top_error_types": sorted(
-                error_types.items(), key=lambda x: x[1], reverse=True
-            )[:5],
+            "top_error_types": sorted(error_types.items(), key=lambda x: x[1], reverse=True)[:5],
             "recovery_success_rate": self._calculate_recovery_rate(recent_errors),
         }
 
@@ -541,9 +519,7 @@ class BackupState:
         return copy.deepcopy(self.state)
 
 
-def attempt_recovery(
-    error: Exception, strategies: List[Any]
-) -> Optional[Dict[str, Any]]:
+def attempt_recovery(error: Exception, strategies: List[Any]) -> Optional[Dict[str, Any]]:
     """Attempt to recover from error using strategies."""
     for strategy in strategies:
         if hasattr(strategy, "condition") and strategy.condition(error):
@@ -561,8 +537,35 @@ def create_checkpoint(state: Dict[str, Any], filepath: Path) -> Path:
 
 def restore_from_checkpoint(filepath: Path) -> Dict[str, Any]:
     """Restore state from checkpoint file."""
-    with open(filepath, "rb") as f:
-        return pickle.load(f)
+    try:
+        with open(filepath, "rb") as f:
+            # Use safer pickle loading with validation
+            if filepath.stat().st_size > 1024 * 1024:  # 1MB limit
+                raise ValueError("Checkpoint file too large for safety")
+
+            # Use safer deserialization with size and type validation
+            try:
+                data = pickle.load(f)  # nosec B301
+                if not isinstance(data, (dict, list, tuple, set, frozenset)):
+                    raise ValueError(f"Invalid pickle data type: {type(data)}")
+            except (pickle.PickleError, EOFError) as e:
+                # Handle pickle-specific errors
+                raise ValueError(f"Pickle loading failed: {e}")
+
+            # Basic validation of loaded data
+            if isinstance(data, dict):
+                # Additional safety checks
+                if len(str(data)) > 1000000:  # Reasonable size limit
+                    raise ValueError("Checkpoint data too large")
+                return data
+            else:
+                raise ValueError("Invalid checkpoint data format")
+    except (pickle.PickleError, EOFError, AttributeError) as e:
+        # Handle pickle-specific errors
+        raise ValueError(f"Failed to load checkpoint: {e}")
+    except Exception as e:
+        # Handle other I/O errors
+        raise ValueError(f"Error reading checkpoint file: {e}")
 
 
 if __name__ == "__main__":

@@ -283,9 +283,7 @@ class EEGSimulator:
 
         # Add P3b if stimulus provided
         if stimulus_time is not None:
-            p3b = self.generate_p3b(
-                stimulus_time, p3b_amplitude, p3b_latency, p3b_modulation
-            )
+            p3b = self.generate_p3b(stimulus_time, p3b_amplitude, p3b_latency, p3b_modulation)
             eeg = eeg + p3b
             result["eeg"] = eeg
             result["p3b"] = p3b

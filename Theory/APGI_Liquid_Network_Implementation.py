@@ -290,9 +290,7 @@ class LTCNeuron(nn.Module):
         config: APGI configuration
     """
 
-    def __init__(
-        self, input_size: int, hidden_size: int, tau_base: float, config: APGIConfig
-    ):
+    def __init__(self, input_size: int, hidden_size: int, tau_base: float, config: APGIConfig):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -300,9 +298,7 @@ class LTCNeuron(nn.Module):
         self.config = config
 
         # Initialize weights with Xavier initialization for stability
-        self.W = nn.Parameter(
-            torch.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size)
-        )
+        self.W = nn.Parameter(torch.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size))
         self.b = nn.Parameter(torch.zeros(hidden_size))
 
         # Recurrent connections (reservoir-style, sparse)
@@ -321,9 +317,7 @@ class LTCNeuron(nn.Module):
         """Modulate time constant based on precision estimate"""
         self.tau = new_tau.clamp(min=self.config.tau_min, max=self.config.tau_max)
 
-    def forward(
-        self, input: torch.Tensor, prev_state: torch.Tensor, dt: float = 0.01
-    ) -> torch.Tensor:
+    def forward(self, input: torch.Tensor, prev_state: torch.Tensor, dt: float = 0.01) -> torch.Tensor:
         """
         Forward pass with CORRECTED Euler integration.
 
@@ -362,9 +356,7 @@ class HierarchicalPredictiveLayer(nn.Module):
     error signals when predictions fail.
     """
 
-    def __init__(
-        self, input_size: int, hidden_size: int, level: int, config: APGIConfig
-    ):
+    def __init__(self, input_size: int, hidden_size: int, level: int, config: APGIConfig):
         super().__init__()
         self.level = level
         self.hidden_size = hidden_size
@@ -465,9 +457,7 @@ class PrecisionEstimator(nn.Module):
             nn.Softplus(),  # Positive precision
         )
 
-        self.fc_Pi_extero = nn.Sequential(
-            nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 1), nn.Softplus()
-        )
+        self.fc_Pi_extero = nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 1), nn.Softplus())
 
         # Time constant outputs
         self.fc_tau_intero = nn.Sequential(nn.Linear(64, 1), nn.Softplus())
@@ -483,9 +473,7 @@ class PrecisionEstimator(nn.Module):
         )
 
         # Context-dependent modulation network
-        self.context_net = nn.Sequential(
-            nn.Linear(4, 16), nn.Tanh(), nn.Linear(16, 1), nn.Sigmoid()
-        )
+        self.context_net = nn.Sequential(nn.Linear(4, 16), nn.Tanh(), nn.Linear(16, 1), nn.Sigmoid())
 
         # Buffer for tracking precision history (for volatility)
         self.precision_history_buffer: List[torch.Tensor] = []
@@ -514,18 +502,10 @@ class PrecisionEstimator(nn.Module):
         # Pack context into tensor
         context_vec = torch.stack(
             [
-                context.get(
-                    "metabolic", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "cognitive", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "affective", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "arousal", torch.zeros(batch_size, device=intero_input.device)
-                ),
+                context.get("metabolic", torch.zeros(batch_size, device=intero_input.device)),
+                context.get("cognitive", torch.zeros(batch_size, device=intero_input.device)),
+                context.get("affective", torch.zeros(batch_size, device=intero_input.device)),
+                context.get("arousal", torch.zeros(batch_size, device=intero_input.device)),
             ],
             dim=-1,
         )
@@ -541,19 +521,12 @@ class PrecisionEstimator(nn.Module):
         Pi_extero = self.fc_Pi_extero(precision_features)
 
         # Estimate time constants
-        tau_intero = (
-            self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
-        )
-        tau_extero = (
-            self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
-        )
+        tau_intero = self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
+        tau_extero = self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
 
         # Volatility estimation (second-order uncertainty)
         # Clear buffer if batch size changes
-        if (
-            len(self.precision_history_buffer) > 0
-            and self.precision_history_buffer[0].shape[0] != batch_size
-        ):
+        if len(self.precision_history_buffer) > 0 and self.precision_history_buffer[0].shape[0] != batch_size:
             self.precision_history_buffer.clear()
 
         self.precision_history_buffer.append(Pi_intero.detach())
@@ -597,9 +570,7 @@ class PredictionErrorModule(nn.Module):
     fail to match incoming signals.
     """
 
-    def __init__(
-        self, input_size: int, state_size: int, num_levels: int, config: APGIConfig
-    ):
+    def __init__(self, input_size: int, state_size: int, num_levels: int, config: APGIConfig):
         super().__init__()
         self.input_size = input_size
         self.state_size = state_size
@@ -630,13 +601,9 @@ class PredictionErrorModule(nn.Module):
         )
 
         # Additional predictors to map inputs to state space for comparison
-        self.intero_input_projector = nn.Sequential(
-            nn.Linear(input_size, state_size), nn.Tanh()
-        )
+        self.intero_input_projector = nn.Sequential(nn.Linear(input_size, state_size), nn.Tanh())
 
-        self.extero_input_projector = nn.Sequential(
-            nn.Linear(input_size, state_size), nn.Tanh()
-        )
+        self.extero_input_projector = nn.Sequential(nn.Linear(input_size, state_size), nn.Tanh())
 
     def forward(
         self,
@@ -685,16 +652,10 @@ class PredictionErrorModule(nn.Module):
             pred_extero_list.append(pred_extero)
 
         # Aggregate errors across hierarchy (weighted by level)
-        level_weights = torch.softmax(
-            torch.arange(self.num_levels, dtype=torch.float32), dim=0
-        )
+        level_weights = torch.softmax(torch.arange(self.num_levels, dtype=torch.float32), dim=0)
 
-        epsilon_intero = sum(
-            w * eps for w, eps in zip(level_weights, epsilon_intero_list)
-        )
-        epsilon_extero = sum(
-            w * eps for w, eps in zip(level_weights, epsilon_extero_list)
-        )
+        epsilon_intero = sum(w * eps for w, eps in zip(level_weights, epsilon_intero_list))
+        epsilon_extero = sum(w * eps for w, eps in zip(level_weights, epsilon_extero_list))
 
         return PredictionOutput(
             epsilon_intero=epsilon_intero,
@@ -736,37 +697,23 @@ class MetabolicCostModule(nn.Module):
         )
 
         # Entropy estimation network
-        self.entropy_net = nn.Sequential(
-            nn.Linear(state_size, 32), nn.Tanh(), nn.Linear(32, 1), nn.Softplus()
-        )
+        self.entropy_net = nn.Sequential(nn.Linear(state_size, 32), nn.Tanh(), nn.Linear(32, 1), nn.Softplus())
 
-    def compute_broadcast_cost(
-        self, workspace_activity: torch.Tensor, synchronization: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_broadcast_cost(self, workspace_activity: torch.Tensor, synchronization: torch.Tensor) -> torch.Tensor:
         """
         Cost of global broadcast: proportional to activity magnitude and synchronization.
 
         High synchrony (phase-locked oscillations) is metabolically expensive.
         """
-        activity_cost = self.config.alpha_broadcast * workspace_activity.pow(2).sum(
-            dim=-1, keepdim=True
-        )
+        activity_cost = self.config.alpha_broadcast * workspace_activity.pow(2).sum(dim=-1, keepdim=True)
         sync_cost = self.config.beta_maintenance * synchronization.pow(2)
         return activity_cost + sync_cost
 
-    def compute_maintenance_cost(
-        self, state: torch.Tensor, duration: float
-    ) -> torch.Tensor:
+    def compute_maintenance_cost(self, state: torch.Tensor, duration: float) -> torch.Tensor:
         """Cost of maintaining conscious state over time"""
-        return (
-            self.config.beta_maintenance
-            * state.pow(2).sum(dim=-1, keepdim=True)
-            * duration
-        )
+        return self.config.beta_maintenance * state.pow(2).sum(dim=-1, keepdim=True) * duration
 
-    def compute_benefit(
-        self, current_error: torch.Tensor, predicted_error_reduction: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_benefit(self, current_error: torch.Tensor, predicted_error_reduction: torch.Tensor) -> torch.Tensor:
         """
         Benefit = expected reduction in future prediction errors.
 
@@ -803,15 +750,11 @@ class MetabolicCostModule(nn.Module):
 
         # Add base ignition-dependent cost to ensure proper scaling
         # This cost is purely based on ignition probability, independent of workspace activity
-        ignition_base_cost = (
-            0.01 * ignition_active
-        )  # Base cost proportional to ignition prob
+        ignition_base_cost = 0.01 * ignition_active  # Base cost proportional to ignition prob
 
         # Scale broadcast cost with ignition probability (not binary gating)
         # Higher ignition probability → higher metabolic cost (strong scaling)
-        ignition_scaled_cost = (
-            broadcast_cost * (0.1 + 3.0 * ignition_active) + ignition_base_cost
-        )
+        ignition_scaled_cost = broadcast_cost * (0.1 + 3.0 * ignition_active) + ignition_base_cost
         total_cost = ignition_scaled_cost + maintenance_cost
 
         # Benefits (estimated error reduction from conscious processing)
@@ -905,19 +848,13 @@ class AdaptiveThreshold(nn.Module):
         # Ensure tensors have correct shapes for concatenation
         # Both should be [batch_size, 1]
         energy_reserves_flat = (
-            energy_reserves.mean(dim=-1, keepdim=True)
-            if energy_reserves.dim() > 1
-            else energy_reserves.unsqueeze(-1)
+            energy_reserves.mean(dim=-1, keepdim=True) if energy_reserves.dim() > 1 else energy_reserves.unsqueeze(-1)
         )
         allostatic_load_flat = (
-            allostatic_load.mean(dim=-1, keepdim=True)
-            if allostatic_load.dim() > 1
-            else allostatic_load.unsqueeze(-1)
+            allostatic_load.mean(dim=-1, keepdim=True) if allostatic_load.dim() > 1 else allostatic_load.unsqueeze(-1)
         )
 
-        metabolic_state = torch.cat(
-            [energy_reserves_flat, allostatic_load_flat], dim=-1
-        )
+        metabolic_state = torch.cat([energy_reserves_flat, allostatic_load_flat], dim=-1)
         metabolic_adjustment = self.metabolic_modulator(metabolic_state)
 
         # COST-BENEFIT GATING (NEW)
@@ -930,26 +867,16 @@ class AdaptiveThreshold(nn.Module):
                 min=self.config.cost_benefit_clamp_min,
                 max=self.config.cost_benefit_clamp_max,
             )
-            cost_benefit_term = (
-                self.config.cost_benefit_scaling * cost_benefit_adjustment
-            )
+            cost_benefit_term = self.config.cost_benefit_scaling * cost_benefit_adjustment
         else:
             cost_benefit_term = torch.zeros_like(cost)
 
         # Combine all terms
-        dtheta_dt = (
-            homeostasis
-            + refractoriness
-            + urgency
-            + metabolic_adjustment
-            - cost_benefit_term
-        )
+        dtheta_dt = homeostasis + refractoriness + urgency + metabolic_adjustment - cost_benefit_term
         new_theta = current_theta + dt * dtheta_dt
 
         # Clamp to reasonable range
-        new_theta = torch.clamp(
-            new_theta, min=self.config.theta_min, max=self.config.theta_max
-        )
+        new_theta = torch.clamp(new_theta, min=self.config.theta_min, max=self.config.theta_max)
 
         return new_theta
 
@@ -1024,9 +951,7 @@ class NeuromodulationModule(nn.Module):
         acetylcholine_base = self.ach_estimator(ach_input)
 
         # Add dynamic scaling based on precision and attention
-        ach_dynamic = acetylcholine_base * (
-            0.4 + 0.8 * precision + 0.8 * attention
-        )  # Scale: 0.4 to 2.0
+        ach_dynamic = acetylcholine_base * (0.4 + 0.8 * precision + 0.8 * attention)  # Scale: 0.4 to 2.0
         acetylcholine = torch.clamp(ach_dynamic, 0.0, 1.0)
 
         return norepinephrine, acetylcholine
@@ -1057,9 +982,7 @@ class GlobalWorkspace(nn.Module):
         )
 
         # Competition network: winner-take-all dynamics
-        self.competition = nn.Sequential(
-            nn.Linear(state_size, state_size), nn.Softmax(dim=-1)
-        )
+        self.competition = nn.Sequential(nn.Linear(state_size, state_size), nn.Softmax(dim=-1))
 
         # Sustained activity network (recurrent maintenance)
         self.sustain = nn.Linear(state_size, state_size)
@@ -1077,9 +1000,7 @@ class GlobalWorkspace(nn.Module):
         theta_effective = theta - prev_ignition * self.config.hysteresis
 
         # Sigmoid transition
-        ignition_prob = torch.sigmoid(
-            self.config.beta_transition * (S - theta_effective)
-        )
+        ignition_prob = torch.sigmoid(self.config.beta_transition * (S - theta_effective))
 
         return ignition_prob
 
@@ -1187,9 +1108,7 @@ class RefractoryPeriodModule(nn.Module):
         )
 
         # Suppression factor: 0 during refractory, 1 when recovered
-        suppression = 1.0 - torch.sigmoid(
-            10 * (new_timer / self.config.max_refractory_ms - 0.5)
-        )
+        suppression = 1.0 - torch.sigmoid(10 * (new_timer / self.config.max_refractory_ms - 0.5))
 
         return new_timer, suppression
 
@@ -1216,9 +1135,7 @@ class TemporalIntegrationModule(nn.Module):
             nn.Softmax(dim=-1),
         )
 
-    def forward(
-        self, temporal_buffer: List[torch.Tensor], precision: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, temporal_buffer: List[torch.Tensor], precision: torch.Tensor) -> torch.Tensor:
         """
         Integrate signals over temporal window.
 
@@ -1230,9 +1147,7 @@ class TemporalIntegrationModule(nn.Module):
             integrated: Temporally integrated signal [batch, state_size]
         """
         if len(temporal_buffer) == 0:
-            return torch.zeros(
-                precision.shape[0], self.state_size, device=precision.device
-            )
+            return torch.zeros(precision.shape[0], self.state_size, device=precision.device)
 
         # Stack buffer into tensor [batch, buffer_size, state_size]
         buffer_tensor = torch.stack(temporal_buffer, dim=1)
@@ -1240,9 +1155,7 @@ class TemporalIntegrationModule(nn.Module):
 
         # Compute temporal weights
         actual_buffer_size = len(temporal_buffer)
-        time_indices = torch.arange(
-            actual_buffer_size, dtype=torch.float32, device=precision.device
-        )
+        time_indices = torch.arange(actual_buffer_size, dtype=torch.float32, device=precision.device)
 
         # Use exponential decay for mismatched sizes
         if actual_buffer_size != self.buffer_size:
@@ -1335,9 +1248,7 @@ class PrecisionLearningModule(nn.Module):
         context = hidden[-1]  # Take last layer's final hidden state
 
         # Compute precision adjustment
-        adjustment = (
-            self.precision_adjuster(context) * self.config.precision_learning_rate
-        )
+        adjustment = self.precision_adjuster(context) * self.config.precision_learning_rate
 
         # Apply adjustment (avoid in-place operation)
         adjustment_factor = 1.0 + adjustment
@@ -1381,9 +1292,7 @@ class PerformanceBenchmark:
             PerformanceMetrics object
         """
         # Initialize state
-        batch_size_int = (
-            int(batch_size) if isinstance(batch_size, (int, float)) else int(batch_size)
-        )
+        batch_size_int = int(batch_size) if isinstance(batch_size, (int, float)) else int(batch_size)
         state = network.initialize_state(batch_size_int, device)  # type: ignore[operator]
 
         # Generate random inputs
@@ -1432,9 +1341,7 @@ class PerformanceBenchmark:
             mem_reserved = torch.cuda.memory_reserved(device) / 1024**2
         else:
             # Estimate memory for CPU (approximate based on parameters)
-            mem_allocated = (
-                num_params * 4 / (1024**2)
-            )  # 4 bytes per parameter (float32)
+            mem_allocated = num_params * 4 / (1024**2)  # 4 bytes per parameter (float32)
             mem_reserved = mem_allocated
 
         metrics = PerformanceMetrics(
@@ -1503,9 +1410,7 @@ class APGILiquidNetwork(nn.Module):
         self.intero_hierarchy = nn.ModuleList(
             [
                 HierarchicalPredictiveLayer(
-                    input_size=(
-                        self.config.input_size if i == 0 else self.config.hidden_size
-                    ),
+                    input_size=(self.config.input_size if i == 0 else self.config.hidden_size),
                     hidden_size=self.config.hidden_size,
                     level=i,
                     config=self.config,
@@ -1517,9 +1422,7 @@ class APGILiquidNetwork(nn.Module):
         self.extero_hierarchy = nn.ModuleList(
             [
                 HierarchicalPredictiveLayer(
-                    input_size=(
-                        self.config.input_size if i == 0 else self.config.hidden_size
-                    ),
+                    input_size=(self.config.input_size if i == 0 else self.config.hidden_size),
                     hidden_size=self.config.hidden_size,
                     level=i,
                     config=self.config,
@@ -1529,9 +1432,7 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # Core APGI modules
-        self.precision_estimator = PrecisionEstimator(
-            self.config.input_size, self.config.hidden_size, self.config
-        )
+        self.precision_estimator = PrecisionEstimator(self.config.input_size, self.config.hidden_size, self.config)
         self.prediction_error = PredictionErrorModule(
             self.config.input_size,
             self.config.hidden_size,
@@ -1543,24 +1444,14 @@ class APGILiquidNetwork(nn.Module):
         self.global_workspace = GlobalWorkspace(self.config.hidden_size, self.config)
 
         # Additional modules
-        self.neuromodulation = NeuromodulationModule(
-            self.config.hidden_size, self.config
-        )
+        self.neuromodulation = NeuromodulationModule(self.config.hidden_size, self.config)
         self.refractory = RefractoryPeriodModule(self.config)
-        self.temporal_integration = TemporalIntegrationModule(
-            self.config.hidden_size, self.config
-        )
-        self.precision_learning = PrecisionLearningModule(
-            self.config.hidden_size, self.config
-        )
+        self.temporal_integration = TemporalIntegrationModule(self.config.hidden_size, self.config)
+        self.precision_learning = PrecisionLearningModule(self.config.hidden_size, self.config)
 
         # Input projection layers
-        self.intero_projection = nn.Linear(
-            self.config.input_size, self.config.input_size
-        )
-        self.extero_projection = nn.Linear(
-            self.config.input_size, self.config.input_size
-        )
+        self.intero_projection = nn.Linear(self.config.input_size, self.config.input_size)
+        self.extero_projection = nn.Linear(self.config.input_size, self.config.input_size)
 
         # Gradient monitoring
         self.gradient_monitor = GradientMonitor(self.config)
@@ -1594,24 +1485,18 @@ class APGILiquidNetwork(nn.Module):
         return APGIState(
             # Neural states (one per hierarchy level)
             intero_states=[
-                torch.zeros(batch_size, self.config.hidden_size, device=device)
-                for _ in range(self.config.num_levels)
+                torch.zeros(batch_size, self.config.hidden_size, device=device) for _ in range(self.config.num_levels)
             ],
             extero_states=[
-                torch.zeros(batch_size, self.config.hidden_size, device=device)
-                for _ in range(self.config.num_levels)
+                torch.zeros(batch_size, self.config.hidden_size, device=device) for _ in range(self.config.num_levels)
             ],
-            workspace_state=torch.zeros(
-                batch_size, self.config.hidden_size, device=device
-            ),
+            workspace_state=torch.zeros(batch_size, self.config.hidden_size, device=device),
             # Predictions
             intero_predictions=[
-                torch.zeros(batch_size, self.config.hidden_size, device=device)
-                for _ in range(self.config.num_levels)
+                torch.zeros(batch_size, self.config.hidden_size, device=device) for _ in range(self.config.num_levels)
             ],
             extero_predictions=[
-                torch.zeros(batch_size, self.config.hidden_size, device=device)
-                for _ in range(self.config.num_levels)
+                torch.zeros(batch_size, self.config.hidden_size, device=device) for _ in range(self.config.num_levels)
             ],
             # Precision and threshold
             Pi_intero=torch.ones(batch_size, 1, device=device),
@@ -1678,13 +1563,9 @@ class APGILiquidNetwork(nn.Module):
         extero_projected = self.extero_projection(extero_input)
 
         # ==== Step 1: Estimate Precision ====
-        avg_state = sum(state.intero_states + state.extero_states) / (
-            2 * self.config.num_levels
-        )
+        avg_state = sum(state.intero_states + state.extero_states) / (2 * self.config.num_levels)
 
-        precision_output = self.precision_estimator(
-            intero_projected, extero_projected, avg_state, context
-        )
+        precision_output = self.precision_estimator(intero_projected, extero_projected, avg_state, context)
 
         # ==== Step 2: Process Hierarchical Predictions ====
         new_intero_states: List[torch.Tensor] = []
@@ -1699,16 +1580,8 @@ class APGILiquidNetwork(nn.Module):
             else:
                 intero_input_level = new_intero_states[level - 1]
                 extero_input_level = new_extero_states[level - 1]
-                intero_pred_level = (
-                    state.intero_predictions[level]
-                    if level < len(state.intero_predictions)
-                    else None
-                )
-                extero_pred_level = (
-                    state.extero_predictions[level]
-                    if level < len(state.extero_predictions)
-                    else None
-                )
+                intero_pred_level = state.intero_predictions[level] if level < len(state.intero_predictions) else None
+                extero_pred_level = state.extero_predictions[level] if level < len(state.extero_predictions) else None
 
             intero_state, _, _ = self.intero_hierarchy[level](
                 intero_input_level, intero_pred_level, state.intero_states[level], dt
@@ -1721,9 +1594,7 @@ class APGILiquidNetwork(nn.Module):
             new_extero_states.append(extero_state)
 
         # ==== Step 3: Compute Prediction Errors ====
-        pred_output = self.prediction_error(
-            intero_projected, extero_projected, new_intero_states, new_extero_states
-        )
+        pred_output = self.prediction_error(intero_projected, extero_projected, new_intero_states, new_extero_states)
 
         # ==== Step 4: Compute Total Surprise S ====
         # S = 0.5 * Π^e * (ε^e)² + 0.5 * Π^i * (ε^i)² (dimensionally consistent)
@@ -1742,12 +1613,10 @@ class APGILiquidNetwork(nn.Module):
 
         # Modulate precision with ACh
         Pi_intero_modulated = precision_output.Pi_intero * (
-            self.config.neuromod_ach_baseline
-            + self.config.neuromod_ach_scaling * acetylcholine
+            self.config.neuromod_ach_baseline + self.config.neuromod_ach_scaling * acetylcholine
         )
         Pi_extero_modulated = precision_output.Pi_extero * (
-            self.config.neuromod_ach_baseline
-            + self.config.neuromod_ach_scaling * acetylcholine
+            self.config.neuromod_ach_baseline + self.config.neuromod_ach_scaling * acetylcholine
         )
 
         # Recompute surprise using modulated precision
@@ -1812,21 +1681,15 @@ class APGILiquidNetwork(nn.Module):
         if len(new_temporal_buffer) > self.temporal_integration.buffer_size:
             new_temporal_buffer.pop(0)
 
-        integrated_signal = self.temporal_integration(
-            new_temporal_buffer, precision_output.Pi_intero
-        )
+        integrated_signal = self.temporal_integration(new_temporal_buffer, precision_output.Pi_intero)
 
         # ==== Step 11: Full Precision Learning ====
         # Create new list to avoid in-place modification
-        new_precision_history = (
-            list(state.precision_history) if state.precision_history else []
-        )
+        new_precision_history = list(state.precision_history) if state.precision_history else []
 
         if len(new_precision_history) > 0:
             # Build histories for learning
-            error_magnitude_intero = pred_output.epsilon_intero.mean(
-                dim=-1, keepdim=True
-            )
+            error_magnitude_intero = pred_output.epsilon_intero.mean(dim=-1, keepdim=True)
             # error_magnitude_extero = pred_output.epsilon_extero.mean(
             #     dim=-1, keepdim=True
             # )  # Commented out - unused
@@ -1839,14 +1702,10 @@ class APGILiquidNetwork(nn.Module):
             if len(new_precision_history) >= 2:
                 # Create prediction, target, error histories
                 prediction_history = [s for s in new_precision_history]
-                target_history = [
-                    torch.zeros_like(s) for s in new_precision_history
-                ]  # Target is zero error
+                target_history = [torch.zeros_like(s) for s in new_precision_history]  # Target is zero error
                 error_history = new_precision_history
 
-                current_precision_stacked = torch.cat(
-                    [Pi_intero_modulated, Pi_extero_modulated], dim=-1
-                )
+                current_precision_stacked = torch.cat([Pi_intero_modulated, Pi_extero_modulated], dim=-1)
 
                 Pi_learned, new_lstm_hidden = self.precision_learning(
                     prediction_history,
@@ -1866,28 +1725,20 @@ class APGILiquidNetwork(nn.Module):
             Pi_intero_learned = Pi_intero_modulated
             Pi_extero_learned = Pi_extero_modulated
             new_lstm_hidden = None
-            new_precision_history = [
-                pred_output.epsilon_intero.mean(dim=-1, keepdim=True).detach()
-            ]
+            new_precision_history = [pred_output.epsilon_intero.mean(dim=-1, keepdim=True).detach()]
 
         # ==== Step 12: Update Energy and Allostatic State ====
         # Energy depletion with more visible impact
-        energy_depletion = (
-            metabolic_output.broadcast_cost * self.config.energy_depletion_rate
-        )
+        energy_depletion = metabolic_output.broadcast_cost * self.config.energy_depletion_rate
         new_energy = torch.clamp(
             state.energy_reserves - energy_depletion,
             min=self.config.energy_min,
             max=self.config.energy_max,
         )
 
-        allostatic_increase = (
-            S_total.mean(dim=-1, keepdim=True) * self.config.allostatic_increase_rate
-        )
+        allostatic_increase = S_total.mean(dim=-1, keepdim=True) * self.config.allostatic_increase_rate
         allostatic_decrease = (
-            ignition_prob.mean(dim=-1, keepdim=True)
-            * state.allostatic_load
-            * self.config.allostatic_decrease_rate
+            ignition_prob.mean(dim=-1, keepdim=True) * state.allostatic_load * self.config.allostatic_decrease_rate
         )
         new_allostatic_load = torch.clamp(
             state.allostatic_load + allostatic_increase - allostatic_decrease,
@@ -1987,9 +1838,7 @@ class APGILiquidNetwork(nn.Module):
             device = next(self.parameters()).device
 
         if self.config.performance_tracking_enabled:
-            return self.performance_benchmark.benchmark_forward_pass(
-                self, batch_size, num_steps, device
-            )
+            return self.performance_benchmark.benchmark_forward_pass(self, batch_size, num_steps, device)
         else:
             warnings.warn("Performance tracking is disabled in config")
             return PerformanceMetrics()
@@ -2016,9 +1865,7 @@ class APGIValidator:
     """
 
     @staticmethod
-    def validate_ode_integration(
-        network: APGILiquidNetwork, num_steps: int = 100
-    ) -> Dict[str, float]:
+    def validate_ode_integration(network: APGILiquidNetwork, num_steps: int = 100) -> Dict[str, float]:
         """
         Validate ODE integration stability and correctness.
 
@@ -2041,9 +1888,7 @@ class APGIValidator:
             _, _, state, _ = network(intero_input, extero_input, state)
 
             # Track state magnitude
-            avg_magnitude = sum(
-                s.abs().mean().item() for s in state.intero_states
-            ) / len(state.intero_states)
+            avg_magnitude = sum(s.abs().mean().item() for s in state.intero_states) / len(state.intero_states)
             states_magnitude.append(avg_magnitude)
 
         # Check stability
@@ -2110,10 +1955,7 @@ class APGIValidator:
             ignition_probs.append(diagnostics["ignition_prob"].mean().item())
 
         # Check for smooth transition (not abrupt jump)
-        diffs = [
-            abs(ignition_probs[i + 1] - ignition_probs[i])
-            for i in range(len(ignition_probs) - 1)
-        ]
+        diffs = [abs(ignition_probs[i + 1] - ignition_probs[i]) for i in range(len(ignition_probs) - 1)]
         max_jump = max(diffs)
         is_smooth = max_jump < 0.5
 
@@ -2150,9 +1992,7 @@ class APGIValidator:
 
         # Cost should be higher with higher ignition probability
         # (accounting for probabilistic ignition, not binary)
-        cost_increases = (
-            diag_high["broadcast_cost"].mean() > diag_low["broadcast_cost"].mean()
-        )
+        cost_increases = diag_high["broadcast_cost"].mean() > diag_low["broadcast_cost"].mean()
 
         return {
             "cost_scales_with_ignition": cost_increases,
@@ -2181,12 +2021,8 @@ class APGIValidator:
         costs = []
 
         for step in range(20):
-            intero_input = torch.randn(batch_size, network.input_size) * (
-                1.0 + step * 0.1
-            )
-            extero_input = torch.randn(batch_size, network.input_size) * (
-                1.0 + step * 0.1
-            )
+            intero_input = torch.randn(batch_size, network.input_size) * (1.0 + step * 0.1)
+            extero_input = torch.randn(batch_size, network.input_size) * (1.0 + step * 0.1)
 
             _, _, state, diagnostics = network(intero_input, extero_input, state)
 
@@ -2210,9 +2046,7 @@ class APGIValidator:
         }
 
     @staticmethod
-    def validate_gradient_flow(
-        network: APGILiquidNetwork, num_steps: int = 5
-    ) -> Dict[str, float]:
+    def validate_gradient_flow(network: APGILiquidNetwork, num_steps: int = 5) -> Dict[str, float]:
         """
         Validate gradient flow through the network.
 
@@ -2236,9 +2070,7 @@ class APGIValidator:
                 intero_input = torch.randn(batch_size, network.input_size)
                 extero_input = torch.randn(batch_size, network.input_size)
 
-                broadcast, _, new_state, diagnostics = network(
-                    intero_input, extero_input, state
-                )
+                broadcast, _, new_state, diagnostics = network(intero_input, extero_input, state)
 
                 # Compute dummy loss
                 loss = diagnostics["free_energy"].mean()
@@ -2265,9 +2097,7 @@ class APGIValidator:
         return {
             "mean_grad_norm": float(np.mean(gradient_norms)) if gradient_norms else 0.0,
             "max_grad_norm": float(np.max(gradient_norms)) if gradient_norms else 0.0,
-            "gradients_stable": (
-                all(g < 100.0 for g in gradient_norms) if gradient_norms else True
-            ),
+            "gradients_stable": (all(g < 100.0 for g in gradient_norms) if gradient_norms else True),
             "steps_completed": len(gradient_norms),
         }
 
@@ -2306,34 +2136,19 @@ class APGIValidator:
 
         # Test 3: Hysteresis (path dependence)
         print("Testing hysteresis...")
-        hysteresis_present = APGIValidator._test_hysteresis_path_dependence(
-            network, state
-        )
+        hysteresis_present = APGIValidator._test_hysteresis_path_dependence(network, state)
 
         # Co-occurrence criterion: ALL THREE must be present
-        f4_cooccurrence_met = (
-            bistability_present and critical_slowing_present and hysteresis_present
-        )
+        f4_cooccurrence_met = bistability_present and critical_slowing_present and hysteresis_present
 
         return {
             "f4_cooccurrence_met": f4_cooccurrence_met,
             "bistability_present": bistability_present,
             "critical_slowing_present": critical_slowing_present,
             "hysteresis_present": hysteresis_present,
-            "hysteresis_width": hysteresis_width,
-            "tau_auto_ratio": tau_auto_ratio,
-            "theta_t": theta_t,
-            "hysteresis_width_valid": min_hysteresis
-            <= hysteresis_width
-            <= max_hysteresis,
+            "hysteresis_width_valid": min_hysteresis <= hysteresis_width <= max_hysteresis,
             "critical_slowing_valid": tau_auto_ratio > 1.2,
-            "f4_criterion": True,  # All three signatures (bistability, critical slowing, hysteresis) must co-occur
         }
-
-    @staticmethod
-    def _measure_hysteresis_width(
-        network: APGILiquidNetwork, state: APGIState
-    ) -> float:
         """Measure hysteresis width through upward and downward sweeps"""
         n_sweep = 50
         drives_up = torch.linspace(0, 2 * network.config.theta0, n_sweep)
@@ -2378,26 +2193,18 @@ class APGIValidator:
             return 0.0
 
     @staticmethod
-    def _measure_critical_slowing(
-        network: APGILiquidNetwork, state: APGIState
-    ) -> float:
+    def _measure_critical_slowing(network: APGILiquidNetwork, state: APGIState) -> float:
         """Measure autocorrelation time ratio near vs. far from threshold"""
         # Far from threshold (low drive)
-        tau_far = APGIValidator._estimate_autocorrelation_time(
-            network, state, drive=0.5
-        )
+        tau_far = APGIValidator._estimate_autocorrelation_time(network, state, drive=0.5)
 
         # Near threshold (drive close to theta_t)
-        tau_near = APGIValidator._estimate_autocorrelation_time(
-            network, state, drive=network.config.theta0 * 0.9
-        )
+        tau_near = APGIValidator._estimate_autocorrelation_time(network, state, drive=network.config.theta0 * 0.9)
 
         return tau_near / tau_far if tau_far > 0 else 1.0
 
     @staticmethod
-    def _estimate_autocorrelation_time(
-        network: APGILiquidNetwork, state: APGIState, drive: float
-    ) -> float:
+    def _estimate_autocorrelation_time(network: APGILiquidNetwork, state: APGIState, drive: float) -> float:
         """
         Estimate autocorrelation time using ODE-based exponential decay fitting.
 
@@ -2412,9 +2219,7 @@ class APGIValidator:
         extero_input = torch.ones(1, network.input_size) * drive
 
         for _ in range(n_steps):
-            broadcast, _, new_state, diagnostics = network(
-                intero_input, extero_input, state
-            )
+            broadcast, _, new_state, diagnostics = network(intero_input, extero_input, state)
             # Use broadcast signal as proxy for workspace activity
             activity_trace.append(broadcast.mean().item())
             state = new_state
@@ -2429,9 +2234,7 @@ class APGIValidator:
         # Linearized: ln(A(t) - A_inf) = ln(A_0) - t/τ
 
         # Estimate steady-state value (last 20% of trace)
-        steady_state = np.mean(
-            activity_trace_array[-int(0.2 * len(activity_trace_array)) :]
-        )
+        steady_state = np.mean(activity_trace_array[-int(0.2 * len(activity_trace_array)) :])
 
         # Subtract steady state and take log of positive values
         adjusted_trace = activity_trace_array - steady_state
@@ -2439,9 +2242,7 @@ class APGIValidator:
 
         if np.sum(valid_indices) < 10:
             # Fall back to simple autocorrelation if ODE fitting fails
-            autocorr = np.corrcoef(activity_trace_array[:-1], activity_trace_array[1:])[
-                0, 1
-            ]
+            autocorr = np.corrcoef(activity_trace_array[:-1], activity_trace_array[1:])[0, 1]
             if not np.isnan(autocorr) and autocorr > 0:
                 return -1.0 / np.log(autocorr)
             return 1.0
@@ -2467,9 +2268,7 @@ class APGIValidator:
             return 1.0
 
     @staticmethod
-    def _test_hysteresis_path_dependence(
-        network: APGILiquidNetwork, state: APGIState
-    ) -> bool:
+    def _test_hysteresis_path_dependence(network: APGILiquidNetwork, state: APGIState) -> bool:
         """Test for path-dependent ignition thresholds"""
         # Test ignition from low vs high initial states
         state_low = network.initialize_state(1, torch.device("cpu"))
@@ -2489,10 +2288,7 @@ class APGIValidator:
         _, _, _, diag_high = network(intero_input, extero_input, state_high)
 
         # Path dependence: different ignition probabilities from different initial states
-        prob_diff = abs(
-            diag_low["ignition_prob"].mean().item()
-            - diag_high["ignition_prob"].mean().item()
-        )
+        prob_diff = abs(diag_low["ignition_prob"].mean().item() - diag_high["ignition_prob"].mean().item())
         return prob_diff > 0.1  # Significant difference indicates hysteresis
 
 
@@ -2552,9 +2348,7 @@ if __name__ == "__main__":
     network = APGILiquidNetwork(config)
 
     print(f"\nNetwork Parameters: {sum(p.numel() for p in network.parameters()):,}")
-    print(
-        f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms"
-    )
+    print(f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms")
     print(f"Cost-benefit gating: {config.cost_benefit_gating_enabled}")
     print(f"Gradient monitoring: {config.gradient_monitoring_enabled}")
 
@@ -2586,20 +2380,12 @@ if __name__ == "__main__":
         }
 
         # Forward pass
-        broadcast, ignition_state, state, diagnostics = network(
-            intero_input, extero_input, state, context
-        )
+        broadcast, ignition_state, state, diagnostics = network(intero_input, extero_input, state, context)
 
         print(f"\nStep {step}:")
-        print(
-            f"  Ignition: {ignition_state.name:15s} (prob={diagnostics['ignition_prob'].mean():.3f})"
-        )
-        print(
-            f"  Surprise:  S_total={diagnostics['S_total'].mean():.3f}, θ={diagnostics['theta'].mean():.3f}"
-        )
-        print(
-            f"  Precision: Π_i={diagnostics['Pi_intero'].mean():.3f}, Π_e={diagnostics['Pi_extero'].mean():.3f}"
-        )
+        print(f"  Ignition: {ignition_state.name:15s} (prob={diagnostics['ignition_prob'].mean():.3f})")
+        print(f"  Surprise:  S_total={diagnostics['S_total'].mean():.3f}, θ={diagnostics['theta'].mean():.3f}")
+        print(f"  Precision: Π_i={diagnostics['Pi_intero'].mean():.3f}, Π_e={diagnostics['Pi_extero'].mean():.3f}")
         print(
             f"  Metabolic: Cost={diagnostics['broadcast_cost'].mean():.4f}, Benefit={diagnostics['prediction_benefit'].mean():.4f}"
         )
@@ -2663,9 +2449,7 @@ if __name__ == "__main__":
     print("Performance Benchmark")
     print("=" * 80)
 
-    perf_metrics = network.benchmark_performance(
-        batch_size=4, num_steps=100, device=device
-    )
+    perf_metrics = network.benchmark_performance(batch_size=4, num_steps=100, device=device)
     print(f"\n{perf_metrics}")
 
     print("\n" + "=" * 80)

@@ -7,8 +7,7 @@ import pytest
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                   ProtocolResult)
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
 
 # Mock implementation of test logic for entry point contracts
@@ -46,7 +45,6 @@ def test_gui_contract_validation():
         errors=["Test error"],
     )
     assert result.completion_percentage == 50
-    assert isinstance(result, ProtocolResult)
 
 
 def test_api_contract_error_handling():

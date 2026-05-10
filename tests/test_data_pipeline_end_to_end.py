@@ -36,12 +36,8 @@ class TestDataPipelineEndToEnd:
         assert list(df.columns) == ["timestamp", "surprise", "threshold", "metabolic"]
 
         # Process data (normalize)
-        df.loc[:, "surprise_normalized"] = (
-            df["surprise"] - df["surprise"].mean()
-        ) / df["surprise"].std()
-        df.loc[:, "threshold_normalized"] = (
-            df["threshold"] - df["threshold"].mean()
-        ) / df["threshold"].std()
+        df.loc[:, "surprise_normalized"] = (df["surprise"] - df["surprise"].mean()) / df["surprise"].std()
+        df.loc[:, "threshold_normalized"] = (df["threshold"] - df["threshold"].mean()) / df["threshold"].std()
 
         # Write to JSON
         json_file = temp_dir / "output.json"
@@ -135,11 +131,7 @@ class TestDataPipelineEndToEnd:
         df = pd.read_csv(csv_file)
 
         # Aggregate by category
-        agg_result = (
-            df.groupby("category")
-            .agg({"value": ["mean", "std", "count"]})
-            .reset_index()
-        )
+        agg_result = df.groupby("category").agg({"value": ["mean", "std", "count"]}).reset_index()
 
         assert len(agg_result) == 5
         assert ("value", "mean") in agg_result.columns
@@ -260,12 +252,7 @@ class TestDataPipelineEndToEnd:
         df[(df["score"] >= 0) & (df["score"] <= 100)]
 
         # Combined validation
-        valid_df = df[
-            (df["age"] >= 0)
-            & (df["age"] <= 120)
-            & (df["score"] >= 0)
-            & (df["score"] <= 100)
-        ]
+        valid_df = df[(df["age"] >= 0) & (df["age"] <= 120) & (df["score"] >= 0) & (df["score"] <= 100)]
 
         assert len(valid_df) == 1
         assert valid_df.iloc[0]["name"] == "Alice"

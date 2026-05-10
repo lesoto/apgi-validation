@@ -51,9 +51,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -208,9 +206,7 @@ class SpectralAnalyzer:
     # PSD estimation
     # ------------------------------------------------------------------
 
-    def compute_psd(
-        self, signal: np.ndarray, fs: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_psd(self, signal: np.ndarray, fs: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Estimate the power spectral density using Welch's method.
 
@@ -229,9 +225,7 @@ class SpectralAnalyzer:
     # Spectral exponent
     # ------------------------------------------------------------------
 
-    def fit_spectral_exponent(
-        self, f: np.ndarray, psd: np.ndarray
-    ) -> Tuple[float, float]:
+    def fit_spectral_exponent(self, f: np.ndarray, psd: np.ndarray) -> Tuple[float, float]:
         """
         Fit a power-law exponent to the PSD via log-log linear regression.
 
@@ -282,9 +276,7 @@ class SpectralAnalyzer:
         N = len(y)
         max_scale = int(N * max_scale_frac)
 
-        scales_raw = np.logspace(
-            np.log10(min_scale), np.log10(max_scale), n_scales
-        ).astype(int)
+        scales_raw = np.logspace(np.log10(min_scale), np.log10(max_scale), n_scales).astype(int)
         scales = np.unique(scales_raw)
 
         F_n: List[float] = []
@@ -326,9 +318,7 @@ class SpectralAnalyzer:
     # Breakpoint detection
     # ------------------------------------------------------------------
 
-    def detect_breakpoints(
-        self, f: np.ndarray, psd: np.ndarray, n_tau_levels: int = 5
-    ) -> np.ndarray:
+    def detect_breakpoints(self, f: np.ndarray, psd: np.ndarray, n_tau_levels: int = 5) -> np.ndarray:
         """
         Detect spectral breakpoints via sliding-window slope changes in log-space.
 
@@ -394,8 +384,7 @@ class SpectralAnalyzer:
         bp_freqs = self.detect_breakpoints(f, S)
 
         logger.info(
-            f"SpectralAnalyzer.analyze: beta={beta:.3f}, H={H:.3f}, "
-            f"breakpoints={len(bp_freqs)}, r²={r_sq:.3f}"
+            f"SpectralAnalyzer.analyze: beta={beta:.3f}, H={H:.3f}, " f"breakpoints={len(bp_freqs)}, r²={r_sq:.3f}"
         )
 
         return SpectralResult(
@@ -516,9 +505,7 @@ class MarkovianNullModel:
         H_apgi_arr = np.array(H_apgi_boot)
         H_null_arr = np.array(H_null_boot)
 
-        pooled_std = float(
-            np.sqrt((H_apgi_arr.std() ** 2 + H_null_arr.std() ** 2) / 2.0)
-        )
+        pooled_std = float(np.sqrt((H_apgi_arr.std() ** 2 + H_null_arr.std() ** 2) / 2.0))
         if pooled_std < 1e-10:
             cohens_d = 0.0
         else:
@@ -538,9 +525,7 @@ class MarkovianNullModel:
         # APGI Hurst exponent from full signal
         _, _, H_apgi_full = analyzer.compute_dfa(apgi_signal)
         if H_apgi_full <= 0.7:
-            logger.warning(
-                f"Potential APGI falsification: H_apgi={H_apgi_full:.3f} <= 0.7"
-            )
+            logger.warning(f"Potential APGI falsification: H_apgi={H_apgi_full:.3f} <= 0.7")
 
         logger.info(
             f"MarkovianNullModel.compare: H_apgi_boot_mean={H_apgi_arr.mean():.3f}, "
@@ -643,9 +628,7 @@ def generate_figure(
 
     # Detected breakpoints
     for bp in spectral_result.breakpoint_freqs_Hz:
-        ax.axvline(
-            bp, color=VISUAL_CONSTANTS.IGNITION_GREEN, lw=1.0, ls="--", alpha=0.8
-        )
+        ax.axvline(bp, color=VISUAL_CONSTANTS.IGNITION_GREEN, lw=1.0, ls="--", alpha=0.8)
 
     # Theoretical τ_l^{-1} markers
     for idx, tau_level in enumerate(tau_array):
@@ -716,12 +699,8 @@ def generate_figure(
         n_vals = sorted(sensitivity_H.keys())
         h_vals = [sensitivity_H[n] for n in n_vals]
         colors_bar = [LEVEL_COLORS.get(i % 5, "#555555") for i in range(len(n_vals))]
-        ax.bar(
-            [str(n) for n in n_vals], h_vals, color=colors_bar, edgecolor="k", lw=0.7
-        )
-        ax.axhline(
-            0.7, color="#D6604D", lw=1.5, ls="--", label="H=0.7 (APGI threshold)"
-        )
+        ax.bar([str(n) for n in n_vals], h_vals, color=colors_bar, edgecolor="k", lw=0.7)
+        ax.axhline(0.7, color="#D6604D", lw=1.5, ls="--", label="H=0.7 (APGI threshold)")
         ax.set_xlabel("Number of OU levels (N)")
         ax.set_ylabel("Hurst exponent H")
         ax.set_title("N-level Sensitivity: H vs N")

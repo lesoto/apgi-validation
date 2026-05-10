@@ -90,9 +90,7 @@ def load_cogitate_ieeg_data(
 
     # Validate BIDS structure
     dataset_info = discover_bids_dataset(bids_root)
-    logger.info(
-        f"Loading Cogitate dataset: {dataset_info.get('n_participants', 'unknown')} participants"
-    )
+    logger.info(f"Loading Cogitate dataset: {dataset_info.get('n_participants', 'unknown')} participants")
 
     # Find iEEG files
     ieeg_dir = bids_root / "ieeg"
@@ -316,9 +314,7 @@ def load_empirical_dataset(
     }
 
     if dataset_id not in loaders:
-        raise ValueError(
-            f"Unknown dataset: {dataset_id}. Available: {list(loaders.keys())}"
-        )
+        raise ValueError(f"Unknown dataset: {dataset_id}. Available: {list(loaders.keys())}")
 
     logger.info(f"Loading {dataset_id} from {data_path}")
     return loaders[dataset_id](data_path, **kwargs)
@@ -329,9 +325,7 @@ def load_empirical_dataset(
 # ============================================================================
 
 
-def check_dataset_availability(
-    dataset_id: str, data_root: Optional[Path] = None
-) -> Dict[str, Any]:
+def check_dataset_availability(dataset_id: str, data_root: Optional[Path] = None) -> Dict[str, Any]:
     """Check if a dataset is available for empirical validation.
 
     Args:

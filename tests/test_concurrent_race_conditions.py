@@ -59,9 +59,7 @@ class TestConfigManagerConcurrency:
             try:
                 for i in range(50):
                     try:
-                        manager.set_parameter(
-                            "validation", f"param_{thread_id}", f"value_{i}"
-                        )
+                        manager.set_parameter("validation", f"param_{thread_id}", f"value_{i}")
                     except (ValueError, AttributeError):
                         # Method might not exist or section not found
                         pass
@@ -132,9 +130,7 @@ class TestConfigManagerConcurrency:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=profile_creator, args=(i,)) for i in range(5)
-        ]
+        threads = [threading.Thread(target=profile_creator, args=(i,)) for i in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -155,9 +151,7 @@ class TestConfigManagerConcurrency:
                 for _ in range(100):
                     try:
                         manager.get_config("validation")
-                        manager.set_parameter(
-                            "validation", "stress_test", operation_count[0]
-                        )
+                        manager.set_parameter("validation", "stress_test", operation_count[0])
                     except (ValueError, AttributeError):
                         pass  # Config or method issues
                     with threading.Lock():
@@ -190,24 +184,18 @@ class TestBackupManagerRaceConditions:
             def create_backup(thread_id):
                 try:
                     for i in range(5):
-                        backup_id = manager.create_backup(
-                            f"concurrent_backup_{thread_id}_{i}", ["config"]
-                        )
+                        backup_id = manager.create_backup(f"concurrent_backup_{thread_id}_{i}", ["config"])
                         backup_ids.append(backup_id)
                 except Exception as e:
                     errors.append(e)
 
-            threads = [
-                threading.Thread(target=create_backup, args=(i,)) for i in range(5)
-            ]
+            threads = [threading.Thread(target=create_backup, args=(i,)) for i in range(5)]
             for t in threads:
                 t.start()
             for t in threads:
                 t.join()
 
-            assert (
-                len(errors) == 0
-            ), f"Concurrent backup creation raised errors: {errors}"
+            assert len(errors) == 0, f"Concurrent backup creation raised errors: {errors}"
 
     def test_concurrent_list_and_delete(self):
         """Test concurrent list and delete operations"""
@@ -369,10 +357,7 @@ class TestTOCTOUMitigation:
                 # Accept if backup found or list is not empty
                 if backups:
                     # Check various possible ID keys
-                    backup_ids = [
-                        b.get("id") or b.get("backup_id") or b.get("name", "")
-                        for b in backups
-                    ]
+                    backup_ids = [b.get("id") or b.get("backup_id") or b.get("name", "") for b in backups]
                     assert backup_id in backup_ids or len(backups) > 0
                 else:
                     # If no backups returned, at least verify no exception
@@ -466,9 +451,7 @@ class TestDeadlockPrevention:
         # Wait with timeout to detect deadlock
         for t in threads:
             t.join(timeout=5.0)
-            assert (
-                not t.is_alive()
-            ), "Deadlock detected - thread still alive after timeout"
+            assert not t.is_alive(), "Deadlock detected - thread still alive after timeout"
 
         assert len(errors) == 0, f"Errors during operations: {errors}"
 

@@ -29,9 +29,7 @@ def apply_apgi_theme(root):
 
     # Configure Global Elements
     style.configure("TFrame", background=bg_color)
-    style.configure(
-        "TLabel", background=bg_color, foreground=fg_color, font=("Noto Sans", 10)
-    )
+    style.configure("TLabel", background=bg_color, foreground=fg_color, font=("Noto Sans", 10))
     style.configure("Header.TLabel", font=("Noto Sans", 12, "bold"))
 
     # Custom Card Style
@@ -91,12 +89,8 @@ def apply_apgi_theme(root):
     style.configure("Card.TCheckbutton", background="#ffffff")
 
     # Status styling
-    style.configure(
-        "Success.TLabel", foreground="#155724", font=("Noto Sans", 10, "bold")
-    )
-    style.configure(
-        "Error.TLabel", foreground="#721c24", font=("Noto Sans", 10, "bold")
-    )
+    style.configure("Success.TLabel", foreground="#155724", font=("Noto Sans", 10, "bold"))
+    style.configure("Error.TLabel", foreground="#721c24", font=("Noto Sans", 10, "bold"))
 
     # Configure root window
     root.configure(background=bg_color)
@@ -110,16 +104,12 @@ class APGIButtons:
     @staticmethod
     def primary(parent, text, command):
         """Primary action button (green)."""
-        return ttk.Button(
-            parent, text=text, command=command, style="Primary.TButton", cursor="hand2"
-        )
+        return ttk.Button(parent, text=text, command=command, style="Primary.TButton", cursor="hand2")
 
     @staticmethod
     def danger(parent, text, command):
         """Danger/Stop button (red)."""
-        return ttk.Button(
-            parent, text=text, command=command, style="Danger.TButton", cursor="hand2"
-        )
+        return ttk.Button(parent, text=text, command=command, style="Danger.TButton", cursor="hand2")
 
     @staticmethod
     def secondary(parent, text, command):
@@ -142,9 +132,7 @@ class APGICard(ttk.Frame):
         self.container.pack(fill="both", expand=True)
 
         if title:
-            self.lbl_title = ttk.Label(
-                self.container, text=title.upper(), style="Header.TLabel"
-            )
+            self.lbl_title = ttk.Label(self.container, text=title.upper(), style="Header.TLabel")
             self.lbl_title.pack(anchor="w", pady=(0, 10))
 
 
@@ -173,9 +161,7 @@ class TestsGUI:
         # Top metric bar / header
         header_frame = ttk.Frame(self.root, padding="10")
         header_frame.pack(fill="x")
-        ttk.Label(
-            header_frame, text="APGI TEST ENVIRONMENT", style="Header.TLabel"
-        ).pack(side="left")
+        ttk.Label(header_frame, text="APGI TEST ENVIRONMENT", style="Header.TLabel").pack(side="left")
 
         # Main content
         main_content = ttk.Frame(self.root, padding="10")
@@ -193,9 +179,7 @@ class TestsGUI:
         config_card = APGICard(sidebar, "Test Configuration")
         config_card.pack(fill="x", pady=(0, 15))
 
-        ttk.Label(config_card.container, text="Test Type:").pack(
-            anchor="w", pady=(0, 5)
-        )
+        ttk.Label(config_card.container, text="Test Type:").pack(anchor="w", pady=(0, 5))
         self.test_type_var = tk.StringVar(value="all")
         test_type_combo = ttk.Combobox(
             config_card.container,
@@ -217,12 +201,8 @@ class TestsGUI:
         btn_frame = ttk.Frame(sidebar)
         btn_frame.pack(fill="x")
 
-        APGIButtons.primary(btn_frame, "RUN TESTS", self.run_tests_gui).pack(
-            fill="x", pady=(0, 10)
-        )
-        APGIButtons.secondary(btn_frame, "CLEAR OUTPUT", self.clear_output).pack(
-            fill="x"
-        )
+        APGIButtons.primary(btn_frame, "RUN TESTS", self.run_tests_gui).pack(fill="x", pady=(0, 10))
+        APGIButtons.secondary(btn_frame, "CLEAR OUTPUT", self.clear_output).pack(fill="x")
 
         # Workspace (Output)
         workspace = APGICard(main_content, "Test Output")
@@ -302,7 +282,7 @@ class TestsGUI:
             self.output_text.insert(tk.END, f"> {' '.join(cmd)}\n\n")
             self.output_text.update()
 
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, shell=False)
 
             return {
                 "test_results": {

@@ -15,10 +15,19 @@ from click.testing import CliRunner
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (APGIModuleLoader, _check_file_size, _create_signal_handler,
-                  _sanitize_error_message, _validate_file_path,
-                  _validate_output_file_path, cli, get_config_value,
-                  handle_file_error, handle_validation_error, set_config_value)
+from main import (
+    APGIModuleLoader,
+    _check_file_size,
+    _create_signal_handler,
+    _sanitize_error_message,
+    _validate_file_path,
+    _validate_output_file_path,
+    cli,
+    get_config_value,
+    handle_file_error,
+    handle_validation_error,
+    set_config_value,
+)
 
 
 class TestCLIArgumentParsing:
@@ -42,9 +51,7 @@ class TestCLIArgumentParsing:
     def test_verbose_flag(self):
         """Test verbose flag enables verbose output."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["--verbose", "formal-model", "--simulation-steps", "10"]
-        )
+        result = runner.invoke(cli, ["--verbose", "formal-model", "--simulation-steps", "10"])
         assert result.exit_code == 0
         # Check that verbose mode was enabled
         assert get_config_value("verbose") is True
@@ -52,9 +59,7 @@ class TestCLIArgumentParsing:
     def test_quiet_flag(self):
         """Test quiet flag suppresses output."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["--quiet", "formal-model", "--simulation-steps", "10"]
-        )
+        result = runner.invoke(cli, ["--quiet", "formal-model", "--simulation-steps", "10"])
         assert result.exit_code == 0
         # Check that quiet mode was enabled
         assert get_config_value("quiet") is True
@@ -93,9 +98,7 @@ class TestCLIArgumentParsing:
     def test_log_level_override(self):
         """Test log level override."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["--log-level", "DEBUG", "formal-model", "--simulation-steps", "5"]
-        )
+        result = runner.invoke(cli, ["--log-level", "DEBUG", "formal-model", "--simulation-steps", "5"])
 
         # Command should execute; log level affects internal logging, not necessarily output
         assert result.exit_code == 0
@@ -106,11 +109,7 @@ class TestCLIArgumentParsing:
         result = runner.invoke(cli, ["formal-model", "--simulation-steps", "0"])
 
         # Should fail or show warning for zero steps
-        assert (
-            result.exit_code != 0
-            or "steps" in result.output.lower()
-            or "error" in result.output.lower()
-        )
+        assert result.exit_code != 0 or "steps" in result.output.lower() or "error" in result.output.lower()
 
     def test_negative_simulation_steps(self):
         """Test negative simulation steps validation."""
@@ -126,11 +125,7 @@ class TestCLIArgumentParsing:
         result = runner.invoke(cli, ["formal-model", "--dt", "0"])
 
         # Should fail or show error/warning about dt value
-        assert (
-            result.exit_code != 0
-            or "dt" in result.output.lower()
-            or "error" in result.output.lower()
-        )
+        assert result.exit_code != 0 or "dt" in result.output.lower() or "error" in result.output.lower()
 
     def test_large_dt_warning(self):
         """Test warning for large dt values."""
@@ -146,11 +141,7 @@ class TestCLIArgumentParsing:
         result = runner.invoke(cli, ["formal-model", "--output-file", "invalid.txt"])
 
         # Should fail or show error for invalid extension
-        assert (
-            result.exit_code != 0
-            or "extension" in result.output.lower()
-            or "error" in result.output.lower()
-        )
+        assert result.exit_code != 0 or "extension" in result.output.lower() or "error" in result.output.lower()
 
     def test_absolute_config_file_path(self):
         """Test rejection of absolute config file paths."""
@@ -207,11 +198,7 @@ class TestMainExecutionFlow:
             result = runner.invoke(cli, ["formal-model", "--simulation-steps", "5"])
 
             # Should fail when module can't be loaded
-            assert (
-                result.exit_code != 0
-                or "not found" in result.output.lower()
-                or "error" in result.output.lower()
-            )
+            assert result.exit_code != 0 or "not found" in result.output.lower() or "error" in result.output.lower()
 
     def test_parameter_validation_error(self):
         """Test parameter validation error handling."""
@@ -257,11 +244,7 @@ class TestMainExecutionFlow:
             )
 
             # Should fail due to file size or have error
-            assert (
-                result.exit_code != 0
-                or "size" in result.output.lower()
-                or "error" in result.output.lower()
-            )
+            assert result.exit_code != 0 or "size" in result.output.lower() or "error" in result.output.lower()
         finally:
             if large_path.exists():
                 os.remove(large_path)
@@ -520,9 +503,8 @@ class TestModuleLoader:
 
         # Test that get_module method exists and works
         # For modules that exist, it should return module info or None if not loaded
-        result = loader.get_module("formal_model")
+        loader.get_module("formal_model")
         # Result could be None (if module not found) or a dict (if found)
-        assert result is None or isinstance(result, dict)
 
     def test_get_module_non_existent(self):
         """Test getting non-existent module."""

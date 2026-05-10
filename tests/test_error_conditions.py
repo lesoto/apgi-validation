@@ -78,9 +78,7 @@ class TestCorruptedFileFormats:
         from main import _load_visualization_data
 
         corrupted_file = tmp_path / "corrupted.csv"
-        corrupted_file.write_text(
-            "invalid,csv,data\n1,2,3\n4,5,6\n7,8,9"
-        )  # Malformed CSV
+        corrupted_file.write_text("invalid,csv,data\n1,2,3\n4,5,6\n7,8,9")  # Malformed CSV
 
         with patch("main.pd.read_csv") as mock_read_csv:
             mock_read_csv.side_effect = pd.errors.ParserError("Invalid CSV format")
@@ -182,9 +180,7 @@ class TestGPUMemoryExhaustion:
     @patch("torch.cuda.memory_reserved")
     @patch("torch.cuda.memory_allocated")
     @patch("torch.cuda.is_available")
-    def test_gpu_memory_allocation_failure(
-        self, mock_is_available, mock_allocated, mock_reserved, mock_empty_cache
-    ):
+    def test_gpu_memory_allocation_failure(self, mock_is_available, mock_allocated, mock_reserved, mock_empty_cache):
         """Test handling of GPU memory allocation failures."""
         import torch
 
@@ -421,8 +417,7 @@ class TestPermissionErrors:
 
     def test_write_permission_denied(self, tmp_path):
         """Test handling of write permission denied errors."""
-        from utils.security_logging_integration import (SecurityContext,
-                                                        secure_file_write)
+        from utils.security_logging_integration import SecurityContext, secure_file_write
 
         # Create read-only file
         readonly_file = tmp_path / "readonly.txt"
@@ -444,8 +439,7 @@ class TestPermissionErrors:
 
     def test_delete_permission_denied(self, tmp_path):
         """Test handling of delete permission denied errors."""
-        from utils.security_logging_integration import (SecurityContext,
-                                                        secure_file_delete)
+        from utils.security_logging_integration import SecurityContext, secure_file_delete
 
         # Create a file
         test_file = tmp_path / "testfile.txt"
@@ -455,9 +449,7 @@ class TestPermissionErrors:
         context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
 
         # Mock path.unlink to raise PermissionError for testing
-        with patch.object(
-            Path, "unlink", side_effect=PermissionError("Permission denied")
-        ):
+        with patch.object(Path, "unlink", side_effect=PermissionError("Permission denied")):
             try:
                 secure_file_delete(str(test_file), context=context)
                 assert False, "Should have raised PermissionError"
@@ -624,9 +616,7 @@ class TestEdgeCaseData:
 
     def test_all_nan_dataframe(self):
         """Test handling of all-NaN dataframes."""
-        data = pd.DataFrame(
-            {"col1": [np.nan, np.nan, np.nan], "col2": [np.nan, np.nan, np.nan]}
-        )
+        data = pd.DataFrame({"col1": [np.nan, np.nan, np.nan], "col2": [np.nan, np.nan, np.nan]})
 
         # Should process without errors
         assert data.shape == (3, 2)
@@ -634,9 +624,7 @@ class TestEdgeCaseData:
 
     def test_all_inf_dataframe(self):
         """Test handling of all-Inf dataframes."""
-        data = pd.DataFrame(
-            {"col1": [np.inf, np.inf, np.inf], "col2": [np.inf, np.inf, np.inf]}
-        )
+        data = pd.DataFrame({"col1": [np.inf, np.inf, np.inf], "col2": [np.inf, np.inf, np.inf]})
 
         # Should process without errors
         assert data.shape == (3, 2)
@@ -673,8 +661,7 @@ class TestErrorHandlerCoverage:
 
     def test_custom_error_handler_exception(self):
         """Test error handler when custom handler raises exception."""
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
 
@@ -751,9 +738,7 @@ class TestErrorHandlerCoverage:
             raise RuntimeError("Test error")
 
         with pytest.raises(ValueError, match="Operation failed"):
-            safe_execute(
-                failing_func, error_message="Operation failed", error_type=ValueError
-            )
+            safe_execute(failing_func, error_message="Operation failed", error_type=ValueError)
 
     def test_safe_execute_with_default_return(self):
         """Test safe_execute returning default value on error."""
@@ -796,16 +781,13 @@ class TestErrorHandlerCoverage:
 
     def test_error_handler_count_cap(self):
         """Test that error counts are capped to prevent unbounded growth."""
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
 
         # Simulate many errors
         for _ in range(1100):
-            handler.handle_error(
-                ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED"
-            )
+            handler.handle_error(ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED")
 
         summary = handler.get_error_summary()
         assert summary["total_errors"] == 1000  # Capped at 1000
@@ -843,14 +825,11 @@ class TestErrorHandlerCoverage:
         error_dict = error.to_dict()
         # Check that traceback is sanitized
         if error_dict.get("traceback"):
-            assert "[REDACTED]" in str(error_dict["traceback"]) or "[PATH]" in str(
-                error_dict["traceback"]
-            )
+            assert "[REDACTED]" in str(error_dict["traceback"]) or "[PATH]" in str(error_dict["traceback"])
 
     def test_error_templates_unknown_code(self):
         """Test error template formatting with unknown code."""
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
         result = handler.format_error(
@@ -870,8 +849,7 @@ class TestThreadSafetyVerification:
         import threading
         import time
 
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -879,14 +857,10 @@ class TestThreadSafetyVerification:
 
         def increment_errors():
             for _ in range(errors_per_thread):
-                handler.handle_error(
-                    ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR"
-                )
+                handler.handle_error(ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR")
                 time.sleep(0.001)  # Small delay to increase contention
 
-        threads = [
-            threading.Thread(target=increment_errors) for _ in range(num_threads)
-        ]
+        threads = [threading.Thread(target=increment_errors) for _ in range(num_threads)]
 
         for t in threads:
             t.start()
@@ -965,9 +939,7 @@ class TestThreadSafetyVerification:
                 except Exception as e:
                     results.append(f"thread_{thread_id}_error: {e}")
 
-        threads = [
-            threading.Thread(target=write_with_lock, args=(i,)) for i in range(4)
-        ]
+        threads = [threading.Thread(target=write_with_lock, args=(i,)) for i in range(4)]
         for t in threads:
             t.start()
         for t in threads:
@@ -994,10 +966,7 @@ class TestThreadSafetyVerification:
             with lock:
                 registration_order.append(name)
 
-        threads = [
-            threading.Thread(target=register_handler, args=(f"handler_{i}",))
-            for i in range(5)
-        ]
+        threads = [threading.Thread(target=register_handler, args=(f"handler_{i}",)) for i in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -1039,9 +1008,7 @@ class TestThreadSafetyVerification:
 
         # Create database and table
         conn = sqlite3.connect(db_path)
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER)"
-        )
+        conn.execute("CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER)")
         conn.execute("INSERT INTO counter VALUES (1, 0)")
         conn.commit()
         conn.close()
@@ -1082,17 +1049,14 @@ class TestPerformanceBaseline:
         """Baseline performance for error handler operations."""
         import time
 
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
         iterations = 1000
 
         start = time.perf_counter()
         for _ in range(iterations):
-            handler.handle_error(
-                ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED"
-            )
+            handler.handle_error(ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED")
         elapsed = time.perf_counter() - start
 
         # Baseline: Should handle at least 1000 errors per second
@@ -1104,8 +1068,7 @@ class TestPerformanceBaseline:
         import threading
         import time
 
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -1115,9 +1078,7 @@ class TestPerformanceBaseline:
 
         def generate_errors():
             for _ in range(errors_per_thread):
-                handler.handle_error(
-                    ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR"
-                )
+                handler.handle_error(ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR")
 
         threads = [threading.Thread(target=generate_errors) for _ in range(num_threads)]
         for t in threads:
@@ -1130,9 +1091,7 @@ class TestPerformanceBaseline:
         ops_per_sec = total_ops / elapsed
 
         # Baseline: Concurrent handling should be at least 500 ops/sec
-        assert (
-            ops_per_sec > 500
-        ), f"Concurrent error handling too slow: {ops_per_sec:.0f} ops/sec"
+        assert ops_per_sec > 500, f"Concurrent error handling too slow: {ops_per_sec:.0f} ops/sec"
 
     def test_config_manager_load_performance(self, tmp_path):
         """Performance baseline for ConfigManager loading."""
@@ -1159,8 +1118,7 @@ class TestPerformanceBaseline:
         """Performance baseline for error template formatting."""
         import time
 
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
         iterations = 10000
@@ -1178,6 +1136,4 @@ class TestPerformanceBaseline:
 
         ops_per_sec = iterations / elapsed
         # Baseline: Template formatting should be at least 10,000 ops/sec
-        assert (
-            ops_per_sec > 10000
-        ), f"Template formatting too slow: {ops_per_sec:.0f} ops/sec"
+        assert ops_per_sec > 10000, f"Template formatting too slow: {ops_per_sec:.0f} ops/sec"

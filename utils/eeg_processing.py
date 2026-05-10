@@ -140,9 +140,7 @@ def detect_gamma_band_power(
     normalized_power = gamma_power / max(total_power, 1e-10)
 
     # Permutation test for significance
-    p_value = _permutation_test_gamma(
-        eeg_data, fs, gamma_band, n_permutations, gamma_power
-    )
+    p_value = _permutation_test_gamma(eeg_data, fs, gamma_band, n_permutations, gamma_power)
 
     is_significant = p_value < alpha
 
@@ -182,9 +180,7 @@ def _permutation_test_gamma(
         # Compute gamma power for permuted data
         gamma_power_perm = 0.0
         for ch in range(n_channels):
-            f, Pxx = signal.welch(
-                eeg_permuted[ch], fs=fs, nperseg=min(256, n_samples // 4)
-            )
+            f, Pxx = signal.welch(eeg_permuted[ch], fs=fs, nperseg=min(256, n_samples // 4))
             gamma_idx = (f >= gamma_band[0]) & (f <= gamma_band[1])
             if np.any(gamma_idx):
                 gamma_power_perm += trapezoid(Pxx[gamma_idx], f[gamma_idx])
@@ -251,9 +247,7 @@ def compute_pac_with_bands(
         amp_by_phase = []
         for i in range(n_bins):
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
-            in_bin = (phase[ch] >= phase_bins[i]) & (
-                phase[ch] < phase_bins[next_bin_idx]
-            )
+            in_bin = (phase[ch] >= phase_bins[i]) & (phase[ch] < phase_bins[next_bin_idx])
             if np.any(in_bin):
                 amp = amplitude_envelope[ch, in_bin]
                 mean_val = np.nanmean(amp) if len(amp) > 0 else 0.0
@@ -280,9 +274,7 @@ def compute_pac_with_bands(
 
     # Permutation test (only if n_permutations > 1)
     if n_permutations > 1:
-        p_value = _permutation_test_pac(
-            eeg_data, fs, phase_band, amplitude_band, n_permutations, modulation_index
-        )
+        p_value = _permutation_test_pac(eeg_data, fs, phase_band, amplitude_band, n_permutations, modulation_index)
     else:
         p_value = 1.0
 
@@ -360,15 +352,11 @@ def compute_theta_gamma_pac(
         for i in range(n_bins):
             # Find time points where theta phase is in this bin
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
-            in_bin = (theta_phase[ch] >= theta_bins[i]) & (
-                theta_phase[ch] < theta_bins[next_bin_idx]
-            )
+            in_bin = (theta_phase[ch] >= theta_bins[i]) & (theta_phase[ch] < theta_bins[next_bin_idx])
             if np.any(in_bin):
                 gamma_amp = gamma_envelope[ch, in_bin]
                 # Compute mean gamma amplitude in this phase bin
-                gamma_amp_by_phase.append(
-                    np.nanmean(gamma_amp) if len(gamma_amp) > 0 else 0.0
-                )
+                gamma_amp_by_phase.append(np.nanmean(gamma_amp) if len(gamma_amp) > 0 else 0.0)
             else:
                 gamma_amp_by_phase.append(0.0)
 
@@ -379,9 +367,7 @@ def compute_theta_gamma_pac(
 
         # Compute MI using KL divergence from uniform distribution
         uniform_dist = np.ones(n_bins) / n_bins
-        mi = np.sum(
-            gamma_amp_by_phase * np.log(gamma_amp_by_phase / uniform_dist + 1e-10)
-        )
+        mi = np.sum(gamma_amp_by_phase * np.log(gamma_amp_by_phase / uniform_dist + 1e-10))
 
         mi_values.append(mi)
 
@@ -394,9 +380,7 @@ def compute_theta_gamma_pac(
 
     # Permutation test (only if n_permutations > 1)
     if n_permutations > 1:
-        p_value = _permutation_test_pac(
-            eeg_data, fs, theta_band, gamma_band, n_permutations, modulation_index
-        )
+        p_value = _permutation_test_pac(eeg_data, fs, theta_band, gamma_band, n_permutations, modulation_index)
     else:
         # For single computation, return nominal p-value
         p_value = 1.0
@@ -494,9 +478,7 @@ def _permutation_test_pac(
             np.random.shuffle(eeg_permuted[ch])
 
         # Compute PAC for permuted data
-        pac_result = compute_theta_gamma_pac(
-            eeg_permuted, fs, theta_band, gamma_band, n_permutations=1, alpha=1.0
-        )
+        pac_result = compute_theta_gamma_pac(eeg_permuted, fs, theta_band, gamma_band, n_permutations=1, alpha=1.0)
         permuted_mi_values.append(pac_result["modulation_index"])
 
     # Count how many permuted MIs exceed observed
@@ -590,9 +572,7 @@ def detect_p3_amplitude(
 
     # Extract peak amplitudes and times
     peak_amplitudes = properties["prominences"]
-    peak_times = (
-        properties["left_ips"] + properties["right_ips"]
-    ) / 2 / fs + p3_window[0]
+    peak_times = (properties["left_ips"] + properties["right_ips"]) / 2 / fs + p3_window[0]
 
     # Mean P3b amplitude
     p3_amplitude = np.nanmean(p3_data) if len(p3_data) > 0 else 0.0
@@ -702,9 +682,7 @@ if __name__ == "__main__":
     p3_component = 8.0 * np.exp(-((t - 0.5) ** 2) / 0.1) * (t > 0.3) * (t < 0.8)
     noise = 0.5 * np.random.randn(n_samples)
 
-    eeg_data = (
-        gamma_component + theta_component + delta_component + p3_component + noise
-    ).reshape(1, -1)
+    eeg_data = (gamma_component + theta_component + delta_component + p3_component + noise).reshape(1, -1)
 
     # Process EEG
     results = process_real_eeg(eeg_data, fs)
@@ -741,8 +719,6 @@ if __name__ == "__main__":
     print("\nPAC Band Configuration:")
     pac_bands = get_pac_bands()
     for level, bands in pac_bands.items():
-        print(
-            f"  {level}: phase {bands['phase']} Hz, amplitude {bands['amplitude']} Hz"
-        )
+        print(f"  {level}: phase {bands['phase']} Hz, amplitude {bands['amplitude']} Hz")
 
     print("=" * 80)

@@ -125,9 +125,7 @@ class FrameworkFalsificationGate:
 
         # Additional analysis: which protocols failed most
         protocol_fail_rates = {
-            r.protocol_name: r.failed_criteria / r.total_criteria
-            for r in self.protocol_results
-            if r.total_criteria > 0
+            r.protocol_name: r.failed_criteria / r.total_criteria for r in self.protocol_results if r.total_criteria > 0
         }
 
         # Identify critical failure patterns
@@ -167,9 +165,7 @@ class FrameworkFalsificationGate:
             "all_failed_criteria": all_failed_criteria_ids,
         }
 
-    def compare_with_alternative_framework(
-        self, alternative_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def compare_with_alternative_framework(self, alternative_results: Dict[str, Any]) -> Dict[str, Any]:
         """
         Compare APGI predictions with alternative framework.
 
@@ -192,9 +188,7 @@ class FrameworkFalsificationGate:
 
         # Compute overlap
         intersection = apgi_predictions.intersection(alt_predictions)
-        overlap_ratio = (
-            len(intersection) / len(apgi_predictions) if apgi_predictions else 0.0
-        )
+        overlap_ratio = len(intersection) / len(apgi_predictions) if apgi_predictions else 0.0
 
         # Check if alternative makes all same predictions
         identical_predictions = overlap_ratio >= 0.95
@@ -252,9 +246,7 @@ class MetaFalsificationEngine:
             failed_criteria_ids=failed_ids,
         )
 
-    def run_meta_falsification(
-        self, alternative_framework_results: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    def run_meta_falsification(self, alternative_framework_results: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Run complete meta-falsification analysis.
 
@@ -270,9 +262,7 @@ class MetaFalsificationEngine:
         # Compare with alternative if provided
         comparison_result = None
         if alternative_framework_results:
-            comparison_result = self.gate.compare_with_alternative_framework(
-                alternative_framework_results
-            )
+            comparison_result = self.gate.compare_with_alternative_framework(alternative_framework_results)
 
         # Generate comprehensive report
         meta_report = {
@@ -289,24 +279,20 @@ class MetaFalsificationEngine:
             "protocol_breakdown": framework_result["protocol_fail_rates"],
             "systematic_failures": framework_result["systematic_failures"],
             "all_validation_reports": self.validation_reports,
-            "alternative_comparison": comparison_result,
         }
 
         # Final conclusion
         if comparison_result and comparison_result["identical_predictions"]:
             meta_report["final_conclusion"] = (
-                "APGI framework NOT uniquely falsifiable - "
-                "alternative framework makes identical predictions"
+                "APGI framework NOT uniquely falsifiable - " "alternative framework makes identical predictions"
             )
         elif framework_result["framework_falsified"]:
             meta_report["final_conclusion"] = (
-                "APGI framework FALSIFIED - "
-                f"{framework_result['fail_rate']:.1%} of predictions fail"
+                "APGI framework FALSIFIED - " f"{framework_result['fail_rate']:.1%} of predictions fail"
             )
         else:
             meta_report["final_conclusion"] = (
-                "APGI framework NOT falsified - "
-                f"{framework_result['pass_rate']:.1%} of predictions pass"
+                "APGI framework NOT falsified - " f"{framework_result['pass_rate']:.1%} of predictions pass"
             )
 
         return meta_report
@@ -345,9 +331,7 @@ class MetaFalsificationEngine:
 
         for protocol, fail_rate in result["protocol_breakdown"].items():
             status = "❌ FAILED" if fail_rate > 0.5 else "✅ PASSED"
-            report_lines.append(
-                f"- **{protocol}**: {status} ({fail_rate:.1%} failure rate)"
-            )
+            report_lines.append(f"- **{protocol}**: {status} ({fail_rate:.1%} failure rate)")
 
         if result["systematic_failures"]:
             report_lines.append("")
@@ -361,9 +345,7 @@ class MetaFalsificationEngine:
             report_lines.append("## Alternative Framework Comparison")
             report_lines.append("")
             comp = result["alternative_comparison"]
-            report_lines.append(
-                f"- Identical predictions: {'Yes' if comp['identical_predictions'] else 'No'}"
-            )
+            report_lines.append(f"- Identical predictions: {'Yes' if comp['identical_predictions'] else 'No'}")
             report_lines.append(f"- Overlap ratio: {comp['overlap_ratio']:.1%}")
             report_lines.append(f"- **{comp['conclusion']}**")
 

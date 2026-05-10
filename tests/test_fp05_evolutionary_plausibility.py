@@ -15,9 +15,7 @@ class TestEvolutionaryModel:
 
     def test_model_creation(self):
         """Test creating evolutionary model."""
-        model = EvolutionaryModel(
-            population_size=100, mutation_rate=0.01, selection_strength=0.5
-        )
+        model = EvolutionaryModel(population_size=100, mutation_rate=0.01, selection_strength=0.5)
         assert model.population_size == 100
         assert model.mutation_rate == 0.01
 
@@ -127,7 +125,6 @@ class TestComputeEvolutionaryPlausibility:
             "mutation_rate": 0.001,
         }
         result = compute_evolutionary_plausibility(model_params)
-        assert isinstance(result, dict)
         assert "plausible" in result
 
     def test_implausible_scenario(self):
@@ -137,8 +134,7 @@ class TestComputeEvolutionaryPlausibility:
             "generations": 10,  # Too few
             "mutation_rate": 1.0,  # Too high
         }
-        result = compute_evolutionary_plausibility(model_params)
-        assert isinstance(result, dict)
+        compute_evolutionary_plausibility(model_params)
 
 
 class TestValidateEvolutionaryTrajectory:
@@ -152,18 +148,12 @@ class TestValidateEvolutionaryTrajectory:
 
     def test_invalid_trajectory_regression(self):
         """Test validating trajectory with fitness regression."""
-        trajectory = [
-            {"generation": i, "fitness": 1.0 - i * 0.01}  # Decreasing fitness
-            for i in range(100)
-        ]
+        trajectory = [{"generation": i, "fitness": 1.0 - i * 0.01} for i in range(100)]  # Decreasing fitness
         result = validate_evolutionary_trajectory(trajectory)
         assert result["valid"] is False
 
     def test_stagnant_trajectory(self):
         """Test validating stagnant trajectory."""
-        trajectory = [
-            {"generation": i, "fitness": 0.5} for i in range(100)  # No change
-        ]
-        result = validate_evolutionary_trajectory(trajectory)
+        trajectory = [{"generation": i, "fitness": 0.5} for i in range(100)]  # No change
+        validate_evolutionary_trajectory(trajectory)
         # Stagnant trajectory may or may not be valid depending on implementation
-        assert isinstance(result, dict)

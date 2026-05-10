@@ -67,8 +67,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except Exception:
@@ -85,8 +84,7 @@ except Exception:
     DEFAULT_ALPHA_SIGMOID = 5.0
 
 try:
-    from utils.logging_config import \
-        apgi_logger as logger  # type: ignore[assignment]
+    from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
 except Exception:
     logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
@@ -366,10 +364,7 @@ def _numerical_fim(
             p_mm[i] -= h
             p_mm[j] -= h
             hess[i, j] = (
-                ll_fn(p_pp, *fn_args)
-                - ll_fn(p_pm, *fn_args)
-                - ll_fn(p_mp, *fn_args)
-                + ll_fn(p_mm, *fn_args)
+                ll_fn(p_pp, *fn_args) - ll_fn(p_pm, *fn_args) - ll_fn(p_mp, *fn_args) + ll_fn(p_mm, *fn_args)
             ) / (4.0 * h * h)
     return hess
 
@@ -484,9 +479,7 @@ def run_module1(
 
     for _ in range(n_subjects):
         tp = _draw_subject_params(rng)
-        s1 = _generate_session1(
-            tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng
-        )
+        s1 = _generate_session1(tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng)
 
         # --- Session 1 estimation: γ_V, γ_A via Gaussian regression ---
         x0_s1 = np.array([0.5, 0.3, np.log(0.3)])
@@ -667,26 +660,14 @@ def run_module2(
     condition_pass = cond < CONDITION_NUMBER_RESOLVED_MAX
 
     if verbose:
-        logger.info(
-            f"  FIM condition number : {cond:.2f}  "
-            f"(threshold < {CONDITION_NUMBER_RESOLVED_MAX})"
-        )
-        logger.info(
-            f"  Max off-diag ratio   : {max_offdiag_ratio:.4f}  "
-            f"(threshold < {FIM_OFFDIAG_RATIO_MAX})"
-        )
-        logger.info(
-            f"  Block-diagonal test  : {'PASS' if block_diagonal_pass else 'FAIL'}"
-        )
+        logger.info(f"  FIM condition number : {cond:.2f}  " f"(threshold < {CONDITION_NUMBER_RESOLVED_MAX})")
+        logger.info(f"  Max off-diag ratio   : {max_offdiag_ratio:.4f}  " f"(threshold < {FIM_OFFDIAG_RATIO_MAX})")
+        logger.info(f"  Block-diagonal test  : {'PASS' if block_diagonal_pass else 'FAIL'}")
         logger.info(f"  Condition number test: {'PASS' if condition_pass else 'FAIL'}")
         for k, v in offdiag_ratios.items():
             logger.info(f"    {k}: {v:.6f}")
 
-    fim_dict = {
-        f"{param_labels[i]},{param_labels[j]}": float(fim[i, j])
-        for i in range(6)
-        for j in range(6)
-    }
+    fim_dict = {f"{param_labels[i]},{param_labels[j]}": float(fim[i, j]) for i in range(6) for j in range(6)}
 
     return {
         "passed": block_diagonal_pass and condition_pass,
@@ -745,9 +726,7 @@ def run_module3(
     for _ in range(n_subjects):
         tp = _draw_subject_params(rng)
         tp["beta"] = 1.0  # True β = 1 in this parameterization
-        s1 = _generate_session1(
-            tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng
-        )
+        s1 = _generate_session1(tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng)
         s2 = _generate_session2(
             tp["Pi_i_baseline"],
             tp["Pi_e"],
@@ -813,9 +792,7 @@ def run_module3(
     # capture the near-zero eigenvalue of the non-identified direction
     # (β→λβ, γ_V→γ_V/λ, γ_A→γ_A/λ leaves Πⁱ_eff unchanged).
     rng_ref = np.random.RandomState(seed)
-    s1_ref = _generate_session1(
-        REF_PARAMS["gamma_V"], REF_PARAMS["gamma_A"], REF_PARAMS["sigma_bold"], rng_ref
-    )
+    s1_ref = _generate_session1(REF_PARAMS["gamma_V"], REF_PARAMS["gamma_A"], REF_PARAMS["sigma_bold"], rng_ref)
     fim_free = _expected_fim_free_beta(
         log_Pi_i=np.log(REF_PARAMS["Pi_i_baseline"]),
         beta=1.0,
@@ -841,9 +818,7 @@ def run_module3(
     diag_free_safe = np.where(diag_free > 1e-12, diag_free, 1e-12)
     beta_pi_ratio = abs(fim_free[0, 3]) / min(diag_free_safe[0], diag_free_safe[3])
 
-    has_poor_recovery = any(
-        abs(r) < PATHOLOGICAL_R_THRESHOLD for r in recovery_r_free.values()
-    )
+    has_poor_recovery = any(abs(r) < PATHOLOGICAL_R_THRESHOLD for r in recovery_r_free.values())
     condition_pathological = cond_free > CONDITION_NUMBER_PATHOLOGICAL_MIN
 
     se_free = {p: float(np.std(est_vals_free[p])) for p in param_names_free}
@@ -858,17 +833,10 @@ def run_module3(
         logger.info("  Recovery correlations (free-β):")
         for name, r in recovery_r_free.items():
             poor = abs(r) < PATHOLOGICAL_R_THRESHOLD
-            logger.info(
-                f"    {name:20s}: r = {r:.3f}  "
-                f"{'<-- POOR RECOVERY' if poor else ''}"
-            )
+            logger.info(f"    {name:20s}: r = {r:.3f}  " f"{'<-- POOR RECOVERY' if poor else ''}")
+        logger.info(f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): " f"{has_poor_recovery}")
         logger.info(
-            f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): "
-            f"{has_poor_recovery}"
-        )
-        logger.info(
-            f"  Condition pathological (> {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): "
-            f"{condition_pathological}"
+            f"  Condition pathological (> {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): " f"{condition_pathological}"
         )
 
     return {
@@ -911,9 +879,7 @@ def build_comparison_table(
 
     max_off_res = m2["max_offdiag_ratio"]
     beta_pi_ratio = m3["beta_pi_offdiag_ratio"]
-    lines.append(
-        f"  {'Max cross-block off-diag ratio':<44} {max_off_res:>12.4f} {'—':>12}"
-    )
+    lines.append(f"  {'Max cross-block off-diag ratio':<44} {max_off_res:>12.4f} {'—':>12}")
     lines.append(f"  {'β↔Πⁱ off-diag ratio':<44} {'—':>12} {beta_pi_ratio:>12.4f}")
 
     conv_res = m1["convergence_rate"]
@@ -936,15 +902,13 @@ def build_comparison_table(
 
     lines += [
         "=" * w,
-        f"  Block-diagonal test (resolved): "
-        f"{'PASS' if m2['block_diagonal_pass'] else 'FAIL'}",
+        f"  Block-diagonal test (resolved): " f"{'PASS' if m2['block_diagonal_pass'] else 'FAIL'}",
         f"  Condition number test (resolved < {CONDITION_NUMBER_RESOLVED_MAX:.0f}): "
         f"{'PASS' if m2['condition_number_pass'] else 'FAIL'}",
         f"  Min recovery r (resolved) > {RECOVERY_R_THRESHOLD}: "
         f"{'PASS' if m1['passed'] else 'FAIL'}  "
         f"(min r = {m1['min_recovery_r']:.3f})",
-        f"  Poor recovery demonstrated (free-β): "
-        f"{'PASS' if m3['has_poor_recovery'] else 'FAIL'}",
+        f"  Poor recovery demonstrated (free-β): " f"{'PASS' if m3['has_poor_recovery'] else 'FAIL'}",
         f"  Pathological condition (free-β > {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): "
         f"{'PASS' if m3['condition_pathological'] else 'FAIL'}",
         "=" * w,
@@ -1114,9 +1078,7 @@ def run_validation(
             "passed": smi1_pass,
             "value": float(m1["min_recovery_r"]),
             "threshold": RECOVERY_R_THRESHOLD,
-            "description": (
-                f"γ_V and Πⁱ_baseline jointly recoverable (min r > {RECOVERY_R_THRESHOLD})"
-            ),
+            "description": (f"γ_V and Πⁱ_baseline jointly recoverable (min r > {RECOVERY_R_THRESHOLD})"),
             "details": {
                 "recovery_r": m1["recovery_r"],
                 "convergence_rate": m1["convergence_rate"],
@@ -1127,9 +1089,7 @@ def run_validation(
             "passed": smi2_pass,
             "value": float(m2["condition_number"]),
             "threshold": CONDITION_NUMBER_RESOLVED_MAX,
-            "description": (
-                f"FIM block-diagonal; condition number < {CONDITION_NUMBER_RESOLVED_MAX}"
-            ),
+            "description": (f"FIM block-diagonal; condition number < {CONDITION_NUMBER_RESOLVED_MAX}"),
             "details": {
                 "condition_number": m2["condition_number"],
                 "block_diagonal_pass": m2["block_diagonal_pass"],
@@ -1141,8 +1101,7 @@ def run_validation(
             "value": float(m3["condition_number"]),
             "threshold": CONDITION_NUMBER_PATHOLOGICAL_MIN,
             "description": (
-                f"Free-β pathological: poor recovery and "
-                f"condition number > {CONDITION_NUMBER_PATHOLOGICAL_MIN}"
+                f"Free-β pathological: poor recovery and " f"condition number > {CONDITION_NUMBER_PATHOLOGICAL_MIN}"
             ),
             "details": {
                 "condition_number": m3["condition_number"],
@@ -1180,11 +1139,7 @@ def run_validation(
                     passed=v["passed"],
                     value=v.get("value"),
                     threshold=v.get("threshold"),
-                    status=(
-                        PredictionStatus.PASSED
-                        if v["passed"]
-                        else PredictionStatus.FAILED
-                    ),
+                    status=(PredictionStatus.PASSED if v["passed"] else PredictionStatus.FAILED),
                     name=k,
                 )
                 for k, v in named_predictions.items()
@@ -1221,12 +1176,8 @@ def main(**kwargs: Any) -> Dict[str, Any]:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="APGI Somatic Marker Identifiability — two-session estimation"
-    )
-    parser.add_argument(
-        "--n", type=int, default=30, help="Number of simulated subjects (default 30)"
-    )
+    parser = argparse.ArgumentParser(description="APGI Somatic Marker Identifiability — two-session estimation")
+    parser.add_argument("--n", type=int, default=30, help="Number of simulated subjects (default 30)")
     parser.add_argument(
         "--seed",
         type=int,
@@ -1234,9 +1185,7 @@ if __name__ == "__main__":
         help=f"Random seed (default {RANDOM_SEED})",
     )
     parser.add_argument("--quiet", action="store_true", help="Suppress output")
-    parser.add_argument(
-        "--output-dir", type=str, default=None, help="Directory for PNG figure output"
-    )
+    parser.add_argument("--output-dir", type=str, default=None, help="Directory for PNG figure output")
     args = parser.parse_args()
 
     logging.basicConfig(

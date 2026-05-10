@@ -149,9 +149,7 @@ class DatabaseTransactionTester:
 
         try:
             if isolation_level:
-                conn.execute(
-                    f"PRAGMA read_uncommitted = {1 if isolation_level == 'READ UNCOMMITTED' else 0}"
-                )
+                conn.execute(f"PRAGMA read_uncommitted = {1 if isolation_level == 'READ UNCOMMITTED' else 0}")
 
             conn.execute("BEGIN")
             yield conn
@@ -277,9 +275,7 @@ class DatabaseTransactionTester:
 
         return results
 
-    def test_connection_pool_exhaustion(
-        self, num_threads: int = 10
-    ) -> ConnectionPoolStats:
+    def test_connection_pool_exhaustion(self, num_threads: int = 10) -> ConnectionPoolStats:
         """Test connection pool exhaustion behavior."""
         barrier = threading.Barrier(num_threads)
 
@@ -325,16 +321,10 @@ class DatabaseTransactionTester:
             t.join()
 
         # Calculate stats
-        valid_results: List[Dict[str, Any]] = [
-            r for r in thread_results if r is not None
-        ]
+        valid_results: List[Dict[str, Any]] = [r for r in thread_results if r is not None]
         successful = sum(1 for r in valid_results if r["got_connection"])
         failed = num_threads - successful
-        avg_wait = (
-            sum(r["wait_time_ms"] for r in valid_results) / len(valid_results)
-            if valid_results
-            else 0
-        )
+        avg_wait = sum(r["wait_time_ms"] for r in valid_results) / len(valid_results) if valid_results else 0
 
         return ConnectionPoolStats(
             total_connections=self.max_pool_size,
@@ -424,9 +414,7 @@ class DatabaseTransactionTester:
             conn = sqlite3.connect(self.db_path)
             try:
                 conn.execute("BEGIN")
-                cursor = conn.execute(
-                    "SELECT * FROM test_data WHERE value = 'uncommitted'"
-                )
+                cursor = conn.execute("SELECT * FROM test_data WHERE value = 'uncommitted'")
                 rows = cursor.fetchall()
 
                 # If we see the uncommitted row, dirty read occurred
@@ -452,9 +440,7 @@ class DatabaseTransactionTester:
         """Test that lost updates are prevented."""
         # Setup: Create account with balance
         conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            "INSERT INTO accounts (id, balance, name) VALUES (1, 100.0, 'test')"
-        )
+        conn.execute("INSERT INTO accounts (id, balance, name) VALUES (1, 100.0, 'test')")
         conn.commit()
         conn.close()
 
@@ -469,9 +455,7 @@ class DatabaseTransactionTester:
                 balance = cursor.fetchone()[0]
 
                 new_balance = balance + 10
-                conn.execute(
-                    "UPDATE accounts SET balance = ? WHERE id = 1", (new_balance,)
-                )
+                conn.execute("UPDATE accounts SET balance = ? WHERE id = 1", (new_balance,))
                 conn.commit()
 
                 with lock:
@@ -563,9 +547,7 @@ class DatabaseTransactionTester:
         print("\n[DB Test 2/3] Connection pool exhaustion...")
         pool_stats = self.test_connection_pool_exhaustion(num_threads=10)
         pool_passed = pool_stats.waiting_requests > 0  # Should have some waits
-        print(
-            f"  {'✓' if pool_passed else '✗'} Pool exhaustion test (exhausted: {pool_stats.exhausted_events})"
-        )
+        print(f"  {'✓' if pool_passed else '✗'} Pool exhaustion test (exhausted: {pool_stats.exhausted_events})")
 
         # Test 3: Transaction isolation
         print("\n[DB Test 3/3] Transaction isolation levels...")
@@ -617,9 +599,7 @@ class DatabaseTransactionTester:
         print(f"Commit/Rollback: {'✓' if commit_passed else '✗'}")
         print(f"Pool Exhaustion: {'✓' if pool_passed else '✗'}")
         print(f"Isolation Tests: {'✓' if isolation_passed else '✗'}")
-        print(
-            f"\nOverall: {'✅ All tests passed' if report['summary']['all_passed'] else '⚠️ Some tests failed'}"
-        )
+        print(f"\nOverall: {'✅ All tests passed' if report['summary']['all_passed'] else '⚠️ Some tests failed'}")
 
         return report
 

@@ -97,28 +97,20 @@ class ProtocolResult(BaseModel):
         return cls.model_validate(data)
 
     @classmethod
-    def from_legacy_format(
-        cls, protocol_name: str, legacy_result: dict
-    ) -> "ProtocolResult":
+    def from_legacy_format(cls, protocol_name: str, legacy_result: dict) -> "ProtocolResult":
         """Convert old-format results to standardized schema."""
         # Detect and extract named_predictions from various legacy formats
         named_preds_raw = {}
 
-        if isinstance(legacy_result, dict):
-            if "named_predictions" in legacy_result:
-                named_preds_raw = legacy_result["named_predictions"]
-            elif "results" in legacy_result and isinstance(
-                legacy_result["results"], dict
-            ):
-                if "named_predictions" in legacy_result["results"]:
-                    named_preds_raw = legacy_result["results"]["named_predictions"]
-                else:
-                    named_preds_raw = legacy_result["results"]
-            elif any(
-                k.startswith(("P", "F", "fp")) and len(k) > 1
-                for k in legacy_result.keys()
-            ):
-                named_preds_raw = legacy_result
+        if "named_predictions" in legacy_result:
+            named_preds_raw = legacy_result["named_predictions"]
+        elif "results" in legacy_result and isinstance(legacy_result["results"], dict):
+            if "named_predictions" in legacy_result["results"]:
+                named_preds_raw = legacy_result["results"]["named_predictions"]
+            else:
+                named_preds_raw = legacy_result["results"]
+        elif any(k.startswith(("P", "F", "fp")) and len(k) > 1 for k in legacy_result.keys()):
+            named_preds_raw = legacy_result
 
         # Convert raw predictions to PredictionResult objects
         named_preds = {}
@@ -128,15 +120,12 @@ class ProtocolResult(BaseModel):
             elif isinstance(pred_value, bool):
                 named_preds[pred_id] = PredictionResult(passed=pred_value)
             elif isinstance(pred_value, (int, float)):
-                named_preds[pred_id] = PredictionResult(
-                    passed=bool(pred_value), value=pred_value
-                )
+                named_preds[pred_id] = PredictionResult(passed=bool(pred_value), value=pred_value)
             elif isinstance(pred_value, dict):
                 named_preds[pred_id] = PredictionResult(**pred_value)
             else:
                 named_preds[pred_id] = PredictionResult(passed=bool(pred_value))
 
-        # Build metadata from legacy result, including top-level fields
         metadata = legacy_result.get("metadata", {}).copy()
         # Copy legacy top-level fields into metadata if not already present
         for field in ["status", "message", "passed", "results"]:
@@ -147,12 +136,8 @@ class ProtocolResult(BaseModel):
             protocol_id=protocol_name,
             timestamp=legacy_result.get("timestamp", datetime.now().isoformat()),
             named_predictions=named_preds,
-            completion_percentage=legacy_result.get(
-                "completion_percentage", legacy_result.get("completion", 0)
-            ),
-            data_sources=legacy_result.get(
-                "data_sources", legacy_result.get("sources", [])
-            ),
+            completion_percentage=legacy_result.get("completion_percentage", legacy_result.get("completion", 0)),
+            data_sources=legacy_result.get("data_sources", legacy_result.get("sources", [])),
             methodology=legacy_result.get("methodology", "unknown"),
             errors=legacy_result.get("errors", []),
             metadata=metadata,

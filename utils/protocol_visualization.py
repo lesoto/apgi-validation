@@ -35,9 +35,7 @@ class ProtocolVisualizer:
 
         # Set output directory
         if output_dir is None:
-            self.output_dir = (
-                Path(__file__).parent.parent / "results" / "visualizations"
-            )
+            self.output_dir = Path(__file__).parent.parent / "results" / "visualizations"
         else:
             self.output_dir = Path(output_dir)
 
@@ -47,9 +45,7 @@ class ProtocolVisualizer:
     def create_summary_plot(self, results: Dict[str, Any]) -> bool:
         """Create a standardized summary plot for protocol results"""
         if not HAS_MATPLOTLIB:
-            logger.warning(
-                f"Matplotlib not available for {self.protocol_name} visualization"
-            )
+            logger.warning(f"Matplotlib not available for {self.protocol_name} visualization")
             return False
 
         try:
@@ -79,9 +75,7 @@ class ProtocolVisualizer:
             plt.savefig(self.output_path, dpi=300, bbox_inches="tight")
             plt.close()
 
-            logger.info(
-                f"Saved {self.protocol_name} visualization to {self.output_path}"
-            )
+            logger.info(f"Saved {self.protocol_name} visualization to {self.output_path}")
             return True
 
         except Exception as e:
@@ -139,9 +133,7 @@ class ProtocolVisualizer:
             labels = ["Passed", "Failed"]
             colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
 
-            wedges, texts, autotexts = ax.pie(
-                sizes, labels=labels, colors=colors, autopct="%d%%"
-            )
+            wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct="%d%%")
             ax.set_title(f"Criteria ({passed}/{total} Passed)")
         else:
             ax.text(0.5, 0.5, "No Criteria", ha="center", va="center")
@@ -211,9 +203,7 @@ class ProtocolVisualizer:
         # Add timestamp
         from datetime import datetime
 
-        summary_text.append(
-            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        summary_text.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Display as text
         ax.text(
@@ -232,9 +222,7 @@ class ProtocolVisualizer:
     def create_custom_plot(self, plot_func, title: str = None) -> bool:
         """Create a custom plot using a provided function"""
         if not HAS_MATPLOTLIB:
-            logger.warning(
-                f"Matplotlib not available for {self.protocol_name} visualization"
-            )
+            logger.warning(f"Matplotlib not available for {self.protocol_name} visualization")
             return False
 
         try:
@@ -243,30 +231,22 @@ class ProtocolVisualizer:
             # Call the custom plotting function
             if plot_func(fig, ax):
                 if title:
-                    ax.set_title(
-                        f"{self.protocol_name}: {title}", fontsize=16, fontweight="bold"
-                    )
+                    ax.set_title(f"{self.protocol_name}: {title}", fontsize=16, fontweight="bold")
                 else:
-                    ax.set_title(
-                        f"{self.protocol_name} Results", fontsize=16, fontweight="bold"
-                    )
+                    ax.set_title(f"{self.protocol_name} Results", fontsize=16, fontweight="bold")
 
                 plt.tight_layout()
                 plt.savefig(self.output_path, dpi=300, bbox_inches="tight")
                 plt.close()
 
-                logger.info(
-                    f"Saved custom {self.protocol_name} visualization to {self.output_path}"
-                )
+                logger.info(f"Saved custom {self.protocol_name} visualization to {self.output_path}")
                 return True
             else:
                 plt.close()
                 return False
 
         except Exception as e:
-            logger.error(
-                f"Failed to create custom {self.protocol_name} visualization: {e}"
-            )
+            logger.error(f"Failed to create custom {self.protocol_name} visualization: {e}")
             return False
 
 

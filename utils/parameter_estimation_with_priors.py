@@ -191,23 +191,17 @@ class HybridCalibrator:
         # Always compute AG ratio
         self.ag_result = self.ag_prior.compute_alpha_gamma_ratio(eeg_data, fs)
 
-        if (
-            self.ag_result.calibration_valid
-            and self.ag_result.pi_i_confidence >= min_ag_confidence
-        ):
+        if self.ag_result.calibration_valid and self.ag_result.pi_i_confidence >= min_ag_confidence:
             sources.append("ag_ratio")
             estimates.append(self.ag_result.pi_i_physiological)
             confidences.append(self.ag_result.pi_i_confidence)
             logger.info(
-                f"AG Ratio: Πi={self.ag_result.pi_i_physiological:.3f}, "
-                f"conf={self.ag_result.pi_i_confidence:.2f}"
+                f"AG Ratio: Πi={self.ag_result.pi_i_physiological:.3f}, " f"conf={self.ag_result.pi_i_confidence:.2f}"
             )
 
         # Add HEP if ECG available
         if ecg_data is not None:
-            self.hep_result = self.hep_calibrator.run_calibration(
-                eeg_data, ecg_data, fs
-            )
+            self.hep_result = self.hep_calibrator.run_calibration(eeg_data, ecg_data, fs)
 
             if self.hep_result.calibration_success:
                 # Convert HEP uncertainty to confidence
@@ -215,10 +209,7 @@ class HybridCalibrator:
                 sources.append("hep_calibration")
                 estimates.append(self.hep_result.pi_i_fixed)
                 confidences.append(hep_confidence)
-                logger.info(
-                    f"HEP Cal: Πi={self.hep_result.pi_i_fixed:.3f}, "
-                    f"conf={hep_confidence:.2f}"
-                )
+                logger.info(f"HEP Cal: Πi={self.hep_result.pi_i_fixed:.3f}, " f"conf={hep_confidence:.2f}")
 
         # Compute weighted average
         if len(estimates) == 0:
@@ -289,9 +280,7 @@ class APGIPhysiologicalEstimator:
         Returns:
             True if calibration successful
         """
-        pi_i, confidence, source = self.hybrid_calibrator.calibrate_hybrid(
-            resting_eeg, resting_ecg, fs, min_confidence
-        )
+        pi_i, confidence, source = self.hybrid_calibrator.calibrate_hybrid(resting_eeg, resting_ecg, fs, min_confidence)
 
         if confidence >= min_confidence:
             self.pi_i_fixed = pi_i
@@ -307,9 +296,7 @@ class APGIPhysiologicalEstimator:
             logger.info(f"Calibration successful: Πi={pi_i:.3f} from {source}")
             return True
         else:
-            logger.warning(
-                f"Calibration failed: confidence {confidence:.2f} < {min_confidence}"
-            )
+            logger.warning(f"Calibration failed: confidence {confidence:.2f} < {min_confidence}")
             return False
 
     def estimate_beta_from_task_hep(
@@ -335,9 +322,7 @@ class APGIPhysiologicalEstimator:
             raise ValueError("Must calibrate before task estimation")
 
         # Compute task HEP
-        hep_result = self.collinearity_breaker.hep_calibrator.run_calibration(
-            task_eeg, task_ecg, fs
-        )
+        hep_result = self.collinearity_breaker.hep_calibrator.run_calibration(task_eeg, task_ecg, fs)
 
         if not hep_result.calibration_success:
             logger.warning("Task HEP computation failed, returning default β")

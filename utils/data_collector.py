@@ -57,9 +57,7 @@ class DataCollector:
         self._init_database()
 
         if apgi_logger:
-            apgi_logger.logger.info(
-                f"Data collector initialized with {collection_interval}s interval"
-            )
+            apgi_logger.logger.info(f"Data collector initialized with {collection_interval}s interval")
 
     def _init_database(self):
         """Initialize database tables if they don't exist."""
@@ -126,9 +124,7 @@ class DataCollector:
 
         self._collection_active = True
         self._stop_event.clear()
-        self._collection_thread = threading.Thread(
-            target=self._collection_loop, daemon=True
-        )
+        self._collection_thread = threading.Thread(target=self._collection_loop, daemon=True)
         self._collection_thread.start()
 
         if apgi_logger:
@@ -177,12 +173,34 @@ class DataCollector:
         try:
             metrics = {
                 "timestamp": datetime.now().isoformat(),
-                "cpu_percent": psutil.cpu_percent(interval=None),
-                "memory_percent": psutil.virtual_memory().percent,
-                "memory_used_gb": psutil.virtual_memory().used / (1024**3),
-                "disk_usage_percent": psutil.disk_usage("/").percent,
-                "network_connections": len(psutil.net_connections()),
             }
+
+            # Collect CPU metrics with fallback
+            try:
+                metrics["cpu_percent"] = psutil.cpu_percent(interval=None)
+            except Exception:
+                metrics["cpu_percent"] = 0.0
+
+            # Collect memory metrics with fallback
+            try:
+                memory = psutil.virtual_memory()
+                metrics["memory_percent"] = memory.percent
+                metrics["memory_used_gb"] = memory.used / (1024**3)
+            except Exception:
+                metrics["memory_percent"] = 0.0
+                metrics["memory_used_gb"] = 0.0
+
+            # Collect disk usage with fallback
+            try:
+                metrics["disk_usage_percent"] = psutil.disk_usage("/").percent
+            except Exception:
+                metrics["disk_usage_percent"] = 0.0
+
+            # Collect network connections with fallback
+            try:
+                metrics["network_connections"] = len(psutil.net_connections())
+            except Exception:
+                metrics["network_connections"] = 0
 
             # Add load average for Unix systems
             try:
@@ -200,6 +218,25 @@ class DataCollector:
         except Exception as e:
             if apgi_logger:
                 apgi_logger.logger.error(f"Error collecting system metrics: {e}")
+            # Don't re-raise, just continue with default values
+            try:
+                fallback_metrics = {
+                    "timestamp": datetime.now().isoformat(),
+                    "cpu_percent": 0.0,
+                    "memory_percent": 0.0,
+                    "memory_used_gb": 0.0,
+                    "disk_usage_percent": 0.0,
+                    "network_connections": 0,
+                    "load_average": None,
+                }
+                self._store_system_metrics(fallback_metrics)
+            except (ImportError, RuntimeError, OSError):
+                # Log the error but don't crash the monitoring system
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to collect system metrics: {type(e).__name__}")
+                self._store_system_metrics(fallback_metrics)
 
     def _store_system_metrics(self, metrics: Dict[str, Any]):
         """Store system metrics in database."""
@@ -251,9 +288,7 @@ class DataCollector:
 
                 except Exception as e:
                     if apgi_logger:
-                        apgi_logger.logger.warning(
-                            f"Error parsing log file {log_file}: {e}"
-                        )
+                        apgi_logger.logger.warning(f"Error parsing log file {log_file}: {e}")
 
         except Exception as e:
             if apgi_logger:
@@ -267,10 +302,7 @@ class DataCollector:
                     line = line.strip()
 
                     # Look for performance-related log entries
-                    if any(
-                        keyword in line.lower()
-                        for keyword in ["performance", "execution", "timing"]
-                    ):
+                    if any(keyword in line.lower() for keyword in ["performance", "execution", "timing"]):
                         self._extract_performance_metric(line)
 
         except Exception as e:
@@ -307,14 +339,10 @@ class DataCollector:
                 for i, part in enumerate(parts):
                     if "memory" in part.lower() and i + 1 < len(parts):
                         try:
-                            mem_value = float(
-                                parts[i + 1].replace("MB", "").replace("GB", "")
-                            )
+                            mem_value = float(parts[i + 1].replace("MB", "").replace("GB", ""))
                             if "GB" in parts[i + 1]:
                                 mem_value *= 1024  # Convert to MB
-                            self._store_performance_metric(
-                                timestamp, "memory", "usage", mem_value, "MB"
-                            )
+                            self._store_performance_metric(timestamp, "memory", "usage", mem_value, "MB")
                         except ValueError:
                             pass
 
@@ -322,9 +350,7 @@ class DataCollector:
             if apgi_logger:
                 apgi_logger.logger.debug(f"Error extracting performance metric: {e}")
 
-    def _store_performance_metric(
-        self, timestamp: str, category: str, name: str, value: float, unit: str
-    ):
+    def _store_performance_metric(self, timestamp: str, category: str, name: str, value: float, unit: str):
         """Store performance metric in database."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -363,9 +389,7 @@ class DataCollector:
 
                 except Exception as e:
                     if apgi_logger:
-                        apgi_logger.logger.warning(
-                            f"Error processing result file {result_file}: {e}"
-                        )
+                        apgi_logger.logger.warning(f"Error processing result file {result_file}: {e}")
 
         except Exception as e:
             if apgi_logger:
@@ -407,9 +431,7 @@ class DataCollector:
             tests_passed = data.get("tests_passed", 0)
             tests_failed = data.get("tests_failed", 0)
             success_rate = (
-                (tests_passed / (tests_passed + tests_failed) * 100)
-                if (tests_passed + tests_failed) > 0
-                else 0
+                (tests_passed / (tests_passed + tests_failed) * 100) if (tests_passed + tests_failed) > 0 else 0
             )
             error_message = data.get("error_message", "")
 
@@ -500,8 +522,12 @@ class DataCollector:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
+                # Validate table name to prevent SQL injection
+                if not table.replace("_", "").isalnum():
+                    raise ValueError(f"Invalid table name: {table}")
+
                 cursor.execute(
-                    f"""
+                    """
                     SELECT * FROM {table} 
                     WHERE timestamp >= ?
                     ORDER BY timestamp DESC
@@ -527,17 +553,21 @@ class DataCollector:
                 # Clean up old data from each table
                 tables = ["system_metrics", "validation_results", "performance_metrics"]
                 for table in tables:
+                    # Validate table name to prevent SQL injection
+                    if not table.replace("_", "").isalnum():
+                        raise ValueError(f"Invalid table name: {table}")
+
                     cursor.execute(
-                        f"DELETE FROM {table} WHERE timestamp < ?",
+                        """
+                        DELETE FROM {table} WHERE timestamp < ?
+                        """,
                         (cutoff_time.isoformat(),),
                     )
 
                 conn.commit()
 
                 if apgi_logger:
-                    apgi_logger.logger.info(
-                        f"Cleaned up data older than {days_to_keep} days"
-                    )
+                    apgi_logger.logger.info(f"Cleaned up data older than {days_to_keep} days")
 
         except Exception as e:
             if apgi_logger:

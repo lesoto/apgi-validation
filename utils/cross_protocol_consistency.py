@@ -127,9 +127,7 @@ class CrossProtocolConsistencyChecker:
             # Check if p-values are consistent (within 0.01 tolerance)
             p_consistent = max(p_values) - min(p_values) < 0.01
 
-            criterion_consistent = (
-                all_consistent and thresholds_consistent and p_consistent
-            )
+            criterion_consistent = all_consistent and thresholds_consistent and p_consistent
 
             consistency_results["criteria_consistency"][criterion] = {
                 "consistent": criterion_consistent,
@@ -159,9 +157,7 @@ class CrossProtocolConsistencyChecker:
 
         # Calculate overall consistency score
         if total_checks > 0:
-            consistency_results["overall_consistency_score"] = (
-                consistent_count / total_checks
-            )
+            consistency_results["overall_consistency_score"] = consistent_count / total_checks
         else:
             consistency_results["overall_consistency_score"] = 0.0
 
@@ -228,9 +224,7 @@ class CrossProtocolConsistencyChecker:
                 continue  # Need at least 2 protocols to compare
 
             # Calculate coefficient of variation (CV)
-            param_values_list = [
-                param_data[protocol] for protocol in protocols_with_param
-            ]
+            param_values_list = [param_data[protocol] for protocol in protocols_with_param]
             mean_param = np.mean(param_values_list)
             std_param = np.std(param_values_list)
             cv = std_param / mean_param if mean_param != 0 else 0
@@ -283,9 +277,7 @@ class CrossProtocolConsistencyChecker:
 
         # Calculate overall consistency score
         if total_checks > 0:
-            parameter_results["overall_consistency_score"] = (
-                consistent_count / total_checks
-            )
+            parameter_results["overall_consistency_score"] = consistent_count / total_checks
         else:
             parameter_results["overall_consistency_score"] = 0.0
 
@@ -331,9 +323,7 @@ class CrossProtocolConsistencyChecker:
                 if "thresholds" in results:
                     threshold_value = results["thresholds"].get(threshold, None)
                 elif "statistical_thresholds" in results:
-                    threshold_value = results["statistical_thresholds"].get(
-                        threshold, None
-                    )
+                    threshold_value = results["statistical_thresholds"].get(threshold, None)
                 elif "criteria" in results:
                     for criterion_data in results["criteria"].values():
                         if "threshold" in criterion_data:
@@ -352,9 +342,7 @@ class CrossProtocolConsistencyChecker:
                             if numeric_match:
                                 threshold_value = float(numeric_match.group(1))
                             else:
-                                raise ValueError(
-                                    "No numeric value found in threshold string"
-                                )
+                                raise ValueError("No numeric value found in threshold string")
                         else:
                             threshold_value = float(threshold_value)
                         threshold_values[threshold][protocol_name] = threshold_value
@@ -374,20 +362,13 @@ class CrossProtocolConsistencyChecker:
                 continue  # Need at least 2 protocols to compare
 
             # Check if threshold values are consistent (within 0.01 tolerance)
-            threshold_values_list = [
-                threshold_data[protocol] for protocol in protocols_with_threshold
-            ]
+            threshold_values_list = [threshold_data[protocol] for protocol in protocols_with_threshold]
 
             # Check if all values are close to target
-            all_close_to_target = all(
-                abs(tv - target_value) < 0.01 for tv in threshold_values_list
-            )
+            all_close_to_target = all(abs(tv - target_value) < 0.01 for tv in threshold_values_list)
 
             # Check if all values are consistent with each other
-            all_close_to_each_other = all(
-                abs(tv - threshold_values_list[0]) < 0.01
-                for tv in threshold_values_list[1:]
-            )
+            all_close_to_each_other = all(abs(tv - threshold_values_list[0]) < 0.01 for tv in threshold_values_list[1:])
 
             threshold_consistent = all_close_to_target and all_close_to_each_other
 
@@ -416,9 +397,7 @@ class CrossProtocolConsistencyChecker:
 
         # Calculate overall consistency score
         if total_checks > 0:
-            threshold_results["overall_consistency_score"] = (
-                consistent_count / total_checks
-            )
+            threshold_results["overall_consistency_score"] = consistent_count / total_checks
         else:
             threshold_results["overall_consistency_score"] = 0.0
 
@@ -519,12 +498,8 @@ class CrossProtocolConsistencyChecker:
         pipeline_results["statistical_tests_used"] = list(statistical_tests_used)
 
         # Calculate pipeline consistency score
-        preprocessing_score = sum(preprocessing_checks.values()) / len(
-            preprocessing_checks
-        )
-        statistical_score = (
-            len(statistical_tests_used) / 10
-        )  # At least 10 different tests
+        preprocessing_score = sum(preprocessing_checks.values()) / len(preprocessing_checks)
+        statistical_score = len(statistical_tests_used) / 10  # At least 10 different tests
         overall_score = (preprocessing_score + statistical_score) / 2
 
         pipeline_results["overall_consistency_score"] = overall_score
@@ -615,9 +590,7 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
     }
 
 
-def validate_cross_protocol_coupling(
-    fp_results: Dict[str, Dict], vp_results: Dict[str, Dict]
-) -> Dict[str, Any]:
+def validate_cross_protocol_coupling(fp_results: Dict[str, Dict], vp_results: Dict[str, Dict]) -> Dict[str, Any]:
     """
     Run all cross-protocol coupling validations (Gap 8).
 
@@ -664,9 +637,7 @@ def validate_cross_protocol_coupling(
                     "FP-01/VP-10 coupling error: TMS effects don't align with active inference dynamics"
                 )
     else:
-        coupling_results["errors"].append(
-            "Missing FP-01 or VP-10 results for coupling check"
-        )
+        coupling_results["errors"].append("Missing FP-01 or VP-10 results for coupling check")
 
     # Summary
     coupling_results["overall_passed"] = coupling_results["failed_checks"] == 0
@@ -741,21 +712,13 @@ if __name__ == "__main__":
 
     print("\nConsistency Report:")
     print("-" * 50)
-    print(
-        f"Overall consistency score: {report['summary']['overall_consistency_score']:.3f}"
-    )
+    print(f"Overall consistency score: {report['summary']['overall_consistency_score']:.3f}")
     print(f"Total inconsistencies: {report['summary']['total_inconsistencies']}")
 
     print("\nDetailed Results:")
-    print(
-        f"Criteria consistency: {report['criteria_consistency']['overall_consistency_score']:.3f}"
-    )
-    print(
-        f"Parameter consistency: {report['parameter_consistency']['overall_consistency_score']:.3f}"
-    )
-    print(
-        f"Threshold consistency: {report['threshold_consistency']['overall_consistency_score']:.3f}"
-    )
+    print(f"Criteria consistency: {report['criteria_consistency']['overall_consistency_score']:.3f}")
+    print(f"Parameter consistency: {report['parameter_consistency']['overall_consistency_score']:.3f}")
+    print(f"Threshold consistency: {report['threshold_consistency']['overall_consistency_score']:.3f}")
 
     if report["summary"]["total_inconsistencies"] > 0:
         print("\nInconsistencies found:")

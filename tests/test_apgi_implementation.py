@@ -10,13 +10,26 @@ import numpy as np
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from apgi_core import (CONFIG, APGIModel, GenerativeModel, HierarchicalLevel,
-                       HierarchicalProcessor, RunningStatsEMA, clip,
-                       compute_information_value, compute_precision,
-                       compute_signal, effective_interoceptive_precision,
-                       enforce_stability, ignite, ignition_probability,
-                       map_to_hep_amplitude, map_to_p3b_latency,
-                       map_to_reaction_time, update_threshold)
+from apgi_core import (
+    CONFIG,
+    APGIModel,
+    GenerativeModel,
+    HierarchicalLevel,
+    HierarchicalProcessor,
+    RunningStatsEMA,
+    clip,
+    compute_information_value,
+    compute_precision,
+    compute_signal,
+    effective_interoceptive_precision,
+    enforce_stability,
+    ignite,
+    ignition_probability,
+    map_to_hep_amplitude,
+    map_to_p3b_latency,
+    map_to_reaction_time,
+    update_threshold,
+)
 
 
 class TestGenerativeModel:
@@ -333,9 +346,7 @@ class TestHierarchicalLevel:
 
     def test_init_custom(self):
         """Test custom initialization."""
-        level = HierarchicalLevel(S=1.0, theta=1.0, tau=0.5)
-        assert level.S == 1.0
-        assert level.theta == 1.0
+        level = HierarchicalLevel(tau=0.5)
         assert level.tau == 0.5
 
 

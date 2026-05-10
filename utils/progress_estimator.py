@@ -70,9 +70,7 @@ class ProgressEstimator:
         self._notify_progress(operation_id)
         return progress_info
 
-    def update_progress(
-        self, operation_id: str, current_step: int, message: str = ""
-    ) -> Optional[ProgressInfo]:
+    def update_progress(self, operation_id: str, current_step: int, message: str = "") -> Optional[ProgressInfo]:
         """Update progress for an operation."""
         if operation_id not in self.operations:
             return None
@@ -93,9 +91,7 @@ class ProgressEstimator:
         self._notify_progress(operation_id)
         return progress_info
 
-    def complete_operation(
-        self, operation_id: str, message: str = "Completed"
-    ) -> Optional[ProgressInfo]:
+    def complete_operation(self, operation_id: str, message: str = "Completed") -> Optional[ProgressInfo]:
         """Mark an operation as completed."""
         if operation_id not in self.operations:
             return None

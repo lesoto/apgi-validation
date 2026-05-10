@@ -25,8 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import APGI modules for property-based testing
 try:
-    from apgi_core.equations import (DynamicalSystemEquations,
-                                     FoundationalEquations)
+    from apgi_core.equations import DynamicalSystemEquations, FoundationalEquations
     from Theory.APGI_Parameter_Estimation import generate_synthetic_dataset
     from utils.data_validation import DataValidator
 
@@ -81,9 +80,7 @@ def compute_entropy(distribution: np.ndarray) -> float:
 class TestMathematicalProperties:
     """Test mathematical properties and invariants."""
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=-1e6, max_value=1e6),
         strategies.floats(min_value=-1e6, max_value=1e6),
@@ -97,9 +94,7 @@ class TestMathematicalProperties:
         # Should be equal (within numerical precision)
         assert np.isclose(error1, -error2, rtol=1e-10)
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=-1e6, max_value=1e6, allow_nan=False),
         strategies.floats(min_value=1e-10, max_value=1e6, allow_nan=False),
@@ -112,9 +107,7 @@ class TestMathematicalProperties:
         expected = error / std
         assert np.isclose(z, expected, rtol=1e-10)
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=1e-10, max_value=1e6, allow_nan=False),
     )
@@ -155,9 +148,7 @@ class TestMathematicalProperties:
         assert cost >= 0
 
     @given(
-        np_st.arrays(
-            dtype=np.float64, shape=strategies.integers(min_value=1, max_value=10)
-        ),
+        np_st.arrays(dtype=np.float64, shape=strategies.integers(min_value=1, max_value=10)),
     )
     def test_entropy_non_negative(self, distribution):
         """Test that entropy is always non-negative."""
@@ -165,9 +156,7 @@ class TestMathematicalProperties:
         assert entropy >= 0
 
     @given(
-        np_st.arrays(
-            dtype=np.float64, shape=strategies.integers(min_value=2, max_value=10)
-        ),
+        np_st.arrays(dtype=np.float64, shape=strategies.integers(min_value=2, max_value=10)),
     )
     def test_entropy_maximum_uniform(self, distribution):
         """Test that entropy is maximized for uniform distribution."""
@@ -184,9 +173,7 @@ class TestMathematicalProperties:
 class TestNumericalStabilityProperties:
     """Test numerical stability and edge cases."""
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=1e-10, max_value=1e-10),
         strategies.floats(min_value=1e-10, max_value=1e-10),
@@ -200,9 +187,7 @@ class TestNumericalStabilityProperties:
         except (OverflowError, ZeroDivisionError):
             pytest.fail("Should handle extreme small values gracefully")
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=1e6, max_value=1e6),
         strategies.floats(min_value=1e6, max_value=1e6),
@@ -243,9 +228,7 @@ class TestNumericalStabilityProperties:
 class TestConsistencyProperties:
     """Test consistency across different computations."""
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=-10, max_value=10),
         strategies.floats(min_value=0.1, max_value=10.0),
@@ -287,9 +270,7 @@ class TestConsistencyProperties:
 class TestParameterValidationProperties:
     """Test parameter validation properties."""
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=-100, max_value=100),
         strategies.floats(min_value=-100, max_value=100),
@@ -301,9 +282,7 @@ class TestParameterValidationProperties:
         # Should return 0.0 when std <= 0
         assert z == 0.0
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=0, max_value=1e-15),  # Very small variance
     )
@@ -317,23 +296,16 @@ class TestParameterValidationProperties:
 class TestDataValidationProperties:
     """Test data validation properties."""
 
-    @pytest.mark.skipif(
-        "DataValidator" not in globals(), reason="DataValidator not available"
-    )
-    @given(
-        strategies.lists(
-            strategies.floats(min_value=-100, max_value=100), min_size=1, max_size=100
-        )
-    )
+    @pytest.mark.skipif("DataValidator" not in globals(), reason="DataValidator not available")
+    @given(strategies.lists(strategies.floats(min_value=-100, max_value=100), min_size=1, max_size=100))
     def test_data_validation_range_properties(self, data):
         """Test data validation range properties."""
         validator = DataValidator()
 
         # Test file format validation instead of range validation
-        result = validator.validate_file_format("dummy.csv")
+        validator.validate_file_format("dummy.csv")
 
         # Should return boolean indicating if validation passed
-        assert isinstance(result, dict)
 
     @pytest.mark.skipif(
         "generate_synthetic_dataset" not in globals(),
@@ -347,9 +319,7 @@ class TestDataValidationProperties:
         """Test synthetic dataset generation properties."""
         try:
             # Pass n_samples as n_subjects with minimal sessions for speed
-            data, metadata = generate_synthetic_dataset(
-                n_subjects=n_samples, n_sessions=1, seed=42
-            )
+            data, metadata = generate_synthetic_dataset(n_subjects=n_samples, n_sessions=1, seed=42)
             assert isinstance(data, dict)
             assert isinstance(metadata, dict)
             # Check that metadata contains the expected number of subjects
@@ -362,9 +332,7 @@ class TestDataValidationProperties:
 class TestIntegrationProperties:
     """Test integration properties across modules."""
 
-    @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
-    )
+    @pytest.mark.skipif(not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available")
     @given(
         strategies.floats(min_value=0.1, max_value=10.0),
         strategies.floats(min_value=0.1, max_value=10.0),
@@ -423,9 +391,7 @@ class TestCLIArgumentParsingInvariants:
         assert result.exit_code in [0, 1]  # 0 for success, 1 for help
 
     @given(
-        strategies.lists(
-            strategies.integers(min_value=1, max_value=10), min_size=1, max_size=5
-        ),
+        strategies.lists(strategies.integers(min_value=1, max_value=10), min_size=1, max_size=5),
     )
     def test_protocol_selection_invariants(self, protocol_numbers):
         """Test that protocol selection maintains invariants."""
@@ -434,12 +400,8 @@ class TestCLIArgumentParsingInvariants:
             assert 1 <= protocol_num <= 17  # Assuming 17 validation protocols
 
     @given(
-        strategies.floats(
-            min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False
-        ),
-        strategies.floats(
-            min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+        strategies.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     )
     def test_parameter_bounds_invariant(self, param1, param2):
         """Test that parameters maintain valid bounds."""
@@ -712,12 +674,8 @@ class TestNumericalStability:
     """Test numerical stability across parameter ranges."""
 
     @given(
-        strategies.floats(
-            min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False
-        ),
-        strategies.floats(
-            min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
+        strategies.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_addition(self, x, y):
         """Test numerical stability of addition operations."""
@@ -728,12 +686,8 @@ class TestNumericalStability:
         assert np.isfinite(result)
 
     @given(
-        strategies.floats(
-            min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False
-        ),
-        strategies.floats(
-            min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
+        strategies.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_multiplication(self, x, y):
         """Test numerical stability of multiplication operations."""
@@ -744,12 +698,8 @@ class TestNumericalStability:
         assert np.isfinite(result)
 
     @given(
-        strategies.floats(
-            min_value=1e-10, max_value=1e10, allow_nan=False, allow_infinity=False
-        ),
-        strategies.floats(
-            min_value=1e-10, max_value=1e10, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=1e-10, max_value=1e10, allow_nan=False, allow_infinity=False),
+        strategies.floats(min_value=1e-10, max_value=1e10, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_division(self, x, y):
         """Test numerical stability of division operations."""
@@ -763,9 +713,7 @@ class TestNumericalStability:
         assert np.isfinite(result)
 
     @given(
-        strategies.floats(
-            min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_sqrt(self, x):
         """Test numerical stability of square root operations."""
@@ -777,9 +725,7 @@ class TestNumericalStability:
         assert result >= 0
 
     @given(
-        strategies.floats(
-            min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_exp(self, x):
         """Test numerical stability of exponential operations."""
@@ -791,9 +737,7 @@ class TestNumericalStability:
         assert result > 0
 
     @given(
-        strategies.floats(
-            min_value=1e-10, max_value=10.0, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=1e-10, max_value=10.0, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_log(self, x):
         """Test numerical stability of logarithm operations."""
@@ -804,9 +748,7 @@ class TestNumericalStability:
         assert np.isfinite(result)
 
     @given(
-        strategies.floats(
-            min_value=0.0, max_value=2 * np.pi, allow_nan=False, allow_infinity=False
-        ),
+        strategies.floats(min_value=0.0, max_value=2 * np.pi, allow_nan=False, allow_infinity=False),
     )
     def test_numerical_stability_trig(self, x):
         """Test numerical stability of trigonometric operations."""
@@ -842,11 +784,7 @@ class TestFileFormatHandlingProperties:
         # Filter out strings with surrogate pairs that can't be encoded in UTF-8
         if "col3" in df.columns:
             df["col3"] = df["col3"].apply(
-                lambda x: (
-                    x.encode("utf-8", errors="ignore").decode("utf-8")
-                    if isinstance(x, str)
-                    else x
-                )
+                lambda x: (x.encode("utf-8", errors="ignore").decode("utf-8") if isinstance(x, str) else x)
             )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
@@ -939,9 +877,7 @@ class TestFileFormatHandlingProperties:
             Path(temp_file).unlink(missing_ok=True)
 
     @given(
-        strategies.lists(
-            strategies.integers(min_value=0, max_value=100), min_size=10, max_size=100
-        ),
+        strategies.lists(strategies.integers(min_value=0, max_value=100), min_size=10, max_size=100),
     )
     def test_file_encoding_properties(self, data_list):
         """Test file encoding properties."""
@@ -1067,13 +1003,7 @@ class TestDataIntegrityProperties:
         assert not df.isin([np.inf, -np.inf]).any().any()
 
         # All values are finite
-        assert (
-            df.applymap(
-                lambda x: np.isfinite(x) if isinstance(x, (int, float)) else True
-            )
-            .all()
-            .all()
-        )
+        assert df.applymap(lambda x: np.isfinite(x) if isinstance(x, (int, float)) else True).all().all()
 
     @given(
         pd_st.data_frames(

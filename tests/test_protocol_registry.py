@@ -13,11 +13,15 @@ import pytest
 # Ensure utils is in path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_registry import (PROTOCOL_REGISTRY, ProtocolInfo,
-                                     _initialize_registry, get_protocol_info,
-                                     get_protocol_registry,
-                                     list_available_protocols,
-                                     resolve_protocol)
+from utils.protocol_registry import (
+    PROTOCOL_REGISTRY,
+    ProtocolInfo,
+    _initialize_registry,
+    get_protocol_info,
+    get_protocol_registry,
+    list_available_protocols,
+    resolve_protocol,
+)
 
 
 class TestProtocolInfo:
@@ -243,9 +247,7 @@ class TestInitializeRegistry:
         # Check aliases work
         assert PROTOCOL_REGISTRY.get_protocol("F1") is not None  # Alias for P1
         assert PROTOCOL_REGISTRY.get_protocol("F2") is not None  # Alias for P1
-        assert (
-            PROTOCOL_REGISTRY.get_protocol("MCMC") is not None
-        )  # Alias for BayesianEstimation-MCMC
+        assert PROTOCOL_REGISTRY.get_protocol("MCMC") is not None  # Alias for BayesianEstimation-MCMC
 
 
 class TestConvenienceFunctions:

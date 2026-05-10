@@ -92,8 +92,14 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 import os
 import sys
 
+# Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utils.constants import VISUAL_CONSTANTS
+
+try:
+    from utils.constants import VISUAL_CONSTANTS
+except ImportError:
+    # Fallback if import fails
+    VISUAL_CONSTANTS = None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -193,9 +199,7 @@ def _ignition_prob_per_level(
     else:
         delta_theta = np.zeros((n_noise, 1))
     # S_eff[noise, k] = Pi_e * s[k] - Pi_i * n_i[noise, k] - theta - delta_theta
-    S_eff = (
-        Pi_e * stimulus_levels[np.newaxis, :] - Pi_i * n_i - theta - delta_theta
-    )  # (n_noise, K)
+    S_eff = Pi_e * stimulus_levels[np.newaxis, :] - Pi_i * n_i - theta - delta_theta  # (n_noise, K)
     p_ign = _sigmoid(S_eff, alpha=alpha)  # (n_noise, K)
     return np.mean(p_ign, axis=0)  # (K,)
 
@@ -382,9 +386,7 @@ class BandwidthDerivation:
 
         # Per-trial threshold jitter (non-zero for ADHD profile)
         if sigma_theta > 0.0:
-            theta_trial = theta_baseline + self.rng.normal(
-                0.0, sigma_theta, size=self.N_trials
-            )
+            theta_trial = theta_baseline + self.rng.normal(0.0, sigma_theta, size=self.N_trials)
         else:
             theta_trial = np.full(self.N_trials, theta_baseline)
 
@@ -497,9 +499,7 @@ class BandwidthDerivation:
         )  # (N, n_noise, K)
 
         # Per-parameter-set sigmoid ignition probabilities
-        p_raw = 1.0 / (
-            1.0 + np.exp(-np.clip(alpha_v[:, None, None] * S_eff, -500, 500))
-        )
+        p_raw = 1.0 / (1.0 + np.exp(-np.clip(alpha_v[:, None, None] * S_eff, -500, 500)))
         p_ign_per_level = np.mean(p_raw, axis=1)  # (N, K): P(B=1|s_k) per param set
 
         # H(B) = h_b(mean_k P(B=1|s_k))
@@ -528,6 +528,9 @@ class BandwidthDerivation:
             "bandwidth_p5": float(np.percentile(bw_gamma, 5)),
             "bandwidth_p95": float(np.percentile(bw_gamma, 95)),
             "fraction_in_35_55": float(np.mean(in_range_mask)),
+            "bootstrap_means": np.array(
+                [np.mean(np.random.choice(bw_gamma, size=len(bw_gamma), replace=True)) for _ in range(1000)]
+            ),
             "n_samples": n_samples,
         }
 
@@ -765,9 +768,7 @@ class ClinicalBandwidthResult:
 
     def summary(self) -> str:
         lines = ["Bandwidth under Clinical Perturbations (Module 3):"]
-        lines.append(
-            f"  {'Disorder':<30} {'BW [bits/s]':>12} {'ΔBW':>10} {'Deficit %':>10}"
-        )
+        lines.append(f"  {'Disorder':<30} {'BW [bits/s]':>12} {'ΔBW':>10} {'Deficit %':>10}")
         lines.append("  " + "─" * 65)
         for key in ["HC", "MDD", "ADHD", "SCZ"]:
             bw = self.bandwidth_bps.get(key, float("nan"))
@@ -846,9 +847,7 @@ class ClinicalBandwidthMapper:
             alpha=profiles["HC"].alpha,
         )
 
-        clinical_markers = {
-            k: (profiles[k].theta_baseline, profiles[k].Pi_i) for k in profiles
-        }
+        clinical_markers = {k: (profiles[k].theta_baseline, profiles[k].Pi_i) for k in profiles}
 
         return ClinicalBandwidthResult(
             bandwidth_bps=bandwidth_bps,
@@ -974,14 +973,8 @@ class BandwidthReport:
                 f"median={sw['bandwidth_median']:.1f}, "
                 f"std={sw['bandwidth_std']:.1f} bits/s"
             )
-            print(
-                f"    BW [P5, P95] = [{sw['bandwidth_p5']:.1f}, "
-                f"{sw['bandwidth_p95']:.1f}] bits/s"
-            )
-            print(
-                f"    Fraction in [35, 55] bits/s = "
-                f"{sw['fraction_in_35_55'] * 100:.1f}%"
-            )
+            print(f"    BW [P5, P95] = [{sw['bandwidth_p5']:.1f}, " f"{sw['bandwidth_p95']:.1f}] bits/s")
+            print(f"    Fraction in [35, 55] bits/s = " f"{sw['fraction_in_35_55'] * 100:.1f}%")
 
         print(f"\n{'─' * 70}")
         print("MODULE 2 — MUTUAL INFORMATION GAIN FROM PRECISION-WEIGHTING")
@@ -1208,8 +1201,7 @@ class BandwidthAnalyzer:
                 fontweight="bold",
             )
         delta_str = (
-            f"ΔI = {precision_gain.delta_I:.3f} bits\n"
-            f"{precision_gain.delta_I_pct_over_flat:.1f}% gain over flat"
+            f"ΔI = {precision_gain.delta_I:.3f} bits\n" f"{precision_gain.delta_I_pct_over_flat:.1f}% gain over flat"
         )
         ax2.text(
             0.97,

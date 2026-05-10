@@ -68,13 +68,9 @@ def bridge_to_thermodynamic(
     """
     try:
         # Import Level 1 module
-        from Theory.APGI_Thermodynamic_Program_Aggregator import (
-            run_thermodynamic_analysis,
-        )
+        from Theory.APGI_Thermodynamic_Program_Aggregator import run_thermodynamic_analysis
 
-        logger.info(
-            f"Bridge L2→L1: {module_name} → APGI_Thermodynamic_Program_Aggregator"
-        )
+        logger.info(f"Bridge L2→L1: {module_name} → APGI_Thermodynamic_Program_Aggregator")
         logger.info(f"Bridge reason: {bridge_reason}")
 
         # Validate Level 2 data structure
@@ -87,9 +83,7 @@ def bridge_to_thermodynamic(
         channel_capacity = level2_data.get("channel_capacity")
 
         if bandwidth_bits is None:
-            raise BridgeValidationError(
-                "Missing required field: bandwidth_bits_per_second"
-            )
+            raise BridgeValidationError("Missing required field: bandwidth_bits_per_second")
 
         # Run thermodynamic analysis
         thermodynamic_results = run_thermodynamic_analysis(
@@ -146,9 +140,7 @@ def bridge_to_information_theoretic(
             calculate_bandwidth_from_precision,
         )
 
-        logger.info(
-            f"Bridge L3→L2: {module_name} → APGI_Information_Theoretic_Bandwidth"
-        )
+        logger.info(f"Bridge L3→L2: {module_name} → APGI_Information_Theoretic_Bandwidth")
         logger.info(f"Bridge reason: {bridge_reason}")
 
         # Validate Level 3 data structure
@@ -167,9 +159,7 @@ def bridge_to_information_theoretic(
             "bandwidth_bits_per_second": calculate_bandwidth_from_precision(
                 precision_values=precision_values, surprise_events=ignition_events
             ),
-            "precision_weighting_gain": analyze_precision_weighting_gain(
-                precision_values=precision_values
-            ),
+            "precision_weighting_gain": analyze_precision_weighting_gain(precision_values=precision_values),
         }
 
         # Add bridge metadata
@@ -189,9 +179,7 @@ def bridge_to_information_theoretic(
         raise BridgeValidationError(f"Bridge execution failed: {e}")
 
 
-def validate_level_constraints(
-    data: Dict[str, Any], expected_level: int, module_name: str
-) -> bool:
+def validate_level_constraints(data: Dict[str, Any], expected_level: int, module_name: str) -> bool:
     """
     Validate that data conforms to expected level constraints.
 
@@ -263,9 +251,7 @@ def validate_level_constraints(
     return True
 
 
-def create_bridge_function(
-    source_level: int, target_level: int, source_module: str
-) -> Callable:
+def create_bridge_function(source_level: int, target_level: int, source_module: str) -> Callable:
     """
     Create a bridge function for specific level transition.
 
@@ -290,15 +276,11 @@ def create_bridge_function(
             bridge_reason=f"Level 2 {source_module} requires Level 1 thermodynamic analysis",
         )
     else:
-        raise BridgeValidationError(
-            f"Invalid bridge: Level {source_level} → Level {target_level} not supported"
-        )
+        raise BridgeValidationError(f"Invalid bridge: Level {source_level} → Level {target_level} not supported")
 
 
 # Example bridge function for common use cases
-def bridge_l2_to_l1_with_validation(
-    level2_data: Dict[str, Any], module_name: str
-) -> Dict[str, Any]:
+def bridge_l2_to_l1_with_validation(level2_data: Dict[str, Any], module_name: str) -> Dict[str, Any]:
     """
     Bridge from Level 2 to Level 1 with validation.
 
@@ -319,9 +301,7 @@ def bridge_l2_to_l1_with_validation(
     return bridge_to_thermodynamic(level2_data, module_name)
 
 
-def bridge_l3_to_l2_with_validation(
-    level3_data: Dict[str, Any], module_name: str
-) -> Dict[str, Any]:
+def bridge_l3_to_l2_with_validation(level3_data: Dict[str, Any], module_name: str) -> Dict[str, Any]:
     """
     Bridge from Level 3 to Level 2 with validation.
 

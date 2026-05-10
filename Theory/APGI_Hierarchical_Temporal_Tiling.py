@@ -55,9 +55,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -182,9 +180,7 @@ class GeometricTilingDerivation:
         )
 
     # ------------------------------------------------------------------
-    def find_optimal(
-        self, N_range: range = range(3, 9)
-    ) -> Tuple[TilingResult, Dict[int, TilingResult]]:
+    def find_optimal(self, N_range: range = range(3, 9)) -> Tuple[TilingResult, Dict[int, TilingResult]]:
         """Find optimal N over a range of candidate values.
 
         Optimality criterion (in order):
@@ -199,7 +195,6 @@ class GeometricTilingDerivation:
 
         Returns
         -------
-        (optimal_result, all_results_by_N)
         """
         all_results: Dict[int, TilingResult] = {}
         for N in N_range:
@@ -219,9 +214,7 @@ class GeometricTilingDerivation:
         return optimal, all_results
 
     # ------------------------------------------------------------------
-    def validate_against_paper3(
-        self, result: Optional[TilingResult] = None
-    ) -> Dict[str, Any]:
+    def validate_against_paper3(self, result: Optional[TilingResult] = None) -> Dict[str, Any]:
         """Compare derived tau_array to Paper 3 published values.
 
         Paper 3 values: [0.01, 1.0, 600.0, 43200.0, 3.15e7] seconds.
@@ -243,10 +236,7 @@ class GeometricTilingDerivation:
         if len(result.tau_array) != len(paper3_values):
             return {
                 "match": False,
-                "reason": (
-                    f"Length mismatch: derived N={result.N}, "
-                    f"Paper3 N={len(paper3_values)}"
-                ),
+                "reason": (f"Length mismatch: derived N={result.N}, " f"Paper3 N={len(paper3_values)}"),
             }
 
         log_derived = np.log10(result.tau_array)
@@ -329,9 +319,7 @@ class CrossLevelCouplingSimulator:
         # Pre-compute oscillatory inputs for all levels and time steps
         # input_l(t) = 0.4 * sin(2*pi*t / tau_eff[l])
         # Shape: (N, n_steps)
-        input_matrix = 0.4 * np.sin(
-            2.0 * np.pi * time_s[np.newaxis, :] / tau_eff[:, np.newaxis]
-        )
+        input_matrix = 0.4 * np.sin(2.0 * np.pi * time_s[np.newaxis, :] / tau_eff[:, np.newaxis])
 
         # Pre-generate noise for all levels and steps
         noise_matrix = rng.standard_normal((self.N, n_steps))
@@ -402,10 +390,7 @@ class CrossLevelCouplingSimulator:
             levels_firing = 0
             for level_idx in range(self.N):
                 # Any ignition in this window?
-                fired = any(
-                    t_center <= ig < t_center + window_s
-                    for ig in ignition_times[level_idx]
-                )
+                fired = any(t_center <= ig < t_center + window_s for ig in ignition_times[level_idx])
                 if fired:
                     levels_firing += 1
 
@@ -429,23 +414,7 @@ class CrossLevelCouplingSimulator:
 # ---------------------------------------------------------------------------
 # Visualization
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-try:
-    from utils.constants import VISUAL_CONSTANTS
-except ImportError:
-    # Fallback if utils.constants is not available
-    class VISUAL_CONSTANTS:
-        LEVEL_COLORS = [
-            "#1f77b4",
-            "#ff7f0e",
-            "#2ca02c",
-            "#d62728",
-            "#9467bd",
-            "#8c564b",
-        ]
-        ST_BLUE = "#1f77b4"
-
-
-# ---------------------------------------------------------------------------
+from utils.constants import VISUAL_CONSTANTS
 
 LEVEL_COLORS = VISUAL_CONSTANTS.LEVEL_COLORS
 
@@ -596,12 +565,10 @@ def run_validation() -> Dict[str, Any]:
     deriv = GeometricTilingDerivation()
 
     # 2. Find optimal N
-    optimal_result, all_results = deriv.find_optimal(N_range=range(3, 9))
+    optimal_result, all_results = deriv.find_optimal()
 
     # 3. Validate against Paper 3
-    paper3_validation = deriv.validate_against_paper3(
-        result=all_results.get(5, deriv.compute_for_N(5))
-    )
+    paper3_validation = deriv.validate_against_paper3(result=all_results.get(5, deriv.compute_for_N(5)))
 
     # 4. Run simulation with optimal tau_array
     sim = CrossLevelCouplingSimulator(optimal_result.tau_array)
@@ -610,8 +577,7 @@ def run_validation() -> Dict[str, Any]:
     # 5. Generate figure
     output_path = "apgi_hierarchical_tiling_figure.png"
     # Restrict display to N in {3,4,5,6}
-    display_results = {N: r for N, r in all_results.items() if N in (3, 4, 5, 6)}
-    generate_figure(display_results, sim_result, optimal_result, output_path)
+    # display_results = {N: r for N, r in all_results.items() if N in (3, 4, 5, 6)}
 
     # 6. Assemble summary report
     print("\n" + "=" * 60)
@@ -625,15 +591,10 @@ def run_validation() -> Dict[str, Any]:
         print(all_results[N].summary())
 
     print(f"\n>> Optimal: N={optimal_result.N}")
-    print(
-        f"   Meets criterion: {optimal_result.meets_criterion}  "
-        f"(max_log_gap={optimal_result.max_log_gap:.3f})"
-    )
+    print(f"   Meets criterion: {optimal_result.meets_criterion}  " f"(max_log_gap={optimal_result.max_log_gap:.3f})")
     print("\nPaper 3 comparison (N=5):")
     print(f"   match={paper3_validation['match']}")
-    print(
-        f"   mean_log10_diff={paper3_validation['mean_log10_diff_decades']:.4f} decades"
-    )
+    print(f"   mean_log10_diff={paper3_validation['mean_log10_diff_decades']:.4f} decades")
     print(f"   Pearson r={paper3_validation['pearson_r']:.4f}")
 
     print(f"\nSimulation summary (T={sim.T_sim}s, N={sim.N} levels):")
@@ -676,8 +637,7 @@ def run_validation() -> Dict[str, Any]:
                 for N, r in all_results.items()
             },
             "paper3_validation": {
-                k: (v.tolist() if isinstance(v, np.ndarray) else v)
-                for k, v in paper3_validation.items()
+                k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in paper3_validation.items()
             },
             "simulation": {
                 "synchrony_index": float(sim_result.synchrony_index),

@@ -9,12 +9,12 @@ outperform standard architectures on consciousness-relevant tasks while maintain
 energetic efficiency compatible with biological constraints.
 
 Key falsification criteria:
-- Energy consumption per correct detection ≤ 20% above baseline architectures
+    - Energy consumption per correct detection ≤ 20% above baseline architectures
 - ATP budget: ~10⁹ ATP molecules per spike (Attwell & Laughlin, 2001)
 - Performance advantage maintained under metabolic constraints
 
 This protocol implements:
-- APGI-inspired network with dual pathways, precision weighting, and ignition
+    - APGI-inspired network with dual pathways, precision weighting, and ignition
 - Comparison architectures (MLP, LSTM, Transformer-style attention)
 - Consciousness-relevant tasks (conscious/unconscious classification, etc.)
 - Comprehensive evaluation with energy falsification criteria
@@ -57,16 +57,14 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    torch = None  # type: ignore[assignment]
-    nn = None  # type: ignore[assignment]
-    DataLoader = None  # type: ignore[assignment]
-    Dataset = None  # type: ignore[assignment]
-    random_split = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment,misc]
+    nn = None  # type: ignore[assignment,misc]
+    DataLoader = None  # type: ignore[assignment,misc]
+    Dataset = None  # type: ignore[assignment,misc]
+    random_split = None  # type: ignore[assignment,misc]
 
 if not HAS_TORCH:
-    raise ImportError(
-        "Protocol VP-06 requires PyTorch. Install with: pip install torch"
-    )
+    raise ImportError("Protocol VP-06 requires PyTorch. Install with: pip install torch")
 
 try:
     from sklearn.metrics import accuracy_score, roc_auc_score
@@ -76,10 +74,7 @@ except ImportError:
     HAS_SKLEARN = False
     accuracy_score = None
     roc_auc_score = None
-    raise ImportError(
-        "scikit-learn is required for VP-06 AUROC calculation. "
-        "Install with: pip install scikit-learn"
-    )
+    raise ImportError("scikit-learn is required for VP-06 AUROC calculation. " "Install with: pip install scikit-learn")
 
 from tqdm import tqdm
 
@@ -149,24 +144,18 @@ if HAS_TORCH and torch is not None:
 # ATP energy budget per spike (Attwell & Laughlin, 2001)
 # Fix 3: Add explicit units documentation
 # ATP_PER_SPIKE = 1e9  # ATP molecules per action potential (Attwell & Laughlin 2001, J Cereb Blood Flow Metab)
-ATP_PER_SPIKE = (
-    1e9  # ~10^9 ATP molecules per action potential (Attwell & Laughlin 2001)
-)
+ATP_PER_SPIKE = 1e9  # ~10^9 ATP molecules per action potential (Attwell & Laughlin 2001)
 
 # Energy falsification threshold: ≤20% energy increase per correct detection
 # Fix 3: Cite energy threshold with Attwell & Laughlin (2001)
-ENERGY_FALSIFICATION_THRESHOLD_PCT = (
-    20.0  # per FP-06 Table 2; Attwell & Laughlin (2001)
-)
+ENERGY_FALSIFICATION_THRESHOLD_PCT = 20.0  # per FP-06 Table 2; Attwell & Laughlin (2001)
 
 # Baseline energy cost assumptions (kcal/mol)
 ATP_ENERGY_CONTENT = 7.3  # kcal/mol ATP hydrolyzed
 AVOGADRO = 6.022e23  # molecules/mol
 
 # Neural energy conversion factors
-SPIKE_ENERGY_JOULES = (
-    (ATP_PER_SPIKE / AVOGADRO) * ATP_ENERGY_CONTENT * 4184
-)  # Joules per spike
+SPIKE_ENERGY_JOULES = (ATP_PER_SPIKE / AVOGADRO) * ATP_ENERGY_CONTENT * 4184  # Joules per spike
 JOULES_TO_KCAL = 1 / 4184  # Convert Joules to kcal
 
 # =============================================================================
@@ -223,9 +212,7 @@ class SpikeEnergyMonitor:
         if isinstance(network_module, nn.Module):
             # Count spikes in network parameters (simplified)
             total_params = sum(p.numel() for p in outputs["network"].parameters())
-            activations["hidden_spikes"] = self._parameter_activation_to_spikes(
-                total_params
-            )
+            activations["hidden_spikes"] = self._parameter_activation_to_spikes(total_params)
 
         # Calculate total spike count
         total_spikes = sum(activations.values())
@@ -271,9 +258,7 @@ class SpikeEnergyMonitor:
 
         return effective_spikes
 
-    def _parameter_activation_to_spikes(
-        self, n_params: int, activation_rate: float = 0.1
-    ) -> int:
+    def _parameter_activation_to_spikes(self, n_params: int, activation_rate: float = 0.1) -> int:
         """
         Estimate spikes from parameter count (simplified model).
 
@@ -281,9 +266,7 @@ class SpikeEnergyMonitor:
         """
         return int(n_params * activation_rate)
 
-    def compute_energy_efficiency(
-        self, network_name: str, accuracy: float
-    ) -> Dict[str, float]:
+    def compute_energy_efficiency(self, network_name: str, accuracy: float) -> Dict[str, float]:
         """
         Compute energy efficiency metrics per correct detection.
         """
@@ -311,14 +294,10 @@ class SpikeEnergyMonitor:
         return {
             "energy_per_correct": energy_per_correct,
             "efficiency_ratio": efficiency_ratio,
-            "energy_falsified": float(
-                efficiency_ratio > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100)
-            ),
+            "energy_falsified": float(efficiency_ratio > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100)),
         }
 
-    def evaluate_models(
-        self, networks: Dict[str, nn.Module], test_loader: DataLoader
-    ) -> Dict[str, Dict[str, float]]:
+    def evaluate_models(self, networks: Dict[str, nn.Module], test_loader: DataLoader) -> Dict[str, Dict[str, float]]:
         """
         Evaluate networks and compute AUROC scores
 
@@ -399,9 +378,7 @@ class SpikeEnergyMonitor:
                 "total": total,
             }
 
-            logger.info(
-                f"{network_name} - Accuracy: {accuracy:.3f}, AUROC: {auroc:.3f}"
-            )
+            logger.info(f"{network_name} - Accuracy: {accuracy:.3f}, AUROC: {auroc:.3f}")
 
         return results
 
@@ -422,11 +399,7 @@ class SpikeEnergyMonitor:
         for network_name in self.spike_counts.keys():
             if network_name in self.energy_consumption:
                 # Use real metrics if provided, otherwise fall back to placeholder
-                accuracy = (
-                    network_accuracies.get(network_name, 0.8)
-                    if network_accuracies
-                    else 0.8
-                )
+                accuracy = network_accuracies.get(network_name, 0.8) if network_accuracies else 0.8
                 auroc = network_aurocs.get(network_name, 0.8) if network_aurocs else 0.8
 
                 energy_metrics = self.compute_energy_efficiency(network_name, accuracy)
@@ -456,12 +429,8 @@ class LTCNCell(nn.Module):
         # Fix 3: Initialize tau to paper spec 400ms instead of 10.0ms
         self.tau_sys = nn.Parameter(torch.ones(hidden_size) * 0.4)  # 400ms paper spec
         self.A = nn.Parameter(torch.ones(hidden_size))
-        self.f_net = nn.Sequential(
-            nn.Linear(input_size + hidden_size, hidden_size), nn.Tanh()
-        )
-        self.tau_net = nn.Sequential(
-            nn.Linear(input_size + hidden_size, hidden_size), nn.Sigmoid()
-        )
+        self.f_net = nn.Sequential(nn.Linear(input_size + hidden_size, hidden_size), nn.Tanh())
+        self.tau_net = nn.Sequential(nn.Linear(input_size + hidden_size, hidden_size), nn.Sigmoid())
 
     def forward(self, input_t, h_t, dt=1.0):
         if h_t is None:
@@ -528,16 +497,12 @@ class APGIInspiredNetwork(nn.Module):
             nn.Softplus(),  # Ensure positive
         )
 
-        self.Pi_i_network = nn.Sequential(
-            nn.Linear(16, 8), nn.ReLU(), nn.Linear(8, 1), nn.Softplus()
-        )
+        self.Pi_i_network = nn.Sequential(nn.Linear(16, 8), nn.ReLU(), nn.Linear(8, 1), nn.Softplus())
 
         # =====================
         # SURPRISE ACCUMULATOR
         # =====================
-        self.surprise_rnn = LTCNCell(
-            input_size=2, hidden_size=16
-        )  # LTCN-based precision-weighted errors
+        self.surprise_rnn = LTCNCell(input_size=2, hidden_size=16)  # LTCN-based precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -581,9 +546,7 @@ class APGIInspiredNetwork(nn.Module):
 
         # Learnable parameters - explicitly set to float32
         self.beta = nn.Parameter(torch.tensor(1.2, dtype=torch.float32))  # Somatic bias
-        self.alpha = nn.Parameter(
-            torch.tensor(5.0, dtype=torch.float32)
-        )  # Sigmoid steepness
+        self.alpha = nn.Parameter(torch.tensor(5.0, dtype=torch.float32))  # Sigmoid steepness
 
         self.surprise_hidden: Optional[torch.Tensor] = None
 
@@ -610,9 +573,7 @@ class APGIInspiredNetwork(nn.Module):
 
         # Initialize hidden state if needed
         if self.surprise_hidden is None or self.surprise_hidden.size(0) != batch_size:
-            self.surprise_hidden = torch.zeros(
-                batch_size, 16, device=extero_input.device, dtype=torch.float32
-            )
+            self.surprise_hidden = torch.zeros(batch_size, 16, device=extero_input.device, dtype=torch.float32)
 
         # =====================
         # 1. ENCODE PATHWAYS
@@ -646,9 +607,7 @@ class APGIInspiredNetwork(nn.Module):
         if self.surprise_hidden is not None:
             self.surprise_hidden = self.surprise_hidden.float()
         if self.surprise_hidden is not None:
-            self.surprise_hidden = self.surprise_rnn(
-                surprise_input.float(), self.surprise_hidden, dt=1.0
-            )
+            self.surprise_hidden = self.surprise_rnn(surprise_input.float(), self.surprise_hidden, dt=1.0)
             # Detach hidden state to prevent graph retention across batches
             self.surprise_hidden = self.surprise_hidden.detach()
 
@@ -733,9 +692,7 @@ class StandardMLPNetwork(nn.Module):
             nn.ReLU(),
         )
 
-        self.policy_head = nn.Sequential(
-            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
-        )
+        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
 
         self.value_head = nn.Linear(32, 1)
 
@@ -813,9 +770,7 @@ class AttentionNetwork(nn.Module):
 
         self.attention = nn.MultiheadAttention(32, 4, batch_first=True)
 
-        self.policy_head = nn.Sequential(
-            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
-        )
+        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
 
         self.value_head = nn.Linear(32, 1)
 
@@ -830,8 +785,7 @@ class AttentionNetwork(nn.Module):
         return {
             "policy": self.policy_head(features),
             "value": self.value_head(features),
-            "ignition_prob": torch.ones(extero_input.shape[0], 1, dtype=torch.float32)
-            * 0.5,  # Dummy
+            "ignition_prob": torch.ones(extero_input.shape[0], 1, dtype=torch.float32) * 0.5,  # Dummy
         }
 
     def reset(self):
@@ -1013,9 +967,7 @@ class AttentionalBlinkDataset(Dataset):
                 detection_prob = self.t2_detection_in_blink
             else:
                 # Gradual recovery outside blink window
-                recovery_factor = min(
-                    1.0, (lag - self.blink_window[1]) / 200
-                )  # 200ms recovery window
+                recovery_factor = min(1.0, (lag - self.blink_window[1]) / 200)  # 200ms recovery window
                 detection_prob = self.t2_detection_in_blink + recovery_factor * (
                     self.t2_detection_out_blink - self.t2_detection_in_blink
                 )
@@ -1176,9 +1128,7 @@ class NetworkTrainer:
         self.device = device
 
         self.optimizer = torch.optim.Adam(network.parameters(), lr=1e-3)
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer, mode="max", factor=0.5, patience=5
-        )
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="max", factor=0.5, patience=5)
         self.criterion = nn.CrossEntropyLoss()
 
     def evaluate(self, val_loader: DataLoader) -> Dict:
@@ -1199,9 +1149,7 @@ class NetworkTrainer:
                 extero = batch["extero"].to(self.device)
                 intero = batch["intero"].to(self.device)
                 context = batch["context"].to(self.device)
-                target = batch["target"].to(
-                    self.device, dtype=torch.long
-                )  # Ensure target is long
+                target = batch["target"].to(self.device, dtype=torch.long)  # Ensure target is long
 
                 outputs = self.network(extero, intero, context)
 
@@ -1209,9 +1157,7 @@ class NetworkTrainer:
 
                 all_preds.extend(preds.cpu().numpy())
                 all_targets.extend(target.cpu().numpy())
-                all_ignition_probs.extend(
-                    outputs["ignition_prob"].squeeze().cpu().numpy()
-                )
+                all_ignition_probs.extend(outputs["ignition_prob"].squeeze().cpu().numpy())
 
         all_preds_arr = np.array(all_preds)
         all_targets_arr = np.array(all_targets)
@@ -1241,9 +1187,7 @@ class NetworkTrainer:
         for true, pred_prob in zip(all_targets_arr, all_ignition_probs_arr):
             # Clamp probabilities to avoid log(0)
             pred_prob = np.clip(pred_prob, 1e-10, 1 - 1e-10)
-            log_likelihood += true * np.log(pred_prob) + (1 - true) * np.log(
-                1 - pred_prob
-            )
+            log_likelihood += true * np.log(pred_prob) + (1 - true) * np.log(1 - pred_prob)
 
         # BIC = -2*log(L) + k*log(n)
         bic = -2 * log_likelihood + n_params * np.log(n_samples)
@@ -1263,9 +1207,7 @@ class NetworkTrainer:
             "n_params": n_params,
         }
 
-    def evaluate_temporal_dynamics(
-        self, loader: DataLoader, config: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    def evaluate_temporal_dynamics(self, loader: DataLoader, config: Optional[Dict] = None) -> Dict[str, Any]:
         """Evaluate temporal dynamics (integration window and transition time)"""
         self.network.eval()
 
@@ -1314,32 +1256,18 @@ class NetworkTrainer:
                     # Use network-type specific realistic values
                     if self.network_name == "APGI":
                         # LTCN: Use learned time constants if available
-                        if hasattr(self.network, "surprise_rnn") and hasattr(
-                            self.network.surprise_rnn, "tau_sys"
-                        ):
-                            tau_mean = float(
-                                self.network.surprise_rnn.tau_sys.mean().item()  # type: ignore[operator]
-                            )
+                        if hasattr(self.network, "surprise_rnn") and hasattr(self.network.surprise_rnn, "tau_sys"):
+                            tau_mean = float(self.network.surprise_rnn.tau_sys.mean().item())  # type: ignore[operator]
                             # LTCN transition should be fast (tau/10 to tau/5)
-                            batch_transition_time = np.ones(batch_size) * max(
-                                20.0, tau_mean / 5.0
-                            )
+                            batch_transition_time = np.ones(batch_size) * max(20.0, tau_mean / 5.0)
                         else:
-                            batch_transition_time = (
-                                np.ones(batch_size) * 30.0
-                            )  # 30ms default for LTCN
+                            batch_transition_time = np.ones(batch_size) * 30.0  # 30ms default for LTCN
                     elif self.network_name == "LSTM":
-                        batch_transition_time = (
-                            np.ones(batch_size) * 100.0
-                        )  # 100ms for LSTM
+                        batch_transition_time = np.ones(batch_size) * 100.0  # 100ms for LSTM
                     elif self.network_name == "Transformer":
-                        batch_transition_time = (
-                            np.ones(batch_size) * 85.0
-                        )  # 85ms for transformer-style attention
+                        batch_transition_time = np.ones(batch_size) * 85.0  # 85ms for transformer-style attention
                     else:
-                        batch_transition_time = (
-                            np.ones(batch_size) * 80.0
-                        )  # 80ms for MLP
+                        batch_transition_time = np.ones(batch_size) * 80.0  # 80ms for MLP
 
                 transition_times.extend(batch_transition_time)
 
@@ -1373,32 +1301,20 @@ class NetworkTrainer:
                 if np.all(batch_integration == 0):
                     if self.network_name == "APGI":
                         # LTCN should have longer integration window (400ms to ensure ≥4x ratio)
-                        if hasattr(self.network, "surprise_rnn") and hasattr(
-                            self.network.surprise_rnn, "tau_sys"
-                        ):
+                        if hasattr(self.network, "surprise_rnn") and hasattr(self.network.surprise_rnn, "tau_sys"):
                             tau_mean = float(
                                 self.network.surprise_rnn.tau_sys.mean().item()  # type: ignore[union-attr,operator]
                             )
                             # Integration window must be ≥4x RNN (400ms), use tau-based calculation with minimum
-                            batch_integration = np.ones(batch_size) * min(
-                                500.0, max(400.0, tau_mean * 20.0)
-                            )
+                            batch_integration = np.ones(batch_size) * min(500.0, max(400.0, tau_mean * 20.0))
                         else:
-                            batch_integration = (
-                                np.ones(batch_size) * 400.0
-                            )  # 400ms default ensures ≥4x RNN ratio
+                            batch_integration = np.ones(batch_size) * 400.0  # 400ms default ensures ≥4x RNN ratio
                     elif self.network_name == "LSTM":
-                        batch_integration = (
-                            np.ones(batch_size) * 100.0
-                        )  # 100ms for standard RNN
+                        batch_integration = np.ones(batch_size) * 100.0  # 100ms for standard RNN
                     elif self.network_name == "Transformer":
-                        batch_integration = (
-                            np.ones(batch_size) * 120.0
-                        )  # 120ms for transformer-style attention
+                        batch_integration = np.ones(batch_size) * 120.0  # 120ms for transformer-style attention
                     else:
-                        batch_integration = (
-                            np.ones(batch_size) * 50.0
-                        )  # 50ms for feedforward
+                        batch_integration = np.ones(batch_size) * 50.0  # 50ms for feedforward
 
                 integration_windows.extend(batch_integration)
                 break  # Just use the first batch to estimate efficiently
@@ -1429,9 +1345,7 @@ class NetworkTrainer:
             return {
                 "applicable": False,
                 "passed": False,
-                "reason": recurrent_matrix.get(
-                    "reason", "recurrent_matrix_unavailable"
-                ),
+                "reason": recurrent_matrix.get("reason", "recurrent_matrix_unavailable"),
                 "error": recurrent_matrix,
             }
 
@@ -1441,19 +1355,13 @@ class NetworkTrainer:
         input_sequence = self._generate_esp_input_sequence(sequence_length)
         state_distances = self._simulate_state_convergence(input_sequence)
         peak_state_distance = (
-            float(np.max(np.asarray(state_distances, dtype=float)))
-            if state_distances
-            else float("inf")
+            float(np.max(np.asarray(state_distances, dtype=float))) if state_distances else float("inf")
         )
-        max_state_distance = (
-            float(state_distances[-1]) if state_distances else float("inf")
-        )
+        max_state_distance = float(state_distances[-1]) if state_distances else float("inf")
         final_distance = max_state_distance
         converged = max_state_distance < epsilon
         washout_time = self._estimate_washout_time(state_distances, epsilon)
-        washout_pass = (
-            isinstance(washout_time, int) and washout_time < washout_threshold
-        )
+        washout_pass = isinstance(washout_time, int) and washout_time < washout_threshold
 
         passed = spectral_radius < 1.0 and converged and washout_pass
 
@@ -1500,12 +1408,8 @@ class NetworkTrainer:
             "network_name": self.network_name,
         }
 
-    def _generate_esp_input_sequence(
-        self, sequence_length: int
-    ) -> Dict[str, torch.Tensor]:
-        generator = torch.Generator(
-            device=self.device if self.device == "cuda" else "cpu"
-        )
+    def _generate_esp_input_sequence(self, sequence_length: int) -> Dict[str, torch.Tensor]:
+        generator = torch.Generator(device=self.device if self.device == "cuda" else "cpu")
         generator.manual_seed(RANDOM_SEED)
         extero = torch.randn(
             sequence_length,
@@ -1534,9 +1438,7 @@ class NetworkTrainer:
             "context": context.to(self.device),
         }
 
-    def _simulate_state_convergence(
-        self, input_sequence: Dict[str, torch.Tensor]
-    ) -> List[float]:
+    def _simulate_state_convergence(self, input_sequence: Dict[str, torch.Tensor]) -> List[float]:
         distances: List[float] = []
         with torch.no_grad():
             self.network.reset()  # type: ignore[operator]  # type: ignore[operator]
@@ -1559,9 +1461,7 @@ class NetworkTrainer:
                     _ = self.network(extero, intero, context)
                     state_b = self.network.surprise_hidden.detach().clone()
 
-                    distances.append(
-                        float(torch.max(torch.abs(state_a - state_b)).item())
-                    )
+                    distances.append(float(torch.max(torch.abs(state_a - state_b)).item()))
 
             elif self.network_name == "LSTM":
                 hidden_size = self.network.lstm.hidden_size  # type: ignore[union-attr]
@@ -1585,16 +1485,12 @@ class NetworkTrainer:
                     state_b = self.network.hidden[0].detach().clone()  # type: ignore[index]
                     cell_b = self.network.hidden[1].detach().clone()  # type: ignore[index]
 
-                    distances.append(
-                        float(torch.max(torch.abs(state_a - state_b)).item())
-                    )
+                    distances.append(float(torch.max(torch.abs(state_a - state_b)).item()))
 
         self.network.reset()  # type: ignore[operator]
         return distances
 
-    def _estimate_washout_time(
-        self, state_distances: List[float], epsilon: float, stable_window: int = 5
-    ) -> Any:
+    def _estimate_washout_time(self, state_distances: List[float], epsilon: float, stable_window: int = 5) -> Any:
         if len(state_distances) < stable_window:
             return {
                 "error": "insufficient_state_distance_history",
@@ -1615,9 +1511,7 @@ class NetworkTrainer:
             "n_distances": len(state_distances),
         }
 
-    def train(
-        self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
-    ) -> Dict:
+    def train(self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100) -> Dict:
         """Full training loop"""
 
         history: Dict[str, List[float]] = {
@@ -1753,13 +1647,8 @@ class NetworkTrainer:
             # Log energy consumption if monitor provided
             if energy_monitor is not None:
                 # Detach outputs to avoid double backward pass
-                detached_outputs = {
-                    k: v.detach() if isinstance(v, torch.Tensor) else v
-                    for k, v in outputs.items()
-                }
-                energy_monitor.log_network_activity(
-                    self.network_name, detached_outputs, batch
-                )
+                detached_outputs = {k: v.detach() if isinstance(v, torch.Tensor) else v for k, v in outputs.items()}
+                energy_monitor.log_network_activity(self.network_name, detached_outputs, batch)
 
             # Compute loss
             loss = self.criterion(outputs["policy"], targets)
@@ -1796,16 +1685,11 @@ class NetworkComparison:
             "Transformer": AttentionNetwork(config),
         }
 
-        self.trainers = {
-            name: NetworkTrainer(net, name, self.device)
-            for name, net in self.networks.items()
-        }
+        self.trainers = {name: NetworkTrainer(net, name, self.device) for name, net in self.networks.items()}
 
         self.results: Dict[str, Any] = {}
 
-    def train_all_on_task(
-        self, task_name: str, dataset_class, n_epochs: int = 100
-    ) -> Dict:
+    def train_all_on_task(self, task_name: str, dataset_class, n_epochs: int = 100) -> Dict:
         """Train all networks on a specific task with energy monitoring"""
 
         print(f"\n{'=' * 60}")
@@ -1820,19 +1704,11 @@ class NetworkComparison:
         val_size = int(0.15 * len(full_dataset))
         test_size = len(full_dataset) - train_size - val_size
 
-        train_dataset, val_dataset, test_dataset = random_split(
-            full_dataset, [train_size, val_size, test_size]
-        )
+        train_dataset, val_dataset, test_dataset = random_split(full_dataset, [train_size, val_size, test_size])
 
-        train_loader = DataLoader(
-            train_dataset, batch_size=64, shuffle=True, num_workers=0
-        )
-        val_loader = DataLoader(
-            val_dataset, batch_size=64, shuffle=False, num_workers=0
-        )
-        test_loader = DataLoader(
-            test_dataset, batch_size=64, shuffle=False, num_workers=0
-        )
+        train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=0)
+        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=0)
 
         # Initialize energy monitor for this task
         energy_monitor = SpikeEnergyMonitor()
@@ -1843,9 +1719,7 @@ class NetworkComparison:
             print(f"\n  Training {name} with energy monitoring...")
 
             # Train with energy monitoring
-            history = trainer.train_with_energy_monitoring(
-                train_loader, val_loader, n_epochs, energy_monitor
-            )
+            history = trainer.train_with_energy_monitoring(train_loader, val_loader, n_epochs, energy_monitor)
 
             # Test with energy monitoring
             test_results = trainer.evaluate(test_loader)
@@ -1854,9 +1728,7 @@ class NetworkComparison:
 
             # Log energy consumption during testing
             for batch in test_loader:
-                outputs = trainer.network(
-                    batch["extero"], batch["intero"], batch["context"]
-                )
+                outputs = trainer.network(batch["extero"], batch["intero"], batch["context"])
                 energy_monitor.log_network_activity(name, outputs, batch)
 
             # Get final energy report
@@ -1875,9 +1747,7 @@ class NetworkComparison:
             print(f"\n  {name} Results:")
             print(f"    Test Accuracy: {test_results['accuracy']:.3f}")
             print(f"    Test AUC: {test_results['auc']:.3f}")
-            conv_epoch = task_results[name].get(
-                "convergence_epoch", len(history["train_losses"])
-            )
+            conv_epoch = task_results[name].get("convergence_epoch", len(history["train_losses"]))
             print(f"    Converged in: {conv_epoch} epochs")
 
             # Energy efficiency
@@ -1902,9 +1772,7 @@ class NetworkComparison:
         all_results = {}
 
         for task_name, dataset_class in tasks.items():
-            all_results[task_name] = self.train_all_on_task(
-                task_name, dataset_class, n_epochs=100
-            )
+            all_results[task_name] = self.train_all_on_task(task_name, dataset_class, n_epochs=100)
 
         return all_results
 
@@ -1930,9 +1798,7 @@ class NetworkComparison:
             "alpha_abs": float(abs(alpha_val)),
         }
 
-    def run_inference_benchmark(
-        self, n_trials: int = 200
-    ) -> Tuple[float, float, float]:
+    def run_inference_benchmark(self, n_trials: int = 200) -> Tuple[float, float, float]:
         """
         Benchmark real-time inference performance.
         Returns: (processing_rate, mean_latency_ms, p_value)
@@ -1943,15 +1809,9 @@ class NetworkComparison:
 
         # Create dummy inputs for benchmarking
         batch_size = 1
-        dummy_extero = torch.randn(batch_size, self.config["extero_dim"]).to(
-            self.device
-        )
-        dummy_intero = torch.randn(batch_size, self.config["intero_dim"]).to(
-            self.device
-        )
-        dummy_context = torch.randn(batch_size, self.config["context_dim"]).to(
-            self.device
-        )
+        dummy_extero = torch.randn(batch_size, self.config["extero_dim"]).to(self.device)
+        dummy_intero = torch.randn(batch_size, self.config["intero_dim"]).to(self.device)
+        dummy_context = torch.randn(batch_size, self.config["context_dim"]).to(self.device)
 
         latencies = []
         with torch.no_grad():
@@ -1973,9 +1833,7 @@ class NetworkComparison:
         # Statistical check for latency (one-sample t-test against threshold)
         _, p_val = stats.ttest_1samp(latencies, V6_1_MAX_LATENCY_MS)
 
-        logger.info(
-            f"Benchmark: {processing_rate:.1f} trials/s, {mean_latency:.2f}ms latency"
-        )
+        logger.info(f"Benchmark: {processing_rate:.1f} trials/s, {mean_latency:.2f}ms latency")
         return processing_rate, mean_latency, (0.0, 0.0)  # type: ignore[return-value]
 
     def compare_all(
@@ -2023,10 +1881,7 @@ class NetworkComparison:
                 "LSTM": LSTMNetwork(self.config),
                 "Transformer": AttentionNetwork(self.config),
             }
-            self.trainers = {
-                name: NetworkTrainer(net, name, self.device)
-                for name, net in self.networks.items()
-            }
+            self.trainers = {name: NetworkTrainer(net, name, self.device) for name, net in self.networks.items()}
 
             # Create dataset
             full_dataset = dataset_class(n_samples=5000)  # Smaller for speed
@@ -2034,19 +1889,11 @@ class NetworkComparison:
             val_size = int(0.15 * len(full_dataset))
             test_size = len(full_dataset) - train_size - val_size
 
-            train_dataset, val_dataset, test_dataset = random_split(
-                full_dataset, [train_size, val_size, test_size]
-            )
+            train_dataset, val_dataset, test_dataset = random_split(full_dataset, [train_size, val_size, test_size])
 
-            train_loader = DataLoader(
-                train_dataset, batch_size=64, shuffle=True, num_workers=0
-            )
-            val_loader = DataLoader(
-                val_dataset, batch_size=64, shuffle=False, num_workers=0
-            )
-            test_loader = DataLoader(
-                test_dataset, batch_size=64, shuffle=False, num_workers=0
-            )
+            train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=0)
+            val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=0)
+            test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=0)
 
             energy_monitor = SpikeEnergyMonitor()
 
@@ -2057,9 +1904,7 @@ class NetworkComparison:
                 # history = trainer.train_with_energy_monitoring(
                 #     train_loader, val_loader, n_epochs, energy_monitor
                 # )
-                trainer.train_with_energy_monitoring(
-                    train_loader, val_loader, n_epochs, energy_monitor
-                )
+                trainer.train_with_energy_monitoring(train_loader, val_loader, n_epochs, energy_monitor)
 
                 # Evaluate
                 test_results = trainer.evaluate(test_loader)
@@ -2108,9 +1953,7 @@ class NetworkComparison:
         df["rank_by_energy"] = df["mean_energy_kcal"].rank(ascending=True).astype(int)
 
         # Composite rank (weighted sum)
-        df["composite_rank"] = (
-            (df["rank_by_accuracy"] + df["rank_by_energy"]).rank().astype(int)
-        )
+        df["composite_rank"] = (df["rank_by_accuracy"] + df["rank_by_energy"]).rank().astype(int)
 
         print(f"\n{'=' * 60}")
         print("COMPARISON SUMMARY")
@@ -2203,9 +2046,7 @@ class FalsificationChecker:
             "passes": passes,
         }
 
-    def check_V6_3_threshold_convergence(
-        self, threshold_error_history: List[float]
-    ) -> Tuple[bool, Dict]:
+    def check_V6_3_threshold_convergence(self, threshold_error_history: List[float]) -> Tuple[bool, Dict]:
         """
         V6.3 Fix: Threshold learning convergence criterion.
 
@@ -2277,9 +2118,7 @@ class FalsificationChecker:
 
         # Kruskal-Wallis H-test
         try:
-            h_stat, p_value = stats.kruskal(
-                apgi_energies, mlp_energies, lstm_energies, attn_energies
-            )
+            h_stat, p_value = stats.kruskal(apgi_energies, mlp_energies, lstm_energies, attn_energies)
         except Exception as e:
             return True, {"error": f"Kruskal-Wallis test failed: {e}"}
 
@@ -2295,16 +2134,12 @@ class FalsificationChecker:
             for j, name2 in enumerate(network_names):
                 if i < j:
                     try:
-                        u_stat, p_val = stats.mannwhitneyu(
-                            all_energies[i], all_energies[j], alternative="two-sided"
-                        )
+                        u_stat, p_val = stats.mannwhitneyu(all_energies[i], all_energies[j], alternative="two-sided")
                         pairwise_results[f"{name1}_vs_{name2}"] = {
                             "u_statistic": float(u_stat),
                             "p_value": float(p_val),
                             "significant": p_val < bonferroni_alpha,
-                            "mean_diff": float(
-                                np.mean(all_energies[i]) - np.mean(all_energies[j])
-                            ),
+                            "mean_diff": float(np.mean(all_energies[i]) - np.mean(all_energies[j])),
                         }
                     except Exception as e:
                         pairwise_results[f"{name1}_vs_{name2}"] = {"error": str(e)}
@@ -2331,15 +2166,10 @@ class FalsificationChecker:
             "apgi_superior": apgi_superior,
             "pairwise_comparisons": pairwise_results,
             "bonferroni_alpha": bonferroni_alpha,
-            "group_means": {
-                name: float(np.mean(energies))
-                for name, energies in zip(network_names, all_energies)
-            },
+            "group_means": {name: float(np.mean(energies)) for name, energies in zip(network_names, all_energies)},
         }
 
-    def check_V6_1(
-        self, apgi_transition_times: np.ndarray, lstm_transition_times: np.ndarray
-    ) -> Tuple[bool, Dict]:
+    def check_V6_1(self, apgi_transition_times: np.ndarray, lstm_transition_times: np.ndarray) -> Tuple[bool, Dict]:
         """
         V6.1: LTCN threshold transitions <= 50ms vs standard RNN latency.
         Mann-Whitney U, alpha = 0.01
@@ -2351,9 +2181,7 @@ class FalsificationChecker:
         meets_threshold = mean_apgi <= F6_1_LTCN_MAX_TRANSITION_MS
 
         # Mann-Whitney U test (APGI < LSTM)
-        stat, p_val = stats.mannwhitneyu(
-            apgi_transition_times, lstm_transition_times, alternative="less"
-        )
+        stat, p_val = stats.mannwhitneyu(apgi_transition_times, lstm_transition_times, alternative="less")
 
         falsified = not (meets_threshold and p_val < F6_1_MANN_WHITNEY_ALPHA)
 
@@ -2384,21 +2212,15 @@ class FalsificationChecker:
         mean_apgi = float(np.mean(apgi_integration_windows))
 
         window_size_valid = mean_apgi >= F6_2_LTCN_MIN_WINDOW_MS
-        baseline_means = {
-            name: float(np.mean(windows)) for name, windows in baseline_windows.items()
-        }
+        baseline_means = {name: float(np.mean(windows)) for name, windows in baseline_windows.items()}
         baseline_stats = {}
         p_values = []
         for name, windows in baseline_windows.items():
             ratio = mean_apgi / max(1e-5, baseline_means[name])
             try:
-                stat, p_val = stats.wilcoxon(
-                    apgi_integration_windows, windows, alternative="greater"
-                )
+                stat, p_val = stats.wilcoxon(apgi_integration_windows, windows, alternative="greater")
             except ValueError:
-                stat, p_val = stats.mannwhitneyu(
-                    apgi_integration_windows, windows, alternative="greater"
-                )
+                stat, p_val = stats.mannwhitneyu(apgi_integration_windows, windows, alternative="greater")
             baseline_stats[name] = {
                 "mean_integration_window": baseline_means[name],
                 "ratio": float(ratio),
@@ -2409,12 +2231,8 @@ class FalsificationChecker:
             }
             p_values.append(float(p_val))
 
-        ratio_valid = all(
-            details["passes_ratio"] for details in baseline_stats.values()
-        )
-        statistical_valid = all(
-            details["passes_significance"] for details in baseline_stats.values()
-        )
+        ratio_valid = all(details["passes_ratio"] for details in baseline_stats.values())
+        statistical_valid = all(details["passes_significance"] for details in baseline_stats.values())
 
         falsified = not (window_size_valid and ratio_valid and statistical_valid)
 
@@ -2488,9 +2306,7 @@ class FalsificationChecker:
             "p_value": p_value,
             "statistical_significance": statistical_significance,
             "n_tasks": len(apgi_aurocs),
-            "apgi_aurocs_by_task": dict(
-                zip([f"Task_{i + 1}" for i in range(len(apgi_aurocs))], apgi_aurocs)
-            ),
+            "apgi_aurocs_by_task": dict(zip([f"Task_{i + 1}" for i in range(len(apgi_aurocs))], apgi_aurocs)),
             "baseline_aurocs_by_task": dict(
                 zip(
                     [f"Task_{i + 1}" for i in range(len(baseline_aurocs))],
@@ -2517,13 +2333,12 @@ class FalsificationChecker:
         conscious_task = results.get("Conscious_Classification", {})
         apgi_temporal = conscious_task.get("APGI", {}).get("temporal_dynamics", {})
         lstm_temporal = conscious_task.get("LSTM", {}).get("temporal_dynamics", {})
-        transformer_temporal = conscious_task.get("Transformer", {}).get(
-            "temporal_dynamics", {}
-        )
+        transformer_temporal = conscious_task.get("Transformer", {}).get("temporal_dynamics", {})
         apgi_esp = conscious_task.get("APGI", {}).get("echo_state_property", {})
 
         # V6.1
         if "transition_times" in apgi_temporal and "transition_times" in lstm_temporal:
+            # Compare transition times between models
             v6_1_result, v6_1_details = self.check_V6_1(
                 apgi_temporal["transition_times"], lstm_temporal["transition_times"]
             )
@@ -2547,10 +2362,7 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # V6.2
-        if all(
-            "integration_windows" in temporal
-            for temporal in [apgi_temporal, lstm_temporal, transformer_temporal]
-        ):
+        if all("integration_windows" in temporal for temporal in [apgi_temporal, lstm_temporal, transformer_temporal]):
             v6_2_result, v6_2_details = self.check_V6_2(
                 apgi_temporal["integration_windows"],
                 {
@@ -2599,10 +2411,7 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # AUROC Superiority Check
-        (
-            innovation_29_result,
-            innovation_29_details,
-        ) = self.check_Innovation_29_AUROC_Superiority(results)
+        innovation_29_result, innovation_29_details = self.check_Innovation_29_AUROC_Superiority(results)
         criterion = {
             "code": "Innovation_29",
             "description": "LNN AUROC superiority by pre-specified ΔAUROC",
@@ -2714,9 +2523,7 @@ def plot_comprehensive_results(
         linewidth=2,
     )
 
-    ax1.axhline(
-        y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)"
-    )
+    ax1.axhline(y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)")
 
     ax1.set_ylabel("AUC-ROC", fontsize=12, fontweight="bold")
     ax1.set_title("Conscious Classification AUC", fontsize=13, fontweight="bold")
@@ -2896,9 +2703,7 @@ def plot_comprehensive_results(
         ax7 = fig.add_subplot(gs[3, 2])
 
         energy_report = energy_monitor.get_energy_report()
-        energy_ratios = [
-            energy_report.get(net, {}).get("efficiency_ratio", 1.0) for net in networks
-        ]
+        energy_ratios = [energy_report.get(net, {}).get("efficiency_ratio", 1.0) for net in networks]
 
         bars = ax7.bar(
             networks,
@@ -2909,9 +2714,7 @@ def plot_comprehensive_results(
             linewidth=2,
         )
 
-        ax7.axhline(
-            y=1.2, color="red", linestyle="--", linewidth=2, label="20% Threshold"
-        )
+        ax7.axhline(y=1.2, color="red", linestyle="--", linewidth=2, label="20% Threshold")
         ax7.set_ylabel("Energy Efficiency Ratio", fontsize=11, fontweight="bold")
         ax7.set_title("Energy per Correct Detection", fontsize=12, fontweight="bold")
         ax7.legend(fontsize=9)
@@ -2957,12 +2760,8 @@ def plot_comprehensive_results(
     speedup = 100 * (1 - apgi_conv / lstm_conv) if lstm_conv > 0 else 0
 
     # Get best competitor metrics
-    best_competitor_auc = max(
-        [conscious_task[net]["test_auc"] for net in ["MLP", "LSTM", "Transformer"]]
-    )
-    best_competitor_acc = max(
-        [conscious_task[net]["test_accuracy"] for net in ["MLP", "LSTM", "Transformer"]]
-    )
+    best_competitor_auc = max([conscious_task[net]["test_auc"] for net in ["MLP", "LSTM", "Transformer"]])
+    best_competitor_acc = max([conscious_task[net]["test_accuracy"] for net in ["MLP", "LSTM", "Transformer"]])
 
     summary_text = f"""
     APGI Program 4: Computational Architecture Energy Comparison
@@ -3039,9 +2838,7 @@ def print_falsification_report(report: Dict):
         print("-" * 80)
         for criterion in report["falsified_criteria"]:
             if isinstance(criterion, dict):
-                print(
-                    f"\n[X] {criterion.get('code', 'N/A')}: {criterion.get('description', 'No description')}"
-                )
+                print(f"\n[X] {criterion.get('code', 'N/A')}: {criterion.get('description', 'No description')}")
                 if "details" in criterion and isinstance(criterion["details"], dict):
                     for key, value in criterion["details"].items():
                         if isinstance(value, (int, float)):
@@ -3232,12 +3029,8 @@ def compute_lrp_attribution(model, input_batch, target_class):
 
     try:
         # Compute relevance scores
-        relevance_extero = lrp.attribute(
-            extero, target=target_class, attribute_to_layer_input=True
-        )
-        relevance_intero = lrp.attribute(
-            intero, target=target_class, attribute_to_layer_input=True
-        )
+        relevance_extero = lrp.attribute(extero, target=target_class, attribute_to_layer_input=True)
+        relevance_intero = lrp.attribute(intero, target=target_class, attribute_to_layer_input=True)
 
         # Visualize
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -3328,16 +3121,10 @@ def analyze_gradient_flow(model, optimizer):
         ax.grid(True, alpha=0.3)
 
         # Add warning lines
-        ax.axhline(
-            1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold"
-        )
-        ax.axhline(
-            1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold"
-        )
+        ax.axhline(1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold")
+        ax.axhline(1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold")
     else:
-        print(
-            "Warning: No gradients found. Call analyze_gradient_flow after backward()."
-        )
+        print("Warning: No gradients found. Call analyze_gradient_flow after backward().")
         fig = None
 
     return gradient_norms, fig
@@ -3788,9 +3575,7 @@ def check_falsification(
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
     f1_1_pass = (
-        apgi_advantage_f1 >= F1_1_MIN_ADVANTAGE_PCT
-        and cohens_d_f1 >= F1_1_MIN_COHENS_D
-        and p_advantage_f1 < 0.01
+        apgi_advantage_f1 >= F1_1_MIN_ADVANTAGE_PCT and cohens_d_f1 >= F1_1_MIN_COHENS_D and p_advantage_f1 < 0.01
     )
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
@@ -3804,17 +3589,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}"
-    )
+    logger.info(f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}")
 
     # F1.2: Hierarchical Level Emergence
     logger.info("Testing F1.2: Hierarchical Level Emergence")
-    f1_2_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
-    )
+    f1_2_pass = hierarchical_levels_detected >= 3 and peak_separation_ratio >= 1.5 and eta_squared_timescales >= 0.45
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
         "hierarchical_levels_detected": hierarchical_levels_detected,
@@ -3833,16 +3612,8 @@ def check_falsification(
 
     # F1.3: Level-Specific Precision Weighting
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
-    precision_difference = (
-        (level1_intero_precision - level3_intero_precision)
-        / level3_intero_precision
-        * 100
-    )
-    f1_3_pass = (
-        precision_difference >= 15
-        and partial_eta_squared_f1_3 >= 0.08
-        and p_interaction_f1_3 < 0.01
-    )
+    precision_difference = (level1_intero_precision - level3_intero_precision) / level3_intero_precision * 100
+    f1_3_pass = precision_difference >= 15 and partial_eta_squared_f1_3 >= 0.08 and p_interaction_f1_3 < 0.01
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "level1_intero_precision": level1_intero_precision,
@@ -3941,9 +3712,7 @@ def check_falsification(
 
     # F2.1: Somatic Marker Advantage Quantification
     logger.info("Testing F2.1: Somatic Marker Advantage Quantification")
-    advantage_over_no_somatic = (
-        apgi_advantageous_selection - no_somatic_advantageous_selection
-    )
+    advantage_over_no_somatic = apgi_advantageous_selection - no_somatic_advantageous_selection
     f2_1_pass = (
         apgi_advantageous_selection >= 18
         and advantage_over_no_somatic >= 8
@@ -3971,9 +3740,7 @@ def check_falsification(
     # F2.2: Interoceptive Cost Sensitivity
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
     f2_2_pass = (
-        abs(apgi_cost_correlation) >= 0.30
-        and abs(no_intero_cost_correlation) <= 0.20
-        and fishers_z_difference >= 1.50
+        abs(apgi_cost_correlation) >= 0.30 and abs(no_intero_cost_correlation) <= 0.20 and fishers_z_difference >= 1.50
     )
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
@@ -4045,10 +3812,7 @@ def check_falsification(
     logger.info("Testing F2.5: Learning Trajectory Discrimination")
     trial_advantage = no_intero_time_to_criterion - apgi_time_to_criterion
     f2_5_pass = (
-        apgi_time_to_criterion <= 55
-        and hazard_ratio_f2_5 >= 1.35
-        and log_rank_p < 0.01
-        and trial_advantage >= 12
+        apgi_time_to_criterion <= 55 and hazard_ratio_f2_5 >= 1.35 and log_rank_p < 0.01 and trial_advantage >= 12
     )
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -4070,9 +3834,7 @@ def check_falsification(
 
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
-    f3_1_pass = (
-        apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
-    )
+    f3_1_pass = apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "apgi_advantage": apgi_advantage_f3,
@@ -4085,17 +3847,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}"
-    )
+    logger.info(f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}")
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
-    )
+    f3_2_pass = interoceptive_advantage >= 0.20 and partial_eta_squared >= 0.12 and p_interaction < 0.01
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
         "interoceptive_advantage": interoceptive_advantage,
@@ -4114,11 +3870,7 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
-    )
+    f3_3_pass = threshold_reduction >= 0.15 and cohens_d_threshold >= 0.50 and p_threshold < 0.01
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
@@ -4137,11 +3889,7 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.01
-    )
+    f3_4_pass = precision_reduction >= 0.12 and cohens_d_precision >= 0.42 and p_precision < 0.01
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
         "precision_reduction": precision_reduction,
@@ -4160,14 +3908,11 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
-    )
+    f3_5_pass = performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
         "performance_retention": performance_retention,
         "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
         "threshold": "Retention ≥85%, gain ≥30%",
         "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
     }
@@ -4181,9 +3926,7 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
-    )
+    f3_6_pass = time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
         "time_to_criterion": time_to_criterion,
@@ -4196,17 +3939,12 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}"
-    )
+    logger.info(f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}")
 
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -4298,10 +4036,7 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    f5_5_pass = (
-        cumulative_variance >= F5_5_PCA_MIN_VARIANCE
-        and min_loading >= F5_5_PCA_MIN_LOADING
-    )
+    f5_5_pass = cumulative_variance >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_PCA_MIN_LOADING
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
         "cumulative_variance": cumulative_variance,
@@ -4368,8 +4103,7 @@ def check_falsification(
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
         ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
-        and (ltcn_integration_window / rnn_integration_window)
-        >= F6_2_MIN_INTEGRATION_RATIO
+        and (ltcn_integration_window / rnn_integration_window) >= F6_2_MIN_INTEGRATION_RATIO
         and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
         and wilcoxon_p < F6_2_WILCOXON_ALPHA
     )
@@ -4405,9 +4139,7 @@ class APGIValidationProtocol6:
 
     def validate(self) -> Dict[str, Any]:
         """Run the complete validation protocol."""
-        print(
-            "Starting APGI Validation Protocol 6: Temporal Dynamics and Inductive Bias"
-        )
+        print("Starting APGI Validation Protocol 6: Temporal Dynamics and Inductive Bias")
 
         # 1. Configuration
         config = {
@@ -4426,27 +4158,17 @@ class APGIValidationProtocol6:
         dataset_class = ConsciousClassificationDataset
 
         print(f"Running minimal evaluation on {task_name}...")
-        task_results = comparison.train_all_on_task(
-            task_name, dataset_class, n_epochs=5
-        )
+        task_results = comparison.train_all_on_task(task_name, dataset_class, n_epochs=5)
         all_results[task_name] = task_results
 
         # 3. Extract F6 parameters
         apgi_results = task_results.get("APGI", {})
         lstm_results = task_results.get("LSTM", {})
 
-        ltcn_transition_time = apgi_results.get("temporal_dynamics", {}).get(
-            "median_transition_time", 45.0
-        )
-        feedforward_transition_time = lstm_results.get("temporal_dynamics", {}).get(
-            "median_transition_time", 180.0
-        )
-        ltcn_integration_window = apgi_results.get("temporal_dynamics", {}).get(
-            "mean_integration_window", 350.0
-        )
-        rnn_integration_window = lstm_results.get("temporal_dynamics", {}).get(
-            "mean_integration_window", 40.0
-        )
+        ltcn_transition_time = apgi_results.get("temporal_dynamics", {}).get("median_transition_time", 45.0)
+        feedforward_transition_time = lstm_results.get("temporal_dynamics", {}).get("median_transition_time", 180.0)
+        ltcn_integration_window = apgi_results.get("temporal_dynamics", {}).get("mean_integration_window", 350.0)
+        rnn_integration_window = lstm_results.get("temporal_dynamics", {}).get("mean_integration_window", 40.0)
 
         # 4. Run Falsification Check
         # Using the existing check_falsification function with dummy values for other criteria
@@ -4602,7 +4324,7 @@ def main(progress_callback=None):
         if progress_callback is not None:
             try:
                 progress_callback(percent)
-            except Exception:
+            except Exception:  # nosec - Intentionally suppress progress callback errors
                 pass
         if message:
             print(message)
@@ -4676,11 +4398,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -4696,3 +4414,8 @@ def run_protocol_main(config=None):
 
 
 # Removed orphaned if __name__ == "__main__" block that referenced undefined 'main' and 'config'
+
+
+if __name__ == "__main__":
+    logger.info("VP_06_LiquidNetwork_InductiveBias module loaded successfully")
+    logger.info("Run this module through the validation framework or import its classes")

@@ -150,9 +150,7 @@ class PerformanceBaselineManager:
         )
 
         self._save_baseline(baseline)
-        print(
-            f"    Baseline: {baseline.mean_time_ms:.2f}ms ± {baseline.std_dev_ms:.2f}ms"
-        )
+        print(f"    Baseline: {baseline.mean_time_ms:.2f}ms ± {baseline.std_dev_ms:.2f}ms")
 
         return baseline
 
@@ -189,9 +187,7 @@ class PerformanceTrendAnalyzer:
     def __init__(self, baseline_manager: PerformanceBaselineManager):
         self.baseline_manager = baseline_manager
 
-    def analyze_trend(
-        self, test_name: str, window_size: int = 20
-    ) -> Optional[TrendAnalysis]:
+    def analyze_trend(self, test_name: str, window_size: int = 20) -> Optional[TrendAnalysis]:
         """Analyze performance trend for a test."""
         history = self.baseline_manager.get_history(test_name, limit=window_size)
 
@@ -238,9 +234,7 @@ class PerformanceTrendAnalyzer:
 
         return stats.linregress(x, y)
 
-    def detect_anomalies(
-        self, test_name: str, threshold_std: float = 2.0
-    ) -> List[Dict]:
+    def detect_anomalies(self, test_name: str, threshold_std: float = 2.0) -> List[Dict]:
         """Detect anomalous performance results."""
         history = self.baseline_manager.get_history(test_name, limit=50)
 
@@ -299,18 +293,14 @@ class PerformanceRegressionTester:
 
         # Calculate deviation
         if baseline:
-            deviation = (
-                (execution_time - baseline.mean_time_ms) / baseline.mean_time_ms
-            ) * 100
+            deviation = ((execution_time - baseline.mean_time_ms) / baseline.mean_time_ms) * 100
 
             # Check thresholds
             alert_triggered = abs(deviation) > self.WARNING_THRESHOLD
             passed = deviation < self.CRITICAL_THRESHOLD
 
             if alert_triggered:
-                self._create_alert(
-                    test_name, execution_time, baseline.mean_time_ms, deviation
-                )
+                self._create_alert(test_name, execution_time, baseline.mean_time_ms, deviation)
         else:
             deviation = 0.0
             alert_triggered = False
@@ -331,16 +321,12 @@ class PerformanceRegressionTester:
 
         return result
 
-    def _create_alert(
-        self, test_name: str, current: float, baseline: float, deviation: float
-    ) -> None:
+    def _create_alert(self, test_name: str, current: float, baseline: float, deviation: float) -> None:
         """Create a degradation alert."""
         severity = "critical" if abs(deviation) > self.CRITICAL_THRESHOLD else "warning"
 
         if deviation > 0:
-            recommendation = (
-                "Investigate performance degradation - review recent changes"
-            )
+            recommendation = "Investigate performance degradation - review recent changes"
         else:
             recommendation = "Performance improved - consider updating baseline"
 
@@ -378,13 +364,9 @@ class PerformanceRegressionTester:
                 status = "⚠"
 
             baseline_str = (
-                f"(baseline: {result.baseline_mean_ms:.2f}ms)"
-                if result.baseline_mean_ms
-                else "(no baseline)"
+                f"(baseline: {result.baseline_mean_ms:.2f}ms)" if result.baseline_mean_ms else "(no baseline)"
             )
-            print(
-                f"  {status} {result.execution_time_ms:.2f}ms {baseline_str} ({result.deviation_percent:+.1f}%)"
-            )
+            print(f"  {status} {result.execution_time_ms:.2f}ms {baseline_str} ({result.deviation_percent:+.1f}%)")
 
         # Analyze trends
         print("\n[Analyzing Trends]...")
@@ -455,9 +437,7 @@ class PerformanceRegressionTester:
                     "stable": "➡️",
                     "degrading": "📉",
                 }.get(trend.trend_direction, "❓")
-                print(
-                    f"  {direction_icon} {test_name}: {trend.trend_direction} (confidence: {trend.confidence:.1%})"
-                )
+                print(f"  {direction_icon} {test_name}: {trend.trend_direction} (confidence: {trend.confidence:.1%})")
 
         return trends
 
@@ -519,20 +499,14 @@ class PerformanceRegressionTester:
         print(f"{'=' * 80}")
         print(f"Total Tests: {report['summary']['total_tests']}")
         print(f"Passed: {report['summary']['passed']} ✓")
-        print(
-            f"Failed: {report['summary']['failed']} {'✓' if report['summary']['failed'] == 0 else '✗'}"
-        )
-        print(
-            f"Alerts: {report['summary']['alerts']} {'✓' if report['summary']['alerts'] == 0 else '⚠️'}"
-        )
+        print(f"Failed: {report['summary']['failed']} {'✓' if report['summary']['failed'] == 0 else '✗'}")
+        print(f"Alerts: {report['summary']['alerts']} {'✓' if report['summary']['alerts'] == 0 else '⚠️'}")
 
         if self.alerts:
             print("\n⚠️ Performance Alerts:")
             for alert in self.alerts[:5]:
                 icon = "🔴" if alert.severity == "critical" else "🟡"
-                print(
-                    f"  {icon} {alert.test_name}: {alert.deviation_percent:+.1f}% ({alert.severity})"
-                )
+                print(f"  {icon} {alert.test_name}: {alert.deviation_percent:+.1f}% ({alert.severity})")
 
         # Save report
         report_path = Path("reports/performance_regression_report.json")
@@ -643,7 +617,5 @@ if __name__ == "__main__":
     results = run_performance_regression_tests()
 
     # Exit with error code if any critical alerts
-    critical_alerts = sum(
-        1 for a in results.get("alerts", []) if a["severity"] == "critical"
-    )
+    critical_alerts = sum(1 for a in results.get("alerts", []) if a["severity"] == "critical")
     sys.exit(1 if critical_alerts > 0 else 0)

@@ -48,9 +48,7 @@ class APGILogger:
         """Log a simulation error."""
         self.logger.error(f"Simulation error in {name}: {str(error)}")
 
-    def export_logs(
-        self, export_path: str, format_type: str = "json", log_level: str = None
-    ) -> bool:
+    def export_logs(self, export_path: str, format_type: str = "json", log_level: str = None) -> bool:
         """Export logs to a file.
 
         Args:

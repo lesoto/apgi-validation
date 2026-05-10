@@ -53,10 +53,7 @@ from utils.constants import BOLD_TSNR_MIN, VISUAL_CONSTANTS
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V14_MIN_VMPFC_SCR_CORRELATION,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, V14_MIN_VMPFC_SCR_CORRELATION
 except ImportError:
     V14_MIN_VMPFC_SCR_CORRELATION = 0.30
     DEFAULT_ALPHA = 0.05
@@ -112,9 +109,7 @@ class APGI_fMRISimulator:
         self.config = config
         self.dt = 1.0 / config.fs
 
-    def simulate_trial(
-        self, is_threat_cue: bool, receives_shock: bool
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def simulate_trial(self, is_threat_cue: bool, receives_shock: bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Simulate neural APGI variables S(t) and M(t) for a single trial."""
         t = np.arange(0, self.config.trial_duration, self.dt)
         S = np.zeros_like(t)
@@ -136,16 +131,12 @@ class APGI_fMRISimulator:
             outcome_M = M[shock_idx - 1]
             for i in range(shock_idx, len(t)):
                 time_since_outcome = t[i] - self.config.shock_onset
-                M[i] = outcome_M * np.exp(
-                    -time_since_outcome / (self.config.tau_M * 0.5)
-                )
+                M[i] = outcome_M * np.exp(-time_since_outcome / (self.config.tau_M * 0.5))
                 M[i] += np.random.normal(0, 0.01)
 
         # S(t) maps to Anterior Insula (AI) / Salience (Experience / Shock processing)
         if receives_shock:
-            S[shock_idx : shock_idx + int(1.0 / self.dt)] = (
-                1.0  # Sharp surprise / ignition
-            )
+            S[shock_idx : shock_idx + int(1.0 / self.dt)] = 1.0  # Sharp surprise / ignition
         if is_threat_cue:
             # Slight S(t) during cue
             S[cue_idx : cue_idx + int(0.5 / self.dt)] = 0.3
@@ -162,9 +153,7 @@ class APGI_fMRISimulator:
             # VP-14 Fix 2: Use config.threat_prob instead of hardcoded 0.66
             # threat_prob is the probability of a threat cue (not shock probability)
             is_threat = np.random.random() < self.config.threat_prob
-            receives_shock = is_threat and (
-                np.random.random() < self.config.threat_prob
-            )
+            receives_shock = is_threat and (np.random.random() < self.config.threat_prob)
 
             t, S, M = self.simulate_trial(is_threat, receives_shock)
             all_S_neural.append(S)
@@ -217,17 +206,13 @@ def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
             "M_bold": np.asarray(data["M_bold"], dtype=float),
             "conditions": conditions,
             "dt": float(data["dt"]) if "dt" in data else 1.0,
-            "trial_duration": (
-                float(data["trial_duration"]) if "trial_duration" in data else 12.0
-            ),
+            "trial_duration": (float(data["trial_duration"]) if "trial_duration" in data else 12.0),
             "data_source": "real_npz",
         }
 
     if path.suffix in {".nii", ".gz"}:
         if not HAS_NIBABEL:
-            raise ImportError(
-                "nibabel is required to load NIfTI fMRI data; install with pip install nibabel"
-            )
+            raise ImportError("nibabel is required to load NIfTI fMRI data; install with pip install nibabel")
         img: Any = nib.load(str(path))
         data = np.asarray(img.get_fdata(), dtype=float)
         if data.ndim < 4:
@@ -239,11 +224,7 @@ def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
             if len(img.header.get_zooms()) >= 4  # type: ignore[attr-defined]
             else 1.0
         )
-        sidecar_path = (
-            Path(str(path)[:-7] + ".json")
-            if str(path).endswith(".nii.gz")
-            else path.with_suffix(".json")
-        )
+        sidecar_path = Path(str(path)[:-7] + ".json") if str(path).endswith(".nii.gz") else path.with_suffix(".json")
         sidecar = {}
         if sidecar_path.exists():
             with open(sidecar_path, "r", encoding="utf-8") as handle:
@@ -258,9 +239,7 @@ def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
             "sidecar_path": str(sidecar_path) if sidecar_path.exists() else None,
         }
 
-    raise ValueError(
-        f"Unsupported fMRI data format for {fmri_data_path}. Use .npz, .nii, or .nii.gz."
-    )
+    raise ValueError(f"Unsupported fMRI data format for {fmri_data_path}. Use .npz, .nii, or .nii.gz.")
 
 
 def compute_bold_detectability(
@@ -279,30 +258,21 @@ def compute_bold_detectability(
     M_bold = np.asarray(sim_results["M_bold"], dtype=float)
     bold_scale = max(np.max(np.abs(M_bold)), 1e-6)
     scanner_noise_amplitude = bold_scale * scanner_noise_pct_bold
-    signal_difference = float(
-        np.mean(np.max(threat_M_bolds, axis=1)) - np.mean(np.max(safe_M_bolds, axis=1))
-    )
+    signal_difference = float(np.mean(np.max(threat_M_bolds, axis=1)) - np.mean(np.max(safe_M_bolds, axis=1)))
     tsnr = float(abs(signal_difference) / max(scanner_noise_amplitude, 1e-9))
 
     # VP-14 Fix 4: Bootstrap confidence intervals for tSNR
     tsnr_samples = []
     for _ in range(n_bootstrap):
         # Resample with replacement from threat and safe trials
-        threat_resample_idx = np.random.choice(
-            len(threat_M_bolds), size=len(threat_M_bolds), replace=True
-        )
-        safe_resample_idx = np.random.choice(
-            len(safe_M_bolds), size=len(safe_M_bolds), replace=True
-        )
+        threat_resample_idx = np.random.choice(len(threat_M_bolds), size=len(threat_M_bolds), replace=True)
+        safe_resample_idx = np.random.choice(len(safe_M_bolds), size=len(safe_M_bolds), replace=True)
 
         threat_resampled = threat_M_bolds[threat_resample_idx]
         safe_resampled = safe_M_bolds[safe_resample_idx]
 
         # Compute tSNR for this bootstrap sample
-        signal_diff_boot = float(
-            np.mean(np.max(threat_resampled, axis=1))
-            - np.mean(np.max(safe_resampled, axis=1))
-        )
+        signal_diff_boot = float(np.mean(np.max(threat_resampled, axis=1)) - np.mean(np.max(safe_resampled, axis=1)))
         tsnr_boot = float(abs(signal_diff_boot) / max(scanner_noise_amplitude, 1e-9))
         tsnr_samples.append(tsnr_boot)
 
@@ -361,9 +331,7 @@ def compute_power_analysis_for_correlation(
     try:
         from utils.statistical_tests import compute_required_n
 
-        n_required = compute_required_n(
-            effect_size=expected_r, desired_power=desired_power, alpha=alpha
-        )
+        n_required = compute_required_n(effect_size=expected_r, desired_power=desired_power, alpha=alpha)
     except ImportError:
         # Fallback: Use simple power calculation
         # For correlation, required N ≈ ((z_alpha + z_beta) / (0.5 * ln((1+r)/(1-r))))^2 + 3
@@ -380,9 +348,7 @@ def compute_power_analysis_for_correlation(
         "alpha": alpha,
         "n_required": int(n_required),
         "effect_size_interpretation": (
-            "small"
-            if abs(expected_r) < 0.3
-            else "medium" if abs(expected_r) < 0.5 else "large"
+            "small" if abs(expected_r) < 0.3 else "medium" if abs(expected_r) < 0.5 else "large"
         ),
         "power_adequate": n_required <= 60,  # Typical fMRI study size
     }
@@ -410,9 +376,7 @@ def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
             safe_M_bolds_list.append(trial_M)
 
     if not threat_M_bolds_list or not safe_M_bolds_list:
-        raise ValueError(
-            "Threat/safe condition labels are required for anticipation/experience validation"
-        )
+        raise ValueError("Threat/safe condition labels are required for anticipation/experience validation")
 
     threat_M_bolds = np.asarray(threat_M_bolds_list, dtype=float)
     safe_M_bolds = np.asarray(safe_M_bolds_list, dtype=float)
@@ -437,9 +401,7 @@ def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
     results = {
         "F5.1_Anticipatory_vmPFC": {
             "passed": bool(
-                p_val < 0.05
-                and np.mean(np.max(threat_M_bolds, axis=1))
-                > np.mean(np.max(safe_M_bolds, axis=1))
+                p_val < 0.05 and np.mean(np.max(threat_M_bolds, axis=1)) > np.mean(np.max(safe_M_bolds, axis=1))
             ),
             "p_value": float(p_val),
             "threat_mean_peak": float(np.mean(np.max(threat_M_bolds, axis=1))),
@@ -507,17 +469,13 @@ def main(fmri_data_path: Optional[str] = None):
         "Detectability check uses the same HRF for generation and testing (circular)."
     )
 
-    logger.info(
-        "Initializing APGI fMRI Anticipation/Experience Simulation (VP-14 BOLD)..."
-    )
+    logger.info("Initializing APGI fMRI Anticipation/Experience Simulation (VP-14 BOLD)...")
     config = fMRI_SimulationConfig()
     if fmri_data_path:
         logger.info(f"Loading empirical fMRI data from: {fmri_data_path}")
         results = load_fmri_data(fmri_data_path)
         results.setdefault("scanner_noise_pct_bold", config.scanner_noise_pct_bold)
-        results.setdefault(
-            "detectability_sample_size", config.detectability_sample_size
-        )
+        results.setdefault("detectability_sample_size", config.detectability_sample_size)
     else:
         simulator = APGI_fMRISimulator(config)
         results = simulator.run_experiment()
@@ -525,26 +483,18 @@ def main(fmri_data_path: Optional[str] = None):
 
     if results.get("conditions"):
         plot_fmri_results(results)
-        logger.info(
-            "Generated fMRI BOLD timeseries plot: protocol5_fmri_timeseries.png"
-        )
+        logger.info("Generated fMRI BOLD timeseries plot: protocol5_fmri_timeseries.png")
     else:
-        logger.info(
-            "Skipping trial-wise plot because real-data conditions were not provided."
-        )
+        logger.info("Skipping trial-wise plot because real-data conditions were not provided.")
 
     logger.info("Running Falsification Validation...")
     validation_report = validate_fmri_predictions(results)
 
     passed_count = sum(1 for v in validation_report.values() if v.get("passed", False))
-    logger.info(
-        f"Validation Summary: {passed_count}/{len(validation_report)} Checks Passed"
-    )
+    logger.info(f"Validation Summary: {passed_count}/{len(validation_report)} Checks Passed")
 
     for k, v in validation_report.items():
-        logger.info(
-            f"{k}: {'PASS' if v.get('passed', False) else 'FAIL'} - Details: {v}"
-        )
+        logger.info(f"{k}: {'PASS' if v.get('passed', False) else 'FAIL'} - Details: {v}")
 
     output_payload = {
         "config": config.__dict__,
@@ -566,31 +516,19 @@ def main(fmri_data_path: Optional[str] = None):
     # Map to V14 series for aggregator as defined in VP_ALL_Aggregator.py
     named_predictions = {
         "V14.1": {
-            "passed": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get(
-                "passed", False
-            ),
-            "actual": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get(
-                "pearson_r"
-            ),
+            "passed": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get("passed", False),
+            "actual": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get("pearson_r"),
             "threshold": "vmPFC-SCR (AI) correlation r > 0.40",
         },
         "V14.2": {
-            "passed": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get(
-                "pearson_r", 1.0
-            )
+            "passed": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get("pearson_r", 1.0)
             < 0.60,  # Use as proxy for dissociation
-            "actual": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get(
-                "pearson_r"
-            ),
+            "actual": validation_report.get("F5.2_vmPFC_AI_Connectivity", {}).get("pearson_r"),
             "threshold": "vmPFC uncorrelated with posterior insula (r < 0.20)",
         },
         "V14.3": {
-            "passed": validation_report.get("F5.1_Anticipatory_vmPFC", {}).get(
-                "passed", False
-            ),
-            "actual": validation_report.get("F5.1_Anticipatory_vmPFC", {}).get(
-                "threat_mean_peak"
-            ),
+            "passed": validation_report.get("F5.1_Anticipatory_vmPFC", {}).get("passed", False),
+            "actual": validation_report.get("F5.1_Anticipatory_vmPFC", {}).get("threat_mean_peak"),
             "threshold": "Anticipatory peak follows threat cue",
         },
     }
@@ -661,11 +599,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(

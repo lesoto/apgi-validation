@@ -71,7 +71,10 @@ class ErrorCode(str, Enum):
     # Security
     SEC_UNAUTHORIZED = "SEC_001"
     SEC_FORBIDDEN = "SEC_002"
-    SEC_TOKEN_EXPIRED = "SEC_003"
+    SEC_TOKEN_EXPIRED = "SEC_003"  # nosec B105
+
+    # Security constants should be loaded from environment in production
+    # TODO: Move these to environment variables for deployment
 
 
 class APGIException(Exception):

@@ -45,9 +45,7 @@ class ComprehensiveTestRunner:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.results: List[TestModuleResult] = []
 
-    def run_all_tests(
-        self, select_modules: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    def run_all_tests(self, select_modules: Optional[List[str]] = None) -> Dict[str, Any]:
         """Run all test modules."""
         print("=" * 80)
         print("APGI COMPREHENSIVE TEST SUITE")
@@ -135,8 +133,7 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.db_transaction_comprehensive import \
-                DatabaseTransactionTester
+            from comprehensive.db_transaction_comprehensive import DatabaseTransactionTester
 
             tester = DatabaseTransactionTester()
             report = tester.run_all_tests()
@@ -162,8 +159,7 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.mutation_enhanced import \
-                run_enhanced_mutation_testing
+            from comprehensive.mutation_enhanced import run_enhanced_mutation_testing
 
             report = run_enhanced_mutation_testing()
 
@@ -196,8 +192,7 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.property_based_enhanced import \
-                run_property_based_tests
+            from comprehensive.property_based_enhanced import run_property_based_tests
 
             info = run_property_based_tests()
 
@@ -222,20 +217,14 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.performance_regression import \
-                run_performance_regression_tests
+            from comprehensive.performance_regression import run_performance_regression_tests
 
             report = run_performance_regression_tests()
 
             # Check if any critical alerts
-            critical_alerts = sum(
-                1 for a in report.get("alerts", []) if a.get("severity") == "critical"
-            )
+            critical_alerts = sum(1 for a in report.get("alerts", []) if a.get("severity") == "critical")
 
-            passed = (
-                critical_alerts == 0
-                and report.get("summary", {}).get("pass_rate", 0) >= 90
-            )
+            passed = critical_alerts == 0 and report.get("summary", {}).get("pass_rate", 0) >= 90
 
             return TestModuleResult(
                 module_name="performance",
@@ -264,9 +253,7 @@ class ComprehensiveTestRunner:
                 "passed_modules": passed_modules,
                 "failed_modules": total_modules - passed_modules,
                 "total_duration_seconds": total_duration,
-                "overall_pass_rate": (
-                    passed_modules / total_modules * 100 if total_modules > 0 else 0
-                ),
+                "overall_pass_rate": (passed_modules / total_modules * 100 if total_modules > 0 else 0),
             },
             "modules": [
                 {
@@ -291,9 +278,7 @@ class ComprehensiveTestRunner:
         print(f"{'=' * 80}")
         print(f"Total Modules: {total_modules}")
         print(f"Passed: {passed_modules} ✓")
-        print(
-            f"Failed: {total_modules - passed_modules} {'✓' if total_modules == passed_modules else '✗'}"
-        )
+        print(f"Failed: {total_modules - passed_modules} {'✓' if total_modules == passed_modules else '✗'}")
         print(f"Total Duration: {total_duration:.1f}s")
 
         for r in self.results:
@@ -351,28 +336,18 @@ Examples:
         help="Output directory for reports (default: reports)",
     )
 
-    parser.add_argument(
-        "--list", action="store_true", help="List available test modules and exit"
-    )
+    parser.add_argument("--list", action="store_true", help="List available test modules and exit")
 
     args = parser.parse_args()
 
     if args.list:
         print("Available test modules:")
         print("  - integration: Integration and E2E tests")
-        print(
-            "  - gui: GUI testing enhancement (headless browser, screenshots, state transitions)"
-        )
-        print(
-            "  - database: Database transaction testing (rollback/commit, pool exhaustion, isolation)"
-        )
+        print("  - gui: GUI testing enhancement (headless browser, screenshots, state transitions)")
+        print("  - database: Database transaction testing (rollback/commit, pool exhaustion, isolation)")
         print("  - mutation: Mutation testing (HTML reports, >=80% score target)")
-        print(
-            "  - property_based: Property-based testing (Hypothesis strategies, stateful testing)"
-        )
-        print(
-            "  - performance: Performance regression testing (baselines, trends, alerts)"
-        )
+        print("  - property_based: Property-based testing (Hypothesis strategies, stateful testing)")
+        print("  - performance: Performance regression testing (baselines, trends, alerts)")
         return 0
 
     runner = ComprehensiveTestRunner(output_dir=args.output)

@@ -84,9 +84,7 @@ class SevenStandardsRegistry:
         return cls._standards.get(standard_id)
 
     @classmethod
-    def list_standards(
-        cls, category: Optional[StandardCategory] = None
-    ) -> List[Standard]:
+    def list_standards(cls, category: Optional[StandardCategory] = None) -> List[Standard]:
         """List all standards, optionally filtered by category."""
         standards = list(cls._standards.values())
 
@@ -100,9 +98,7 @@ class SevenStandardsRegistry:
         """Get all criteria with specified priority level."""
         criteria = []
         for standard in cls._standards.values():
-            criteria.extend(
-                [c for c in standard.criteria if c.priority_level == priority]
-            )
+            criteria.extend([c for c in standard.criteria if c.priority_level == priority])
         return criteria
 
     @classmethod
@@ -115,12 +111,8 @@ class SevenStandardsRegistry:
                 "category": standard.category.value,
                 "overall_status": standard.overall_status,
                 "criteria_count": len(standard.criteria),
-                "critical_criteria": len(
-                    [c for c in standard.criteria if c.priority_level == "Critical"]
-                ),
-                "implemented_criteria": len(
-                    [c for c in standard.criteria if "Implemented" in c.current_status]
-                ),
+                "critical_criteria": len([c for c in standard.criteria if c.priority_level == "Critical"]),
+                "implemented_criteria": len([c for c in standard.criteria if "Implemented" in c.current_status]),
             }
         return summary
 
@@ -498,9 +490,7 @@ def enforce_standard_compliance(standard_id: str, validation_data: Dict) -> bool
 
             # Check if criterion passes its falsification threshold
             if not _check_criterion_threshold(criterion, validation_data[metric_key]):
-                failed_criteria.append(
-                    f"{criterion.name}: Failed falsification threshold"
-                )
+                failed_criteria.append(f"{criterion.name}: Failed falsification threshold")
             else:
                 passed_criteria += 1
         else:
@@ -555,10 +545,7 @@ def _check_criterion_threshold(criterion: ValidationCriterion, value: float) -> 
 
 def get_implementation_status() -> Dict[str, str]:
     """Get current implementation status for all standards."""
-    return {
-        sid: std.overall_status
-        for sid, std in SevenStandardsRegistry._standards.items()
-    }
+    return {sid: std.overall_status for sid, std in SevenStandardsRegistry._standards.items()}
 
 
 def get_critical_criteria() -> List[ValidationCriterion]:

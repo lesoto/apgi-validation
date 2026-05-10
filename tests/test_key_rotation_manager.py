@@ -15,10 +15,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # provides a persistent APGI_MASTER_KEY.
 os.environ.setdefault("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "1")
 
-from utils.key_rotation_manager import (KeyRotationManager,
-                                        check_and_rotate_keys_if_needed,
-                                        get_key_rotation_manager,
-                                        get_key_status)
+from utils.key_rotation_manager import (
+    KeyRotationManager,
+    check_and_rotate_keys_if_needed,
+    get_key_rotation_manager,
+    get_key_status,
+)
 
 
 class TestKeyRotationManager:
@@ -28,9 +30,7 @@ class TestKeyRotationManager:
         """Test key rotation manager initialization."""
         # Unset APGI_MASTER_KEY to avoid invalid format errors
         os.environ.pop("APGI_MASTER_KEY", None)
-        manager = KeyRotationManager(
-            keys_dir=str(temp_dir / ".keys"), rotation_interval_days=30
-        )
+        manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"), rotation_interval_days=30)
 
         assert manager.keys_dir == Path(temp_dir / ".keys")
         assert manager.rotation_interval_days == 30
@@ -122,9 +122,7 @@ class TestKeyRotationManager:
     def test_check_rotation_needed(self, temp_dir):
         """Test rotation needed check."""
         os.environ.pop("APGI_MASTER_KEY", None)
-        manager = KeyRotationManager(
-            keys_dir=str(temp_dir / ".keys"), rotation_interval_days=1
-        )
+        manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"), rotation_interval_days=1)
 
         # Initially, rotation should be needed (next_rotation is set to future)
         assert not manager.check_rotation_needed()
@@ -255,9 +253,7 @@ class TestConvenienceFunctions:
         import utils.key_rotation_manager as krm_module
 
         os.environ.pop("APGI_MASTER_KEY", None)
-        krm_module._key_rotation_manager = KeyRotationManager(
-            keys_dir=str(temp_dir / ".keys")
-        )
+        krm_module._key_rotation_manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         status = get_key_status()
 

@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -266,10 +268,7 @@ class TestDTO:
 
     def test_master_validation_report_dto(self):
         """Test MasterValidationReportDTO."""
-        from utils.dto import (
-            MasterValidationReportDTO,
-            ValidationTierSummaryDTO,
-        )
+        from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
 
         tier_summary = {"tier1": ValidationTierSummaryDTO(passed=5, total=10)}
         dto = MasterValidationReportDTO(
@@ -299,9 +298,7 @@ class TestDTO:
         """Test ServiceResponseDTO error case."""
         from utils.dto import ServiceResponseDTO
 
-        dto = ServiceResponseDTO(
-            success=False, error_code="ERR001", message="Error occurred"
-        )
+        dto = ServiceResponseDTO(success=False, error_code="ERR001", message="Error occurred")
         assert dto.success is False
         assert dto.error_code == "ERR001"
 
@@ -419,11 +416,8 @@ class TestFileOps:
         from utils.file_ops import read_json_file
 
         mock_read.return_value = "invalid json"
-        try:
+        with pytest.raises(ValueError):
             read_json_file("test.json", "/base")
-            assert False, "Should have raised ValueError"
-        except ValueError:
-            pass
 
     @patch("utils.file_ops.write_text_file")
     def test_write_json_file(self, mock_write):
@@ -454,11 +448,8 @@ class TestFileOps:
         mock_validate.return_value = Path("/valid/path")
         mock_ops.safe_delete.return_value = False
 
-        try:
+        with pytest.raises(IOError):
             delete_file("test.txt", "/base")
-            assert False, "Should have raised IOError"
-        except IOError:
-            pass
 
     @patch("utils.file_ops.validate_file_path")
     @patch("utils.file_ops._ops")
@@ -502,11 +493,8 @@ class TestFileOps:
         mock_validate.return_value = Path("/valid/path")
         mock_ops.safe_mkdir.return_value = False
 
-        try:
+        with pytest.raises(IOError):
             make_directory("/dir", "/base")
-            assert False, "Should have raised IOError"
-        except IOError:
-            pass
 
 
 class TestSecretPolicyEnforcer:
@@ -545,17 +533,14 @@ class TestSecretPolicyEnforcer:
 
         mock_manager.side_effect = Exception("Key load failed")
 
-        try:
+        with pytest.raises(SystemExit):
             enforce_secret_policy()
-            assert False, "Should have exited"
-        except SystemExit:
-            pass
 
     @patch.dict(
         "os.environ",
         {
             "APGI_MASTER_KEY": "test_key_1234567890123456",
-            "APGI_JWT_SECRET": "weak",
+            "APGI_JWT_SECRET": "test_weak_secret",
         },
     )
     @patch("utils.secret_policy_enforcer.get_secure_key_manager")
@@ -568,17 +553,14 @@ class TestSecretPolicyEnforcer:
         mock_mgr.get_backup_hmac_key.return_value = "key"
         mock_manager.return_value = mock_mgr
 
-        try:
+        with pytest.raises(SystemExit):
             enforce_secret_policy()
-            assert False, "Should have exited"
-        except SystemExit:
-            pass
 
     @patch.dict(
         "os.environ",
         {
             "APGI_MASTER_KEY": "test_key_1234567890123456",
-            "APGI_JWT_SECRET": "dev-fallback-secret-do-not-use-in-prod",
+            "APGI_JWT_SECRET": "test_fallback_secret_not_for_prod",
         },
     )
     @patch("utils.secret_policy_enforcer.get_secure_key_manager")
@@ -591,8 +573,5 @@ class TestSecretPolicyEnforcer:
         mock_mgr.get_backup_hmac_key.return_value = "key"
         mock_manager.return_value = mock_mgr
 
-        try:
+        with pytest.raises(SystemExit):
             enforce_secret_policy()
-            assert False, "Should have exited"
-        except SystemExit:
-            pass

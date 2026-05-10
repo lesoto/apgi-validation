@@ -61,9 +61,7 @@ class SecureKeyManager:
         """
         master_key = os.environ.get("APGI_MASTER_KEY")
         if not master_key:
-            allow_ephemeral = os.environ.get(
-                "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
-            ).strip().lower() in {
+            allow_ephemeral = os.environ.get("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "").strip().lower() in {
                 "1",
                 "true",
                 "yes",
@@ -74,9 +72,7 @@ class SecureKeyManager:
                     "or (dev/tests only) set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral key."
                 )
 
-            master_key = (
-                Fernet.generate_key().decode()
-            )  # Convert bytes to base64 string
+            master_key = Fernet.generate_key().decode()  # Convert bytes to base64 string
             os.environ["APGI_MASTER_KEY"] = master_key
             self.logger.warning(
                 "APGI_MASTER_KEY not set; generated ephemeral key because "
@@ -99,9 +95,7 @@ class SecureKeyManager:
 
         master_key = self._get_master_key()
         # master_key is a base64-encoded string, convert to bytes for Fernet
-        master_key_bytes = (
-            master_key.encode() if isinstance(master_key, str) else master_key
-        )
+        master_key_bytes = master_key.encode() if isinstance(master_key, str) else master_key
         fernet = Fernet(master_key_bytes)
 
         encrypted = key_file.read_bytes()
@@ -115,9 +109,7 @@ class SecureKeyManager:
                 return key_bytes_hex
             except Exception as decode_error:
                 # If both decryption and base64 decode fail, raise ValueError
-                raise ValueError(
-                    f"Invalid key format in {key_file.name}: {decode_error}"
-                )
+                raise ValueError(f"Invalid key format in {key_file.name}: {decode_error}")
         except Exception as decrypt_error:
             # If decryption fails, it might be due to master key mismatch
             # In test scenarios, we should regenerate the key
@@ -127,9 +119,7 @@ class SecureKeyManager:
             )
             # Remove the corrupted/old key file and force regeneration
             key_file.unlink(missing_ok=True)
-            raise ValueError(
-                f"Key file {key_file.name} could not be decrypted with current master key"
-            )
+            raise ValueError(f"Key file {key_file.name} could not be decrypted with current master key")
 
     def _generate_and_save_key(self, key_file: Path) -> str:
         """
@@ -150,9 +140,7 @@ class SecureKeyManager:
         # Save encrypted
         master_key = self._get_master_key()
         # master_key is a base64-encoded string, convert to bytes for Fernet
-        master_key_bytes = (
-            master_key.encode() if isinstance(master_key, str) else master_key
-        )
+        master_key_bytes = master_key.encode() if isinstance(master_key, str) else master_key
         fernet = Fernet(master_key_bytes)
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
         encrypted = fernet.encrypt(key_b64.encode("utf-8"))
@@ -196,18 +184,14 @@ class SecureKeyManager:
                         fingerprint = self._generate_and_save_key(self._pickle_key_file)
                         key_hex = self._load_encrypted_key(self._pickle_key_file)
                         self._key_cache["pickle_secret"] = key_hex
-                        self.logger.info(
-                            f"Generated new PICKLE_SECRET_KEY with fingerprint {fingerprint}"
-                        )
+                        self.logger.info(f"Generated new PICKLE_SECRET_KEY with fingerprint {fingerprint}")
                 except ValueError as e:
                     # Key file couldn't be decrypted, regenerate it
                     self.logger.warning(f"Regenerating pickle secret key: {e}")
                     fingerprint = self._generate_and_save_key(self._pickle_key_file)
                     key_hex = self._load_encrypted_key(self._pickle_key_file)
                     self._key_cache["pickle_secret"] = key_hex
-                    self.logger.info(
-                        f"Generated new PICKLE_SECRET_KEY with fingerprint {fingerprint}"
-                    )
+                    self.logger.info(f"Generated new PICKLE_SECRET_KEY with fingerprint {fingerprint}")
 
             return self._key_cache["pickle_secret"]
 
@@ -246,18 +230,14 @@ class SecureKeyManager:
                         fingerprint = self._generate_and_save_key(self._backup_key_file)
                         key_hex = self._load_encrypted_key(self._backup_key_file)
                         self._key_cache["backup_hmac"] = key_hex
-                        self.logger.info(
-                            f"Generated new APGI_BACKUP_HMAC_KEY with fingerprint {fingerprint}"
-                        )
+                        self.logger.info(f"Generated new APGI_BACKUP_HMAC_KEY with fingerprint {fingerprint}")
                 except ValueError as e:
                     # Key file couldn't be decrypted, regenerate it
                     self.logger.warning(f"Regenerating backup HMAC key: {e}")
                     fingerprint = self._generate_and_save_key(self._backup_key_file)
                     key_hex = self._load_encrypted_key(self._backup_key_file)
                     self._key_cache["backup_hmac"] = key_hex
-                    self.logger.info(
-                        f"Generated new APGI_BACKUP_HMAC_KEY with fingerprint {fingerprint}"
-                    )
+                    self.logger.info(f"Generated new APGI_BACKUP_HMAC_KEY with fingerprint {fingerprint}")
 
             return self._key_cache["backup_hmac"]
 
@@ -286,18 +266,14 @@ class SecureKeyManager:
                         fingerprint = self._generate_and_save_key(self._jwt_key_file)
                         key_hex = self._load_encrypted_key(self._jwt_key_file)
                         self._key_cache["jwt_secret"] = key_hex
-                        self.logger.info(
-                            f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}"
-                        )
+                        self.logger.info(f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}")
                 except ValueError as e:
                     # Key file couldn't be decrypted, regenerate it
                     self.logger.warning(f"Regenerating JWT secret key: {e}")
                     fingerprint = self._generate_and_save_key(self._jwt_key_file)
                     key_hex = self._load_encrypted_key(self._jwt_key_file)
                     self._key_cache["jwt_secret"] = key_hex
-                    self.logger.info(
-                        f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}"
-                    )
+                    self.logger.info(f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}")
 
             return self._key_cache["jwt_secret"]
 
@@ -323,15 +299,11 @@ class SecureKeyManager:
 
             if self._pickle_key_file.exists():
                 old_key_hex = self._load_encrypted_key(self._pickle_key_file)
-                old_pickle_fingerprint = hashlib.sha256(
-                    old_key_hex.encode()
-                ).hexdigest()[:16]
+                old_pickle_fingerprint = hashlib.sha256(old_key_hex.encode()).hexdigest()[:16]
 
             if self._backup_key_file.exists():
                 old_key_hex = self._load_encrypted_key(self._backup_key_file)
-                old_backup_fingerprint = hashlib.sha256(
-                    old_key_hex.encode()
-                ).hexdigest()[:16]
+                old_backup_fingerprint = hashlib.sha256(old_key_hex.encode()).hexdigest()[:16]
 
             # Generate new keys
             new_pickle_fingerprint = self._generate_and_save_key(self._pickle_key_file)
@@ -354,12 +326,8 @@ class SecureKeyManager:
                 },
             }
 
-            old_pickle_short = (
-                f"{old_pickle_fingerprint[:8]}..." if old_pickle_fingerprint else "none"
-            )
-            old_backup_short = (
-                f"{old_backup_fingerprint[:8]}..." if old_backup_fingerprint else "none"
-            )
+            old_pickle_short = f"{old_pickle_fingerprint[:8]}..." if old_pickle_fingerprint else "none"
+            old_backup_short = f"{old_backup_fingerprint[:8]}..." if old_backup_fingerprint else "none"
             self.logger.info(
                 f"Key rotation completed: pickle_secret {old_pickle_short} -> {new_pickle_fingerprint[:8]}..., "
                 f"backup_hmac {old_backup_short} -> {new_backup_fingerprint[:8]}..."
@@ -379,9 +347,7 @@ class SecureKeyManager:
             self._pickle_key_file = self._pickle_key_file
             self._backup_key_file = self._backup_key_file
 
-            self.logger.info(
-                "All key references invalidated - keys will be reloaded on next access"
-            )
+            self.logger.info("All key references invalidated - keys will be reloaded on next access")
 
 
 # Global secure key manager instance
@@ -403,11 +369,7 @@ def get_pickle_secret_key() -> str:
     """Get PICKLE_SECRET_KEY securely."""
     # Check environment variable first for global functions
     env_key = os.environ.get("PICKLE_SECRET_KEY")
-    if (
-        env_key
-        and len(env_key) == 64
-        and all(c in "0123456789abcdefABCDEF" for c in env_key)
-    ):
+    if env_key and len(env_key) == 64 and all(c in "0123456789abcdefABCDEF" for c in env_key):
         return env_key
     return get_secure_key_manager().get_pickle_secret_key()
 
@@ -416,11 +378,7 @@ def get_backup_hmac_key() -> str:
     """Get APGI_BACKUP_HMAC_KEY securely."""
     # Check environment variable first for global functions
     env_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
-    if (
-        env_key
-        and len(env_key) == 64
-        and all(c in "0123456789abcdefABCDEF" for c in env_key)
-    ):
+    if env_key and len(env_key) == 64 and all(c in "0123456789abcdefABCDEF" for c in env_key):
         return env_key
     return get_secure_key_manager().get_backup_hmac_key()
 
@@ -429,11 +387,7 @@ def get_jwt_secret() -> str:
     """Get APGI_JWT_SECRET securely."""
     # Check environment variable first for global functions
     env_key = os.environ.get("APGI_JWT_SECRET")
-    if (
-        env_key
-        and len(env_key) == 64
-        and all(c in "0123456789abcdefABCDEF" for c in env_key)
-    ):
+    if env_key and len(env_key) == 64 and all(c in "0123456789abcdefABCDEF" for c in env_key):
         return env_key
     # Use the same key as pickle_secret for JWT signing
     return get_secure_key_manager().get_pickle_secret_key()

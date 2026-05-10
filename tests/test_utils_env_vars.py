@@ -126,9 +126,7 @@ def test_check_required_env_vars_missing_both_keys_development():
 
             # Check that a warning was issued
             assert len(w) >= 1
-            assert any(
-                "Missing environment variables" in str(warning.message) for warning in w
-            )
+            assert any("Missing environment variables" in str(warning.message) for warning in w)
 
     finally:
         # Restore .env file
@@ -186,9 +184,7 @@ def test_check_required_env_vars_missing_one_key():
 
             # Check that a warning was issued
             assert len(w) >= 1
-            assert any(
-                "Missing environment variables" in str(warning.message) for warning in w
-            )
+            assert any("Missing environment variables" in str(warning.message) for warning in w)
 
     finally:
         # Restore .env file

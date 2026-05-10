@@ -118,14 +118,9 @@ class EmpiricalDatasetCatalog:
                 results.append(dataset)
         return results
 
-    def _matches_criteria(
-        self, dataset: DatasetMetadata, criteria: SearchCriteria
-    ) -> bool:
+    def _matches_criteria(self, dataset: DatasetMetadata, criteria: SearchCriteria) -> bool:
         """Check if dataset matches search criteria."""
-        if (
-            criteria.dataset_types
-            and dataset.dataset_type not in criteria.dataset_types
-        ):
+        if criteria.dataset_types and dataset.dataset_type not in criteria.dataset_types:
             return False
         if criteria.min_subjects and dataset.subjects < criteria.min_subjects:
             return False
@@ -237,12 +232,8 @@ class EmpiricalDatasetCatalog:
         total_subjects = 0
 
         for dataset in self.datasets.values():
-            type_counts[dataset.dataset_type.name] = (
-                type_counts.get(dataset.dataset_type.name, 0) + 1
-            )
-            quality_counts[dataset.quality.value] = (
-                quality_counts.get(dataset.quality.value, 0) + 1
-            )
+            type_counts[dataset.dataset_type.name] = type_counts.get(dataset.dataset_type.name, 0) + 1
+            quality_counts[dataset.quality.value] = quality_counts.get(dataset.quality.value, 0) + 1
             total_subjects += dataset.subjects
 
         return {
@@ -250,9 +241,7 @@ class EmpiricalDatasetCatalog:
             "by_type": type_counts,
             "quality_distribution": quality_counts,
             "total_subjects": total_subjects,
-            "average_subjects": (
-                total_subjects / len(self.datasets) if self.datasets else 0
-            ),
+            "average_subjects": (total_subjects / len(self.datasets) if self.datasets else 0),
         }
 
 
@@ -525,11 +514,7 @@ PROTOCOL_DATASET_MAPPING: Dict[str, List[str]] = {
 def get_datasets_for_protocol(protocol_id: str) -> List[EmpiricalDataset]:
     """Get list of datasets that can validate a specific protocol."""
     dataset_ids = PROTOCOL_DATASET_MAPPING.get(protocol_id, [])
-    return [
-        EMPIRICAL_DATASETS[ds_id]
-        for ds_id in dataset_ids
-        if ds_id in EMPIRICAL_DATASETS
-    ]
+    return [EMPIRICAL_DATASETS[ds_id] for ds_id in dataset_ids if ds_id in EMPIRICAL_DATASETS]
 
 
 def get_accessible_datasets(protocol_id: str) -> List[EmpiricalDataset]:
@@ -565,9 +550,7 @@ def print_dataset_summary():
                 }.get(ds.access_status, "❓")
 
                 print(f"  {status_icon} {ds.id}: {ds.name}")
-                print(
-                    f"     Tier: {ds.tier.value} | Modality: {ds.modality} | N={ds.sample_size}"
-                )
+                print(f"     Tier: {ds.tier.value} | Modality: {ds.modality} | N={ds.sample_size}")
                 print(f"     APGI Innovations: {', '.join(ds.apgi_innovations)}")
                 print(f"     URL: {ds.primary_url}")
                 print()

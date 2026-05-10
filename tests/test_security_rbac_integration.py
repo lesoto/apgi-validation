@@ -8,12 +8,14 @@ def test_security_context_from_token_and_file_ops(tmp_path, monkeypatch):
 
     from utils.auth_adapter import Role, get_auth_manager
     from utils.security_logging_integration import (
-        SecurityAuthorizationError, secure_file_delete, secure_file_read,
-        secure_file_write, security_context_from_token)
-
-    token = get_auth_manager().generate_token(
-        "user1", Role.RESEARCHER, expiration_hours=1
+        SecurityAuthorizationError,
+        secure_file_delete,
+        secure_file_read,
+        secure_file_write,
+        security_context_from_token,
     )
+
+    token = get_auth_manager().generate_token("user1", Role.RESEARCHER, expiration_hours=1)
     ctx = security_context_from_token(token)
 
     p = tmp_path / "a.txt"
@@ -32,8 +34,10 @@ def test_guest_role_cannot_write(tmp_path, monkeypatch):
 
     from utils.auth_adapter import Role, get_auth_manager
     from utils.security_logging_integration import (
-        SecurityAuthorizationError, secure_file_write,
-        security_context_from_token)
+        SecurityAuthorizationError,
+        secure_file_write,
+        security_context_from_token,
+    )
 
     token = get_auth_manager().generate_token("user2", Role.GUEST, expiration_hours=1)
     ctx = security_context_from_token(token)

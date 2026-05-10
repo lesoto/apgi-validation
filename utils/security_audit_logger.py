@@ -16,9 +16,7 @@ from typing import Any, Optional
 class SecurityAuditLogger:
     """Audit logger for security-relevant file operations."""
 
-    def __init__(
-        self, log_file: str = "security_audit.log", log_level: int = logging.INFO
-    ):
+    def __init__(self, log_file: str = "security_audit.log", log_level: int = logging.INFO):
         """
         Initialize security audit logger.
 
@@ -26,12 +24,13 @@ class SecurityAuditLogger:
             log_file: Path to audit log file
             log_level: Logging level
         """
-        self.log_file = Path(log_file)
+        self.log_file = Path(log_file)  # Store as Path object to match test expectations
         self.log_level = log_level
 
         # Create unique audit logger per instance (based on log file path)
         # This prevents test isolation issues with shared handlers
-        logger_name = f"security_audit_{self.log_file.stem}_{id(self)}"
+        log_file_path = Path(log_file)
+        logger_name = f"security_audit_{log_file_path.stem}_{id(self)}"
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(log_level)
 
@@ -39,13 +38,11 @@ class SecurityAuditLogger:
         self.logger.handlers.clear()
 
         # File handler for audit logs
-        file_handler = logging.FileHandler(self.log_file)
+        file_handler = logging.FileHandler(log_file_path)
         file_handler.setLevel(log_level)
 
         # Format: timestamp | level | operation | details
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(operation)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(operation)s | %(message)s")
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
@@ -196,16 +193,7 @@ class SecurityAuditLogger:
         user: Optional[str] = None,
         **kwargs,
     ) -> None:
-        """
-        Log configuration change operation.
-
-        Args:
-            config_key: Configuration key being changed
-            old_value: Previous value
-            new_value: New value
-            user: User making the change
-            **kwargs: Additional context
-        """
+        """Log configuration change operation."""
         log_entry = {
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "operation": "config_change",
@@ -222,7 +210,168 @@ class SecurityAuditLogger:
 
         extra = {"operation": "config_change"}
         self.logger.info(
-            f"Config changed: {config_key} | Old: {old_value} | New: {new_value} | User: {user or 'unknown'}",
+            f"Config changed: {config_key} | User: {user or 'unknown'}",
+            extra=extra,
+        )
+
+    def log_operation(
+        self,
+        operation: str,
+        details: str = "",
+        user: Optional[str] = None,
+        success: bool = True,
+        **kwargs,
+    ) -> None:
+        """Log general operation."""
+        log_entry = {
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "operation": operation,
+            "details": details,
+            "user": user,
+            "success": success,
+            "context": kwargs,
+        }
+
+        self.audit_trail.append(log_entry)
+        if len(self.audit_trail) > 1000:
+            self.audit_trail.pop(0)
+
+        extra = {"operation": operation}
+        if success:
+            self.logger.info(
+                f"Operation: {operation} | Details: {details} | User: {user or 'unknown'}",
+                extra=extra,
+            )
+        else:
+            self.logger.warning(
+                f"Operation failed: {operation} | Details: {details} | User: {user or 'unknown'}",
+                extra=extra,
+            )
+
+    def log_authentication(
+        self,
+        user: str,
+        method: str,
+        success: bool = True,
+        **kwargs,
+    ) -> None:
+        """Log authentication attempt."""
+        log_entry = {
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "operation": "authentication",
+            "user": user,
+            "method": method,
+            "success": success,
+            "context": kwargs,
+        }
+
+        self.audit_trail.append(log_entry)
+        if len(self.audit_trail) > 1000:
+            self.audit_trail.pop(0)
+
+        extra = {"operation": "authentication"}
+        if success:
+            self.logger.info(
+                f"Auth success: {user} | Method: {method}",
+                extra=extra,
+            )
+        else:
+            self.logger.warning(
+                f"Auth failed: {user} | Method: {method}",
+                extra=extra,
+            )
+
+    def log_data_access(
+        self,
+        operation: str,
+        data_type: str,
+        record_count: int,
+        user: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        """Log data access operation."""
+        log_entry = {
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "operation": "data_access",
+            "access_type": operation,
+            "data_type": data_type,
+            "record_count": record_count,
+            "user": user,
+            "context": kwargs,
+        }
+
+        self.audit_trail.append(log_entry)
+        if len(self.audit_trail) > 1000:
+            self.audit_trail.pop(0)
+
+        extra = {"operation": "data_access"}
+        self.logger.info(
+            f"Data access: {operation} | Type: {data_type} | Records: {record_count} | User: {user or 'unknown'}",
+            extra=extra,
+        )
+
+    def log_system_event(
+        self,
+        event_type: str,
+        description: str,
+        severity: str = "info",
+        **kwargs,
+    ) -> None:
+        """Log system event."""
+        log_entry = {
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "operation": "system_event",
+            "event_type": event_type,
+            "description": description,
+            "severity": severity,
+            "context": kwargs,
+        }
+
+        self.audit_trail.append(log_entry)
+        if len(self.audit_trail) > 1000:
+            self.audit_trail.pop(0)
+
+        extra = {"operation": "system_event"}
+        if severity == "error":
+            self.logger.error(
+                f"System event: {event_type} | {description}",
+                extra=extra,
+            )
+        elif severity == "warning":
+            self.logger.warning(
+                f"System event: {event_type} | {description}",
+                extra=extra,
+            )
+        else:
+            self.logger.info(
+                f"System event: {event_type} | {description}",
+                extra=extra,
+            )
+
+    def log_security_violation(
+        self,
+        violation_type: str,
+        description: str,
+        user: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        """Log security violation."""
+        log_entry = {
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "operation": "security_violation",
+            "violation_type": violation_type,
+            "description": description,
+            "user": user,
+            "context": kwargs,
+        }
+
+        self.audit_trail.append(log_entry)
+        if len(self.audit_trail) > 1000:
+            self.audit_trail.pop(0)
+
+        extra = {"operation": "security_violation"}
+        self.logger.error(
+            f"Security violation: {violation_type} | {description} | User: {user or 'unknown'}",
             extra=extra,
         )
 
@@ -246,9 +395,7 @@ class SecurityAuditLogger:
                     writer.writeheader()
                     writer.writerows(self.audit_trail)
 
-        self.log_file_access(
-            "export", output_file, success=True, context={"format": format}
-        )
+        self.log_file_access("export", output_file, success=True, context={"format": format})
 
     def get_recent_operations(self, n: int = 100) -> list:
         """
@@ -312,6 +459,14 @@ class SecurityAuditLogger:
 
         return results
 
+    def filter_logs_by_user(self, user: str) -> list:
+        """Filter audit logs by user."""
+        return [entry for entry in self.audit_trail if entry.get("user") == user]
+
+    def filter_logs_by_operation(self, operation: str) -> list:
+        """Filter audit logs by operation."""
+        return [entry for entry in self.audit_trail if entry.get("operation") == operation]
+
     def get_operations_by_time_range(self, start_time: float, end_time: float) -> list:
         """
         Get operations within a specific time range.
@@ -332,6 +487,80 @@ class SecurityAuditLogger:
                 results.append(entry)
 
         return results
+
+    def rotate_logs(self, backup_count: int = 5) -> bool:
+        """Rotate log files by creating backups."""
+        try:
+            log_file_path = Path(self.log_file)
+
+            # Create backups
+            for i in range(backup_count - 1, 0, -1):
+                backup_file = log_file_path.with_suffix(f".{i}.log")
+                if backup_file.exists():
+                    backup_file.rename(log_file_path.with_suffix(f".{i + 1}.log"))
+
+            # Move current log to .1
+            if log_file_path.exists():
+                log_file_path.rename(log_file_path.with_suffix(".1.log"))
+
+            # Create new log file
+            self.logger.handlers.clear()
+            file_handler = logging.FileHandler(log_file_path)
+            file_handler.setLevel(self.log_level)
+            formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(operation)s | %(message)s")
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
+
+            self.log_operation("log_rotation", f"Rotated logs, backup count: {backup_count}")
+            return True
+        except Exception as e:
+            self.log_operation("log_rotation", f"Failed to rotate logs: {e}", success=False)
+            return False
+
+    def clear_logs(self) -> bool:
+        """Clear all audit logs and reset."""
+        try:
+            self.audit_trail.clear()
+
+            # Clear log file
+            log_file_path = Path(self.log_file)
+            if log_file_path.exists():
+                with open(log_file_path, "w") as f:
+                    f.write("")
+
+            self.log_operation("clear_logs", "Cleared all audit logs")
+            return True
+        except Exception as e:
+            self.log_operation("clear_logs", f"Failed to clear logs: {e}", success=False)
+            return False
+
+    def get_statistics(self) -> dict:
+        """Get audit statistics."""
+        if not self.audit_trail:
+            return {"total_operations": 0}
+
+        operations: dict[str, int] = {}
+        users = set()
+        success_count = 0
+
+        for entry in self.audit_trail:
+            op = entry.get("operation", "unknown")
+            operations[op] = operations.get(op, 0) + 1
+
+            if entry.get("user"):
+                users.add(entry["user"])
+
+            if entry.get("success", True):
+                success_count += 1
+
+        return {
+            "total_operations": len(self.audit_trail),
+            "operations_by_type": operations,
+            "unique_users": len(users),
+            "success_rate": (success_count / len(self.audit_trail) if self.audit_trail else 0),
+            "oldest_entry": (self.audit_trail[0]["timestamp"] if self.audit_trail else None),
+            "newest_entry": (self.audit_trail[-1]["timestamp"] if self.audit_trail else None),
+        }
 
 
 # Global audit logger instance
@@ -423,12 +652,7 @@ def audit_path_resolution(method: str, logger: Optional[SecurityAuditLogger] = N
 
             try:
                 result = func(*args, **kwargs)
-
-                if original_path and isinstance(result, (str, Path)):
-                    audit_logger.log_path_resolution(
-                        original_path, str(result), method, success=True
-                    )
-
+                audit_logger.log_path_resolution(original_path, str(result), method, success=True)
                 return result
             except Exception as e:
                 if original_path:
@@ -446,9 +670,7 @@ def audit_path_resolution(method: str, logger: Optional[SecurityAuditLogger] = N
     return decorator
 
 
-def audit_permission_check(
-    permission_type: str, logger: Optional[SecurityAuditLogger] = None
-):
+def audit_permission_check(permission_type: str, logger: Optional[SecurityAuditLogger] = None):
     """
     Decorator to audit permission check operations.
 
@@ -477,9 +699,7 @@ def audit_permission_check(
                 granted = bool(result)
 
                 if file_path:
-                    audit_logger.log_permission_check(
-                        file_path, permission_type, granted, function=func.__name__
-                    )
+                    audit_logger.log_permission_check(file_path, permission_type, granted, function=func.__name__)
 
                 return result
             except Exception as e:

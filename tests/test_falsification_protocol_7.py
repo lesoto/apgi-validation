@@ -59,9 +59,7 @@ class TestAgentComparisonConvergenceBenchmark:
         framework.validate_protocol = MagicMock(return_value=True)
         return framework
 
-    def test_iowa_gambling_task_environment(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_iowa_gambling_task_environment(self, sample_protocol_data, mock_validation_framework):
         """Test Iowa Gambling Task environment creation."""
         # IowaGamblingTaskEnvironment accepts n_trials parameter
         env = IowaGamblingTaskEnvironment(n_trials=100)
@@ -71,9 +69,7 @@ class TestAgentComparisonConvergenceBenchmark:
         assert hasattr(env, "reset")
         assert env.n_trials == 100
 
-    def test_volatile_foraging_environment(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_volatile_foraging_environment(self, sample_protocol_data, mock_validation_framework):
         """Test Volatile Foraging environment creation."""
         # VolatileForagingEnvironment accepts grid_size and volatility, not n_trials
         env = VolatileForagingEnvironment(grid_size=10, volatility=0.2)
@@ -83,9 +79,7 @@ class TestAgentComparisonConvergenceBenchmark:
         assert hasattr(env, "volatility")
         assert env.grid_size == 10
 
-    def test_threat_reward_tradeoff_environment(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_threat_reward_tradeoff_environment(self, sample_protocol_data, mock_validation_framework):
         """Test Threat-Reward Tradeoff environment creation."""
         # ThreatRewardTradeoffEnvironment accepts no parameters
         env = ThreatRewardTradeoffEnvironment()
@@ -94,9 +88,7 @@ class TestAgentComparisonConvergenceBenchmark:
         assert hasattr(env, "options")
         assert hasattr(env, "threat_accumulator")
 
-    def test_environment_reset_and_step(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_environment_reset_and_step(self, sample_protocol_data, mock_validation_framework):
         """Test environment reset and step functionality."""
         env = IowaGamblingTaskEnvironment(n_trials=100)
 
@@ -124,9 +116,7 @@ class TestAgentComparisonConvergenceBenchmark:
         env = ThreatRewardTradeoffEnvironment()
         assert env is not None
 
-    def test_performance_benchmarks(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_performance_benchmarks(self, sample_protocol_data, mock_validation_framework):
         """Test performance benchmarks for environments."""
         env = IowaGamblingTaskEnvironment(n_trials=50)
 
@@ -139,9 +129,7 @@ class TestAgentComparisonConvergenceBenchmark:
         # Should complete quickly
         assert True  # If we got here without timeout, performance is acceptable
 
-    def test_integration_compatibility(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_integration_compatibility(self, sample_protocol_data, mock_validation_framework):
         """Test integration compatibility with other protocols."""
         env = IowaGamblingTaskEnvironment(n_trials=100)
 

@@ -28,9 +28,7 @@ validation_dir = Path(__file__).parent
 master_validation_path = validation_dir / "Master_Validation.py"
 
 try:
-    spec = importlib.util.spec_from_file_location(
-        "APGI_Master_Validation", master_validation_path
-    )
+    spec = importlib.util.spec_from_file_location("APGI_Master_Validation", master_validation_path)
     if spec and spec.loader:
         master_validation_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(master_validation_module)

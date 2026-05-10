@@ -135,17 +135,10 @@ HAS_PYMC, pm, az = safe_import_bayesian()
 if HAS_PYMC:
     logger.info("PyMC/ArviZ available — NUTS sampler active.")
 else:
-    logger.warning(
-        "PyMC not found or unstable — falling back to Metropolis-Hastings sampler."
-    )
+    logger.warning("PyMC not found or unstable — falling back to Metropolis-Hastings sampler.")
 
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V11_MIN_COHENS_D,
-        V11_MIN_DELTA_R2,
-        V11_MIN_R2,
-    )
+    from utils.falsification_thresholds import DEFAULT_ALPHA, V11_MIN_COHENS_D, V11_MIN_DELTA_R2, V11_MIN_R2
 
     FALSIFICATION_RHAT_GATE = 1.05  # Default value if not in falsification_thresholds
 
@@ -212,17 +205,13 @@ def apgi_detection_probability(
     return 1.0 / (1.0 + np.exp(-logit))
 
 
-def _null_detection_probability(
-    stimulus: np.ndarray, theta_0: float, alpha: float
-) -> np.ndarray:
+def _null_detection_probability(stimulus: np.ndarray, theta_0: float, alpha: float) -> np.ndarray:
     """Null model: no interoceptive modulation (Πⁱ = 0, β = 0)."""
     logit = alpha * (stimulus - theta_0)
     return 1.0 / (1.0 + np.exp(-logit))
 
 
-def _extero_only_probability(
-    stimulus: np.ndarray, theta_0: float, pi_i: float, alpha: float
-) -> np.ndarray:
+def _extero_only_probability(stimulus: np.ndarray, theta_0: float, pi_i: float, alpha: float) -> np.ndarray:
     """Exteroception-only model: precision weighting absent (β = 0)."""
     return _null_detection_probability(stimulus, theta_0, alpha)
 
@@ -262,9 +251,7 @@ def generate_synthetic_dataset(
     records = []
 
     # Assign groups (even split)
-    group_labels = np.array(
-        [0] * (n_subjects // 2) + [1] * (n_subjects - (n_subjects // 2))
-    )
+    group_labels = np.array([0] * (n_subjects // 2) + [1] * (n_subjects - (n_subjects // 2)))
 
     for i, group in enumerate(group_labels):
         # Draw parameters with cultural modulation
@@ -283,9 +270,7 @@ def generate_synthetic_dataset(
         beta = float(np.clip(local_rng.normal(1.15, 0.10), 0.80, 1.50))
 
         # IA-correlated stuff
-        hb_acc = float(
-            np.clip(0.55 + 0.1 * (pi_i - 1.0) + local_rng.normal(0, 0.04), 0.4, 0.95)
-        )
+        hb_acc = float(np.clip(0.55 + 0.1 * (pi_i - 1.0) + local_rng.normal(0, 0.04), 0.4, 0.95))
         theta_0 = float(np.clip(local_rng.normal(t0_mu, 0.05), 0.25, 0.75))
 
         s = SyntheticSubject(
@@ -302,9 +287,7 @@ def generate_synthetic_dataset(
         # Generate trials
         n_per_level = n_trials_per_subject // n_stimuli
         for stim in stimuli:
-            p_detect = apgi_detection_probability(
-                np.array([stim]), s.theta_0, s.pi_i, s.beta, s.alpha
-            )[0]
+            p_detect = apgi_detection_probability(np.array([stim]), s.theta_0, s.pi_i, s.beta, s.alpha)[0]
             p_detect = float(np.clip(p_detect, 1e-6, 1 - 1e-6))
             n_detected = int(local_rng.binomial(n_per_level, p_detect))
 
@@ -323,9 +306,7 @@ def generate_synthetic_dataset(
             )
 
     df = pd.DataFrame(records)
-    logger.info(
-        f"Generated dataset: {n_subjects} subjects × {n_trials_per_subject} trials across 2 cultural groups"
-    )
+    logger.info(f"Generated dataset: {n_subjects} subjects × {n_trials_per_subject} trials across 2 cultural groups")
     return subjects, df
 
 
@@ -338,17 +319,10 @@ def _log_likelihood_apgi(params: np.ndarray, df: pd.DataFrame) -> float:
     """APGI model log-likelihood summed across all trials."""
     theta_0, pi_i, beta, alpha = params
     # Enforce physiological bounds
-    if not (
-        0.10 < theta_0 < 0.95
-        and 0.05 < pi_i < 3.5
-        and 0.20 < beta < 2.5
-        and 0.5 < alpha < 25.0
-    ):
+    if not (0.10 < theta_0 < 0.95 and 0.05 < pi_i < 3.5 and 0.20 < beta < 2.5 and 0.5 < alpha < 25.0):
         return -np.inf
 
-    p_pred = apgi_detection_probability(
-        np.asarray(df["stimulus"].values.astype(float)), theta_0, pi_i, beta, alpha
-    )
+    p_pred = apgi_detection_probability(np.asarray(df["stimulus"].values.astype(float)), theta_0, pi_i, beta, alpha)
     p_pred = np.clip(p_pred, 1e-9, 1 - 1e-9)
     n = np.asarray(df["n_trials"].values.astype(int))
     k = np.asarray(df["n_detected"].values.astype(int))
@@ -360,9 +334,7 @@ def _log_likelihood_null(params: np.ndarray, df: pd.DataFrame) -> float:
     theta_0, alpha = params
     if not (0.10 < theta_0 < 0.95 and 0.5 < alpha < 25.0):
         return -np.inf
-    p_pred = _null_detection_probability(
-        np.asarray(df["stimulus"].values.astype(float)), theta_0, alpha
-    )
+    p_pred = _null_detection_probability(np.asarray(df["stimulus"].values.astype(float)), theta_0, alpha)
     p_pred = np.clip(p_pred, 1e-9, 1 - 1e-9)
     n = np.asarray(df["n_trials"].values.astype(int))
     k = np.asarray(df["n_detected"].values.astype(int))
@@ -463,9 +435,7 @@ def run_mh_sampler(
                 # Fix: More aggressive adaptation - scale by 1.0 * deviation instead of 0.5
                 # and allow wider bounds for faster adjustment
                 factor = 1.0 + 1.0 * deviation  # Increased from 0.5 to 1.0
-                factor = np.clip(
-                    factor, 0.3, 3.0
-                )  # Wider bounds: 0.3-3.0 instead of 0.5-2.0
+                factor = np.clip(factor, 0.3, 3.0)  # Wider bounds: 0.3-3.0 instead of 0.5-2.0
                 proposals = np.clip(proposals * factor, 1e-4, 2.0)
 
             proposal = current + chain_rng.normal(0, proposals)
@@ -617,9 +587,7 @@ def run_nuts_sampler(
 
     with pm.Model() as _model:  # noqa: F841
         # Priors
-        theta_0 = pm.TruncatedNormal(
-            "theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90
-        )
+        theta_0 = pm.TruncatedNormal("theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90)
         alpha = pm.TruncatedNormal("alpha", mu=6.0, sigma=2.5, lower=1.0, upper=20.0)
 
         # Fix 3: Remove ad-hoc threshold adjustment; use theta_0 directly from paper Eq. 4
@@ -655,9 +623,7 @@ def run_nuts_sampler(
     flat = np.column_stack([samples_dict[p] for p in param_names])
 
     posterior_means = {p: float(summary.loc[p, "mean"]) for p in param_names}  # type: ignore[index]
-    posterior_stds = {
-        p: float(summary.loc[p, "sd"]) for p in summary.index if p in param_names  # type: ignore[index]
-    }
+    posterior_stds = {p: float(summary.loc[p, "sd"]) for p in summary.index if p in param_names}  # type: ignore[index]
     ci_95 = {
         p: (float(summary.loc[p, "hdi_3%"]), float(summary.loc[p, "hdi_97%"]))  # type: ignore[index]
         for p in param_names
@@ -690,9 +656,7 @@ def _extract_ppc_samples(ppc: Any, observed_name: str = "obs") -> np.ndarray:
     elif isinstance(ppc, dict) and observed_name in ppc:
         samples = np.asarray(ppc[observed_name])
     else:
-        raise KeyError(
-            f"Could not find posterior predictive variable '{observed_name}'"
-        )
+        raise KeyError(f"Could not find posterior predictive variable '{observed_name}'")
 
     samples = np.asarray(samples)
     if samples.ndim == 1:
@@ -702,9 +666,7 @@ def _extract_ppc_samples(ppc: Any, observed_name: str = "obs") -> np.ndarray:
     return samples.reshape(-1, samples.shape[-1])
 
 
-def _compute_bayesian_ppc_p_value(
-    observed_counts: np.ndarray, ppc: Any, observed_name: str = "obs"
-) -> Dict[str, Any]:
+def _compute_bayesian_ppc_p_value(observed_counts: np.ndarray, ppc: Any, observed_name: str = "obs") -> Dict[str, Any]:
     """
     Compute a Bayesian posterior predictive p-value from PPC draws.
 
@@ -722,9 +684,7 @@ def _compute_bayesian_ppc_p_value(
 
     expected = simulated.mean(axis=0)
     obs_discrepancy = float(np.sum(((observed - expected) ** 2) / (expected + 1e-6)))
-    sim_discrepancies = np.sum(
-        ((simulated - expected) ** 2) / (expected + 1e-6), axis=1
-    )
+    sim_discrepancies = np.sum(((simulated - expected) ** 2) / (expected + 1e-6), axis=1)
     bayesian_p_value = float(np.mean(sim_discrepancies >= obs_discrepancy))
 
     return {
@@ -758,26 +718,18 @@ def _fit_pymc_model_for_comparison(
     n_det = df["n_detected"].values.astype(int)
 
     with pm.Model() as model:  # noqa: F841
-        theta_0 = pm.TruncatedNormal(
-            "theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90
-        )
+        theta_0 = pm.TruncatedNormal("theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90)
         alpha = pm.TruncatedNormal("alpha", mu=6.0, sigma=2.5, lower=1.0, upper=20.0)
 
         if model_name == "APGI":
             # Fix 3: Remove ad-hoc threshold adjustment; use theta_0 directly from paper Eq. 4
             theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
-            p_det = pm.Deterministic(
-                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))
-            )
+            p_det = pm.Deterministic("p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff)))
         elif model_name == "Null":
-            p_det = pm.Deterministic(
-                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_0))
-            )
+            p_det = pm.Deterministic("p_det", pm.math.sigmoid(alpha * (stimuli - theta_0)))
         elif model_name == "ExteroOnly":
             theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
-            p_det = pm.Deterministic(
-                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))
-            )
+            p_det = pm.Deterministic("p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff)))
         else:
             raise ValueError(f"Unsupported comparison model: {model_name}")
 
@@ -833,33 +785,25 @@ def test_parameter_recovery(
         def neg_ll_stage1(params_3):
             theta_0, beta, alpha = params_3
             PI_I_FIXED = 1.20
-            ll = _log_likelihood_apgi(
-                np.array([theta_0, PI_I_FIXED, beta, alpha]), sub_df
-            )
+            ll = _log_likelihood_apgi(np.array([theta_0, PI_I_FIXED, beta, alpha]), sub_df)
             lp = _log_prior_apgi(np.array([theta_0, PI_I_FIXED, beta, alpha]))
             return -(ll + lp)
 
         x0_s1 = np.array([0.50, 1.15, 6.0])
         bounds_s1 = [(0.10, 0.95), (0.20, 2.5), (0.5, 20.0)]
-        res_s1 = optimize.minimize(
-            neg_ll_stage1, x0_s1, method="L-BFGS-B", bounds=bounds_s1
-        )
+        res_s1 = optimize.minimize(neg_ll_stage1, x0_s1, method="L-BFGS-B", bounds=bounds_s1)
         est_theta0, est_beta, est_alpha = res_s1.x
 
         # Stage 2: Fix beta at est_beta, estimate pi_i
         def neg_ll_stage2(pi_i_arr):
             pi_i = pi_i_arr[0]
-            ll = _log_likelihood_apgi(
-                np.array([est_theta0, pi_i, est_beta, est_alpha]), sub_df
-            )
+            ll = _log_likelihood_apgi(np.array([est_theta0, pi_i, est_beta, est_alpha]), sub_df)
             lp = _log_prior_apgi(np.array([est_theta0, pi_i, est_beta, est_alpha]))
             return -(ll + lp)
 
         x0_s2 = np.array([1.20])
         bounds_s2 = [(0.05, 3.5)]
-        res_s2 = optimize.minimize(
-            neg_ll_stage2, x0_s2, method="L-BFGS-B", bounds=bounds_s2
-        )
+        res_s2 = optimize.minimize(neg_ll_stage2, x0_s2, method="L-BFGS-B", bounds=bounds_s2)
         est_pi_i = res_s2.x[0]
 
         est = [est_theta0, est_pi_i, est_beta, est_alpha]
@@ -909,9 +853,7 @@ def test_parameter_recovery(
 # =============================================================================
 
 
-def compute_model_comparison(
-    df: pd.DataFrame, seed: int = RANDOM_SEED
-) -> Dict[str, Any]:
+def compute_model_comparison(df: pd.DataFrame, seed: int = RANDOM_SEED) -> Dict[str, Any]:
     """
     Compare APGI against reduced alternatives using PSIS-LOO when available.
 
@@ -930,13 +872,9 @@ def compute_model_comparison(
             idata_map = {
                 "APGI": _fit_pymc_model_for_comparison(df, "APGI", seed=seed),
                 "Null": _fit_pymc_model_for_comparison(df, "Null", seed=seed + 1),
-                "ExteroOnly": _fit_pymc_model_for_comparison(
-                    df, "ExteroOnly", seed=seed + 2
-                ),
+                "ExteroOnly": _fit_pymc_model_for_comparison(df, "ExteroOnly", seed=seed + 2),
             }
-            loo_results = {
-                name: az.loo(idata, pointwise=True) for name, idata in idata_map.items()
-            }
+            loo_results = {name: az.loo(idata, pointwise=True) for name, idata in idata_map.items()}
 
             apgi_elpd = float(loo_results["APGI"].elpd_loo)
             null_elpd = float(loo_results["Null"].elpd_loo)
@@ -998,9 +936,7 @@ def compute_model_comparison(
                 "n_obs": n_obs,
             }
         except Exception as exc:
-            logger.warning(
-                f"PSIS-LOO model comparison failed, falling back to BIC approximation: {exc}"
-            )
+            logger.warning(f"PSIS-LOO model comparison failed, falling back to BIC approximation: {exc}")
 
     def _mle_apgi() -> Tuple[np.ndarray, float]:
         def neg_ll(params):
@@ -1008,9 +944,7 @@ def compute_model_comparison(
 
         x0 = np.array([0.50, 1.20, 1.15, 6.0])
         bounds = [(0.10, 0.95), (0.05, 3.5), (0.20, 2.5), (0.5, 20.0)]
-        res = optimize.minimize(
-            neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000}
-        )
+        res = optimize.minimize(neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000})
         return res.x, float(-res.fun)
 
     def _mle_null() -> Tuple[np.ndarray, float]:
@@ -1019,9 +953,7 @@ def compute_model_comparison(
 
         x0 = np.array([0.50, 6.0])
         bounds = [(0.10, 0.95), (0.5, 20.0)]
-        res = optimize.minimize(
-            neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000}
-        )
+        res = optimize.minimize(neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000})
         return res.x, float(-res.fun)
 
     def _mle_extero_only() -> Tuple[np.ndarray, float]:
@@ -1031,20 +963,14 @@ def compute_model_comparison(
             theta_0, pi_i, alpha = params
             if not (0.10 < theta_0 < 0.95 and 0.05 < pi_i < 3.5 and 0.5 < alpha < 25.0):
                 return np.inf
-            p = apgi_detection_probability(
-                df["stimulus"].values, theta_0, pi_i, 0.0, alpha
-            )
+            p = apgi_detection_probability(df["stimulus"].values, theta_0, pi_i, 0.0, alpha)
             p = np.clip(p, 1e-9, 1 - 1e-9)
-            n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(
-                int
-            )
+            n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(int)
             return float(-np.sum(k * np.log(p) + (n - k) * np.log(1 - p)))
 
         x0 = np.array([0.50, 1.20, 6.0])
         bounds = [(0.10, 0.95), (0.05, 3.5), (0.5, 20.0)]
-        res = optimize.minimize(
-            neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000}
-        )
+        res = optimize.minimize(neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 1000})
         return res.x, float(-res.fun)
 
     try:
@@ -1094,9 +1020,7 @@ def compute_model_comparison(
 # =============================================================================
 
 
-def test_individual_differences(
-    subjects: List[SyntheticSubject], mcmc_results: Dict[str, Any]
-) -> Dict[str, Any]:
+def test_individual_differences(subjects: List[SyntheticSubject], mcmc_results: Dict[str, Any]) -> Dict[str, Any]:
     """
     Validate paper predictions about individual-difference structure
     in the posterior (APGI-MULTI-SCALE-CONSCIOUSNESS-Paper, Individual
@@ -1135,9 +1059,7 @@ def test_individual_differences(
     if len(high_theta) >= 5 and len(low_theta) >= 5:
         t_theta, p_theta = stats.ttest_ind(high_theta, low_theta, alternative="less")
         pooled_var = (np.var(high_theta, ddof=1) + np.var(low_theta, ddof=1)) / 2
-        d_theta = (np.mean(low_theta) - np.mean(high_theta)) / np.sqrt(
-            pooled_var + 1e-12
-        )
+        d_theta = (np.mean(low_theta) - np.mean(high_theta)) / np.sqrt(pooled_var + 1e-12)
         passed_b = (abs(d_theta) >= 0.25) and (p_theta < 0.05)
     else:
         t_theta, p_theta, d_theta, passed_b = 0.0, 1.0, 0.0, False
@@ -1168,12 +1090,8 @@ def test_individual_differences(
             "p_value": float(p_theta),
             "n_high_IA": int(np.sum(high_ia_mask)),
             "n_low_IA": int(np.sum(low_ia_mask)),
-            "mean_theta_high_IA": (
-                float(np.mean(high_theta)) if len(high_theta) > 0 else 0.0
-            ),
-            "mean_theta_low_IA": (
-                float(np.mean(low_theta)) if len(low_theta) > 0 else 0.0
-            ),
+            "mean_theta_high_IA": (float(np.mean(high_theta)) if len(high_theta) > 0 else 0.0),
+            "mean_theta_low_IA": (float(np.mean(low_theta)) if len(low_theta) > 0 else 0.0),
             "criterion": "d ≥ 0.25 (High-IA lower θ₀)",
         },
         "prior_sensitivity_cultural": {
@@ -1321,40 +1239,28 @@ def run_validation(
     """
     logger.info("=" * 70)
     logger.info("Validation Protocol 11: Bayesian Estimation & Cultural Neuroscience")
-    logger.info(
-        f"  N_subjects={n_subjects}  Trials={n_trials_per_subject}  Samples={n_samples}"
-    )
+    logger.info(f"  N_subjects={n_subjects}  Trials={n_trials_per_subject}  Samples={n_samples}")
     logger.info("=" * 70)
 
     try:
         # 1. Data Loading (Empirical or Synthetic)
         if empirical_data_path:
             # EMPIRICAL MODE: Load real cross-cultural EEG data
-            logger.info(
-                f"Loading empirical cross-cultural EEG data from {empirical_data_path}"
-            )
+            logger.info(f"Loading empirical cross-cultural EEG data from {empirical_data_path}")
             try:
                 from utils.empirical_data_generators import load_cross_cultural_eeg_data
 
                 df, metadata = load_cross_cultural_eeg_data(empirical_data_path)
                 data_source = "empirical"
-                logger.info(
-                    f"Loaded empirical data: {len(df)} trials from {metadata.get('n_subjects_total')} subjects"
-                )
+                logger.info(f"Loaded empirical data: {len(df)} trials from {metadata.get('n_subjects_total')} subjects")
             except Exception as e:
-                logger.warning(
-                    f"Failed to load empirical data: {e}. Falling back to synthetic."
-                )
-                subjects, df = generate_synthetic_dataset(
-                    n_subjects, n_trials_per_subject, seed=seed
-                )
+                logger.warning(f"Failed to load empirical data: {e}. Falling back to synthetic.")
+                subjects, df = generate_synthetic_dataset(n_subjects, n_trials_per_subject, seed=seed)
                 data_source = "synthetic"
         else:
             # SYNTHETIC MODE: Generate synthetic data
             logger.info("Generating synthetic cross-cultural EEG data")
-            subjects, df = generate_synthetic_dataset(
-                n_subjects, n_trials_per_subject, seed=seed
-            )
+            subjects, df = generate_synthetic_dataset(n_subjects, n_trials_per_subject, seed=seed)
             data_source = "synthetic"
 
         # 2. Split for Cultural Group Comparison
@@ -1382,14 +1288,10 @@ def run_validation(
 
         # V11.1: Cultural group differences in θ₀
         pooled_df = (
-            df.groupby("stimulus")
-            .agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum"))
-            .reset_index()
+            df.groupby("stimulus").agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum")).reset_index()
         )
         if HAS_PYMC:
-            pooled_idata = _fit_pymc_model_for_comparison(
-                pooled_df, "APGI", seed=seed + 10
-            )
+            pooled_idata = _fit_pymc_model_for_comparison(pooled_df, "APGI", seed=seed + 10)
             group0_idata = _fit_pymc_model_for_comparison(
                 df[df["cultural_group"] == 0]
                 .groupby("stimulus")
@@ -1422,12 +1324,7 @@ def run_validation(
             # CRITICAL: V11.1 must also gate on R̂ ≤ 1.01 even in MH fallback
             null_mc = compute_model_comparison(pooled_df, seed=seed)
             ll_group = sum(
-                [
-                    _log_likelihood_apgi(
-                        results_per_group[g]["samples"].mean(axis=0), pooled_df
-                    )
-                    for g in [0, 1]
-                ]
+                [_log_likelihood_apgi(results_per_group[g]["samples"].mean(axis=0), pooled_df) for g in [0, 1]]
             )
             bic_pooled = null_mc["BIC"]["APGI"]
             bic_group = -2 * ll_group + 8 * np.log(len(df))
@@ -1436,9 +1333,7 @@ def run_validation(
             # If R̂ > 1.01, mark V11.1 as failed per protocol spec
             gate_v11_1 = bf_11_1 >= 5.0 and gate_v11_4
             if not gate_v11_4:
-                logger.warning(
-                    f"V11.1 failed due to R̂ convergence failure (R̂ > {RHAT_GATE})"
-                )
+                logger.warning(f"V11.1 failed due to R̂ convergence failure (R̂ > {RHAT_GATE})")
 
         # V11.2: Πⁱ varies by cultural context (HDI)
         samples0 = results_per_group[0]["samples"][:, 1]  # Πⁱ is index 1
@@ -1451,9 +1346,7 @@ def run_validation(
         # Note: Cultural neuroscience model only estimates theta_0 and alpha
         # Beta is not estimated in this simplified model
         mu_alpha0 = results_per_group[0]["posterior_means"]["alpha"]
-        mu_beta0 = results_per_group[0]["posterior_means"].get(
-            "beta", 1.15
-        )  # Use population mean if not estimated
+        mu_beta0 = results_per_group[0]["posterior_means"].get("beta", 1.15)  # Use population mean if not estimated
         gate_v11_3 = (0.7 <= mu_beta0 <= 1.8) and (2.0 <= mu_alpha0 <= 12.0)
 
         # V11.5: PPC for each cultural subgroup
@@ -1469,14 +1362,10 @@ def run_validation(
             ppc = results_per_group[group].get("ppc")
             if ppc is None:
                 gate_v11_5 = False
-                ppc_by_group[group] = {
-                    "error": "Posterior predictive samples unavailable"
-                }
+                ppc_by_group[group] = {"error": "Posterior predictive samples unavailable"}
                 continue
 
-            ppc_stats = _compute_bayesian_ppc_p_value(
-                group_df["n_detected"].values, ppc  # type: ignore[arg-type]
-            )
+            ppc_stats = _compute_bayesian_ppc_p_value(group_df["n_detected"].values, ppc)  # type: ignore[arg-type]
             ppc_by_group[group] = ppc_stats
             group_pass = 0.05 < ppc_stats["p_value"] < 0.95
             ppc_by_group[group]["passed"] = group_pass
@@ -1496,24 +1385,16 @@ def run_validation(
             "V11.5": {"passed": gate_v11_5, "ppc_by_group": ppc_by_group},
         }
 
-        overall_passed = all(
-            [gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]
-        )
+        overall_passed = all([gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5])
 
         results = {
             "passed": overall_passed,
             "status": "SIMULATION_ONLY" if data_source == "synthetic" else "COMPLETE",
             "data_source": data_source,
-            "validation_reliability": (
-                "empirical_validated"
-                if data_source == "empirical"
-                else "simulation_validated"
-            ),
+            "validation_reliability": ("empirical_validated" if data_source == "empirical" else "simulation_validated"),
             "falsification_status": falsification_status,
             "summary": {
-                "gates_passed": sum(
-                    [gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]
-                ),
+                "gates_passed": sum([gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]),
                 "gates_total": 5,
                 "note": (
                     f"Data source: {data_source}. "
@@ -1526,9 +1407,7 @@ def run_validation(
             },
         }
 
-        logger.info(
-            f"Protocol 11 Completed. Passed: {overall_passed} ({data_source.upper()} data)"
-        )
+        logger.info(f"Protocol 11 Completed. Passed: {overall_passed} ({data_source.upper()} data)")
         return results
 
     except Exception as exc:
@@ -1554,10 +1433,7 @@ def list_available_empirical_datasets() -> Dict[str, Any]:
         Dictionary with dataset availability for VP-11
     """
     try:
-        from utils.empirical_dataset_catalog import (
-            get_accessible_datasets,
-            get_datasets_for_protocol,
-        )
+        from utils.empirical_dataset_catalog import get_accessible_datasets, get_datasets_for_protocol
 
         all_datasets = get_datasets_for_protocol("VP-11")
         public_datasets = get_accessible_datasets("VP-11")
@@ -1617,15 +1493,10 @@ def run_validation_with_dataset(
     logger.info(f"VP-11: Running with empirical dataset {dataset_id}")
 
     try:
-        from utils.bids_data_loaders import (
-            check_dataset_availability,
-            load_empirical_dataset,
-        )
+        from utils.bids_data_loaders import check_dataset_availability, load_empirical_dataset
 
         # Check availability
-        avail = check_dataset_availability(
-            dataset_id, Path(data_path) if data_path else None
-        )
+        avail = check_dataset_availability(dataset_id, Path(data_path) if data_path else None)
 
         if not avail.get("available"):
             logger.warning(f"Dataset {dataset_id} not available: {avail.get('reason')}")
@@ -1655,8 +1526,7 @@ def run_validation_with_dataset(
         results["empirical_dataset"] = {
             "id": dataset_id,
             "name": ds_info.get("dataset_name"),
-            "sample_size": ds_info.get("n_subjects_eeg")
-            or ds_info.get("n_participants"),
+            "sample_size": ds_info.get("n_subjects_eeg") or ds_info.get("n_participants"),
         }
         results["validation_mode"] = "EMPIRICAL"
         results["status"] = "EMPIRICAL_VALIDATED"
@@ -1666,9 +1536,7 @@ def run_validation_with_dataset(
     except Exception as e:
         logger.error(f"Failed to run with dataset {dataset_id}: {e}")
         # Fall back to synthetic
-        return run_validation(
-            n_samples=n_samples, n_tune=n_tune, n_chains=n_chains, seed=seed
-        )
+        return run_validation(n_samples=n_samples, n_tune=n_tune, n_chains=n_chains, seed=seed)
 
 
 # =============================================================================
@@ -1699,10 +1567,7 @@ def _print_summary_p11(results: Dict[str, Any]) -> None:
         lo, hi = post["ci_95"][p]
         print(f"  {p:8s}: mean={mu:.4f}  sd={sd:.4f}  95%CI=[{lo:.4f}, {hi:.4f}]")
 
-    print(
-        f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — "
-        f"{_fmt_pass(conv['convergence_pass'])}"
-    )
+    print(f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — " f"{_fmt_pass(conv['convergence_pass'])}")
     for p, diag in conv["parameter_diagnostics"].items():
         flag = "✓" if diag["converged"] else "✗"
         print(f"  {flag} {p:8s}: R̂={diag['r_hat']:.4f}  ESS={diag['ess']:.0f}")
@@ -1714,28 +1579,16 @@ def _print_summary_p11(results: Dict[str, Any]) -> None:
 
     print(f"\n— Model Comparison — {_fmt_pass(mc.get('passed', False))}")
     bfs = mc.get("bayes_factors", {})
-    print(
-        f"  BF(APGI vs Null)      = {bfs.get('APGI_vs_Null', 0):.2f}  "
-        f"(criterion > 10)"
-    )
-    print(
-        f"  BF(APGI vs Extero)    = {bfs.get('APGI_vs_ExteroOnly', 0):.2f}  "
-        f"(criterion > 10)"
-    )
+    print(f"  BF(APGI vs Null)      = {bfs.get('APGI_vs_Null', 0):.2f}  " f"(criterion > 10)")
+    print(f"  BF(APGI vs Extero)    = {bfs.get('APGI_vs_ExteroOnly', 0):.2f}  " f"(criterion > 10)")
 
     print(f"\n— Individual Differences — {_fmt_pass(idc['passed'])}")
     r_pi = idc.get("r_pi_i_heartbeat", {})
     ia = idc.get("ia_group_theta_comparison", {})
     clt = idc.get("prior_sensitivity_cultural", {})
-    print(
-        f"  r(Πⁱ, hb_acc)    = {r_pi.get('r', 0):.3f}   {_fmt_pass(r_pi.get('passed', False))}"
-    )
-    print(
-        f"  IA θ₀ Cohen's d  = {ia.get('cohens_d', 0):.3f}   {_fmt_pass(ia.get('passed', False))}"
-    )
-    print(
-        f"  Δ cultural Πⁱ    = {clt.get('delta_group_pi_i', 0):.3f}   {_fmt_pass(clt.get('passed', False))}"
-    )
+    print(f"  r(Πⁱ, hb_acc)    = {r_pi.get('r', 0):.3f}   {_fmt_pass(r_pi.get('passed', False))}")
+    print(f"  IA θ₀ Cohen's d  = {ia.get('cohens_d', 0):.3f}   {_fmt_pass(ia.get('passed', False))}")
+    print(f"  Δ cultural Πⁱ    = {clt.get('delta_group_pi_i', 0):.3f}   {_fmt_pass(clt.get('passed', False))}")
 
     print(f"\n{'=' * 70}")
     print(
@@ -1785,15 +1638,11 @@ class APGIValidationProtocol11:
         self.seed = seed
         self.results: Dict[str, Any] = {}
 
-    def run_validation(
-        self, data_path: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+    def run_validation(self, data_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """Standard entry point called by APGIMasterValidator."""
         self.results = run_validation(
             n_subjects=kwargs.get("n_subjects", self.n_subjects),
-            n_trials_per_subject=kwargs.get(
-                "n_trials_per_subject", self.n_trials_per_subject
-            ),
+            n_trials_per_subject=kwargs.get("n_trials_per_subject", self.n_trials_per_subject),
             n_samples=kwargs.get("n_samples", self.n_samples),
             n_tune=kwargs.get("n_tune", self.n_tune),
             n_chains=kwargs.get("n_chains", self.n_chains),
@@ -1859,9 +1708,7 @@ class PsychometricFunctionFitter:
         """Additive linear model for comparison"""
         return np.clip(slope * x + intercept, 0, 1)
 
-    def fit_psychometric_functions(
-        self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray
-    ) -> Dict:
+    def fit_psychometric_functions(self, stimulus_intensities: np.ndarray, detection_rates: np.ndarray) -> Dict:
         """
         Fit all psychometric models and compare performance
 
@@ -1888,9 +1735,7 @@ class PsychometricFunctionFitter:
             )
             apgi_pred = self._apgi_sigmoid(stimulus_intensities, *popt_apgi)
             apgi_r2 = r2_score(detection_rates, apgi_pred)
-            apgi_aic = self._calculate_aic(
-                detection_rates, apgi_pred, 4
-            )  # 4 parameters
+            apgi_aic = self._calculate_aic(detection_rates, apgi_pred, 4)  # 4 parameters
 
             results["apgi_model"] = {
                 "parameters": popt_apgi,
@@ -1899,8 +1744,7 @@ class PsychometricFunctionFitter:
                 "predictions": apgi_pred,
                 "beta": popt_apgi[0],  # Sigmoid steepness
                 "theta": popt_apgi[1],  # Threshold
-                "phase_transition": popt_apgi[0]
-                >= 10,  # β ≥ 10 indicates phase transition
+                "phase_transition": popt_apgi[0] >= 10,  # β ≥ 10 indicates phase transition
             }
         except Exception as e:
             results["apgi_model"] = {"error": str(e)}
@@ -1953,9 +1797,7 @@ class PsychometricFunctionFitter:
 
         return results
 
-    def _calculate_aic(
-        self, observed: np.ndarray, predicted: np.ndarray, n_params: int
-    ) -> float:
+    def _calculate_aic(self, observed: np.ndarray, predicted: np.ndarray, n_params: int) -> float:
         """Calculate Akaike Information Criterion"""
         n = len(observed)
         rss = np.sum((observed - predicted) ** 2)
@@ -1978,17 +1820,10 @@ class PsychometricFunctionFitter:
         aic_weights /= np.sum(aic_weights)
 
         return {
-            "apgi_vs_gnw_bf": (
-                aic_weights[0] / aic_weights[1] if aic_weights[1] > 0 else float("inf")
-            ),
-            "apgi_vs_linear_bf": (
-                aic_weights[0] / aic_weights[2] if aic_weights[2] > 0 else float("inf")
-            ),
-            "apgi_preferred": aic_weights[0] > aic_weights[1]
-            and aic_weights[0] > aic_weights[2],
-            "phase_transition_evidence": results["apgi_model"].get(
-                "phase_transition", False
-            ),
+            "apgi_vs_gnw_bf": (aic_weights[0] / aic_weights[1] if aic_weights[1] > 0 else float("inf")),
+            "apgi_vs_linear_bf": (aic_weights[0] / aic_weights[2] if aic_weights[2] > 0 else float("inf")),
+            "apgi_preferred": aic_weights[0] > aic_weights[1] and aic_weights[0] > aic_weights[2],
+            "phase_transition_evidence": results["apgi_model"].get("phase_transition", False),
         }
 
 
@@ -2034,9 +1869,7 @@ class SpikingLNNModel:
         self.theta_t = 0.5  # Dynamic threshold
         self.beta = 1.5  # Somatic influence
 
-    def simulate_trial(
-        self, stimulus_intensity: float, trial_duration: float = 1.0, dt: float = 0.001
-    ) -> Dict:
+    def simulate_trial(self, stimulus_intensity: float, trial_duration: float = 1.0, dt: float = 0.001) -> Dict:
         """
         Simulate single trial with APGI parameters and liquid time-constant dynamics
 
@@ -2068,14 +1901,8 @@ class SpikingLNNModel:
             # Scale input to ensure spiking: add baseline and amplify stimulus effect
             # Add temporal variability to increase ISI CV
             temporal_noise = 0.2 * np.sin(2 * np.pi * step / 100)  # Slow oscillation
-            external_input = (
-                0.5
-                + stimulus_intensity * np.random.normal(2.0, 0.4, self.n_neurons)
-                + temporal_noise
-            )
-            internal_input = 0.1 * np.random.normal(
-                0, 1.2, self.n_neurons
-            )  # Interoceptive noise with higher variance
+            external_input = 0.5 + stimulus_intensity * np.random.normal(2.0, 0.4, self.n_neurons) + temporal_noise
+            internal_input = 0.1 * np.random.normal(0, 1.2, self.n_neurons)  # Interoceptive noise with higher variance
 
             # APGI prediction error computation
             eps_e = external_input - np.mean(external_input)  # Simplified
@@ -2108,11 +1935,7 @@ class SpikingLNNModel:
             if self.liquid_time_constants:
                 # Learn time constants based on neuron activity
                 # More active neurons adapt slower (longer time constant)
-                firing_rates = (
-                    np.sum(spikes[:, step - 1], axis=0)
-                    if step > 1
-                    else np.zeros(self.n_neurons)
-                )
+                firing_rates = np.sum(spikes[:, step - 1], axis=0) if step > 1 else np.zeros(self.n_neurons)
                 tau_adaptation = 0.01 * firing_rates  # Activity-dependent adaptation
 
                 # Update time constants (constrained to [0.005, 0.05])
@@ -2127,25 +1950,17 @@ class SpikingLNNModel:
 
                 # Per-neuron membrane dynamics
                 dV_dt = (
-                    -membrane_potential
-                    + input_current
-                    + np.dot(self.weights, spikes[:, step - 1])
+                    -membrane_potential + input_current + np.dot(self.weights, spikes[:, step - 1])
                 ) / self.tau_neurons
                 membrane_potential += dV_dt * dt
             else:
                 # Uniform time constant dynamics
-                dV_dt = (
-                    -membrane_potential
-                    + input_current
-                    + np.dot(self.weights, spikes[:, step - 1])
-                ) / self.tau
+                dV_dt = (-membrane_potential + input_current + np.dot(self.weights, spikes[:, step - 1])) / self.tau
                 membrane_potential += dV_dt * dt
 
             # Spiking
             # Add stochastic spiking: probability-based instead of threshold-based
-            spike_prob = 1.0 / (
-                1.0 + np.exp(-10.0 * (membrane_potential - self.threshold))
-            )
+            spike_prob = 1.0 / (1.0 + np.exp(-10.0 * (membrane_potential - self.threshold)))
             spike_draws = np.random.random(self.n_neurons) < spike_prob
             spikes[spike_draws, step] = 1
             membrane_potential[spike_draws] = 0  # Reset
@@ -2158,9 +1973,7 @@ class SpikingLNNModel:
         # Use simplified psychometric function for paradigm simulation
         beta_psych = 5.0  # Steepness
         theta_psych = 0.5  # Threshold
-        detection_prob = 1.0 / (
-            1.0 + np.exp(-beta_psych * (stimulus_intensity - theta_psych))
-        )
+        detection_prob = 1.0 / (1.0 + np.exp(-beta_psych * (stimulus_intensity - theta_psych)))
         # Add some randomness based on network activity
         activity_level = np.mean(spikes[:, -50:]) if step > 50 else 0
         detection_prob *= 0.8 + 0.4 * activity_level  # Modulate by recent activity
@@ -2181,9 +1994,7 @@ class SpikingLNNModel:
             "liquid_dynamics": self.liquid_time_constants,
         }
 
-    def simulate_consciousness_paradigm(
-        self, paradigm: str, n_trials: int = 400
-    ) -> Dict:
+    def simulate_consciousness_paradigm(self, paradigm: str, n_trials: int = 400) -> Dict:
         """
         Simulate specific consciousness paradigm
 
@@ -2208,9 +2019,7 @@ class SpikingLNNModel:
                 trial_result = self.simulate_trial(soa_intensity)
                 results["trials"].append(trial_result)
                 results["psychometric_data"]["intensities"].append(soa_intensity)
-                results["psychometric_data"]["detections"].append(
-                    trial_result["detection"]
-                )
+                results["psychometric_data"]["detections"].append(trial_result["detection"])
 
         elif paradigm == "attentional_blink":
             # Attentional blink
@@ -2220,9 +2029,7 @@ class SpikingLNNModel:
                 trial_result = self.simulate_trial(lag_intensity)
                 results["trials"].append(trial_result)
                 results["psychometric_data"]["intensities"].append(lag_intensity)
-                results["psychometric_data"]["detections"].append(
-                    trial_result["detection"]
-                )
+                results["psychometric_data"]["detections"].append(trial_result["detection"])
 
         return results
 
@@ -2269,9 +2076,7 @@ class BayesianParameterEstimator:
             # P(seen) = baseline + amplitude / (1 + exp(-β * (S - θ_t))) * (1 + Πⁱ * modulation)
             # Use fixed Pi_i value (interoceptive precision = 1.0)
             pi_i_local = 1.0  # Fixed interoceptive precision
-            prob_detect = baseline + amplitude / (
-                1 + pm.math.exp(-beta * (stimulus_intensities - theta))
-            ) * (
+            prob_detect = baseline + amplitude / (1 + pm.math.exp(-beta * (stimulus_intensities - theta))) * (
                 1 + pi_i_local * 0.1
             )  # Add Pi_i modulation as specified
 
@@ -2301,9 +2106,7 @@ class BayesianParameterEstimator:
             "parameter_ranges_aligned": True,
         }
 
-    def compute_fisher_information_matrix(
-        self, behavioral_data: pd.DataFrame, n_samples: int = 1000
-    ) -> Dict:
+    def compute_fisher_information_matrix(self, behavioral_data: pd.DataFrame, n_samples: int = 1000) -> Dict:
         """
         Compute Fisher Information Matrix for parameter identifiability analysis
 
@@ -2338,9 +2141,7 @@ class BayesianParameterEstimator:
             # Add Pi_i modulation
             prob = prob * (1 + Pi_i * 0.1)  # Simplified modulation
             prob = np.clip(prob, 1e-10, 1 - 1e-10)
-            return np.sum(
-                detections * np.log(prob) + (1 - detections) * np.log(1 - prob)
-            )
+            return np.sum(detections * np.log(prob) + (1 - detections) * np.log(1 - prob))
 
         ll_ref = log_likelihood(beta_ref, theta_ref, Pi_i_ref)
 
@@ -2367,9 +2168,9 @@ class BayesianParameterEstimator:
                     ll_i_m = log_likelihood(*params_i_minus)
                     ll_i_mm = log_likelihood(*params_i_minus_minus)
 
-                    second_derivative = (
-                        -ll_i_pp + 16 * ll_i_p - 30 * ll_ref + 16 * ll_i_m - ll_i_mm
-                    ) / (12 * epsilon**2)
+                    second_derivative = (-ll_i_pp + 16 * ll_i_p - 30 * ll_ref + 16 * ll_i_m - ll_i_mm) / (
+                        12 * epsilon**2
+                    )
                     fim[i, j] = -second_derivative
                 else:
                     # Off-diagonal elements: mixed partial derivatives
@@ -2379,23 +2180,11 @@ class BayesianParameterEstimator:
                     params_j_minus[j] -= epsilon
 
                     ll_ip_jp = log_likelihood(*params_i_plus)
-                    ll_ip_jm = log_likelihood(
-                        *params_i_plus[:i] + [params_j_plus[j]] + params_i_plus[i + 1 :]
-                    )
-                    ll_im_jp = log_likelihood(
-                        *params_i_minus[:i]
-                        + [params_j_plus[j]]
-                        + params_i_minus[i + 1 :]
-                    )
-                    ll_im_jm = log_likelihood(
-                        *params_i_minus[:i]
-                        + [params_j_minus[j]]
-                        + params_i_minus[i + 1 :]
-                    )
+                    ll_ip_jm = log_likelihood(*params_i_plus[:i] + [params_j_plus[j]] + params_i_plus[i + 1 :])
+                    ll_im_jp = log_likelihood(*params_i_minus[:i] + [params_j_plus[j]] + params_i_minus[i + 1 :])
+                    ll_im_jm = log_likelihood(*params_i_minus[:i] + [params_j_minus[j]] + params_i_minus[i + 1 :])
 
-                    mixed_derivative = (ll_ip_jp - ll_ip_jm - ll_im_jp + ll_im_jm) / (
-                        4 * epsilon**2
-                    )
+                    mixed_derivative = (ll_ip_jp - ll_ip_jm - ll_im_jp + ll_im_jm) / (4 * epsilon**2)
                     fim[i, j] = -mixed_derivative
                     fim[j, i] = fim[i, j]  # Symmetric
 
@@ -2403,11 +2192,7 @@ class BayesianParameterEstimator:
         eigenvalues, eigenvectors = np.linalg.eigh(fim)
 
         # Compute condition number (ratio of largest to smallest eigenvalue)
-        condition_number = (
-            np.max(eigenvalues) / np.min(eigenvalues)
-            if np.min(eigenvalues) > 1e-10
-            else float("inf")
-        )
+        condition_number = np.max(eigenvalues) / np.min(eigenvalues) if np.min(eigenvalues) > 1e-10 else float("inf")
 
         # Compute variance-covariance matrix (inverse of FIM)
         try:
@@ -2421,9 +2206,7 @@ class BayesianParameterEstimator:
         if cov_matrix is not None:
             correlation_matrix = cov_matrix / np.outer(std_errors, std_errors)
             # Extract β/Πⁱ correlation (collinearity measure)
-            beta_pi_correlation = correlation_matrix[
-                0, 2
-            ]  # beta (index 0) vs Pi_i (index 2)
+            beta_pi_correlation = correlation_matrix[0, 2]  # beta (index 0) vs Pi_i (index 2)
         else:
             correlation_matrix = None
             beta_pi_correlation = float("nan")
@@ -2434,9 +2217,7 @@ class BayesianParameterEstimator:
             for i in range(3):
                 # VIF = 1 / (1 - R²_i) where R²_i is from regression of param i on others
                 # Approximation using correlation matrix
-                r_squared = np.sum(correlation_matrix[i, :i] ** 2) + np.sum(
-                    correlation_matrix[i, i + 1 :] ** 2
-                )
+                r_squared = np.sum(correlation_matrix[i, :i] ** 2) + np.sum(correlation_matrix[i, i + 1 :] ** 2)
                 vif_i = 1 / (1 - r_squared) if r_squared < 1 else float("inf")
                 vif.append(vif_i)
         else:
@@ -2454,13 +2235,9 @@ class BayesianParameterEstimator:
             "eigenvalues": eigenvalues.tolist(),
             "eigenvectors": eigenvectors.tolist(),
             "condition_number": float(condition_number),
-            "variance_covariance_matrix": (
-                cov_matrix.tolist() if cov_matrix is not None else None
-            ),
+            "variance_covariance_matrix": (cov_matrix.tolist() if cov_matrix is not None else None),
             "standard_errors": std_errors.tolist(),
-            "correlation_matrix": (
-                correlation_matrix.tolist() if correlation_matrix is not None else None
-            ),
+            "correlation_matrix": (correlation_matrix.tolist() if correlation_matrix is not None else None),
             "beta_pi_correlation": float(beta_pi_correlation),
             "variance_inflation_factors": vif,
             "identifiability_good": identifiability_good,
@@ -2468,9 +2245,7 @@ class BayesianParameterEstimator:
             "parameter_names": param_names,
         }
 
-    def estimate_hierarchical_parameters(
-        self, multi_subject_data: Dict[str, pd.DataFrame]
-    ) -> Dict:
+    def estimate_hierarchical_parameters(self, multi_subject_data: Dict[str, pd.DataFrame]) -> Dict:
         """
         Hierarchical Bayesian parameter estimation across multiple subjects
 
@@ -2509,15 +2284,11 @@ class BayesianParameterEstimator:
         with pm.Model():
             # Hyperpriors for group-level parameters (paper-specified ranges)
             # β hyperprior: group mean ∈ [0.6, 2.2]
-            beta_mu = pm.TruncatedNormal(
-                "beta_mu", mu=1.4, sigma=0.4, lower=0.6, upper=2.2
-            )
+            beta_mu = pm.TruncatedNormal("beta_mu", mu=1.4, sigma=0.4, lower=0.6, upper=2.2)
             beta_sigma = pm.HalfNormal("beta_sigma", sigma=0.3)
 
             # Πⁱ hyperprior: group mean ∈ [0.1, 2.0]
-            Pi_i_mu = pm.TruncatedNormal(
-                "Pi_i_mu", mu=1.05, sigma=0.5, lower=0.1, upper=2.0
-            )
+            Pi_i_mu = pm.TruncatedNormal("Pi_i_mu", mu=1.05, sigma=0.5, lower=0.1, upper=2.0)
             Pi_i_sigma = pm.HalfNormal("Pi_i_sigma", sigma=0.4)
 
             # θ hyperprior
@@ -2560,8 +2331,7 @@ class BayesianParameterEstimator:
             prob_detect = baseline + amplitude / (
                 1
                 + pm.math.exp(
-                    -beta[all_subject_indices_array]
-                    * (all_stimulus_array - theta[all_subject_indices_array])
+                    -beta[all_subject_indices_array] * (all_stimulus_array - theta[all_subject_indices_array])
                 )
             ) * (1 + Pi_i[all_subject_indices_array] * 0.1)
 
@@ -2609,20 +2379,12 @@ class BayesianParameterEstimator:
         # Compute pooling strength (shrinkage)
         # ICC-like measure: between-subject variance / total variance
         beta_between_var = summary.loc["beta_sigma", "mean"] ** 2
-        beta_total_var = beta_between_var + np.mean(
-            [subject_results[s]["beta_sd"] ** 2 for s in subject_ids]
-        )
-        beta_pooling_strength = (
-            1 - (beta_between_var / beta_total_var) if beta_total_var > 0 else 0
-        )
+        beta_total_var = beta_between_var + np.mean([subject_results[s]["beta_sd"] ** 2 for s in subject_ids])
+        beta_pooling_strength = 1 - (beta_between_var / beta_total_var) if beta_total_var > 0 else 0
 
         Pi_i_between_var = summary.loc["Pi_i_sigma", "mean"] ** 2
-        Pi_i_total_var = Pi_i_between_var + np.mean(
-            [subject_results[s]["Pi_i_sd"] ** 2 for s in subject_ids]
-        )
-        Pi_i_pooling_strength = (
-            1 - (Pi_i_between_var / Pi_i_total_var) if Pi_i_total_var > 0 else 0
-        )
+        Pi_i_total_var = Pi_i_between_var + np.mean([subject_results[s]["Pi_i_sd"] ** 2 for s in subject_ids])
+        Pi_i_pooling_strength = 1 - (Pi_i_between_var / Pi_i_total_var) if Pi_i_total_var > 0 else 0
 
         return {
             "posterior_summary": summary,
@@ -2644,9 +2406,7 @@ class ConvergenceBenchmark:
         self.apgi_target_trials = 80
         self.actor_critic_target_trials = 100
 
-    def simulate_apgi_learning_curve(
-        self, n_trials: int = 200, learning_rate: float = 0.1
-    ) -> np.ndarray:
+    def simulate_apgi_learning_curve(self, n_trials: int = 200, learning_rate: float = 0.1) -> np.ndarray:
         """
         Simulate APGI agent learning curve with rapid convergence
 
@@ -2674,16 +2434,11 @@ class ConvergenceBenchmark:
                 performance[t] = 0.5 + 0.35 * sigmoid
             else:
                 # Continued improvement after convergence
-                performance[t] = (
-                    performance[t - 1]
-                    + learning_rate * (0.9 - performance[t - 1]) * 0.1
-                )
+                performance[t] = performance[t - 1] + learning_rate * (0.9 - performance[t - 1]) * 0.1
 
         return np.clip(performance, 0, 1)
 
-    def simulate_actor_critic_learning_curve(
-        self, n_trials: int = 200, learning_rate: float = 0.05
-    ) -> np.ndarray:
+    def simulate_actor_critic_learning_curve(self, n_trials: int = 200, learning_rate: float = 0.05) -> np.ndarray:
         """
         Simulate Actor-Critic agent learning curve with slower convergence
 
@@ -2710,10 +2465,7 @@ class ConvergenceBenchmark:
                 performance[t] = 0.5 + 0.30 * (1 - np.exp(-3 * progress))
             else:
                 # Continued slow improvement
-                performance[t] = (
-                    performance[t - 1]
-                    + learning_rate * (0.85 - performance[t - 1]) * 0.05
-                )
+                performance[t] = performance[t - 1] + learning_rate * (0.85 - performance[t - 1]) * 0.05
 
         return np.clip(performance, 0, 1)
 
@@ -2762,9 +2514,7 @@ class ConvergenceBenchmark:
         std_ac = np.std(actor_critic_convergence_trials)
 
         # Paired t-test
-        t_stat, p_value = stats.ttest_rel(
-            apgi_convergence_trials, actor_critic_convergence_trials
-        )
+        t_stat, p_value = stats.ttest_rel(apgi_convergence_trials, actor_critic_convergence_trials)
 
         # Cohen's d
         pooled_std = np.sqrt((std_apgi**2 + std_ac**2) / 2)
@@ -2808,9 +2558,7 @@ class ModelComparisonTable:
     def __init__(self):
         self.model_names = ["APGI", "StandardPP", "GWTonly", "Continuous"]
 
-    def generate_comparison_table(
-        self, fit_results: Dict, behavioral_data: pd.DataFrame
-    ) -> Dict:
+    def generate_comparison_table(self, fit_results: Dict, behavioral_data: pd.DataFrame) -> Dict:
         """
         Generate formal model comparison table matching paper's format
 
@@ -2837,17 +2585,13 @@ class ModelComparisonTable:
             )
 
         # Standard Predictive Processing model
-        model_metrics["StandardPP"] = self._fit_standard_pp(
-            stimulus_intensities, detections
-        )
+        model_metrics["StandardPP"] = self._fit_standard_pp(stimulus_intensities, detections)
 
         # GWT-only model (Global Workspace Theory)
         model_metrics["GWTonly"] = self._fit_gwt_only(stimulus_intensities, detections)
 
         # Continuous model (no phase transition)
-        model_metrics["Continuous"] = self._fit_continuous(
-            stimulus_intensities, detections
-        )
+        model_metrics["Continuous"] = self._fit_continuous(stimulus_intensities, detections)
 
         # Calculate model comparison statistics
         comparison_stats = self._calculate_comparison_statistics(model_metrics)
@@ -2856,25 +2600,15 @@ class ModelComparisonTable:
         comparison_table = {
             "Model": self.model_names,
             "Parameters": [model_metrics[m]["n_params"] for m in self.model_names],
-            "Log-Likelihood": [
-                model_metrics[m]["log_likelihood"] for m in self.model_names
-            ],
+            "Log-Likelihood": [model_metrics[m]["log_likelihood"] for m in self.model_names],
             "AIC": [model_metrics[m]["aic"] for m in self.model_names],
             "BIC": [model_metrics[m]["bic"] for m in self.model_names],
             "R²": [model_metrics[m]["r2"] for m in self.model_names],
             "RMSE": [model_metrics[m]["rmse"] for m in self.model_names],
-            "ΔAIC (vs APGI)": [
-                comparison_stats["delta_aic"][m] for m in self.model_names
-            ],
-            "ΔBIC (vs APGI)": [
-                comparison_stats["delta_bic"][m] for m in self.model_names
-            ],
-            "Evidence Ratio": [
-                comparison_stats["evidence_ratio"][m] for m in self.model_names
-            ],
-            "Phase Transition": [
-                model_metrics[m]["phase_transition"] for m in self.model_names
-            ],
+            "ΔAIC (vs APGI)": [comparison_stats["delta_aic"][m] for m in self.model_names],
+            "ΔBIC (vs APGI)": [comparison_stats["delta_bic"][m] for m in self.model_names],
+            "Evidence Ratio": [comparison_stats["evidence_ratio"][m] for m in self.model_names],
+            "Phase Transition": [model_metrics[m]["phase_transition"] for m in self.model_names],
         }
 
         # Determine best model
@@ -2910,8 +2644,7 @@ class ModelComparisonTable:
         # Log-likelihood (assuming Bernoulli)
         predictions_clipped = np.clip(predictions, 1e-10, 1 - 1e-10)
         log_likelihood = np.sum(
-            detections * np.log(predictions_clipped)
-            + (1 - detections) * np.log(1 - predictions_clipped)
+            detections * np.log(predictions_clipped) + (1 - detections) * np.log(1 - predictions_clipped)
         )
 
         # AIC
@@ -2925,11 +2658,7 @@ class ModelComparisonTable:
         parameters = model_result.get("parameters", [])
         phase_transition = False
         if len(parameters) > 0:
-            beta = (
-                parameters[0]
-                if isinstance(parameters, (list, np.ndarray))
-                else parameters
-            )
+            beta = parameters[0] if isinstance(parameters, (list, np.ndarray)) else parameters
             phase_transition = beta >= 10
 
         return {
@@ -2942,9 +2671,7 @@ class ModelComparisonTable:
             "phase_transition": phase_transition,
         }
 
-    def _fit_standard_pp(
-        self, stimulus_intensities: np.ndarray, detections: np.ndarray
-    ) -> Dict:
+    def _fit_standard_pp(self, stimulus_intensities: np.ndarray, detections: np.ndarray) -> Dict:
         """Fit Standard Predictive Processing model"""
 
         # Standard PP: simple exponential accumulation
@@ -2978,9 +2705,7 @@ class ModelComparisonTable:
                 "phase_transition": False,
             }
 
-    def _fit_gwt_only(
-        self, stimulus_intensities: np.ndarray, detections: np.ndarray
-    ) -> Dict:
+    def _fit_gwt_only(self, stimulus_intensities: np.ndarray, detections: np.ndarray) -> Dict:
         """Fit GWT-only model (Global Workspace Theory)"""
 
         # GWT-only: step function (binary ignition)
@@ -3013,9 +2738,7 @@ class ModelComparisonTable:
                 "phase_transition": False,
             }
 
-    def _fit_continuous(
-        self, stimulus_intensities: np.ndarray, detections: np.ndarray
-    ) -> Dict:
+    def _fit_continuous(self, stimulus_intensities: np.ndarray, detections: np.ndarray) -> Dict:
         """Fit Continuous model (no phase transition)"""
 
         # Continuous: linear model
@@ -3023,9 +2746,7 @@ class ModelComparisonTable:
             return np.clip(slope * x + intercept, 0, 1)
 
         try:
-            popt, _ = curve_fit(
-                continuous, stimulus_intensities, detections, p0=[0.5, 0.0]
-            )
+            popt, _ = curve_fit(continuous, stimulus_intensities, detections, p0=[0.5, 0.0])
             # Convert popt to regular numpy array to fix type error
             popt = np.array(popt)
             predictions = continuous(stimulus_intensities, *popt)
@@ -3065,10 +2786,7 @@ class ModelComparisonTable:
         akaike_weights = np.exp(-0.5 * (aic_array - min_aic))
         akaike_weights /= np.sum(akaike_weights)
 
-        evidence_ratio = {
-            m: akaike_weights[i] / akaike_weights[0]
-            for i, m in enumerate(self.model_names)
-        }
+        evidence_ratio = {m: akaike_weights[i] / akaike_weights[0] for i, m in enumerate(self.model_names)}
 
         return {
             "best_model": best_model,
@@ -3076,9 +2794,7 @@ class ModelComparisonTable:
             "delta_aic": delta_aic,
             "delta_bic": delta_bic,
             "evidence_ratio": evidence_ratio,
-            "akaike_weights": {
-                m: float(akaike_weights[i]) for i, m in enumerate(self.model_names)
-            },
+            "akaike_weights": {m: float(akaike_weights[i]) for i, m in enumerate(self.model_names)},
         }
 
 
@@ -3088,9 +2804,7 @@ class QuantitativeModelValidator:
     def __init__(self):
         self.psychometric_fitter = PsychometricFunctionFitter()
         self.lnn_model = SpikingLNNModel()
-        self.bayesian_estimator = (
-            BayesianParameterEstimator() if BAYESIAN_AVAILABLE else None
-        )
+        self.bayesian_estimator = BayesianParameterEstimator() if BAYESIAN_AVAILABLE else None
         self.convergence_benchmark = ConvergenceBenchmark()
 
     def validate_quantitative_fits(self) -> Dict:
@@ -3110,9 +2824,7 @@ class QuantitativeModelValidator:
         }
 
         # Calculate overall score
-        results["overall_quantitative_score"] = self._calculate_quantitative_score(
-            results
-        )
+        results["overall_quantitative_score"] = self._calculate_quantitative_score(results)
 
         return results
 
@@ -3132,14 +2844,10 @@ class QuantitativeModelValidator:
         )
 
         # Add noise to simulate behavioral data
-        detection_rates = (
-            np.random.binomial(20, true_probabilities) / 20
-        )  # 20 trials per intensity
+        detection_rates = np.random.binomial(20, true_probabilities) / 20  # 20 trials per intensity
 
         # Fit all models
-        fit_results = self.psychometric_fitter.fit_psychometric_functions(
-            stimulus_intensities, detection_rates
-        )
+        fit_results = self.psychometric_fitter.fit_psychometric_functions(stimulus_intensities, detection_rates)
 
         # Add statistical validation
         # Calculate goodness of fit metrics
@@ -3201,9 +2909,7 @@ class QuantitativeModelValidator:
             isi_cv = 0.0
 
         # Validate realistic dynamics
-        realistic_firing = (
-            10 <= mean_firing_rate <= 200
-        )  # Adjusted range for realistic spiking
+        realistic_firing = 10 <= mean_firing_rate <= 200  # Adjusted range for realistic spiking
         realistic_isi = 0.001 <= mean_isi <= 0.1  # 1-100ms ISI (adjusted)
         realistic_cv = 0.3 <= isi_cv <= 2.0  # Coefficient of variation
 
@@ -3238,9 +2944,7 @@ class QuantitativeModelValidator:
 
             # Get raw data
             intensities = np.array(results["psychometric_data"]["intensities"])
-            detections = np.array(
-                results["psychometric_data"]["detections"], dtype=float
-            )
+            detections = np.array(results["psychometric_data"]["detections"], dtype=float)
 
             # Bin intensities and calculate detection rates
             n_bins = 10
@@ -3296,30 +3000,18 @@ class QuantitativeModelValidator:
                                 best_r2 = r2
                                 best_result = (popt, fitted_curve, r2)
                         except Exception as e:
-                            logger.warning(
-                                f"Fitting failed for paradigm {paradigm}: {e}"
-                            )
+                            logger.warning(f"Fitting failed for paradigm {paradigm}: {e}")
                             continue
 
                     if best_result is None:
-                        paradigm_results[paradigm] = {
-                            "error": "Failed to fit with any initial parameters"
-                        }
+                        paradigm_results[paradigm] = {"error": "Failed to fit with any initial parameters"}
                         continue
 
                     popt, fitted_curve, r2 = best_result
 
                     # Chi-square goodness of fit
                     n_trials_per_bin = (
-                        np.sum(
-                            [
-                                np.sum(
-                                    (intensities >= bins[i])
-                                    & (intensities < bins[i + 1])
-                                )
-                                for i in range(n_bins)
-                            ]
-                        )
+                        np.sum([np.sum((intensities >= bins[i]) & (intensities < bins[i + 1])) for i in range(n_bins)])
                         / n_bins
                     )
                     expected = fitted_curve * n_trials_per_bin
@@ -3349,9 +3041,7 @@ class QuantitativeModelValidator:
                         "binned_rates": binned_rates_arr.tolist(),
                     }
                 else:
-                    paradigm_results[paradigm] = {
-                        "error": "Not enough data points for fitting after binning"
-                    }
+                    paradigm_results[paradigm] = {"error": "Not enough data points for fitting after binning"}
             except Exception as e:
                 paradigm_results[paradigm] = {"error": f"Fit failed: {str(e)}"}
 
@@ -3372,35 +3062,24 @@ class QuantitativeModelValidator:
 
         # Generate detections
         true_probs = (
-            true_baseline
-            + true_amplitude
-            / (1 + np.exp(-true_beta * (stimulus_intensities - true_theta)))
-            * 1.1
+            true_baseline + true_amplitude / (1 + np.exp(-true_beta * (stimulus_intensities - true_theta))) * 1.1
         )
         true_probs = np.clip(true_probs, 0.0, 1.0)
         detections = np.random.binomial(1, true_probs)
 
-        behavioral_data = pd.DataFrame(
-            {"stimulus_intensity": stimulus_intensities, "detected": detections}
-        )
+        behavioral_data = pd.DataFrame({"stimulus_intensity": stimulus_intensities, "detected": detections})
 
         # Estimate parameters
         try:
-            estimation_results = self.bayesian_estimator.estimate_apgi_parameters(
-                behavioral_data
-            )
+            estimation_results = self.bayesian_estimator.estimate_apgi_parameters(behavioral_data)
 
             # Add statistical validation
             if "posterior_summary" in estimation_results:
                 posterior = estimation_results["posterior_summary"]
 
                 # Check parameter recovery accuracy
-                beta_estimate = (
-                    posterior.loc["beta", "mean"] if "beta" in posterior.index else 0
-                )
-                theta_estimate = (
-                    posterior.loc["theta", "mean"] if "theta" in posterior.index else 0
-                )
+                beta_estimate = posterior.loc["beta", "mean"] if "beta" in posterior.index else 0
+                theta_estimate = posterior.loc["theta", "mean"] if "theta" in posterior.index else 0
 
                 # Calculate recovery error
                 beta_error = abs(beta_estimate - true_beta) / true_beta
@@ -3431,87 +3110,41 @@ class QuantitativeModelValidator:
                 for _ in range(n_samples):
                     # Sample from posterior
                     sample_beta = np.random.normal(
-                        (
-                            posterior.loc["beta", "mean"]
-                            if "beta" in posterior.index
-                            else 1.4
-                        ),
-                        (
-                            posterior.loc["beta", "sd"]
-                            if "beta" in posterior.index
-                            else 0.4
-                        ),
+                        (posterior.loc["beta", "mean"] if "beta" in posterior.index else 1.4),
+                        (posterior.loc["beta", "sd"] if "beta" in posterior.index else 0.4),
                     )
                     sample_theta = np.random.normal(
-                        (
-                            posterior.loc["theta", "mean"]
-                            if "theta" in posterior.index
-                            else 0.5
-                        ),
-                        (
-                            posterior.loc["theta", "sd"]
-                            if "theta" in posterior.index
-                            else 0.1
-                        ),
+                        (posterior.loc["theta", "mean"] if "theta" in posterior.index else 0.5),
+                        (posterior.loc["theta", "sd"] if "theta" in posterior.index else 0.1),
                     )
                     sample_amplitude = np.random.normal(
-                        (
-                            posterior.loc["amplitude", "mean"]
-                            if "amplitude" in posterior.index
-                            else 0.8
-                        ),
-                        (
-                            posterior.loc["amplitude", "sd"]
-                            if "amplitude" in posterior.index
-                            else 0.1
-                        ),
+                        (posterior.loc["amplitude", "mean"] if "amplitude" in posterior.index else 0.8),
+                        (posterior.loc["amplitude", "sd"] if "amplitude" in posterior.index else 0.1),
                     )
                     sample_baseline = np.random.normal(
-                        (
-                            posterior.loc["baseline", "mean"]
-                            if "baseline" in posterior.index
-                            else 0.1
-                        ),
-                        (
-                            posterior.loc["baseline", "sd"]
-                            if "baseline" in posterior.index
-                            else 0.05
-                        ),
+                        (posterior.loc["baseline", "mean"] if "baseline" in posterior.index else 0.1),
+                        (posterior.loc["baseline", "sd"] if "baseline" in posterior.index else 0.05),
                     )
 
                     # Generate predictions
                     sample_probs = (
                         sample_baseline
-                        + sample_amplitude
-                        / (
-                            1
-                            + np.exp(
-                                -sample_beta * (stimulus_intensities - sample_theta)
-                            )
-                        )
-                        * 1.1
+                        + sample_amplitude / (1 + np.exp(-sample_beta * (stimulus_intensities - sample_theta))) * 1.1
                     )
                     sample_probs = np.clip(sample_probs, 1e-10, 1 - 1e-10)
 
                     # Calculate log-likelihood
                     log_likelihood = np.sum(
-                        detections * np.log(sample_probs)
-                        + (1 - detections) * np.log(1 - sample_probs)
+                        detections * np.log(sample_probs) + (1 - detections) * np.log(1 - sample_probs)
                     )
                     posterior_predictive_checks.append(log_likelihood)
 
                 # Posterior predictive p-value
                 observed_log_likelihood = np.sum(
                     detections * np.log(np.clip(true_probs, 1e-10, 1 - 1e-10))
-                    + (1 - detections)
-                    * np.log(1 - np.clip(true_probs, 1e-10, 1 - 1e-10))
+                    + (1 - detections) * np.log(1 - np.clip(true_probs, 1e-10, 1 - 1e-10))
                 )
-                ppc_p_value = np.mean(
-                    [
-                        ll >= observed_log_likelihood
-                        for ll in posterior_predictive_checks
-                    ]
-                )
+                ppc_p_value = np.mean([ll >= observed_log_likelihood for ll in posterior_predictive_checks])
 
                 # Statistical validation criteria
                 recovery_accurate = beta_error < 0.20 and theta_error < 0.20
@@ -3527,9 +3160,7 @@ class QuantitativeModelValidator:
                     "recovery_accurate": recovery_accurate,
                     "ci_coverage": ci_coverage,
                     "ppc_good": ppc_good,
-                    "overall_validation": recovery_accurate
-                    and ci_coverage
-                    and ppc_good,
+                    "overall_validation": recovery_accurate and ci_coverage and ppc_good,
                 }
 
             return estimation_results
@@ -3543,39 +3174,28 @@ class QuantitativeModelValidator:
 
         # Psychometric fitting (weight: 0.4)
         psycho_result = results.get("psychometric_fitting", {})
-        model_comparison = psycho_result.get("model_fits", {}).get(
-            "model_comparison", {}
-        )
+        model_comparison = psycho_result.get("model_fits", {}).get("model_comparison", {})
 
         # Check for goodness of fit
         apgi_fit = psycho_result.get("model_fits", {}).get("apgi_model", {})
         goodness_of_fit = apgi_fit.get("goodness_of_fit", False)
 
-        psycho_score = 0.4 * (
-            1.0
-            if (model_comparison.get("apgi_preferred", False) and goodness_of_fit)
-            else 0.0
-        )
+        psycho_score = 0.4 * (1.0 if (model_comparison.get("apgi_preferred", False) and goodness_of_fit) else 0.0)
         scores.append(psycho_score)
         logger.info(f"Psychometric fitting: {psycho_score:.2f} (weight: 0.4)")
 
         # Spiking LNN (weight: 0.3)
         lnn_result = results.get("spiking_lnn_simulation", {})
         statistical_validation = lnn_result.get("statistical_validation", {})
-        all_valid = (
-            all(statistical_validation.values()) if statistical_validation else False
-        )
-        lnn_score = 0.3 * (
-            1.0 if lnn_result.get("realistic_dynamics", False) and all_valid else 0.0
-        )
+        all_valid = all(statistical_validation.values()) if statistical_validation else False
+        lnn_score = 0.3 * (1.0 if lnn_result.get("realistic_dynamics", False) and all_valid else 0.0)
         scores.append(lnn_score)
         logger.info(f"Spiking LNN: {lnn_score:.2f} (weight: 0.3)")
 
         # Consciousness paradigms (weight: 0.2)
         paradigm_result = results.get("consciousness_paradigms", {})
         paradigm_success = any(
-            paradigm.get("goodness_of_fit", False)
-            and paradigm.get("phase_transition", False)
+            paradigm.get("goodness_of_fit", False) and paradigm.get("phase_transition", False)
             for paradigm in paradigm_result.values()
             if isinstance(paradigm, dict)
         )
@@ -3586,9 +3206,7 @@ class QuantitativeModelValidator:
         # Bayesian estimation (weight: 0.1)
         bayesian_result = results.get("bayesian_estimation", {})
         statistical_validation = bayesian_result.get("statistical_validation", {})
-        bayesian_score = 0.1 * (
-            1.0 if statistical_validation.get("overall_validation", False) else 0.0
-        )
+        bayesian_score = 0.1 * (1.0 if statistical_validation.get("overall_validation", False) else 0.0)
         scores.append(bayesian_score)
         logger.info(f"Bayesian estimation: {bayesian_score:.2f} (weight: 0.1)")
 
@@ -3604,9 +3222,7 @@ def main_quantitative():
     results = validator.validate_quantitative_fits()
 
     print("APGI Quantitative Model Validation Results:")
-    print(
-        f"Overall Quantitative Validation Score: {results['overall_quantitative_score']:.3f}"
-    )
+    print(f"Overall Quantitative Validation Score: {results['overall_quantitative_score']:.3f}")
 
     print("\nDetailed Results:")
     for key, value in results.items():
@@ -4092,9 +3708,7 @@ def check_falsification(
 
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
-    f1_1_pass = (
-        apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
-    )
+    f1_1_pass = apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
         "apgi_advantage": apgi_advantage_f1,
@@ -4107,17 +3721,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}"
-    )
+    logger.info(f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}")
 
     # F1.2: Hierarchical Level Emergence
     logger.info("Testing F1.2: Hierarchical Level Emergence")
-    f1_2_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
-    )
+    f1_2_pass = hierarchical_levels_detected >= 3 and peak_separation_ratio >= 1.5 and eta_squared_timescales >= 0.45
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
         "hierarchical_levels_detected": hierarchical_levels_detected,
@@ -4136,16 +3744,8 @@ def check_falsification(
 
     # F1.3: Level-Specific Precision Weighting
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
-    precision_difference = (
-        (level1_intero_precision - level3_intero_precision)
-        / level3_intero_precision
-        * 100
-    )
-    f1_3_pass = (
-        precision_difference >= 15
-        and partial_eta_squared_f1_3 >= 0.08
-        and p_interaction_f1_3 < 0.01
-    )
+    precision_difference = (level1_intero_precision - level3_intero_precision) / level3_intero_precision * 100
+    f1_3_pass = precision_difference >= 15 and partial_eta_squared_f1_3 >= 0.08 and p_interaction_f1_3 < 0.01
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "level1_intero_precision": level1_intero_precision,
@@ -4192,10 +3792,7 @@ def check_falsification(
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
     f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
+        pac_modulation_index >= 0.008 and pac_increase >= 15 and cohens_d_pac >= 0.30 and permutation_p_pac < 0.01
     )
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
@@ -4244,9 +3841,7 @@ def check_falsification(
 
     # F2.1: Somatic Marker Advantage Quantification
     logger.info("Testing F2.1: Somatic Marker Advantage Quantification")
-    advantage_over_no_somatic = (
-        apgi_advantageous_selection - no_somatic_advantageous_selection
-    )
+    advantage_over_no_somatic = apgi_advantageous_selection - no_somatic_advantageous_selection
     f2_1_pass = (
         apgi_advantageous_selection >= 18
         and advantage_over_no_somatic >= 8
@@ -4274,9 +3869,7 @@ def check_falsification(
     # F2.2: Interoceptive Cost Sensitivity
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
     f2_2_pass = (
-        abs(apgi_cost_correlation) >= 0.30
-        and abs(no_intero_cost_correlation) <= 0.20
-        and fishers_z_difference >= 1.50
+        abs(apgi_cost_correlation) >= 0.30 and abs(no_intero_cost_correlation) <= 0.20 and fishers_z_difference >= 1.50
     )
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
@@ -4297,10 +3890,7 @@ def check_falsification(
     # F2.3: vmPFC-Like Anticipatory Bias
     logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
     f2_3_pass = (
-        rt_advantage >= 20
-        and rt_modulation_beta >= 15
-        and standardized_beta_rt >= 0.25
-        and marginal_r2_rt >= 0.10
+        rt_advantage >= 20 and rt_modulation_beta >= 15 and standardized_beta_rt >= 0.25 and marginal_r2_rt >= 0.10
     )
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -4348,10 +3938,7 @@ def check_falsification(
     logger.info("Testing F2.5: Learning Trajectory Discrimination")
     trial_advantage = no_intero_time_to_criterion - apgi_time_to_criterion
     f2_5_pass = (
-        apgi_time_to_criterion <= 55
-        and hazard_ratio_f2_5 >= 1.35
-        and log_rank_p < 0.01
-        and trial_advantage >= 12
+        apgi_time_to_criterion <= 55 and hazard_ratio_f2_5 >= 1.35 and log_rank_p < 0.01 and trial_advantage >= 12
     )
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -4373,9 +3960,7 @@ def check_falsification(
 
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
-    f3_1_pass = (
-        apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
-    )
+    f3_1_pass = apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "apgi_advantage": apgi_advantage_f3,
@@ -4388,17 +3973,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}"
-    )
+    logger.info(f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}")
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
-    )
+    f3_2_pass = interoceptive_advantage >= 0.20 and partial_eta_squared >= 0.12 and p_interaction < 0.01
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
         "interoceptive_advantage": interoceptive_advantage,
@@ -4417,11 +3996,7 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
-    )
+    f3_3_pass = threshold_reduction >= 0.15 and cohens_d_threshold >= 0.50 and p_threshold < 0.01
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
@@ -4440,11 +4015,7 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.01
-    )
+    f3_4_pass = precision_reduction >= 0.12 and cohens_d_precision >= 0.42 and p_precision < 0.01
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
         "precision_reduction": precision_reduction,
@@ -4463,14 +4034,11 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
-    )
+    f3_5_pass = performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
         "performance_retention": performance_retention,
         "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
         "threshold": "Retention ≥85%, gain ≥30%",
         "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
     }
@@ -4484,9 +4052,7 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
-    )
+    f3_6_pass = time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
         "time_to_criterion": time_to_criterion,
@@ -4499,17 +4065,12 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}"
-    )
+    logger.info(f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}")
 
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -4530,11 +4091,7 @@ def check_falsification(
 
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
+    f5_2_pass = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
     results["criteria"]["F5.2"] = {
         "passed": f5_2_pass,
         "proportion_precision_agents": proportion_precision_agents,
@@ -4578,11 +4135,7 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
+    f5_4_pass = proportion_multiscale_agents >= 0.45 and peak_separation_ratio_f5_4 >= 2.0 and binomial_p_f5_4 < 0.01
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "proportion_multiscale_agents": proportion_multiscale_agents,
@@ -4619,11 +4172,7 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    from utils.falsification_thresholds import (
-        F5_6_ALPHA,
-        F5_6_MIN_COHENS_D,
-        F5_6_MIN_PERFORMANCE_DIFF_PCT,
-    )
+    from utils.falsification_thresholds import F5_6_ALPHA, F5_6_MIN_COHENS_D, F5_6_MIN_PERFORMANCE_DIFF_PCT
 
     f5_6_pass = (
         performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
@@ -4687,8 +4236,7 @@ def check_falsification(
 
     f6_2_pass = (
         ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
-        and (ltcn_integration_window / rnn_integration_window)
-        >= F6_2_MIN_INTEGRATION_RATIO
+        and (ltcn_integration_window / rnn_integration_window) >= F6_2_MIN_INTEGRATION_RATIO
         and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
         and wilcoxon_p < F6_2_WILCOXON_ALPHA
     )
@@ -4717,12 +4265,8 @@ def check_falsification(
             "threshold": "Gelman-Rubin R̂ ≤ 1.01",
         },
         "V11.2": {
-            "passed": results.get("prior_sensitivity_cultural", {}).get(
-                "passed", False
-            ),
-            "actual": results.get("prior_sensitivity_cultural", {}).get(
-                "delta_group_pi_i"
-            ),
+            "passed": results.get("prior_sensitivity_cultural", {}).get("passed", False),
+            "actual": results.get("prior_sensitivity_cultural", {}).get("delta_group_pi_i"),
             "threshold": "Cultural Bias Effect (d ≥ 0.45)",
         },
         "V11.3": {
@@ -4733,9 +4277,7 @@ def check_falsification(
     }
 
     return {
-        "passed": all(
-            p["passed"] for p in named_predictions.values() if p["passed"] is not None
-        ),
+        "passed": all(p["passed"] for p in named_predictions.values() if p["passed"] is not None),
         "status": "success",
         "results": results,
         "named_predictions": named_predictions,
@@ -4809,8 +4351,7 @@ def run_protocol_main(config=None):
     if not HAS_SCHEMA:
         return legacy_result
 
-    # ProtocolResult is a Pydantic model, access attributes directly
-    if isinstance(legacy_result, ProtocolResult):
+        # ProtocolResult is a Pydantic model, access attributes directly
         # Already a ProtocolResult, return as-is
         return legacy_result
 
@@ -4821,11 +4362,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -4877,19 +4414,14 @@ class NonAPGIComparisonValidator:
             }
 
         # Calculate performance gap
-        performance_gap = (
-            comparison_data["apgi_performance"]
-            - comparison_data["non_apgi_performance"]
-        )
+        performance_gap = comparison_data["apgi_performance"] - comparison_data["non_apgi_performance"]
         mean_gap = np.mean(performance_gap)
 
         # Statistical tests
         from scipy import stats
 
         # Paired t-test for performance comparison
-        t_stat, p_value = stats.ttest_rel(
-            comparison_data["apgi_performance"], comparison_data["non_apgi_performance"]
-        )
+        t_stat, p_value = stats.ttest_rel(comparison_data["apgi_performance"], comparison_data["non_apgi_performance"])
 
         # Cohen's d
         pooled_std = np.sqrt(
@@ -4912,9 +4444,7 @@ class NonAPGIComparisonValidator:
             try:
                 from Validation.Validation_Protocol_3 import compute_bic_comparison
 
-                bic_results = compute_bic_comparison(
-                    comparison_data["results"], comparison_data["analysis"]
-                )
+                bic_results = compute_bic_comparison(comparison_data["results"], comparison_data["analysis"])
             except ImportError:
                 # Fallback: compute BIC locally
                 n_params = {
@@ -4955,12 +4485,8 @@ class NonAPGIComparisonValidator:
         self.validation_results = {
             "passed": passed,
             "mean_performance_gap": float(mean_gap),
-            "apgi_mean_performance": float(
-                np.mean(comparison_data["apgi_performance"])
-            ),
-            "non_apgi_mean_performance": float(
-                np.mean(comparison_data["non_apgi_performance"])
-            ),
+            "apgi_mean_performance": float(np.mean(comparison_data["apgi_performance"])),
+            "non_apgi_mean_performance": float(np.mean(comparison_data["non_apgi_performance"])),
             "p_value": float(p_value),
             "cohens_d": float(cohens_d),
             "partial_eta_squared": float(partial_eta_sq),
@@ -5009,22 +4535,10 @@ class ArchitectureFailureChecker:
             }
 
         # Calculate performance degradation
-        threshold_degradation = (
-            failure_data["baseline_performance"]
-            - failure_data["no_threshold_performance"]
-        )
-        intero_degradation = (
-            failure_data["baseline_performance"]
-            - failure_data["no_intero_weighting_performance"]
-        )
-        somatic_degradation = (
-            failure_data["baseline_performance"]
-            - failure_data["no_somatic_performance"]
-        )
-        precision_degradation = (
-            failure_data["baseline_performance"]
-            - failure_data["no_precision_performance"]
-        )
+        threshold_degradation = failure_data["baseline_performance"] - failure_data["no_threshold_performance"]
+        intero_degradation = failure_data["baseline_performance"] - failure_data["no_intero_weighting_performance"]
+        somatic_degradation = failure_data["baseline_performance"] - failure_data["no_somatic_performance"]
+        precision_degradation = failure_data["baseline_performance"] - failure_data["no_precision_performance"]
 
         # Statistical tests
         from scipy import stats
@@ -5162,13 +4676,8 @@ class ArchitectureFailureChecker:
                 }
 
                 # Add ablation-based validation
-                max_drop = max(
-                    [v["performance_drop"] for v in ablation_results.values()]
-                )
-                ablation_passed = (
-                    max_drop >= 0.25
-                    and ablation_results["full_apgi"]["mean_reward"] > 0.70
-                )
+                max_drop = max([v["performance_drop"] for v in ablation_results.values()])
+                ablation_passed = max_drop >= 0.25 and ablation_results["full_apgi"]["mean_reward"] > 0.70
                 passed = passed and ablation_passed
 
         except ImportError:
@@ -5183,9 +4692,7 @@ class ArchitectureFailureChecker:
                     "performance_drop": np.mean(threshold_degradation),
                 },
                 "no_intero_weighting": {
-                    "mean_reward": np.mean(
-                        failure_data["no_intero_weighting_performance"]
-                    ),
+                    "mean_reward": np.mean(failure_data["no_intero_weighting_performance"]),
                     "performance_drop": np.mean(intero_degradation),
                 },
                 "no_somatic_markers": {
@@ -5206,9 +4713,7 @@ class ArchitectureFailureChecker:
             "mean_intero_degradation": float(np.mean(intero_degradation)),
             "mean_somatic_degradation": float(np.mean(somatic_degradation)),
             "mean_precision_degradation": float(np.mean(precision_degradation)),
-            "baseline_performance": float(
-                np.mean(failure_data["baseline_performance"])
-            ),
+            "baseline_performance": float(np.mean(failure_data["baseline_performance"])),
             "p_value": float(p_value),
             "eta_squared": float(eta_squared),
             "f_statistic": float(f_stat),
@@ -5231,9 +4736,7 @@ def main(**kwargs) -> Dict[str, Any]:
     if os.environ.get("APGI_FORCE_NUMPY_MCMC") == "1":
         global HAS_PYMC
         HAS_PYMC = False
-        logger.info(
-            "Forcing NumPy MCMC fallback via APGI_FORCE_NUMPY_MCMC environment variable."
-        )
+        logger.info("Forcing NumPy MCMC fallback via APGI_FORCE_NUMPY_MCMC environment variable.")
 
     # Defaults for quick validation if not specified
     if "n_subjects" not in kwargs:
@@ -5270,9 +4773,7 @@ if __name__ == "__main__":
         default=60,
         help="Number of simulated subjects (default 60)",
     )
-    parser.add_argument(
-        "--n_trials", type=int, default=400, help="Trials per subject (default 400)"
-    )
+    parser.add_argument("--n_trials", type=int, default=400, help="Trials per subject (default 400)")
     parser.add_argument(
         "--n_samples",
         type=int,

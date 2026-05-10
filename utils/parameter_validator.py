@@ -23,7 +23,7 @@ class APGIParameterValidator:
                     "description": "Surprise accumulation timescale (seconds)",
                     "type": "number",
                     "minimum": 0.1,
-                    "maximum": 1.0,
+                    "maximum": 2.0,
                     "default": 0.5,
                 },
                 "tau_theta": {
@@ -108,41 +108,27 @@ class APGIParameterValidator:
             "required": [],
         }
 
-    def _validate_parameter_type(
-        self, key: str, value: Any, prop_schema: Dict[str, Any], errors: List[str]
-    ) -> bool:
+    def _validate_parameter_type(self, key: str, value: Any, prop_schema: Dict[str, Any], errors: List[str]) -> bool:
         """Validate parameter type, return False if invalid"""
         expected_type = prop_schema["type"]
         if expected_type == "number":
             if not isinstance(value, (int, float)):
-                errors.append(
-                    f"Parameter '{key}' must be a number, got {type(value).__name__}"
-                )
+                errors.append(f"Parameter '{key}' must be a number, got {type(value).__name__}")
                 return False
         elif not isinstance(value, expected_type):
-            errors.append(
-                f"Parameter '{key}' must be {expected_type}, got {type(value).__name__}"
-            )
+            errors.append(f"Parameter '{key}' must be {expected_type}, got {type(value).__name__}")
             return False
         return True
 
-    def _validate_parameter_range(
-        self, key: str, value: Any, prop_schema: Dict[str, Any], errors: List[str]
-    ) -> None:
+    def _validate_parameter_range(self, key: str, value: Any, prop_schema: Dict[str, Any], errors: List[str]) -> None:
         """Validate parameter range for numeric values"""
         if isinstance(value, (int, float)):
             if "minimum" in prop_schema and value < prop_schema["minimum"]:
-                errors.append(
-                    f"Parameter '{key}' = {value} is below minimum {prop_schema['minimum']}"
-                )
+                errors.append(f"Parameter '{key}' = {value} is below minimum {prop_schema['minimum']}")
             if "maximum" in prop_schema and value > prop_schema["maximum"]:
-                errors.append(
-                    f"Parameter '{key}' = {value} is above maximum {prop_schema['maximum']}"
-                )
+                errors.append(f"Parameter '{key}' = {value} is above maximum {prop_schema['maximum']}")
 
-    def _check_missing_parameters(
-        self, parameters: Dict[str, Any], warnings: List[str]
-    ) -> None:
+    def _check_missing_parameters(self, parameters: Dict[str, Any], warnings: List[str]) -> None:
         """Check for missing recommended parameters"""
         recommended_params = ["tau_S", "tau_theta", "theta_0", "alpha"]
         for param in recommended_params:
@@ -164,9 +150,7 @@ class APGIParameterValidator:
             if not isinstance(parameters, dict):
                 return {
                     "valid": False,
-                    "errors": [
-                        f"Parameters must be a dictionary, got {type(parameters).__name__}"
-                    ],
+                    "errors": [f"Parameters must be a dictionary, got {type(parameters).__name__}"],
                     "warnings": [],
                 }
 

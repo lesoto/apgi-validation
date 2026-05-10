@@ -95,9 +95,7 @@ class ColorPaletteComplianceChecker:
                 )
 
         except Exception as e:
-            violations.append(
-                {"type": "file_error", "message": f"Error reading file: {e}"}
-            )
+            violations.append({"type": "file_error", "message": f"Error reading file: {e}"})
 
         return {
             "file": str(file_path),
@@ -114,9 +112,7 @@ class ColorPaletteComplianceChecker:
 
     def _has_visual_constants_import(self, content: str) -> bool:
         """Check if VISUAL_CONSTANTS is imported."""
-        return "VISUAL_CONSTANTS" in content and (
-            "import" in content or "from" in content
-        )
+        return "VISUAL_CONSTANTS" in content and ("import" in content or "from" in content)
 
     def _find_line_number(self, content: str, color: str) -> int:
         """Find the line number where a color appears."""
@@ -156,9 +152,7 @@ class ColorPaletteComplianceChecker:
                 # Count violation types
                 for violation in file_result["violations"]:
                     vtype = violation["type"]
-                    results["violation_types"][vtype] = (
-                        results["violation_types"].get(vtype, 0) + 1
-                    )
+                    results["violation_types"][vtype] = results["violation_types"].get(vtype, 0) + 1
 
         return results
 
@@ -171,9 +165,7 @@ class ColorPaletteComplianceChecker:
         report.append(f"Compliant files: {results['compliant_files']}")
         report.append(f"Non-compliant files: {results['non_compliant_files']}")
         report.append(f"Total violations: {results['total_violations']}")
-        report.append(
-            f"Compliance rate: {results['compliant_files'] / results['total_files'] * 100:.1f}%"
-        )
+        report.append(f"Compliance rate: {results['compliant_files'] / results['total_files'] * 100:.1f}%")
         report.append("")
 
         if results["violation_types"]:
@@ -188,22 +180,14 @@ class ColorPaletteComplianceChecker:
             report.append("Files with violations:")
             for file_result in non_compliant_files[:10]:  # Show first 10
                 report.append(f"  {file_result['file']}")
-                for violation in file_result["violations"][
-                    :3
-                ]:  # Show first 3 violations
-                    report.append(
-                        f"    Line {violation.get('line', '?')}: {violation['message']}"
-                    )
+                for violation in file_result["violations"][:3]:  # Show first 3 violations
+                    report.append(f"    Line {violation.get('line', '?')}: {violation['message']}")
                 if len(file_result["violations"]) > 3:
-                    report.append(
-                        f"    ... and {len(file_result['violations']) - 3} more"
-                    )
+                    report.append(f"    ... and {len(file_result['violations']) - 3} more")
                 report.append("")
 
             if len(non_compliant_files) > 10:
-                report.append(
-                    f"... and {len(non_compliant_files) - 10} more files with violations"
-                )
+                report.append(f"... and {len(non_compliant_files) - 10} more files with violations")
 
         return "\n".join(report)
 

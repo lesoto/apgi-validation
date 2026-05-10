@@ -155,9 +155,7 @@ class TestAnalyzeLogsCommand:
 
         runner = CliRunner()
         cli = get_cli()
-        result = runner.invoke(
-            cli, ["analyze-logs", "--log-file", str(log_file), "--level", "ERROR"]
-        )
+        result = runner.invoke(cli, ["analyze-logs", "--log-file", str(log_file), "--level", "ERROR"])
         assert result.exit_code == 0
 
 

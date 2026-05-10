@@ -3,11 +3,13 @@
 
 skips:
   # Skip assert warnings in test files - standard pytest practice
-  - B101
+  - 'B101'
 
 exclude_dirs:
   - ./tests
   - ./test
+  - tests/
+  - test/
   - ./.git
   - ./__pycache__
   - ./.mypy_cache

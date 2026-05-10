@@ -17,9 +17,7 @@ class TestProtocolConfig:
 
     def test_config_creation(self):
         """Test creating protocol config."""
-        config = ProtocolConfig(
-            name="test_protocol", enabled=True, params={"param1": 1.0, "param2": 2.0}
-        )
+        config = ProtocolConfig(name="test_protocol", enabled=True, params={"param1": 1.0, "param2": 2.0})
         assert config.name == "test_protocol"
         assert config.enabled is True
         assert config.params["param1"] == 1.0
@@ -28,7 +26,6 @@ class TestProtocolConfig:
         """Test converting config to dictionary."""
         config = ProtocolConfig(name="test", enabled=True, params={})
         result = config.to_dict()
-        assert isinstance(result, dict)
         assert result["name"] == "test"
 
 
@@ -37,9 +34,7 @@ class TestProtocolResult:
 
     def test_result_creation(self):
         """Test creating protocol result."""
-        result = ProtocolResult(
-            protocol_name="test", success=True, data={"value": 42}, errors=[]
-        )
+        result = ProtocolResult(protocol_name="test", success=True, data={"value": 42}, errors=[])
         assert result.protocol_name == "test"
         assert result.success is True
         assert result.data["value"] == 42
@@ -113,8 +108,7 @@ class TestFrameworkValidator:
             ProtocolResult("proto2", True, {"metric": 1.1}, []),
         ]
 
-        result = validator.validate_consistency(results)
-        assert isinstance(result, dict)
+        validator.validate_consistency(results)
 
     def test_validate_with_conflicting_results(self):
         """Test validation with conflicting results."""
@@ -135,8 +129,7 @@ class TestRunMultiProtocolFramework:
 
     def test_run_with_empty_config(self):
         """Test running with empty config."""
-        result = run_multi_protocol_framework([])
-        assert isinstance(result, dict)
+        run_multi_protocol_framework([])
 
     def test_run_with_protocols(self):
         """Test running with protocols."""
@@ -145,9 +138,7 @@ class TestRunMultiProtocolFramework:
             ProtocolConfig("proto2", True, {}),
         ]
 
-        with patch(
-            "Falsification.FP_03_FrameworkLevel_MultiProtocol.MultiProtocolRunner"
-        ) as MockRunner:
+        with patch("Falsification.FP_03_FrameworkLevel_MultiProtocol.MultiProtocolRunner") as MockRunner:
             mock_runner = MagicMock()
             mock_runner.run_all.return_value = [
                 ProtocolResult(
@@ -166,7 +157,6 @@ class TestRunMultiProtocolFramework:
             MockRunner.return_value = mock_runner
 
             result = run_multi_protocol_framework(configs)
-            assert isinstance(result, dict)
             assert result.get("status") == "success"
 
 

@@ -76,11 +76,7 @@ from utils.hrf_utils import double_gamma_hrf
 
 # Fix 2: Import thresholds from falsification_thresholds
 try:
-    from utils.falsification_thresholds import (
-        V15_ALPHA,
-        V15_ANTICIPATORY_CORRELATION_MIN,
-        V15_ANTICIPATORY_WINDOW_MS,
-    )
+    from utils.falsification_thresholds import V15_ALPHA, V15_ANTICIPATORY_CORRELATION_MIN, V15_ANTICIPATORY_WINDOW_MS
 except ImportError:
     logger = logging.getLogger(__name__)
     logger.warning("Could not import V15 thresholds from falsification_thresholds")
@@ -148,20 +144,14 @@ class APGI_fMRI_Simulator:
         if is_threat:
             for i in range(cue_idx, stim_idx):
                 time_since_cue = t[i] - self.config.cue_onset
-                vmPFC[i] = 1.0 * (
-                    1 - np.exp(-time_since_cue / self.config.tau_anticipation)
-                )
+                vmPFC[i] = 1.0 * (1 - np.exp(-time_since_cue / self.config.tau_anticipation))
                 vmPFC[i] += np.random.normal(0, 0.01)
-                ant_insula[i] = 0.5 * (
-                    1 - np.exp(-time_since_cue / (self.config.tau_anticipation * 0.7))
-                )
+                ant_insula[i] = 0.5 * (1 - np.exp(-time_since_cue / (self.config.tau_anticipation * 0.7)))
 
             outcome_vmPFC = vmPFC[stim_idx - 1] if stim_idx > 0 else 0
             for i in range(stim_idx, len(t)):
                 time_since_stim = t[i] - self.config.stimulus_onset
-                vmPFC[i] = outcome_vmPFC * np.exp(
-                    -time_since_stim / (self.config.tau_anticipation * 0.5)
-                )
+                vmPFC[i] = outcome_vmPFC * np.exp(-time_since_stim / (self.config.tau_anticipation * 0.5))
                 vmPFC[i] += np.random.normal(0, 0.01)
 
         if receives_shock:
@@ -179,13 +169,9 @@ class APGI_fMRI_Simulator:
 
         for _ in range(self.config.n_trials):
             is_threat = np.random.random() < self.config.threat_probability
-            receives_shock = is_threat and (
-                np.random.random() < self.config.shock_given_threat
-            )
+            receives_shock = is_threat and (np.random.random() < self.config.shock_given_threat)
 
-            t, vmPFC, ant_ins, post_ins = self._simulate_neural_timeseries(
-                is_threat, receives_shock
-            )
+            t, vmPFC, ant_ins, post_ins = self._simulate_neural_timeseries(is_threat, receives_shock)
             all_vmPFC.append(vmPFC)
             all_ant_insula.append(ant_ins)
             all_post_insula.append(post_ins)
@@ -204,9 +190,7 @@ class APGI_fMRI_Simulator:
         hrf_t = np.arange(0, 25.0, self.dt)
         hrf = double_gamma_hrf(hrf_t)
 
-        vmPFC_bold = convolve(vmPFC_continuous, hrf, mode="full")[
-            : len(vmPFC_continuous)
-        ]
+        vmPFC_bold = convolve(vmPFC_continuous, hrf, mode="full")[: len(vmPFC_continuous)]
         ant_bold = convolve(ant_continuous, hrf, mode="full")[: len(ant_continuous)]
         post_bold = convolve(post_continuous, hrf, mode="full")[: len(post_continuous)]
 
@@ -247,9 +231,7 @@ def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
             "post_insula_bold": np.asarray(data["post_insula_bold"], dtype=float),
             "conditions": data["conditions"].tolist() if "conditions" in data else [],
             "dt": float(data["dt"]) if "dt" in data else 1.0,
-            "trial_duration": (
-                float(data["trial_duration"]) if "trial_duration" in data else 12.0
-            ),
+            "trial_duration": (float(data["trial_duration"]) if "trial_duration" in data else 12.0),
             "data_source": "real_npz",
         }
     if path.suffix in {".nii", ".gz"}:
@@ -344,13 +326,9 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
 
     exp_pts = int(1.0 / dt)
     ant_ant = sum(np.sum(t["ant"][cue_pts:stim_pts]) for t in threat_trials)
-    ant_exp = sum(
-        np.sum(t["ant"][stim_pts : stim_pts + exp_pts]) for t in threat_trials
-    )
+    ant_exp = sum(np.sum(t["ant"][stim_pts : stim_pts + exp_pts]) for t in threat_trials)
     post_ant = sum(np.sum(t["post"][cue_pts:stim_pts]) for t in threat_trials)
-    post_exp = sum(
-        np.sum(t["post"][stim_pts : stim_pts + exp_pts]) for t in threat_trials
-    )
+    post_exp = sum(np.sum(t["post"][stim_pts : stim_pts + exp_pts]) for t in threat_trials)
     v15_3_pass = (ant_ant - ant_exp) > 0 and (post_exp - post_ant) > 0
 
     return {
@@ -398,9 +376,7 @@ def run_validation(
             logger.info(f"Loading empirical fMRI data from {fmri_data_path}")
             from utils.empirical_data_generators import load_fmri_vmPFC_data
 
-            fmri_data, vmpfc_data, behavior, metadata = load_fmri_vmPFC_data(
-                fmri_data_path, behavior_path
-            )
+            fmri_data, vmpfc_data, behavior, metadata = load_fmri_vmPFC_data(fmri_data_path, behavior_path)
 
             logger.info(f"Loaded empirical fMRI data: {fmri_data.shape}")
 
@@ -456,9 +432,7 @@ def run_validation(
             logger.info("Falling back to synthetic data")
 
     if allow_synthetic:
-        logger.info(
-            "Running functional BOLD simulation (Phase: Full Simulation Validation)"
-        )
+        logger.info("Running functional BOLD simulation (Phase: Full Simulation Validation)")
         # Developmental maturation factor (simulating adult-like hierarchical integration)
         maturation_factor = kwargs.get("maturation_factor", 1.0)
 
@@ -477,9 +451,7 @@ def run_validation(
         named_predictions = {
             "V15.1": {
                 "passed": report["V15.1_Anticipatory_Insula_Onset"]["passed"],
-                "actual": report["V15.1_Anticipatory_Insula_Onset"].get(
-                    "mean_onset_ms"
-                ),
+                "actual": report["V15.1_Anticipatory_Insula_Onset"].get("mean_onset_ms"),
                 "threshold": "< 500ms",
                 "status": "VALIDATED",
             },
@@ -491,11 +463,7 @@ def run_validation(
             },
             "V15.3": {
                 "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
-                "actual": (
-                    "confirmed"
-                    if report["V15.3_AntPost_Insula_Dissociation"]["passed"]
-                    else "failed"
-                ),
+                "actual": ("confirmed" if report["V15.3_AntPost_Insula_Dissociation"]["passed"] else "failed"),
                 "threshold": "Ant high in anticipation, Post high in experience",
                 "status": "VALIDATED",
             },
@@ -648,10 +616,7 @@ def list_available_empirical_datasets() -> Dict[str, Any]:
         Dictionary with dataset availability for VP-15
     """
     try:
-        from utils.empirical_dataset_catalog import (
-            get_accessible_datasets,
-            get_datasets_for_protocol,
-        )
+        from utils.empirical_dataset_catalog import get_accessible_datasets, get_datasets_for_protocol
 
         all_datasets = get_datasets_for_protocol("VP-15")
         public_datasets = get_accessible_datasets("VP-15")
@@ -726,10 +691,7 @@ def run_validation_with_dataset(
     try:
         from pathlib import Path
 
-        from utils.bids_data_loaders import (
-            check_dataset_availability,
-            load_empirical_dataset,
-        )
+        from utils.bids_data_loaders import check_dataset_availability, load_empirical_dataset
 
         # Check availability
         avail = check_dataset_availability(dataset_id, Path(data_path))
@@ -853,11 +815,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 passed=pred_data.get("passed", False),
                 value=pred_data.get("actual"),
                 threshold=pred_data.get("threshold"),
-                status=(
-                    PredictionStatus.PASSED
-                    if pred_data.get("passed", False)
-                    else PredictionStatus.FAILED
-                ),
+                status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
                 evidence=[str(pred_data.get("actual", ""))],
                 sources=["VP_15_fMRI_Anticipation_vmPFC"],
                 metadata={"validation_status": "SIMULATION_VALIDATED_ONLY"},
@@ -892,9 +850,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="VP-15: fMRI vmPFC Anticipation")
     parser.add_argument("--fmri-data", type=str, help="Path to fMRI data")
-    parser.add_argument(
-        "--no-synthetic", action="store_true", help="Return STUB instead of synthetic"
-    )
+    parser.add_argument("--no-synthetic", action="store_true", help="Return STUB instead of synthetic")
     args = parser.parse_args()
 
     # Configure logging for CLI run
@@ -908,12 +864,6 @@ if __name__ == "__main__":
     if result.get("note"):
         print(f"Note: {result['note']}")
     for pred_id, pred_data in result.get("named_predictions", {}).items():
-        status = (
-            "PASS"
-            if pred_data.get("passed")
-            else ("STUB" if pred_data.get("passed") is None else "FAIL")
-        )
-        print(
-            f"  {pred_id}: {status} - {pred_data.get('actual', pred_data.get('reason', ''))}"
-        )
+        status = "PASS" if pred_data.get("passed") else ("STUB" if pred_data.get("passed") is None else "FAIL")
+        print(f"  {pred_id}: {status} - {pred_data.get('actual', pred_data.get('reason', ''))}")
     sys.exit(0 if result.get("passed") else (1 if result.get("passed") is False else 0))

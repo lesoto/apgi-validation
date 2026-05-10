@@ -124,9 +124,7 @@ class TestFlakyOperationFixture:
                 raise ValueError("Retry needed")
             return "final"
 
-        result = flaky_operation.retry(
-            flaky_with_backoff, max_attempts=3, backoff_factor=2
-        )
+        result = flaky_operation.retry(flaky_with_backoff, max_attempts=3, backoff_factor=2)
         assert result == "final"
         assert attempt_count[0] == 2
 

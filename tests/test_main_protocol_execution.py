@@ -61,7 +61,5 @@ def test_validate_all_dry_run(runner):
 
 
 def test_falsify_all_dry_run(runner):
-    result = runner.invoke(
-        cli, ["falsify", "--protocol", "FP_01_ActiveInference.py", "--timeout", "1"]
-    )
+    result = runner.invoke(cli, ["falsify", "--protocol", "FP_01_ActiveInference.py", "--timeout", "1"])
     assert result.exit_code in (0, 1, 2)

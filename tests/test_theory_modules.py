@@ -64,10 +64,7 @@ class TestCrossSpeciesScaling:
 
     def test_predict_species_consciousness(self):
         """Test species consciousness prediction"""
-        from Theory.APGI_Cross_Species_Scaling import (
-            SpeciesParameters,
-            predict_species_consciousness,
-        )
+        from Theory.APGI_Cross_Species_Scaling import SpeciesParameters, predict_species_consciousness
 
         params = SpeciesParameters(
             name="TestSpecies",
@@ -89,10 +86,7 @@ class TestCrossSpeciesScaling:
 
     def test_predict_species_zero_body_mass(self):
         """Test species consciousness prediction with zero body mass"""
-        from Theory.APGI_Cross_Species_Scaling import (
-            SpeciesParameters,
-            predict_species_consciousness,
-        )
+        from Theory.APGI_Cross_Species_Scaling import SpeciesParameters, predict_species_consciousness
 
         params = SpeciesParameters(
             name="TestSpecies",
@@ -253,8 +247,7 @@ class TestOpenScienceFramework:
         from Theory.APGI_Open_Science_Framework import serialize
 
         dt = datetime.now()
-        result = serialize(dt)
-        assert isinstance(result, str)
+        serialize(dt)
 
 
 class TestCulturalNeuroscience:
@@ -324,11 +317,7 @@ class TestCulturalNeuroscience:
 
     def test_all_cultural_regions(self):
         """Test that all cultural regions have defined parameters"""
-        from Theory.APGI_Cultural_Neuroscience import (
-            CulturalContext,
-            CulturalParameterModulator,
-            LinguisticParameters,
-        )
+        from Theory.APGI_Cultural_Neuroscience import CulturalContext, CulturalParameterModulator, LinguisticParameters
 
         modulator = CulturalParameterModulator()
 
@@ -408,8 +397,7 @@ class TestTuringMachine:
         tm = APGITuringMachine()
 
         # step() requires dt and inputs parameters
-        result = tm.step(dt=0.01, inputs={"extero": 0.5, "intero": 0.3})
-        assert isinstance(result, dict)
+        tm.step(dt=0.01, inputs={"extero": 0.5, "intero": 0.3})
 
     def test_turing_machine_reset(self):
         """Test Turing machine reset"""

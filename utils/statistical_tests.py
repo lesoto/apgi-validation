@@ -35,9 +35,7 @@ from scipy import stats
 # =============================================================================
 
 
-def validate_sample_array(
-    data: Union[np.ndarray, list], min_n: int = 2, name: str = "data"
-) -> np.ndarray:
+def validate_sample_array(data: Union[np.ndarray, list], min_n: int = 2, name: str = "data") -> np.ndarray:
     """
     Validate that data is a proper sample array with sufficient samples.
 
@@ -101,8 +99,7 @@ def validate_paired_arrays(
 
     if len(x_arr) != len(y_arr):
         raise ValueError(
-            f"{name_x} and {name_y} must have same length for paired tests: "
-            f"got {len(x_arr)} vs {len(y_arr)}"
+            f"{name_x} and {name_y} must have same length for paired tests: " f"got {len(x_arr)} vs {len(y_arr)}"
         )
 
     return x_arr, y_arr
@@ -137,7 +134,12 @@ def safe_ttest_1samp(
     data_arr = validate_sample_array(data, min_n, "data")
 
     t_stat, p_value = stats.ttest_1samp(data_arr, popmean)
-    significant = p_value < alpha
+
+    # Handle NaN p-values (can occur with zero variance)
+    if np.isnan(p_value):
+        p_value = 1.0  # No significant difference when variance is zero
+
+    significant = bool(p_value < alpha)  # Convert to Python boolean
 
     return t_stat, p_value, significant
 
@@ -226,9 +228,7 @@ def safe_pearsonr(
 
     # Check for zero variance
     if np.var(x_arr) == 0 or np.var(y_arr) == 0:
-        raise ValueError(
-            "Cannot compute correlation with zero variance in one or both arrays"
-        )
+        raise ValueError("Cannot compute correlation with zero variance in one or both arrays")
 
     # Convert to simple numpy arrays if needed to handle structured dtypes
     if hasattr(x_arr, "dtype") and x_arr.dtype.names:
@@ -239,7 +239,7 @@ def safe_pearsonr(
     else:
         # Use arrays as-is for simple dtypes
         corr, p_value = stats.pearsonr(x_arr, y_arr)
-    significant = p_value < alpha
+    significant = bool(p_value < alpha)  # Convert to Python boolean
 
     return corr, p_value, significant
 
@@ -273,9 +273,7 @@ def safe_spearmanr(
     return corr, p_value, significant
 
 
-def safe_binomtest(
-    k: int, n: int, p: float = 0.5, alpha: float = 0.05
-) -> Tuple[float, bool]:
+def safe_binomtest(k: int, n: int, p: float = 0.5, alpha: float = 0.05) -> Tuple[float, bool]:
     """
     Safe binomial test (modern scipy.stats.binomtest, not deprecated binom_test).
 
@@ -406,9 +404,7 @@ def safe_anova_oneway(
 # =============================================================================
 
 
-def compute_cohens_d(
-    x: Union[np.ndarray, list], y: Union[np.ndarray, list], min_n: int = 30
-) -> float:
+def compute_cohens_d(x: Union[np.ndarray, list], y: Union[np.ndarray, list], min_n: int = 30) -> float:
     """
     Compute Cohen's d effect size for two samples.
 
@@ -439,9 +435,7 @@ def compute_cohens_d(
     return cohens_d
 
 
-def compute_cliffs_delta(
-    x: Union[np.ndarray, list], y: Union[np.ndarray, list]
-) -> float:
+def compute_cliffs_delta(x: Union[np.ndarray, list], y: Union[np.ndarray, list]) -> float:
     """
     Compute Cliff's delta effect size for non-parametric data.
 
@@ -760,9 +754,7 @@ def bootstrap_one_sample_test(
 
     # Test statistic
     test_stat = (
-        (observed_mean - null_value) / (np.std(data_arr) / np.sqrt(len(data_arr)))
-        if np.std(data_arr) > 0
-        else 0.0
+        (observed_mean - null_value) / (np.std(data_arr) / np.sqrt(len(data_arr))) if np.std(data_arr) > 0 else 0.0
     )
 
     return test_stat, p_value
@@ -821,7 +813,16 @@ def permutation_test(
         elif statistic == "median_diff":
             perm_stat = np.median(perm_x) - np.median(perm_y)
         elif statistic == "corr":
-            perm_stat = np.corrcoef(perm_x, perm_y)[0, 1]
+            # Handle correlation with minimal samples
+            if len(perm_x) >= 2 and len(perm_y) >= 2:
+                try:
+                    perm_stat = np.corrcoef(perm_x, perm_y)[0, 1]
+                    if np.isnan(perm_stat):
+                        perm_stat = 0.0  # Default to no correlation
+                except (ValueError, RuntimeWarning):
+                    perm_stat = 0.0
+            else:
+                perm_stat = 0.0
         else:
             perm_stat = np.mean(perm_x) - np.mean(perm_y)
 
@@ -831,7 +832,7 @@ def permutation_test(
 
     # Two-sided p-value
     p_value = np.mean(np.abs(perm_stats) >= np.abs(observed))
-    significant = p_value < alpha
+    significant = bool(p_value < alpha)  # Convert to Python boolean
 
     return observed, p_value, significant
 
@@ -924,8 +925,7 @@ def apply_multiple_comparison_correction(
 
     else:
         raise ValueError(
-            f"Unknown correction method: {method}. "
-            f"Supported methods: 'bonferroni', 'holm', 'fdr_bh', 'fdr_by'"
+            f"Unknown correction method: {method}. " f"Supported methods: 'bonferroni', 'holm', 'fdr_bh', 'fdr_by'"
         )
 
     # Restore original order

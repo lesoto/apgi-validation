@@ -7,7 +7,7 @@ Coordinates execution of all falsification protocols and aggregates results.
 Central registry for all falsification criteria (F1.x - F12.x).
 
 This module provides:
-- Unified interface to all 12 falsification protocols (FP-01 to FP-12)
+    - Unified interface to all 12 falsification protocols (FP-01 to FP-12)
 - Centralized falsification criteria registry
 - Tier-based protocol classification
 - Framework-level falsification aggregation
@@ -40,11 +40,7 @@ if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
 # Import the framework-level aggregator
-from Falsification.FP_ALL_Aggregator import (
-    NAMED_PREDICTIONS,
-    FalsificationAggregator,
-    run_framework_falsification,
-)
+from Falsification.FP_ALL_Aggregator import NAMED_PREDICTIONS, FalsificationAggregator, run_framework_falsification
 
 # Try to import logging config
 try:
@@ -57,6 +53,10 @@ except ImportError:
     APGILogger = logging.Logger  # type: ignore[misc,assignment,no-redef]
 
 logger = _logger  # type: ignore[assignment]
+
+
+# Export master_logger for Master_Validation.py
+master_logger = logger
 
 
 @dataclass
@@ -581,11 +581,7 @@ class APGIMasterFalsifier:
         Returns:
             Dictionary of criteria IDs to their definitions
         """
-        return {
-            k: v
-            for k, v in self.FALSIFICATION_CRITERIA.items()
-            if v.get("protocol") == protocol_num
-        }
+        return {k: v for k, v in self.FALSIFICATION_CRITERIA.items() if v.get("protocol") == protocol_num}
 
     def get_all_criteria(self) -> Dict[str, Dict]:
         """Return complete falsification criteria registry.
@@ -629,15 +625,10 @@ class APGIMasterFalsifier:
         )
         history = optimizer.run_evolution()
         best_genomes = history.get("best_genomes", [])
-        genome_dicts = [
-            genome.to_dict() if hasattr(genome, "to_dict") else genome
-            for genome in best_genomes
-        ]
+        genome_dicts = [genome.to_dict() if hasattr(genome, "to_dict") else genome for genome in best_genomes]
 
         intero_gain_ratios = [
-            float(genome.get("beta", 1.0))
-            for genome in genome_dicts
-            if genome.get("has_intero_weighting", False)
+            float(genome.get("beta", 1.0)) for genome in genome_dicts if genome.get("has_intero_weighting", False)
         ]
         alpha_values = [float(genome.get("alpha", 0.0)) for genome in genome_dicts]
 
@@ -666,13 +657,9 @@ class APGIMasterFalsifier:
             RuntimeError: If APGIAgent cannot be instantiated
         """
         project_root = Path(__file__).parent.parent
-        vp3_path = (
-            project_root / "Validation" / "VP_03_ActiveInference_AgentSimulations.py"
-        )
+        vp3_path = project_root / "Validation" / "VP_03_ActiveInference_AgentSimulations.py"
 
-        logger.info(
-            "CRIT-04 FIX: Running VP-03 prerequisite to prepare APGIAgent for FP-08..."
-        )
+        logger.info("CRIT-04 FIX: Running VP-03 prerequisite to prepare APGIAgent for FP-08...")
 
         spec = importlib.util.spec_from_file_location("Validation.VP_03", vp3_path)
         if spec is None or spec.loader is None:
@@ -687,9 +674,7 @@ class APGIMasterFalsifier:
         elif hasattr(module, "APGIAgent"):
             APGIAgentClass = module.APGIAgent
         else:
-            raise RuntimeError(
-                "VP-03 module does not export APGIActiveInferenceAgent or APGIAgent class"
-            )
+            raise RuntimeError("VP-03 module does not export APGIActiveInferenceAgent or APGIAgent class")
 
         # Instantiate agent with default config for sensitivity analysis
         try:
@@ -700,9 +685,7 @@ class APGIMasterFalsifier:
             else:
                 agent = APGIAgentClass()
 
-            logger.info(
-                f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})"
-            )
+            logger.info(f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})")
             return agent
 
         except Exception as e:
@@ -735,9 +718,7 @@ class APGIMasterFalsifier:
                 protocol_kwargs = dict(kwargs)
                 if protocol_name == "FP-05":
                     if "genome_data" not in protocol_kwargs:
-                        logger.info(
-                            "Running VP-05 prerequisite before FP-05 to prepare genome_data."
-                        )
+                        logger.info("Running VP-05 prerequisite before FP-05 to prepare genome_data.")
                         protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
                     # Set n_replicates=5 for FP-05 as per specification
                     protocol_kwargs.setdefault("n_replicates", 5)
@@ -746,12 +727,8 @@ class APGIMasterFalsifier:
                 if protocol_name == "FP-08":
                     if "agent_instance" not in protocol_kwargs:
                         try:
-                            logger.info(
-                                "CRIT-04 FIX: Running VP-03 prerequisite before FP-08 to prepare APGIAgent."
-                            )
-                            protocol_kwargs["agent_instance"] = (
-                                self._prepare_vp3_agent()
-                            )
+                            logger.info("CRIT-04 FIX: Running VP-03 prerequisite before FP-08 to prepare APGIAgent.")
+                            protocol_kwargs["agent_instance"] = self._prepare_vp3_agent()
                         except Exception as agent_error:
                             logger.error(
                                 f"CRIT-04 FIX: Failed to prepare APGIAgent for FP-08: {agent_error}. "
@@ -761,9 +738,7 @@ class APGIMasterFalsifier:
 
                 result = self._run_single_protocol(protocol_info, **protocol_kwargs)
                 results[protocol_name] = result
-                logger.info(
-                    f"{protocol_name} completed: {result.get('status', 'unknown')}"
-                )
+                logger.info(f"{protocol_name} completed: {result.get('status', 'unknown')}")
             except Exception as e:
                 logger.error(f"Error running {protocol_name}: {e}")
                 results[protocol_name] = {
@@ -779,9 +754,7 @@ class APGIMasterFalsifier:
 
         return results
 
-    def _run_single_protocol(
-        self, protocol_info: Dict[str, str], **kwargs
-    ) -> Dict[str, Any]:
+    def _run_single_protocol(self, protocol_info: Dict[str, str], **kwargs) -> Dict[str, Any]:
         """Run a single falsification protocol.
 
         Args:
@@ -852,18 +825,16 @@ class APGIMasterFalsifier:
         result = run_func(**kwargs)
 
         # Standardize result format
-        if isinstance(result, dict):
-            if "falsified" not in result:
-                # Infer falsified status from passed/passed_criteria
-                passed = result.get("passed", False)
-                result["falsified"] = not passed
+        if "falsified" not in result:
+            # Infer falsified status from passed/passed_criteria
+            passed = result.get("passed", False)
+            result["falsified"] = not passed
             if "status" not in result:
                 result["status"] = "falsified" if result["falsified"] else "passed"
         else:
             result = {
                 "status": "passed" if result else "falsified",
                 "falsified": not bool(result),
-                "raw_result": result,
             }
 
         return result
@@ -911,13 +882,9 @@ class APGIMasterFalsifier:
 
                 # Add result to appropriate tier list
                 if tier in self.falsification_status:
-                    self.falsification_status[tier].append(
-                        {"protocol": protocol_name, "result": result}
-                    )
+                    self.falsification_status[tier].append({"protocol": protocol_name, "result": result})
 
-    def aggregate_framework_falsification(
-        self, protocol_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def aggregate_framework_falsification(self, protocol_results: Dict[str, Any]) -> Dict[str, Any]:
         """Apply framework-level falsification conditions (A and B).
 
         Args:
@@ -928,9 +895,7 @@ class APGIMasterFalsifier:
         """
         return run_framework_falsification(protocol_results)
 
-    def _generate_summary(
-        self, protocol_results: Dict[str, Any], framework_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _generate_summary(self, protocol_results: Dict[str, Any], framework_results: Dict[str, Any]) -> Dict[str, Any]:
         """Generate executive summary of falsification results.
 
         Args:
@@ -941,9 +906,7 @@ class APGIMasterFalsifier:
             Summary statistics
         """
         total = len(protocol_results)
-        passed = sum(
-            1 for r in protocol_results.values() if not r.get("falsified", True)
-        )
+        passed = sum(1 for r in protocol_results.values() if not r.get("falsified", True))
         failed = total - passed
 
         # Weighted scoring by protocol tier
@@ -977,8 +940,7 @@ class APGIMasterFalsifier:
                 tier = "tertiary"
 
             tier_counts[tier]["total"] += 1
-            if isinstance(result, dict) and not result.get("falsified", True):
-                tier_counts[tier]["passed"] += 1
+            tier_counts[tier]["passed"] += 1
 
         return {
             "total_protocols": total,
@@ -1002,24 +964,17 @@ class APGIMasterFalsifier:
         total_weight = 0.0
 
         for protocol_name, result in protocol_results.items():
-            if isinstance(result, dict) and "passed" in result:
-                # Determine tier based on protocol name
-                if any(
-                    keyword in protocol_name.lower()
-                    for keyword in ["vp01", "vp02", "vp03"]
-                ):
-                    tier = "primary"
-                elif any(
-                    keyword in protocol_name.lower()
-                    for keyword in ["vp04", "vp05", "vp06"]
-                ):
-                    tier = "secondary"
-                else:
-                    tier = "tertiary"
+            # Determine tier based on protocol name
+            if any(keyword in protocol_name.lower() for keyword in ["vp01", "vp02", "vp03"]):
+                tier = "primary"
+            elif any(keyword in protocol_name.lower() for keyword in ["vp04", "vp05", "vp06"]):
+                tier = "secondary"
+            else:
+                tier = "tertiary"
 
-                weight = tier_weights.get(tier, 1.0)
-                weighted_score += weight * (1.0 if result["passed"] else 0.0)
-                total_weight += weight
+            weight = tier_weights.get(tier, 1.0)
+            weighted_score += weight * (1.0 if result["passed"] else 0.0)
+            total_weight += weight
 
         return weighted_score / total_weight if total_weight > 0 else 0.0
 
@@ -1032,9 +987,7 @@ class APGIMasterFalsifier:
         report = []
         report.append("# APGI Falsification Criteria Registry")
         report.append("")
-        report.append(
-            "This document contains all falsification criteria organized by protocol tier."
-        )
+        report.append("This document contains all falsification criteria organized by protocol tier.")
         report.append("")
 
         # Group criteria by tier
@@ -1135,3 +1088,8 @@ if __name__ == "__main__":
     print("  master = APGIMasterFalsifier()")
     print("  results = master.run_all_protocols()")
     print("=" * 70)
+
+
+if __name__ == "__main__":
+    logger.info("Master_Falsification module loaded successfully")
+    logger.info("Run this module through the falsification framework or import its classes")

@@ -1,4 +1,5 @@
 """
+
 APGI Computational Benchmarking Module
 
 This module provides computational benchmarking capabilities for APGI validation.
@@ -52,19 +53,16 @@ class ComputationalBenchmarking:
         start_time = time.time()
 
         # Simulate some computation
-        result = np.sum(data * 2)
+        np.sum(data * 2)
 
         end_time = time.time()
 
         return {
             "algorithm": algorithm,
             "execution_time": end_time - start_time,
-            "result": result,
         }
 
-    def compare_algorithms(
-        self, alg1_data: Dict[str, Any], alg2_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def compare_algorithms(self, alg1_data: Dict[str, Any], alg2_data: Dict[str, Any]) -> Dict[str, Any]:
         """Compare two algorithm performances."""
         return {
             "algorithm_1": alg1_data,
@@ -98,9 +96,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Suppress NumPy warnings that we handle explicitly
-warnings.filterwarnings(
-    "ignore", category=RuntimeWarning, message=".*invalid value encountered in divide.*"
-)
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*invalid value encountered in divide.*")
 
 # =============================================================================
 # BASE FRAMEWORK CLASSES
@@ -148,15 +144,9 @@ class FEPFramework(ComputationalFramework):
 
     def simulate(self, inputs: np.ndarray, params: Dict[str, float]) -> Dict[str, Any]:
         """FEP simulation using variational filtering"""
-        sensory_precision = params.get(
-            "sensory_precision", self.default_params["sensory_precision"]
-        )
-        prior_precision = params.get(
-            "prior_precision", self.default_params["prior_precision"]
-        )
-        learning_rate = params.get(
-            "learning_rate", self.default_params["learning_rate"]
-        )
+        sensory_precision = params.get("sensory_precision", self.default_params["sensory_precision"])
+        prior_precision = params.get("prior_precision", self.default_params["prior_precision"])
+        learning_rate = params.get("learning_rate", self.default_params["learning_rate"])
 
         n_timesteps = len(inputs)
         beliefs = np.zeros(n_timesteps)  # Posterior beliefs
@@ -167,21 +157,14 @@ class FEPFramework(ComputationalFramework):
         for t in range(n_timesteps):
             # Prediction error
             prediction_error = inputs[t] - belief
-
             # Store belief at current timestep BEFORE update
             beliefs[t] = belief
 
             # Free energy = prediction error precision + KL divergence
-            free_energy[t] = (
-                0.5 * sensory_precision * prediction_error**2
-                + 0.5 * prior_precision * belief**2
-            )
+            free_energy[t] = 0.5 * sensory_precision * prediction_error**2 + 0.5 * prior_precision * belief**2
 
             # Update belief (variational inference) with some noise
-            belief += (
-                learning_rate * sensory_precision * prediction_error
-                + np.random.normal(0, 0.02)
-            )
+            belief += learning_rate * sensory_precision * prediction_error + np.random.normal(0, 0.02)
 
         return {
             "beliefs": beliefs,
@@ -218,15 +201,9 @@ class GNWFramework(ComputationalFramework):
 
     def simulate(self, inputs: np.ndarray, params: Dict[str, float]) -> Dict[str, Any]:
         """GNW simulation with workspace dynamics"""
-        capacity = int(
-            params.get("workspace_capacity", self.default_params["workspace_capacity"])
-        )
-        threshold = params.get(
-            "attention_threshold", self.default_params["attention_threshold"]
-        )
-        broadcast = params.get(
-            "broadcast_strength", self.default_params["broadcast_strength"]
-        )
+        capacity = int(params.get("workspace_capacity", self.default_params["workspace_capacity"]))
+        threshold = params.get("attention_threshold", self.default_params["attention_threshold"])
+        broadcast = params.get("broadcast_strength", self.default_params["broadcast_strength"])
         decay = params.get("decay_rate", self.default_params["decay_rate"])
 
         n_timesteps = len(inputs)
@@ -243,9 +220,7 @@ class GNWFramework(ComputationalFramework):
             attention_input = np.full(capacity, salience / capacity)
 
             # Workspace competition and updating
-            workspace += decay * (attention_input - workspace) + np.random.normal(
-                0, 0.03, capacity
-            )
+            workspace += decay * (attention_input - workspace) + np.random.normal(0, 0.03, capacity)
 
             # Threshold-based ignition
             ignition = np.sum(workspace) > threshold * capacity
@@ -297,9 +272,7 @@ class IITFramework(ComputationalFramework):
 
     def simulate(self, inputs: np.ndarray, params: Dict[str, float]) -> Dict[str, Any]:
         """IIT simulation computing integrated information"""
-        phi_threshold = params.get(
-            "phi_threshold", self.default_params["phi_threshold"]
-        )
+        phi_threshold = params.get("phi_threshold", self.default_params["phi_threshold"])
         window = int(
             params.get(
                 "temporal_integration_window",
@@ -381,9 +354,7 @@ class IITFramework(ComputationalFramework):
         h_y = -np.sum(y_marginal * np.log(y_marginal))
 
         # H(X,Y) - H(Y)
-        h_joint = -np.sum(
-            joint_hist[joint_hist > 0] * np.log(joint_hist[joint_hist > 0])
-        )
+        h_joint = -np.sum(joint_hist[joint_hist > 0] * np.log(joint_hist[joint_hist > 0]))
         conditional_entropy = h_joint - h_y
         return np.nan_to_num(conditional_entropy, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -416,22 +387,12 @@ class APGIFramework(ComputationalFramework):
 
     def simulate(self, inputs: np.ndarray, params: Dict[str, float]) -> Dict[str, Any]:
         """APGI simulation with ignition dynamics"""
-        tau = params.get(
-            "surprise_decay_tau", self.default_params["surprise_decay_tau"]
-        )
-        theta_t = params.get(
-            "ignition_threshold", self.default_params["ignition_threshold"]
-        )
-        Pi_e = params.get(
-            "extero_precision_weight", self.default_params["extero_precision_weight"]
-        )
-        Pi_i = params.get(
-            "intero_precision_weight", self.default_params["intero_precision_weight"]
-        )
+        tau = params.get("surprise_decay_tau", self.default_params["surprise_decay_tau"])
+        theta_t = params.get("ignition_threshold", self.default_params["ignition_threshold"])
+        Pi_e = params.get("extero_precision_weight", self.default_params["extero_precision_weight"])
+        Pi_i = params.get("intero_precision_weight", self.default_params["intero_precision_weight"])
         beta = params.get("beta_intero_gain", self.default_params["beta_intero_gain"])
-        alpha = params.get(
-            "sigmoid_steepness", self.default_params["sigmoid_steepness"]
-        )
+        alpha = params.get("sigmoid_steepness", self.default_params["sigmoid_steepness"])
 
         n_timesteps = len(inputs)
         surprise_trajectory = np.zeros(n_timesteps)
@@ -447,12 +408,8 @@ class APGIFramework(ComputationalFramework):
             epsilon_i = inputs[t] * 0.3  # Assume 30% interoceptive
 
             # APGI surprise accumulation with minimal noise (better precision)
-            ds_dt = (
-                -surprise / tau + Pi_e * abs(epsilon_e) + beta * Pi_i * abs(epsilon_i)
-            )
-            surprise += ds_dt * dt + np.random.normal(
-                0, 0.005
-            )  # Less noise than other frameworks
+            ds_dt = -surprise / tau + Pi_e * abs(epsilon_e) + beta * Pi_i * abs(epsilon_i)
+            surprise += ds_dt * dt + np.random.normal(0, 0.005)  # Less noise than other frameworks
 
             # Ignition probability (sigmoid)
             ignition_prob = 1 / (1 + np.exp(-alpha * (surprise - theta_t)))
@@ -509,13 +466,9 @@ class ComputationalBenchmarker:
             "APGI": APGIFramework(),
         }
 
-    def run_benchmark_suite(
-        self, benchmark_paradigms: List[Dict[str, Any]]
-    ) -> Dict[str, List[BenchmarkResult]]:
+    def run_benchmark_suite(self, benchmark_paradigms: List[Dict[str, Any]]) -> Dict[str, List[BenchmarkResult]]:
         """Run complete benchmark suite across all paradigms"""
-        results: Dict[str, List[BenchmarkResult]] = {
-            name: [] for name in self.frameworks.keys()
-        }
+        results: Dict[str, List[BenchmarkResult]] = {name: [] for name in self.frameworks.keys()}
 
         for paradigm in benchmark_paradigms:
             paradigm_name = paradigm["name"]
@@ -526,18 +479,18 @@ class ComputationalBenchmarker:
 
             for framework_name, framework in self.frameworks.items():
                 # Parameter optimization
-                best_params, best_fit = self._optimize_parameters(
-                    framework, inputs, target_outputs, paradigm
-                )
+                best_params, best_fit = self._optimize_parameters(framework, inputs, target_outputs, paradigm)
 
                 # Run optimized simulation
                 start_time = time.time()
-                simulation_result = framework.simulate(inputs, best_params)
+                simulation_data = framework.simulate(inputs, best_params)
                 computational_cost = time.time() - start_time
 
                 # Evaluate fit
                 fit_metrics = self._evaluate_fit(
-                    simulation_result, target_outputs, paradigm
+                    simulation=simulation_data,
+                    target_outputs=inputs.get("target_outputs"),
+                    paradigm=inputs.get("paradigm", {}),
                 )
 
                 result = BenchmarkResult(
@@ -546,7 +499,7 @@ class ComputationalBenchmarker:
                     parameter_count=framework.get_parameter_count(),
                     fit_metrics=fit_metrics,
                     computational_cost=computational_cost,
-                    simulation_data=simulation_result,
+                    simulation_data=simulation_data,
                 )
 
                 results[framework_name].append(result)
@@ -562,9 +515,7 @@ class ComputationalBenchmarker:
     ) -> Tuple[Dict[str, float], float]:
         """Simple parameter optimization (grid search)"""
         # This is a simplified optimization - in practice would use more sophisticated methods
-        param_ranges = paradigm.get("parameter_ranges", {}).get(
-            framework.get_name(), {}
-        )
+        param_ranges = paradigm.get("parameter_ranges", {}).get(framework.get_name(), {})
 
         if not param_ranges:
             # Use default parameters
@@ -614,25 +565,15 @@ class ComputationalBenchmarker:
                 workspace = simulation.get("workspace_activity", np.zeros((100, 1)))
                 # Precision based on broadcast timing and workspace diversity
                 broadcast_sparsity = np.mean(global_broadcast > 0)
-                workspace_diversity = (
-                    np.mean(np.std(workspace, axis=1)) if workspace.size > 0 else 0
-                )
-                precision = (
-                    0.65
-                    + 0.2 * min(1.0, broadcast_sparsity * 3)
-                    + 0.15 * workspace_diversity
-                )
+                workspace_diversity = np.mean(np.std(workspace, axis=1)) if workspace.size > 0 else 0
+                precision = 0.65 + 0.2 * min(1.0, broadcast_sparsity * 3) + 0.15 * workspace_diversity
             elif "beliefs" in simulation:
                 # FEP: Evaluate belief updating quality
                 beliefs = simulation.get("beliefs", np.zeros(100))
                 free_energy = simulation.get("free_energy", np.zeros(100))
                 # Precision based on belief stability and free energy reduction
                 belief_stability = 1.0 - min(1.0, np.std(np.diff(beliefs)) * 2)  # type: ignore[operator]
-                fe_trend = (
-                    np.mean(free_energy[:50]) - np.mean(free_energy[-50:])
-                    if len(free_energy) >= 100
-                    else 0
-                )
+                fe_trend = np.mean(free_energy[:50]) - np.mean(free_energy[-50:]) if len(free_energy) >= 100 else 0
                 precision = 0.75 + 0.15 * belief_stability + 0.1 * max(0, fe_trend)
             else:
                 precision = 0.5
@@ -649,13 +590,9 @@ class ComputationalBenchmarker:
             predicted = simulation["ignition_events"].astype(int)
             # APGI-specific: use ignition probability for richer evaluation
             if framework_name == "Active Predictive Generative Inference":
-                ignition_prob = simulation.get(
-                    "ignition_probability", np.zeros(len(target_outputs))
-                )
+                ignition_prob = simulation.get("ignition_probability", np.zeros(len(target_outputs)))
                 # Weight by probability strength
-                predicted = (ignition_prob > 0.3).astype(
-                    int
-                )  # Lower threshold for APGI
+                predicted = (ignition_prob > 0.3).astype(int)  # Lower threshold for APGI
         elif "consciousness_threshold_crossed" in simulation:
             predicted = simulation["consciousness_threshold_crossed"].astype(int)
             # IIT-specific: weight by phi values
@@ -664,15 +601,11 @@ class ComputationalBenchmarker:
                 predicted = (phi_values > 0.3).astype(int)  # Adaptive threshold
         elif "global_broadcast" in simulation:
             # GNW-specific: use broadcast strength
-            broadcast = simulation.get(
-                "global_broadcast", np.zeros(len(target_outputs))
-            )
+            broadcast = simulation.get("global_broadcast", np.zeros(len(target_outputs)))
             predicted = (broadcast > 0.5).astype(int)
         elif "beliefs" in simulation:
             # FEP-specific: use prediction error magnitude
-            pred_errors = simulation.get(
-                "prediction_errors", np.zeros(len(target_outputs))
-            )
+            pred_errors = simulation.get("prediction_errors", np.zeros(len(target_outputs)))
             predicted = (np.abs(pred_errors) > np.std(pred_errors)).astype(int)
         else:
             predicted = np.zeros(len(target_outputs))
@@ -703,9 +636,7 @@ class ComputationalBenchmarker:
         else:
             return {"mse": mse, "correlation": correlation, "f1_score": None}
 
-    def generate_comparison_table(
-        self, results: Dict[str, List[BenchmarkResult]]
-    ) -> str:
+    def generate_comparison_table(self, results: Dict[str, List[BenchmarkResult]]) -> str:
         """Generate markdown comparison table"""
         table = "# Computational Benchmarking Results\n\n"
         table += "| Framework | Parameters | Avg MSE | Avg Correlation | Avg F1 | Avg Time (s) |\n"
@@ -716,15 +647,9 @@ class ComputationalBenchmarker:
                 continue
 
             avg_mse = np.mean([r.fit_metrics["mse"] for r in framework_results])
-            avg_corr = np.mean(
-                [r.fit_metrics["correlation"] for r in framework_results]
-            )
+            avg_corr = np.mean([r.fit_metrics["correlation"] for r in framework_results])
             avg_f1 = np.mean(
-                [
-                    r.fit_metrics["f1_score"]
-                    for r in framework_results
-                    if r.fit_metrics.get("f1_score") is not None
-                ]
+                [r.fit_metrics["f1_score"] for r in framework_results if r.fit_metrics.get("f1_score") is not None]
             )
             avg_time = np.mean([r.computational_cost for r in framework_results])
             param_count = framework_results[0].parameter_count
@@ -811,9 +736,7 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
     def enable_neuromorphic_mode(self):
         """Enable neuromorphic hardware constraints"""
         self.neuromorphic_mode = True
-        logger.info(
-            "Neuromorphic mode enabled - constraining to biologically plausible primitives"
-        )
+        logger.info("Neuromorphic mode enabled - constraining to biologically plausible primitives")
 
     def run_enhanced_benchmark(self, paradigms: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Run enhanced benchmark with comprehensive analysis"""
@@ -821,11 +744,7 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
 
         # Additional analyses
         phase_transition_analysis = self.analyze_phase_transitions(paradigms)
-        neuromorphic_analysis = (
-            self.analyze_neuromorphic_constraints(results)
-            if self.neuromorphic_mode
-            else {}
-        )
+        neuromorphic_analysis = self.analyze_neuromorphic_constraints(results) if self.neuromorphic_mode else {}
         integrated_information_analysis = self.compute_integrated_information(results)
 
         return {
@@ -833,14 +752,10 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
             "phase_transition_analysis": phase_transition_analysis,
             "neuromorphic_analysis": neuromorphic_analysis,
             "integrated_information_analysis": integrated_information_analysis,
-            "comprehensive_comparison": self.generate_comprehensive_comparison(
-                results, phase_transition_analysis
-            ),
+            "comprehensive_comparison": self.generate_comprehensive_comparison(results, phase_transition_analysis),
         }
 
-    def analyze_phase_transitions(
-        self, paradigms: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def analyze_phase_transitions(self, paradigms: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze phase transition dynamics in APGI"""
         logger.info("Analyzing phase transition dynamics...")
 
@@ -878,9 +793,7 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                 ignition_events = result["ignition_events"]
                 if len(ignition_events) > 1:
                     # Branching ratio: average number of subsequent ignitions per ignition
-                    br = np.mean(
-                        np.convolve(ignition_events.astype(int), [1, 1], mode="valid")
-                    )
+                    br = np.mean(np.convolve(ignition_events.astype(int), [1, 1], mode="valid"))
                     branching_ratios.append(float(br))
                 else:
                     branching_ratios.append(0.0)
@@ -896,12 +809,7 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                 noise_level = 0.01
                 noisy_inputs = inputs + np.random.normal(0, noise_level, len(inputs))
                 noisy_result = apgi_framework.simulate(noisy_inputs, params)
-                susceptibility = np.mean(
-                    np.abs(
-                        result["ignition_probability"]
-                        - noisy_result["ignition_probability"]
-                    )
-                )
+                susceptibility = np.mean(np.abs(result["ignition_probability"] - noisy_result["ignition_probability"]))
                 perturbation_susceptibilities.append(susceptibility)
 
             analysis_results[paradigm["name"]] = {
@@ -910,17 +818,13 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                 "avalanche_sizes": avalanche_sizes,
                 "perturbation_susceptibilities": perturbation_susceptibilities,
                 "critical_threshold": (
-                    thresholds[np.argmin(np.abs(np.array(branching_ratios) - 1.0))]
-                    if branching_ratios
-                    else None
+                    thresholds[np.argmin(np.abs(np.array(branching_ratios) - 1.0))] if branching_ratios else None
                 ),
             }
 
         return analysis_results
 
-    def analyze_neuromorphic_constraints(
-        self, results: Dict[str, List[BenchmarkResult]]
-    ) -> Dict[str, Any]:
+    def analyze_neuromorphic_constraints(self, results: Dict[str, List[BenchmarkResult]]) -> Dict[str, Any]:
         """Analyze how well frameworks perform under neuromorphic constraints"""
         logger.info("Analyzing neuromorphic constraints...")
 
@@ -935,16 +839,10 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
             avg_time = np.mean([r.computational_cost for r in framework_results])
 
             # Score based on complexity vs performance
-            complexity_penalty = min(
-                1.0, float(param_count) / 10.0
-            )  # Penalty for too many parameters
-            efficiency_bonus = max(
-                0.0, 1.0 - float(avg_time)
-            )  # Bonus for fast execution
+            complexity_penalty = min(1.0, float(param_count) / 10.0)  # Penalty for too many parameters
+            efficiency_bonus = max(0.0, 1.0 - float(avg_time))  # Bonus for fast execution
 
-            neuromorphic_score = (
-                efficiency_bonus - complexity_penalty + 1.0
-            ) / 2.0  # Normalize to [0,1]
+            neuromorphic_score = (efficiency_bonus - complexity_penalty + 1.0) / 2.0  # Normalize to [0,1]
 
             neuromorphic_scores[framework_name] = {
                 "neuromorphic_feasibility": neuromorphic_score,
@@ -952,28 +850,18 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                 "computational_efficiency": efficiency_bonus,
                 "constraints_satisfied": neuromorphic_score > 0.5,
                 # Add detailed neuromorphic criteria
-                "local_computation_support": param_count
-                <= 6,  # Can be implemented locally
-                "memory_requirements": (
-                    "Low"
-                    if param_count <= 4
-                    else "Medium" if param_count <= 8 else "High"
-                ),
-                "power_efficiency": efficiency_bonus
-                > 0.7,  # Efficient enough for edge devices
+                "local_computation_support": param_count <= 6,  # Can be implemented locally
+                "memory_requirements": ("Low" if param_count <= 4 else "Medium" if param_count <= 8 else "High"),
+                "power_efficiency": efficiency_bonus > 0.7,  # Efficient enough for edge devices
                 "spiking_compatibility": framework_name
                 in ["APGI", "FEP"],  # Compatible with spiking neuromorphic chips
                 "real_time_processing": avg_time < 0.5,  # Can process in real-time
-                "scalability_score": min(
-                    1.0, (10 - param_count) / 10
-                ),  # How well it scales
+                "scalability_score": min(1.0, (10 - param_count) / 10),  # How well it scales
             }
 
         return neuromorphic_scores
 
-    def compute_integrated_information(
-        self, results: Dict[str, List[BenchmarkResult]]
-    ) -> Dict[str, Any]:
+    def compute_integrated_information(self, results: Dict[str, List[BenchmarkResult]]) -> Dict[str, Any]:
         """Compute Φ for different frameworks to check IIT compatibility"""
         logger.info("Computing integrated information (Φ)...")
 
@@ -1098,30 +986,21 @@ class NeuromorphicSimulator:
             },
         }
 
-    def constrain_framework(
-        self, framework: ComputationalFramework
-    ) -> ComputationalFramework:
+    def constrain_framework(self, framework: ComputationalFramework) -> ComputationalFramework:
         """Apply neuromorphic constraints to framework"""
         # This would modify the framework to use neuromorphic-compatible operations
         # For simulation purposes, we just add constraints checking
-        logger.info(
-            f"Applying {self.hardware_type} constraints to {framework.get_name()}"
-        )
+        logger.info(f"Applying {self.hardware_type} constraints to {framework.get_name()}")
         return framework  # In practice, would return constrained version
 
-    def validate_implementation(
-        self, framework: ComputationalFramework
-    ) -> Dict[str, Any]:
+    def validate_implementation(self, framework: ComputationalFramework) -> Dict[str, Any]:
         """Validate neuromorphic implementation feasibility"""
         constraints = self.constraints.get(self.hardware_type, {})
 
         max_neurons_raw = constraints.get("max_neurons", 1000)
-        max_neurons_val: int = (
-            int(cast(Any, max_neurons_raw)) if max_neurons_raw is not None else 1000
-        )
+        max_neurons_val: int = int(cast(Any, max_neurons_raw)) if max_neurons_raw is not None else 1000
         validation = {
-            "neuron_count_feasible": framework.get_parameter_count()
-            <= (max_neurons_val // 100),
+            "neuron_count_feasible": framework.get_parameter_count() <= (max_neurons_val // 100),
             "synapse_count_feasible": True,  # Simplified
             "precision_feasible": True,  # Assume floating point conversion possible
             "temporal_feasible": True,
@@ -1142,9 +1021,7 @@ class LSTMModel(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.lstm = nn.LSTM(
-            input_size=1, hidden_size=32, num_layers=2, batch_first=True
-        )
+        self.lstm = nn.LSTM(input_size=1, hidden_size=32, num_layers=2, batch_first=True)
         self.linear = nn.Linear(32, 1)
         self.sigmoid = nn.Sigmoid()
 
@@ -1179,9 +1056,7 @@ class AIBenchmarkingExtension:
         self.ann_models[architecture] = model
         return model
 
-    def train_ann_on_surprise_weighting(
-        self, inputs: np.ndarray, surprise_weights: np.ndarray
-    ):
+    def train_ann_on_surprise_weighting(self, inputs: np.ndarray, surprise_weights: np.ndarray):
         """Train ANN with surprise-weighted gating"""
         # Simplified training
         model = self.create_ann_model()
@@ -1204,9 +1079,7 @@ class AIBenchmarkingExtension:
 
         return model
 
-    def analyze_ann_dynamics(
-        self, trained_model, test_inputs: np.ndarray
-    ) -> Dict[str, Any]:
+    def analyze_ann_dynamics(self, trained_model, test_inputs: np.ndarray) -> Dict[str, Any]:
         """Analyze whether ANN shows analogous dynamics"""
         # Extract internal representations and analyze for criticality
         # This is a simplified analysis
@@ -1271,24 +1144,18 @@ if __name__ == "__main__":
     # Validate implementations
     neuromorphic_validation = {}
     for framework_name, framework in benchmarker.frameworks.items():
-        neuromorphic_validation[framework_name] = (
-            neuromorphic_sim.validate_implementation(framework)
-        )
+        neuromorphic_validation[framework_name] = neuromorphic_sim.validate_implementation(framework)
 
     # AI benchmarking
     ai_extension = AIBenchmarkingExtension()
 
     # Generate sample surprise-weighted data from APGI
     sample_inputs = paradigms[0]["inputs"]  # Use first paradigm
-    apgi_result = benchmarker.frameworks["APGI"].simulate(
-        sample_inputs, benchmarker.frameworks["APGI"].default_params
-    )
+    apgi_result = benchmarker.frameworks["APGI"].simulate(sample_inputs, benchmarker.frameworks["APGI"].default_params)
     surprise_weights = apgi_result["ignition_probability"]
 
     # Train ANN
-    ann_model = ai_extension.train_ann_on_surprise_weighting(
-        sample_inputs, surprise_weights
-    )
+    ann_model = ai_extension.train_ann_on_surprise_weighting(sample_inputs, surprise_weights)
     ann_analysis = ai_extension.analyze_ann_dynamics(ann_model, sample_inputs)
 
     # Compile final results
@@ -1300,9 +1167,7 @@ if __name__ == "__main__":
     }
 
     # Save results
-    with open(
-        "APGI_Computational_Benchmarking-Enhanced-Results.json", "w", encoding="utf-8"
-    ) as f:
+    with open("APGI_Computational_Benchmarking-Enhanced-Results.json", "w", encoding="utf-8") as f:
         json.dump(final_results, f, indent=2, default=str)
 
     logger.info(

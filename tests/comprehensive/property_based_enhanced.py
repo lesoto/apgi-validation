@@ -19,8 +19,7 @@ import numpy as np
 import pytest
 from hypothesis import Phase, assume, given, settings, strategies
 from hypothesis.extra import numpy as np_st
-from hypothesis.stateful import (RuleBasedStateMachine, invariant,
-                                 precondition, rule)
+from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -45,23 +44,17 @@ class APGIStrategies:
     @staticmethod
     def probability() -> strategies.SearchStrategy[float]:
         """Strategy for probability values (0.0 to 1.0)."""
-        return strategies.floats(
-            min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-        )
+        return strategies.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 
     @staticmethod
     def positive_float(max_value: float = 1e6) -> strategies.SearchStrategy[float]:
         """Strategy for positive floating point numbers."""
-        return strategies.floats(
-            min_value=1e-10, max_value=max_value, allow_nan=False, allow_infinity=False
-        )
+        return strategies.floats(min_value=1e-10, max_value=max_value, allow_nan=False, allow_infinity=False)
 
     @staticmethod
     def small_positive_float() -> strategies.SearchStrategy[float]:
         """Strategy for small positive values suitable for parameters."""
-        return strategies.floats(
-            min_value=1e-6, max_value=100.0, allow_nan=False, allow_infinity=False
-        )
+        return strategies.floats(min_value=1e-6, max_value=100.0, allow_nan=False, allow_infinity=False)
 
     @staticmethod
     def time_series(length: int = 100) -> strategies.SearchStrategy[np.ndarray]:
@@ -69,22 +62,16 @@ class APGIStrategies:
         return np_st.arrays(
             dtype=np.float64,
             shape=(length,),
-            elements=strategies.floats(
-                min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False
-            ),
+            elements=strategies.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
         )
 
     @staticmethod
-    def eeg_signal(
-        channels: int = 64, samples: int = 1000
-    ) -> strategies.SearchStrategy[np.ndarray]:
+    def eeg_signal(channels: int = 64, samples: int = 1000) -> strategies.SearchStrategy[np.ndarray]:
         """Strategy for generating EEG-like signals."""
         return np_st.arrays(
             dtype=np.float64,
             shape=(channels, samples),
-            elements=strategies.floats(
-                min_value=-100, max_value=100, allow_nan=False, allow_infinity=False
-            ),
+            elements=strategies.floats(min_value=-100, max_value=100, allow_nan=False, allow_infinity=False),
         )
 
     @staticmethod
@@ -117,9 +104,7 @@ class APGIStrategies:
                 ),
                 "simulation": strategies.fixed_dictionaries(
                     {
-                        "default_steps": strategies.integers(
-                            min_value=100, max_value=10000
-                        ),
+                        "default_steps": strategies.integers(min_value=100, max_value=10000),
                         "default_dt": strategies.floats(min_value=0.001, max_value=0.1),
                     }
                 ),
@@ -156,9 +141,7 @@ class TestEnhancedMathematicalProperties:
             # Additional property: surprise increases with |error - reference|
             surprise2 = FoundationalEquations.surprise(error * 2, reference)
             if abs(error * 2 - reference) > abs(error - reference):
-                assert (
-                    surprise2 >= surprise
-                ), "Surprise should increase with larger error"
+                assert surprise2 >= surprise, "Surprise should increase with larger error"
 
     @pytest.mark.skipif(not APGI_AVAILABLE, reason="APGI modules not available")
     @settings(max_examples=300, deadline=None)
@@ -167,9 +150,7 @@ class TestEnhancedMathematicalProperties:
         """Test precision computation stays within valid bounds."""
         if APGI_AVAILABLE and variance > epsilon:
             precision = FoundationalEquations.precision(variance, epsilon)
-            assert (
-                0 <= precision <= 1
-            ), f"Precision should be in [0, 1], got {precision}"
+            assert 0 <= precision <= 1, f"Precision should be in [0, 1], got {precision}"
 
     @pytest.mark.skipif(not APGI_AVAILABLE, reason="APGI modules not available")
     @settings(max_examples=400, deadline=None)
@@ -188,9 +169,7 @@ class TestEnhancedMathematicalProperties:
             # Entropy of uniform distribution should be maximal
             uniform = np.ones_like(normalized) / len(normalized)
             uniform_entropy = -np.sum(uniform * np.log2(uniform + epsilon))
-            assert (
-                entropy <= uniform_entropy * 1.01
-            ), "Entropy should not exceed uniform by much"
+            assert entropy <= uniform_entropy * 1.01, "Entropy should not exceed uniform by much"
 
 
 @pytest.mark.slow
@@ -290,21 +269,16 @@ class APGISimulationStateMachine(RuleBasedStateMachine):
         """Verify state remains consistent."""
         if self.surprise_history:
             # Surprise should be non-negative
-            assert all(
-                s >= 0 for s in self.surprise_history
-            ), "Surprise should be non-negative"
+            assert all(s >= 0 for s in self.surprise_history), "Surprise should be non-negative"
 
         if self.threshold_history:
             # Threshold should be in [0, 1]
-            assert all(
-                0 <= t <= 1 for t in self.threshold_history
-            ), "Threshold should be in [0, 1]"
+            assert all(0 <= t <= 1 for t in self.threshold_history), "Threshold should be in [0, 1]"
 
         if self.time_steps:
             # Time should be monotonic
             assert all(
-                self.time_steps[i] <= self.time_steps[i + 1]
-                for i in range(len(self.time_steps) - 1)
+                self.time_steps[i] <= self.time_steps[i + 1] for i in range(len(self.time_steps) - 1)
             ), "Time should be monotonic"
 
     @invariant()
@@ -316,9 +290,7 @@ class APGISimulationStateMachine(RuleBasedStateMachine):
 
 # Convert state machine to test
 TestAPGISimulationStateful = APGISimulationStateMachine.TestCase
-TestAPGISimulationStateful.settings = settings(
-    max_examples=100, stateful_step_count=50, deadline=None
-)
+TestAPGISimulationStateful.settings = settings(max_examples=100, stateful_step_count=50, deadline=None)
 
 
 # ============================================================================
@@ -415,9 +387,7 @@ class TestCustomStrategies:
         alpha = 0.5
 
         # Interpolate between two parameter sets
-        interpolated = {
-            k: alpha * params1[k] + (1 - alpha) * params2[k] for k in params1.keys()
-        }
+        interpolated = {k: alpha * params1[k] + (1 - alpha) * params2[k] for k in params1.keys()}
 
         # Verify interpolated parameters are valid
         assert interpolated["tau_S"] > 0
@@ -431,12 +401,8 @@ class TestCustomStrategies:
 
 # Register profiles for different test execution modes
 settings.register_profile("ci", max_examples=50, deadline=None, stateful_step_count=20)
-settings.register_profile(
-    "dev", max_examples=100, deadline=None, stateful_step_count=30
-)
-settings.register_profile(
-    "full", max_examples=1000, deadline=None, stateful_step_count=50
-)
+settings.register_profile("dev", max_examples=100, deadline=None, stateful_step_count=30)
+settings.register_profile("full", max_examples=1000, deadline=None, stateful_step_count=50)
 
 # Load the CI profile by default for faster test execution
 settings.load_profile("ci")
@@ -491,6 +457,4 @@ if __name__ == "__main__":
     results = run_property_based_tests()
     print("\n" + "=" * 80)
     print("Use pytest to run these tests:")
-    print(
-        "  pytest tests/comprehensive/property_based_enhanced.py -v --hypothesis-seed=0"
-    )
+    print("  pytest tests/comprehensive/property_based_enhanced.py -v --hypothesis-seed=0")

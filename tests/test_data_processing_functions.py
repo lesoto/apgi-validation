@@ -20,9 +20,17 @@ def get_main_functions():
     import unittest.mock
 
     with unittest.mock.patch("utils.secret_policy_enforcer.enforce_secret_policy"):
-        from main import (_list_protocols, _process_csv_file, _reset_config,
-                          _run_demo_mode, _run_parallel, _run_sequential,
-                          _set_config, _show_config, _validate_input_file)
+        from main import (
+            _list_protocols,
+            _process_csv_file,
+            _reset_config,
+            _run_demo_mode,
+            _run_parallel,
+            _run_sequential,
+            _set_config,
+            _show_config,
+            _validate_input_file,
+        )
 
         return {
             "_list_protocols": _list_protocols,
@@ -97,9 +105,7 @@ class TestValidateInputFile:
 
     @patch("main._validate_file_path")
     @patch("main.secure_open_file")
-    def test_validate_input_file_valid(
-        self, mock_secure_open, mock_validate_path, tmp_path
-    ):
+    def test_validate_input_file_valid(self, mock_secure_open, mock_validate_path, tmp_path):
         """Test validating valid input file."""
         test_file = tmp_path / "test.csv"
         test_file.write_text("col1,col2\n1,2\n")
@@ -175,9 +181,7 @@ class TestRunParallel:
         # Test with mocked concurrent.futures
         with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
             mock_executor_instance = MagicMock()
-            mock_executor_class.return_value.__enter__ = MagicMock(
-                return_value=mock_executor_instance
-            )
+            mock_executor_class.return_value.__enter__ = MagicMock(return_value=mock_executor_instance)
             mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
             mock_future = MagicMock()
@@ -209,9 +213,7 @@ class TestRunParallel:
         # Test with mocked concurrent.futures
         with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
             mock_executor_instance = MagicMock()
-            mock_executor_class.return_value.__enter__ = MagicMock(
-                return_value=mock_executor_instance
-            )
+            mock_executor_class.return_value.__enter__ = MagicMock(return_value=mock_executor_instance)
             mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
             mock_future = MagicMock()

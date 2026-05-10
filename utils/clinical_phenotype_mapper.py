@@ -122,9 +122,7 @@ class DisorderPhenotype:
     description: str = ""
     apgi_profile: APGIParameterProfile = field(default_factory=APGIParameterProfile)
     neural_signatures: NeuralSignature = field(default_factory=NeuralSignature)
-    treatment_implications: TreatmentImplication = field(
-        default_factory=TreatmentImplication
-    )
+    treatment_implications: TreatmentImplication = field(default_factory=TreatmentImplication)
     mechanism: str = ""
     phenomenology: str = ""
     citations: List[str] = field(default_factory=list)
@@ -993,12 +991,8 @@ class ClinicalPhenotypeMapper:
             category=yaml_profile.get("category", ""),
             description=yaml_profile.get("description", ""),
             apgi_profile=apgi_profile,
-            neural_signatures=NeuralSignature(
-                eeg_markers=metadata.get("neural_signatures", [])
-            ),
-            treatment_implications=TreatmentImplication(
-                first_line=metadata.get("treatment_implications", [])
-            ),
+            neural_signatures=NeuralSignature(eeg_markers=metadata.get("neural_signatures", [])),
+            treatment_implications=TreatmentImplication(first_line=metadata.get("treatment_implications", [])),
             mechanism=yaml_profile.get("hierarchical_profile", {}).get("mechanism", ""),
             phenomenology=metadata.get("phenomenology", ""),
             citations=yaml_profile.get("empirical_validation", {}).get("citations", []),
@@ -1074,12 +1068,8 @@ class ClinicalPhenotypeMapper:
 
         for t in range(1, n_steps):
             # Generate prediction errors based on disorder profile
-            epsilon_e = np.random.normal(
-                apgi.epsilon_mean * 0.1, 0.5 + abs(apgi.epsilon_mean) * 0.1, n_trials
-            )
-            epsilon_i = np.random.normal(
-                apgi.epsilon_mean * 0.05, 0.3 + abs(apgi.epsilon_mean) * 0.05, n_trials
-            )
+            epsilon_e = np.random.normal(apgi.epsilon_mean * 0.1, 0.5 + abs(apgi.epsilon_mean) * 0.1, n_trials)
+            epsilon_i = np.random.normal(apgi.epsilon_mean * 0.05, 0.3 + abs(apgi.epsilon_mean) * 0.05, n_trials)
 
             # Effective interoceptive precision with somatic bias
             pi_i_eff = apgi.pi_interoceptive * (1 + apgi.somatic_bias * 0.5)
@@ -1087,9 +1077,7 @@ class ClinicalPhenotypeMapper:
             # Signal accumulation
             we, wi = 0.5, 0.5
             dS = (
-                -S[:, t - 1] / tau
-                + we * apgi.pi_exteroceptive * np.abs(epsilon_e)
-                + wi * pi_i_eff * np.abs(epsilon_i)
+                -S[:, t - 1] / tau + we * apgi.pi_exteroceptive * np.abs(epsilon_e) + wi * pi_i_eff * np.abs(epsilon_i)
             ) * dt
             S[:, t] = S[:, t - 1] + dS
 
@@ -1142,40 +1130,24 @@ class ClinicalPhenotypeMapper:
         return {
             "level": level,
             "level_name": level_info.get("name", ""),
-            "consciousness_implication": level_info.get(
-                "consciousness_implication", ""
-            ),
+            "consciousness_implication": level_info.get("consciousness_implication", ""),
             "neural_signature": level_info.get("neural_signature", ""),
             "treatment_target": level_info.get("treatment_target", ""),
             "n_disorders": len(profiles),
             "disorders": profiles,
-            "mean_theta_t": (
-                np.mean([p.apgi_profile.theta_t_percent for p in profiles.values()])
-                if profiles
-                else 0
-            ),
+            "mean_theta_t": (np.mean([p.apgi_profile.theta_t_percent for p in profiles.values()]) if profiles else 0),
             "mean_somatic_bias": (
-                np.mean([p.apgi_profile.somatic_bias for p in profiles.values()])
-                if profiles
-                else 1.0
+                np.mean([p.apgi_profile.somatic_bias for p in profiles.values()]) if profiles else 1.0
             ),
         }
 
     def get_disorders_by_category(self, category: str) -> List[str]:
         """Get all disorders in a specific category"""
-        return [
-            key
-            for key, params in self.DISORDER_PARAMETER_TABLE.items()
-            if params["category"] == category
-        ]
+        return [key for key, params in self.DISORDER_PARAMETER_TABLE.items() if params["category"] == category]
 
     def list_all_disorders(self) -> List[str]:
         """List all available disorders"""
-        yaml_disorders = [
-            p.stem
-            for p in self.profiles_dir.glob("*.yaml")
-            if p.stem not in ["research-default"]
-        ]
+        yaml_disorders = [p.stem for p in self.profiles_dir.glob("*.yaml") if p.stem not in ["research-default"]]
         table_disorders = list(self.DISORDER_PARAMETER_TABLE.keys())
         return sorted(set(yaml_disorders + table_disorders))
 
@@ -1203,9 +1175,7 @@ class ClinicalPhenotypeMapper:
                         "β": f"{apgi.somatic_bias:.1f}",
                         "Level": apgi.primary_affected_level,
                         "Mechanism": (
-                            profile.mechanism[:60] + "..."
-                            if len(profile.mechanism) > 60
-                            else profile.mechanism
+                            profile.mechanism[:60] + "..." if len(profile.mechanism) > 60 else profile.mechanism
                         ),
                     }
                 )
@@ -1245,9 +1215,7 @@ def create_clinical_profile_summary() -> str:
             lines.append(f"- **DSM-5**: {profile.dsm5_code}\n")
             lines.append(f"- **Primary Dysregulation**: {profile.category}\n")
             lines.append(f"- **Affected Level**: {apgi.primary_affected_level}\n")
-            lines.append(
-                f"- **Πₑ**: {apgi.pi_exteroceptive:.1f}, **Πᵢ**: {apgi.pi_interoceptive:.1f}\n"
-            )
+            lines.append(f"- **Πₑ**: {apgi.pi_exteroceptive:.1f}, **Πᵢ**: {apgi.pi_interoceptive:.1f}\n")
             lines.append(f"- **θₜ**: {apgi.theta_t_percent:+.0f}%\n")
             lines.append(f"- **β**: {apgi.somatic_bias:.1f}\n")
             lines.append(f"- **Mechanism**: {profile.mechanism}\n")
@@ -1304,6 +1272,4 @@ if __name__ == "__main__":
     print(f"Level: {level_comparison['level_name']} ")
     print(f"Disorders: {level_comparison['n_disorders']} ")
     print(f"Mean θₜ: {level_comparison['mean_theta_t']:.1f}% ")
-    print(
-        f"Consciousness implication: {level_comparison['consciousness_implication']} "
-    )
+    print(f"Consciousness implication: {level_comparison['consciousness_implication']} ")

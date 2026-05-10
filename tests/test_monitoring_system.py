@@ -13,11 +13,19 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.monitoring_system import (Alert, AlertChannel, AlertRule,
-                                     AlertSeverity, HealthCheck,
-                                     MonitoringSystem, NotificationManager,
-                                     get_monitoring_system, get_status,
-                                     start_monitoring, stop_monitoring)
+from utils.monitoring_system import (
+    Alert,
+    AlertChannel,
+    AlertRule,
+    AlertSeverity,
+    HealthCheck,
+    MonitoringSystem,
+    NotificationManager,
+    get_monitoring_system,
+    get_status,
+    start_monitoring,
+    stop_monitoring,
+)
 
 
 class TestAlertSeverity:
@@ -446,9 +454,7 @@ class TestMonitoringSystem:
     def test_get_metrics_history(self, monitoring):
         """Test getting metrics history"""
         # Add some mock history
-        monitoring.metrics_history["test_metric"] = [
-            {"timestamp": time.time(), "value": 50.0}
-        ]
+        monitoring.metrics_history["test_metric"] = [{"timestamp": time.time(), "value": 50.0}]
 
         history = monitoring.get_metrics_history("test_metric", hours=24)
         assert len(history) == 1

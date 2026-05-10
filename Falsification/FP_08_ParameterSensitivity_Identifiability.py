@@ -62,16 +62,16 @@ if str(project_root) not in sys.path:
 
 try:
     try:
-        from Validation.VP_03_ActiveInference_AgentSimulations import (
-            APGIActiveInferenceAgent as APGIAgent,
-        )
-    except ImportError:
-        from Validation.VP_03_ActiveInference_AgentSimulations import APGIAgent
+        from Validation.VP_03_ActiveInference_AgentSimulations import APGIActiveInferenceAgent as APGIAgent
 
-    HAS_APPI_AGENT = True
+        APGIAgent_Local = APGIAgent
+    except ImportError:
+        APGIAgent_Local = None  # type: ignore
+
+    HAS_APPI_AGENT = APGIAgent_Local is not None
 
     # FIXED: Create a proper agent factory for dependency injection
-    def create_apgi_agent(config: Optional[Dict] = None) -> APGIAgent:
+    def create_apgi_agent(config: Optional[Dict] = None) -> Optional[APGIAgent]:
         """Factory function to create APGI agent with proper configuration"""
         if config is None:
             config = {
@@ -83,12 +83,15 @@ try:
                 "ignition_threshold": 0.5,
             }
         try:
-            return APGIAgent(config)
+            if APGIAgent_Local is None:
+                return None
+            return APGIAgent_Local(config)
         except Exception as e:
             logger.warning(f"Failed to create APGI agent with config {config}: {e}")
             # Try with minimal config
             minimal_config = {"n_states": 48, "n_actions": 4}
-            return APGIAgent(minimal_config)
+            create_apgi_agent_fallback(minimal_config)
+            return None
 
 except ImportError as e:
     warnings.warn(
@@ -98,9 +101,9 @@ except ImportError as e:
         stacklevel=2,
     )
     HAS_APPI_AGENT = False
-    APGIAgent = None  # type: ignore
+    APGIAgent_Local = None  # type: ignore
 
-    def create_apgi_agent(config: Optional[Dict] = None) -> None:
+    def create_apgi_agent_fallback(config: Optional[Dict] = None) -> None:
         """Fallback factory when APGI agent is not available"""
         return None
 
@@ -188,9 +191,7 @@ def _compute_bootstrap_sobol_indices(
 
         # Compute Sobol indices on bootstrap sample
         try:
-            Si_bootstrap = sobol.analyze(
-                problem, Y_bootstrap, calc_second_order=False, print_to_console=False
-            )
+            Si_bootstrap = sobol.analyze(problem, Y_bootstrap, calc_second_order=False, print_to_console=False)
             bootstrap_st[b, :] = Si_bootstrap["ST"]
         except Exception:
             # Skip failed bootstrap iterations
@@ -269,12 +270,8 @@ def _check_bootstrap_hierarchy_overlap(
         overlap = not (high_ci["CI_lower"] > low_ci["CI_upper"])
 
         # Calculate overlap proportion
-        overlap_range = min(high_ci["CI_upper"], low_ci["CI_upper"]) - max(
-            high_ci["CI_lower"], low_ci["CI_lower"]
-        )
-        total_range = max(high_ci["CI_upper"], low_ci["CI_upper"]) - min(
-            high_ci["CI_lower"], low_ci["CI_lower"]
-        )
+        overlap_range = min(high_ci["CI_upper"], low_ci["CI_upper"]) - max(high_ci["CI_lower"], low_ci["CI_lower"])
+        total_range = max(high_ci["CI_upper"], low_ci["CI_upper"]) - min(high_ci["CI_lower"], low_ci["CI_lower"])
         overlap_proportion = overlap_range / total_range if total_range > 0 else 0
 
         # Hierarchy violated if:
@@ -283,9 +280,7 @@ def _check_bootstrap_hierarchy_overlap(
         point_order_wrong = high_ci["ST_mean"] <= low_ci["ST_mean"]
         ci_completely_reversed = high_ci["CI_upper"] < low_ci["CI_lower"]
 
-        is_violation = ci_completely_reversed or (
-            point_order_wrong and overlap_proportion < 0.5
-        )
+        is_violation = ci_completely_reversed or (point_order_wrong and overlap_proportion < 0.5)
 
         overlap_results.append(
             {
@@ -374,11 +369,7 @@ def simulate_model_performance_with_agent(
                 alpha_factor = 1.0 / (1.0 + np.exp(-(alpha - 5.0) / 2.0))
 
                 # Combine factors with some randomness for realism
-                synthetic_perf = (
-                    base_perf
-                    * (0.7 + 0.3 * threshold_factor)
-                    * (0.8 + 0.2 * alpha_factor)
-                )
+                synthetic_perf = base_perf * (0.7 + 0.3 * threshold_factor) * (0.8 + 0.2 * alpha_factor)
                 synthetic_perf += np.random.normal(0, 0.05)  # Add noise
 
                 return float(np.clip(synthetic_perf, 0.0, 1.0))
@@ -391,9 +382,7 @@ def simulate_model_performance_with_agent(
                 # Cache the instance to avoid re-creating it for every OAT sample
                 _current_agent_instance = agent_instance
                 if not _AGENT_FALLBACK_WARNED:
-                    logger.info(
-                        "CRIT-04 FIX: Successfully created APGIAgent instance using factory"
-                    )
+                    logger.info("CRIT-04 FIX: Successfully created APGIAgent instance using factory")
                     _AGENT_FALLBACK_WARNED = True
             except Exception as e:
                 logger.error(f"CRIT-04 FIX: Failed to create APGIAgent: {e}")
@@ -503,9 +492,7 @@ def analyze_oat_sensitivity(
                 performances.append(perf)
 
             avg_performance = (
-                np.mean([p for p in performances if p is not None])
-                if any(p is not None for p in performances)
-                else 0.0
+                np.mean([p for p in performances if p is not None]) if any(p is not None for p in performances) else 0.0
             )
             param_sensitivity.append(avg_performance)
             all_performances.extend(performances)
@@ -584,9 +571,7 @@ def analyze_beta_pi_collinearity(
         param_samples.append(sample)
 
     # Create parameter matrix
-    param_matrix = np.array(
-        [[sample[p] for p in available_params] for sample in param_samples]
-    )
+    param_matrix = np.array([[sample[p] for p in available_params] for sample in param_samples])
 
     # Standardize matrix for numerical stability in VIF calculation
     # Mean-center and scale by standard deviation
@@ -652,9 +637,7 @@ def analyze_beta_pi_collinearity(
         )
     elif condition_number > 10:
         f8_collinearity_status = "MODERATE"
-        f8_collinearity_concern.append(
-            f"Condition number={condition_number:.2f} indicates moderate collinearity"
-        )
+        f8_collinearity_concern.append(f"Condition number={condition_number:.2f} indicates moderate collinearity")
 
     # Check specific β/Πⁱ collinearity (primary concern per FP-8)
     if "beta" in vif_values and "Pi_i" in vif_values:
@@ -675,9 +658,7 @@ def analyze_beta_pi_collinearity(
         for j, param2 in enumerate(available_params):
             if i < j:  # Avoid duplicates
                 # Test simultaneous variation of collinear parameters
-                base_perf = simulate_model_performance_with_agent(
-                    base_params, n_trials=100
-                )
+                base_perf = simulate_model_performance_with_agent(base_params, n_trials=100)
 
                 # Vary both parameters together
                 varied_params = base_params.copy()
@@ -687,13 +668,9 @@ def analyze_beta_pi_collinearity(
                 varied_params[param1] += std1
                 varied_params[param2] += std2
 
-                varied_perf = simulate_model_performance_with_agent(
-                    varied_params, n_trials=100
-                )
+                varied_perf = simulate_model_performance_with_agent(varied_params, n_trials=100)
 
-                sensitivity = (
-                    abs(varied_perf - base_perf) / base_perf if base_perf > 0 else 0
-                )
+                sensitivity = abs(varied_perf - base_perf) / base_perf if base_perf > 0 else 0
                 collinearity_sensitivity[f"{param1}_{param2}"] = sensitivity
 
     return {
@@ -750,19 +727,13 @@ def analyze_identifiability_weight_sensitivity(
 
     for weights in weight_combinations:
         # Run profile likelihood with these weights
-        profile_result = analyze_profile_likelihood_with_weights(
-            base_params, param_bounds, weights, n_trials=n_trials
-        )
+        profile_result = analyze_profile_likelihood_with_weights(base_params, param_bounds, weights, n_trials=n_trials)
 
         weight_results.append(
             {
                 "weights": weights,
-                "identifiability_scores": profile_result.get(
-                    "identifiability_scores", {}
-                ),
-                "overall_identifiability_rate": profile_result.get(
-                    "overall_identifiability_rate", 0.0
-                ),
+                "identifiability_scores": profile_result.get("identifiability_scores", {}),
+                "overall_identifiability_rate": profile_result.get("overall_identifiability_rate", 0.0),
             }
         )
 
@@ -805,9 +776,7 @@ def analyze_profile_likelihood_with_weights(
     Helper function for weight sensitivity analysis.
     """
     core_apgi_params = ["theta_0", "alpha", "beta", "Pi_i"]
-    available_params = [
-        p for p in core_apgi_params if p in base_params and p in param_bounds
-    ]
+    available_params = [p for p in core_apgi_params if p in base_params and p in param_bounds]
 
     if len(available_params) == 0:
         return {"error": "No core APGI parameters available"}
@@ -847,9 +816,7 @@ def analyze_profile_likelihood_with_weights(
             ci_finite = False
 
         param_range_width = max_val - min_val
-        relative_ci_width = (
-            ci_width / param_range_width if param_range_width > 0 else float("inf")
-        )
+        relative_ci_width = ci_width / param_range_width if param_range_width > 0 else float("inf")
 
         # Calculate identifiability score with custom weights
         w_CI = weights.get("w_CI", 0.4)
@@ -870,14 +837,8 @@ def analyze_profile_likelihood_with_weights(
         }
 
     # Calculate overall identifiability rate
-    identifiable_count = sum(
-        1
-        for s in identifiability_scores.values()
-        if s["score"] > 0.4 and s["ci_finite"]
-    )
-    overall_rate = (
-        identifiable_count / len(available_params) if available_params else 0.0
-    )
+    identifiable_count = sum(1 for s in identifiability_scores.values() if s["score"] > 0.4 and s["ci_finite"])
+    overall_rate = identifiable_count / len(available_params) if available_params else 0.0
 
     return {
         "identifiability_scores": identifiability_scores,
@@ -947,9 +908,7 @@ def analyze_parameter_recovery(
             X = np.vstack([X, [features]])
             y = np.vstack([y, [params[param] for param in param_names]])
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     recovery_results = {}
 
@@ -979,9 +938,7 @@ def analyze_parameter_recovery(
     poorly_recoverable_params = []
 
     for i, (param, results) in enumerate(recovery_results.items()):
-        if results["correlation"] > 0.7 and results["rmse"] < 0.1 * float(
-            np.std(y[:, i])
-        ):
+        if results["correlation"] > 0.7 and results["rmse"] < 0.1 * float(np.std(y[:, i])):
             recoverable_params.append(param)
         elif results["correlation"] < 0.3:
             poorly_recoverable_params.append(param)
@@ -1035,9 +992,7 @@ def analyze_profile_likelihood(
 
     # Focus on the four core APGI parameters
     core_apgi_params = ["theta_0", "alpha", "beta", "Pi_i"]
-    available_params = [
-        p for p in core_apgi_params if p in base_params and p in param_bounds
-    ]
+    available_params = [p for p in core_apgi_params if p in base_params and p in param_bounds]
 
     if len(available_params) == 0:
         return {
@@ -1144,9 +1099,7 @@ def analyze_profile_likelihood(
 
         # Relative CI width (normalized by parameter range)
         param_range_width = max_val - min_val
-        relative_ci_width = (
-            ci_width / param_range_width if param_range_width > 0 else float("inf")
-        )
+        relative_ci_width = ci_width / param_range_width if param_range_width > 0 else float("inf")
 
         # Calculate profile characteristics
         # 1. Profile flatness (lower = more flat = less identifiable)
@@ -1157,9 +1110,7 @@ def analyze_profile_likelihood(
         half_max = 0.5
         half_max_indices = np.where(likelihood_array >= half_max)[0]
         if len(half_max_indices) > 0:
-            profile_width = (
-                param_range[half_max_indices[-1]] - param_range[half_max_indices[0]]
-            )
+            profile_width = param_range[half_max_indices[-1]] - param_range[half_max_indices[0]]
             relative_width = profile_width / (max_val - min_val)
         else:
             profile_width = 0
@@ -1220,15 +1171,9 @@ def analyze_profile_likelihood(
         }
 
     # Summary statistics per F8.PL
-    identifiable_params = [
-        p for p, results in profile_results.items() if results["is_identifiable"]
-    ]
-    flat_profile_params = [
-        p for p, results in profile_results.items() if results["is_flat_profile"]
-    ]
-    non_finite_ci_params = [
-        p for p, results in profile_results.items() if not results["ci_finite"]
-    ]
+    identifiable_params = [p for p, results in profile_results.items() if results["is_identifiable"]]
+    flat_profile_params = [p for p, results in profile_results.items() if results["is_flat_profile"]]
+    non_finite_ci_params = [p for p, results in profile_results.items() if not results["ci_finite"]]
 
     # F8.PL falsification check
     # Criterion: Profile likelihood CI finite for all core parameters
@@ -1244,8 +1189,7 @@ def analyze_profile_likelihood(
         "identifiable_params": identifiable_params,
         "flat_profile_params": flat_profile_params,
         "non_finite_ci_params": non_finite_ci_params,
-        "overall_identifiability_rate": len(identifiable_params)
-        / len(available_params),
+        "overall_identifiability_rate": len(identifiable_params) / len(available_params),
         "all_cis_finite": all_cis_finite,
         "all_params_identifiable": all_params_identifiable,
         "profile_results": profile_results,
@@ -1256,8 +1200,7 @@ def analyze_profile_likelihood(
     summary["identifiability_falsification"] = {
         "falsified": not all_params_identifiable or not all_cis_finite,
         "falsification_reason": (
-            f"Non-identifiable core parameters: {flat_profile_params}; "
-            f"Non-finite CI: {non_finite_ci_params}"
+            f"Non-identifiable core parameters: {flat_profile_params}; " f"Non-finite CI: {non_finite_ci_params}"
             if (flat_profile_params or non_finite_ci_params)
             else "All core parameters are identifiable with finite CIs"
         ),
@@ -1334,16 +1277,12 @@ def analyze_fisher_information_matrix(
             # Forward difference
             params_plus = base_params.copy()
             params_plus[param] += epsilon
-            perf_plus = simulate_model_performance_with_agent(
-                params_plus, n_trials=n_trials_per_eval
-            )
+            perf_plus = simulate_model_performance_with_agent(params_plus, n_trials=n_trials_per_eval)
 
             # Backward difference
             params_minus = base_params.copy()
             params_minus[param] -= epsilon
-            perf_minus = simulate_model_performance_with_agent(
-                params_minus, n_trials=n_trials_per_eval
-            )
+            perf_minus = simulate_model_performance_with_agent(params_minus, n_trials=n_trials_per_eval)
 
             # Central difference gradient
             gradient_sample = (perf_plus - perf_minus) / (2 * epsilon)
@@ -1370,15 +1309,9 @@ def analyze_fisher_information_matrix(
         params_minus = base_params.copy()
         params_minus[param] -= epsilon
 
-        perf_plus = simulate_model_performance_with_agent(
-            params_plus, n_trials=n_trials_per_eval
-        )
-        perf_base = simulate_model_performance_with_agent(
-            base_params, n_trials=n_trials_per_eval
-        )
-        perf_minus = simulate_model_performance_with_agent(
-            params_minus, n_trials=n_trials_per_eval
-        )
+        perf_plus = simulate_model_performance_with_agent(params_plus, n_trials=n_trials_per_eval)
+        perf_base = simulate_model_performance_with_agent(base_params, n_trials=n_trials_per_eval)
+        perf_minus = simulate_model_performance_with_agent(params_minus, n_trials=n_trials_per_eval)
 
         # Second derivative approximation (Hessian diagonal)
         second_deriv = (perf_plus - 2 * perf_base + perf_minus) / (epsilon**2)
@@ -1442,9 +1375,7 @@ def analyze_fisher_information_matrix(
         eigenvectors = np.eye(n_params)
 
     # Calculate parameter sensitivities (diagonal elements)
-    param_sensitivities = {
-        param: float(fim_reg[i, i]) for i, param in enumerate(param_names)
-    }
+    param_sensitivities = {param: float(fim_reg[i, i]) for i, param in enumerate(param_names)}
 
     # Assess identifiability per F8.FIM
     # Criterion: All eigenvalues > 0 (positive definite)
@@ -1497,11 +1428,7 @@ def analyze_fisher_information_matrix(
             confidence_intervals[param] = {
                 "std_error": float(std_error),
                 "ci_95": float(ci_95),
-                "relative_ci": (
-                    float(ci_95 / base_params[param])
-                    if base_params[param] != 0
-                    else float("inf")
-                ),
+                "relative_ci": (float(ci_95 / base_params[param]) if base_params[param] != 0 else float("inf")),
             }
         else:
             confidence_intervals[param] = {
@@ -1539,9 +1466,7 @@ def analyze_fisher_information_matrix(
         "confidence_intervals": confidence_intervals,
         "identifiability_score": float(identifiability_score),
         "gradients": {p: float(g) for p, g in zip(param_names, gradients)},
-        "gradient_variances": {
-            p: float(v) for p, v in zip(param_names, gradient_variances)
-        },
+        "gradient_variances": {p: float(v) for p, v in zip(param_names, gradient_variances)},
         "epsilon_used": epsilon,
         "n_trials_per_eval": n_trials_per_eval,
     }
@@ -1596,8 +1521,7 @@ def analyze_sobol_sensitivity(
     # CRITICAL: Check if SALib is available
     if not HAS_SALIB:
         warnings.warn(
-            "SALib is required for Sobol sensitivity analysis (F8.SA). "
-            "Install with: pip install salib>=1.4.0",
+            "SALib is required for Sobol sensitivity analysis (F8.SA). " "Install with: pip install salib>=1.4.0",
             RuntimeWarning,
             stacklevel=2,
         )
@@ -1617,9 +1541,7 @@ def analyze_sobol_sensitivity(
         # Find nearest valid power of 2
         valid_powers = [512, 1024, 2048, 4096]  # Common valid values
         nearest_valid = min(valid_powers, key=lambda x: abs(x - n_samples))
-        logger.warning(
-            f"n_samples={n_samples} is not a power of 2. Using {nearest_valid} instead."
-        )
+        logger.warning(f"n_samples={n_samples} is not a power of 2. Using {nearest_valid} instead.")
         n_samples = nearest_valid
 
     try:
@@ -1676,9 +1598,7 @@ def analyze_sobol_sensitivity(
                 "output_variance": float(output_variance),
                 "ST": [0.0] * len(param_bounds),
                 "S1": [0.0] * len(param_bounds),
-                "parameter_ranking": [
-                    (p, 0.0, 0.0) for p in param_names
-                ],  # Fix: include parameter_ranking
+                "parameter_ranking": [(p, 0.0, 0.0) for p in param_names],  # Fix: include parameter_ranking
                 "interoceptive_precision_in_top_3": False,
                 "falsification_criteria": {
                     "redundant_params": [],
@@ -1724,9 +1644,7 @@ def analyze_sobol_sensitivity(
         # Verify interoceptive precision parameters rank in top 3
         interoceptive_params = ["beta", "Pi_i", "Pi_i_lr"]
         top_3_params = [list(param_bounds.keys())[i] for i in ranking[:3]]
-        interoceptive_in_top_3 = any(
-            param in top_3_params for param in interoceptive_params
-        )
+        interoceptive_in_top_3 = any(param in top_3_params for param in interoceptive_params)
         results["interoceptive_precision_in_top_3"] = interoceptive_in_top_3
 
         # FALSIFICATION CRITERION: Check for redundant parameters
@@ -1759,21 +1677,16 @@ def analyze_sobol_sensitivity(
         # Per FP-8 specification: Check via bootstrap overlap, not simple inequality
         # APGI predicts: S_total(θt) > S_total(β) > S_total(Πi) > S_total(Πe)
         apgi_hierarchy_params = ["theta_0", "beta", "Pi_i", "Pi_e"]
-        available_hierarchy_params = [
-            p for p in apgi_hierarchy_params if p in param_bounds.keys()
-        ]
+        available_hierarchy_params = [p for p in apgi_hierarchy_params if p in param_bounds.keys()]
 
         if len(available_hierarchy_params) >= 3:  # Need at least 3 to test hierarchy
             # Use bootstrap confidence intervals for hierarchy testing
-            hierarchy_test = _check_bootstrap_hierarchy_overlap(
-                bootstrap_st_indices, apgi_hierarchy_params
-            )
+            hierarchy_test = _check_bootstrap_hierarchy_overlap(bootstrap_st_indices, apgi_hierarchy_params)
             results["apgi_hierarchy_falsification"] = hierarchy_test
 
             # Include point estimates for reference
             param_st_indices = {
-                param: float(st_indices[list(param_bounds.keys()).index(param)])
-                for param in available_hierarchy_params
+                param: float(st_indices[list(param_bounds.keys()).index(param)]) for param in available_hierarchy_params
             }
             # Use dict update instead of indexed assignment
             hierarchy_test_copy = hierarchy_test.copy()
@@ -1813,18 +1726,12 @@ def analyze_sobol_sensitivity(
                 f8_sa_individual[param] = {
                     "ST": st_value,
                     "S1": s1_value,
-                    "contribution_pct": (
-                        (st_value / total_sensitivity * 100)
-                        if total_sensitivity > 0
-                        else 0
-                    ),
+                    "contribution_pct": ((st_value / total_sensitivity * 100) if total_sensitivity > 0 else 0),
                 }
 
             # Calculate percentage of total sensitivity
             f8_sa_contribution_pct = (
-                (f8_sa_combined_sensitivity / total_sensitivity * 100)
-                if total_sensitivity > 0
-                else 0
+                (f8_sa_combined_sensitivity / total_sensitivity * 100) if total_sensitivity > 0 else 0
             )
 
             # F8.SA threshold: β + Πⁱ must account for >50% of precision-related sensitivity
@@ -1867,19 +1774,13 @@ def analyze_sobol_sensitivity(
         # Additional sensitivity analysis
         results["sensitivity_summary"] = {
             "high_sensitivity_params": [
-                list(param_bounds.keys())[i]
-                for i in range(len(st_indices))
-                if st_indices[i] > 0.2
+                list(param_bounds.keys())[i] for i in range(len(st_indices)) if st_indices[i] > 0.2
             ],
             "moderate_sensitivity_params": [
-                list(param_bounds.keys())[i]
-                for i in range(len(st_indices))
-                if 0.05 <= st_indices[i] <= 0.2
+                list(param_bounds.keys())[i] for i in range(len(st_indices)) if 0.05 <= st_indices[i] <= 0.2
             ],
             "low_sensitivity_params": [
-                list(param_bounds.keys())[i]
-                for i in range(len(st_indices))
-                if st_indices[i] < 0.05
+                list(param_bounds.keys())[i] for i in range(len(st_indices)) if st_indices[i] < 0.05
             ],
         }
 
@@ -1890,18 +1791,8 @@ def analyze_sobol_sensitivity(
         # ----------------------------------------------------------------
         try:
             collinearity_check = analyze_beta_pi_collinearity(
-                {
-                    k: float(
-                        np.mean(param_values[:, list(param_bounds.keys()).index(k)])
-                    )
-                    for k in param_bounds.keys()
-                },
-                {
-                    k: float(
-                        np.std(param_values[:, list(param_bounds.keys()).index(k)])
-                    )
-                    for k in param_bounds.keys()
-                },
+                {k: float(np.mean(param_values[:, list(param_bounds.keys()).index(k)])) for k in param_bounds.keys()},
+                {k: float(np.std(param_values[:, list(param_bounds.keys()).index(k)])) for k in param_bounds.keys()},
                 n_samples=512,
             )
             f8_col = collinearity_check.get("F8_collinearity", {})
@@ -1928,9 +1819,7 @@ def analyze_sobol_sensitivity(
                         hierarchy_falsification = hierarchy_raw.copy()
                         hierarchy_falsification["hierarchy_reliable"] = False
                         hierarchy_falsification["collinearity_warning"] = True
-                        results["apgi_hierarchy_falsification"] = (
-                            hierarchy_falsification
-                        )
+                        results["apgi_hierarchy_falsification"] = hierarchy_falsification
                 warnings.warn(
                     f"HIGH COLLINEARITY detected: VIF(β)={beta_vif:.2f}, "
                     f"VIF(Πⁱ)={pi_i_vif:.2f}. "
@@ -2015,7 +1904,9 @@ def generate_comprehensive_sensitivity_report(
         else:
             report += "No parameter ranking available (analysis may have failed or returned early)\n"
 
-        report += f"\nInteroceptive Precision in Top 3: {sobol_results.get('interoceptive_precision_in_top_3', False)}\n"
+        report += (
+            f"\nInteroceptive Precision in Top 3: {sobol_results.get('interoceptive_precision_in_top_3', False)}\n"
+        )
 
         # Falsification criteria
         if "falsification_criteria" in sobol_results:
@@ -2054,9 +1945,7 @@ def generate_comprehensive_sensitivity_report(
         report += "\n\nβ/Πⁱ Collinearity Analysis\n"
         report += "-" * 40 + "\n\n"
 
-        report += (
-            f"Parameters Analyzed: {collinearity_results['parameters_analyzed']}\n"
-        )
+        report += f"Parameters Analyzed: {collinearity_results['parameters_analyzed']}\n"
         report += f"Condition Number: {collinearity_results['condition_number']:.2f}\n"
 
         if collinearity_results["high_vif_params"]:
@@ -2101,11 +1990,7 @@ def generate_comprehensive_sensitivity_report(
 
         report += "\nParameter Sensitivities (FIM diagonal):\n"
         for param, sensitivity in fim_results["param_sensitivities"].items():
-            status = (
-                "HIGH"
-                if sensitivity > 1e-3
-                else "MODERATE" if sensitivity > 1e-6 else "LOW"
-            )
+            status = "HIGH" if sensitivity > 1e-3 else "MODERATE" if sensitivity > 1e-6 else "LOW"
             report += f"{param}: {sensitivity:.2e} ({status})\n"
 
         report += "\nConfidence Intervals (95%):\n"
@@ -2116,9 +2001,7 @@ def generate_comprehensive_sensitivity_report(
                 report += f"{param}: Undefined (non-identifiable)\n"
 
     # Profile Likelihood Results (NEW)
-    if profile_likelihood_results and profile_likelihood_results.get(
-        "profile_likelihood", False
-    ):
+    if profile_likelihood_results and profile_likelihood_results.get("profile_likelihood", False):
         report += "\n\nProfile Likelihood Analysis (Practical Identifiability)\n"
         report += "-" * 40 + "\n\n"
 
@@ -2130,9 +2013,7 @@ def generate_comprehensive_sensitivity_report(
         for param, results in profile_likelihood_results["profile_results"].items():
             report += f"{param}:\n"
             report += f"  Identifiability Class: {results['identifiability_class']}\n"
-            report += (
-                f"  Identifiability Score: {results['identifiability_score']:.3f}\n"
-            )
+            report += f"  Identifiability Score: {results['identifiability_score']:.3f}\n"
             report += f"  Peak Parameter Value: {results['peak_parameter_value']:.3f}\n"
             report += f"  Profile Width: {results['relative_width']:.2%} of range\n"
             report += f"  Flat Profile: {results['is_flat_profile']}\n"
@@ -2140,9 +2021,7 @@ def generate_comprehensive_sensitivity_report(
 
         # Profile likelihood falsification
         if "identifiability_falsification" in profile_likelihood_results:
-            pl_falsification = profile_likelihood_results[
-                "identifiability_falsification"
-            ]
+            pl_falsification = profile_likelihood_results["identifiability_falsification"]
             report += "PROFILE LIKELIHOOD FALSIFICATION:\n"
             report += f"Model Falsified: {pl_falsification['falsified']}\n"
             report += f"Reason: {pl_falsification['falsification_reason']}\n"
@@ -2180,32 +2059,22 @@ def generate_comprehensive_sensitivity_report(
     if sobol_results.get("falsification_criteria", {}).get("falsified", False):
         issues.append("Model falsified due to redundant core parameters")
 
-    if sobol_results.get("apgi_hierarchy_falsification", {}).get(
-        "hierarchy_falsified", False
-    ):
+    if sobol_results.get("apgi_hierarchy_falsification", {}).get("hierarchy_falsified", False):
         issues.append("APGI theoretical hierarchy violated")
 
-    if profile_likelihood_results and profile_likelihood_results.get(
-        "identifiability_falsification", {}
-    ).get("falsified", False):
-        issues.append(
-            "Profile likelihood analysis indicates non-identifiable parameters"
-        )
+    if profile_likelihood_results and profile_likelihood_results.get("identifiability_falsification", {}).get(
+        "falsified", False
+    ):
+        issues.append("Profile likelihood analysis indicates non-identifiable parameters")
 
     if collinearity_results.get("high_vif_params"):
-        issues.append(
-            f"High collinearity detected: {collinearity_results['high_vif_params']}"
-        )
+        issues.append(f"High collinearity detected: {collinearity_results['high_vif_params']}")
 
     if recovery_results.get("recovery_rate", 1.0) < 0.5:
-        issues.append(
-            f"Low parameter recovery rate: {recovery_results['recovery_rate']:.2%}"
-        )
+        issues.append(f"Low parameter recovery rate: {recovery_results['recovery_rate']:.2%}")
 
     if fim_results.get("identifiability_score", 1.0) < 0.7:
-        issues.append(
-            f"Low identifiability score: {fim_results['identifiability_score']:.2%}"
-        )
+        issues.append(f"Low identifiability score: {fim_results['identifiability_score']:.2%}")
 
     if issues:
         report += "CRITICAL ISSUES FOUND:\n"
@@ -2271,9 +2140,7 @@ class FP08Runner:
             _current_agent_instance = effective_agent
 
             # Run comprehensive analysis with agent
-            results = run_comprehensive_parameter_sensitivity_analysis(
-                agent_instance=effective_agent
-            )
+            results = run_comprehensive_parameter_sensitivity_analysis(agent_instance=effective_agent)
 
             # Add dependency injection metadata
             results["dependency_injection"] = {
@@ -2366,65 +2233,47 @@ def run_comprehensive_parameter_sensitivity_analysis(
 
     # 1. OAT sensitivity analysis (enhanced with more levels and trials - reduced for speed)
     logger.info("Running OAT sensitivity analysis...")
-    oat_results = analyze_oat_sensitivity(
-        base_params, param_std_devs, n_levels=3, n_trials=3
-    )
+    oat_results = analyze_oat_sensitivity(base_params, param_std_devs, n_levels=3, n_trials=3)
     results["oat_sensitivity"] = oat_results
 
     # 2. Sobol sensitivity analysis (enhanced with power-of-2 samples - reduced for speed)
     logger.info("Running Sobol sensitivity analysis...")
-    sobol_results = analyze_sobol_sensitivity(
-        base_params, param_bounds, n_samples=8, n_trials=2
-    )
+    sobol_results = analyze_sobol_sensitivity(base_params, param_bounds, n_samples=8, n_trials=2)
     results["sobol_sensitivity"] = sobol_results
 
     # 3. β/Πⁱ collinearity analysis
     logger.info("Running collinearity analysis...")
-    collinearity_results = analyze_beta_pi_collinearity(
-        base_params, param_std_devs, n_samples=64
-    )
+    collinearity_results = analyze_beta_pi_collinearity(base_params, param_std_devs, n_samples=64)
     results["collinearity_analysis"] = collinearity_results
 
     # 4. Parameter recovery analysis
     logger.info("Running parameter recovery analysis...")
-    recovery_results = analyze_parameter_recovery(
-        base_params, param_bounds, n_simulations=3, n_trials_per_sim=5
-    )
+    recovery_results = analyze_parameter_recovery(base_params, param_bounds, n_simulations=3, n_trials_per_sim=5)
     results["parameter_recovery"] = recovery_results
 
     # 5. Profile likelihood analysis (NEW - practical identifiability)
     logger.info("Running profile likelihood analysis...")
-    profile_likelihood_results = analyze_profile_likelihood(
-        base_params, param_bounds, n_points=5, n_trials=2
-    )
+    profile_likelihood_results = analyze_profile_likelihood(base_params, param_bounds, n_points=5, n_trials=2)
     results["profile_likelihood"] = profile_likelihood_results
 
     # 6. Fisher Information Matrix analysis
     logger.info("Running Fisher Information Matrix analysis...")
-    fim_results = analyze_fisher_information_matrix(
-        base_params, param_bounds, epsilon=1e-4, n_trials_per_eval=10
-    )
+    fim_results = analyze_fisher_information_matrix(base_params, param_bounds, epsilon=1e-4, n_trials_per_eval=10)
     results["fisher_information_matrix"] = fim_results
 
     # 6. Systematic parameter space exploration
     logger.info("Running systematic parameter space exploration...")
-    space_exploration_results = run_systematic_parameter_space_exploration(
-        base_params, param_bounds, n_grid_points=3
-    )
+    space_exploration_results = run_systematic_parameter_space_exploration(base_params, param_bounds, n_grid_points=3)
     results["parameter_space_exploration"] = space_exploration_results
 
     # 7. Parameter interaction analysis
     logger.info("Running parameter interaction analysis...")
-    interaction_results = analyze_parameter_interactions(
-        base_params, param_bounds, n_samples=5
-    )
+    interaction_results = analyze_parameter_interactions(base_params, param_bounds, n_samples=5)
     results["parameter_interactions"] = interaction_results
 
     # 8. Parameter robustness analysis
     logger.info("Running parameter robustness analysis...")
-    robustness_results = analyze_parameter_robustness(
-        base_params, param_std_devs, n_robustness_tests=2
-    )
+    robustness_results = analyze_parameter_robustness(base_params, param_std_devs, n_robustness_tests=2)
     results["parameter_robustness"] = robustness_results
 
     # 9. Local sensitivity analysis
@@ -2446,9 +2295,7 @@ def run_comprehensive_parameter_sensitivity_analysis(
 
     # 11. Summary statistics with comprehensive F8 criteria tracking
     # F8.PL: Profile likelihood CI finite
-    f8_pl_passed = profile_likelihood_results.get("F8_PL_result", {}).get(
-        "passed", False
-    )
+    f8_pl_passed = profile_likelihood_results.get("F8_PL_result", {}).get("passed", False)
 
     # F8.FIM: All eigenvalues > 0
     f8_fim_passed = fim_results.get("F8_FIM_result", {}).get("passed", False)
@@ -2462,11 +2309,7 @@ def run_comprehensive_parameter_sensitivity_analysis(
     results["summary_statistics"] = {
         "total_parameters_analyzed": len(base_params),
         "high_sensitivity_params": len(
-            [
-                p
-                for p, r in oat_results.items()
-                if isinstance(r, dict) and r.get("sensitivity", 0) > 0.1
-            ]
+            [p for p, r in oat_results.items() if isinstance(r, dict) and r.get("sensitivity", 0) > 0.1]
         ),
         # F8 Criteria Summary
         "F8_criteria": {
@@ -2483,22 +2326,14 @@ def run_comprehensive_parameter_sensitivity_analysis(
             "F8_SA_sobol": {
                 "passed": f8_sa_passed,
                 "description": "β + Πⁱ account for >50% total sensitivity",
-                "contribution_pct": sobol_results.get("F8_SA_result", {}).get(
-                    "contribution_percentage", 0
-                ),
+                "contribution_pct": sobol_results.get("F8_SA_result", {}).get("contribution_percentage", 0),
             },
         },
         # Legacy fields for backward compatibility
-        "model_falsified": sobol_results.get("falsification_criteria", {}).get(
-            "falsified", False
-        ),
-        "hierarchy_falsified": sobol_results.get(
-            "apgi_hierarchy_falsification", {}
-        ).get("hierarchy_falsified", False),
+        "model_falsified": sobol_results.get("falsification_criteria", {}).get("falsified", False),
+        "hierarchy_falsified": sobol_results.get("apgi_hierarchy_falsification", {}).get("hierarchy_falsified", False),
         "identifiability_falsified": (
-            profile_likelihood_results.get("identifiability_falsification", {}).get(
-                "falsified", False
-            )
+            profile_likelihood_results.get("identifiability_falsification", {}).get("falsified", False)
             if profile_likelihood_results
             else False
         ),
@@ -2538,12 +2373,8 @@ def analyze_parameter_interactions(
 
             # Generate factorial design
             levels = 3  # Low, medium, high
-            param1_levels = np.linspace(
-                param_bounds[param1][0], param_bounds[param1][1], levels
-            )
-            param2_levels = np.linspace(
-                param_bounds[param2][0], param_bounds[param2][1], levels
-            )
+            param1_levels = np.linspace(param_bounds[param1][0], param_bounds[param1][1], levels)
+            param2_levels = np.linspace(param_bounds[param2][0], param_bounds[param2][1], levels)
 
             # Full factorial design
             interaction_matrix = np.zeros((levels, levels))
@@ -2555,19 +2386,13 @@ def analyze_parameter_interactions(
                     test_params[param2] = val2
 
                     # Simulate performance
-                    perf = simulate_model_performance_with_agent(
-                        test_params, n_trials=200
-                    )
+                    perf = simulate_model_performance_with_agent(test_params, n_trials=200)
                     interaction_matrix[a, b] = perf
 
             # Calculate interaction strength
             # Using two-way ANOVA approximation
-            main_effect_1 = np.mean(interaction_matrix, axis=1) - np.mean(
-                interaction_matrix
-            )
-            main_effect_2 = np.mean(interaction_matrix, axis=0) - np.mean(
-                interaction_matrix
-            )
+            main_effect_1 = np.mean(interaction_matrix, axis=1) - np.mean(interaction_matrix)
+            main_effect_2 = np.mean(interaction_matrix, axis=0) - np.mean(interaction_matrix)
 
             # Expected additive model
             additive_model = (
@@ -2578,29 +2403,20 @@ def analyze_parameter_interactions(
 
             # Interaction effect
             interaction_effect = interaction_matrix - additive_model
-            interaction_strength = np.std(interaction_effect) / np.std(
-                interaction_matrix
-            )
+            interaction_strength = np.std(interaction_effect) / np.std(interaction_matrix)
 
             interaction_results[f"{param1}_{param2}"] = {
                 "interaction_matrix": interaction_matrix.tolist(),
                 "interaction_strength": float(interaction_strength),
-                "main_effect_1_range": float(
-                    np.max(main_effect_1) - np.min(main_effect_1)
-                ),
-                "main_effect_2_range": float(
-                    np.max(main_effect_2) - np.min(main_effect_2)
-                ),
+                "main_effect_1_range": float(np.max(main_effect_1) - np.min(main_effect_1)),
+                "main_effect_2_range": float(np.max(main_effect_2) - np.min(main_effect_2)),
                 "synergistic": interaction_strength > 0.1,
                 "antagonistic": interaction_strength < -0.1,
             }
 
     # Identify strongest interactions
     strongest_interactions = sorted(
-        [
-            (pair, results["interaction_strength"])
-            for pair, results in interaction_results.items()
-        ],
+        [(pair, results["interaction_strength"]) for pair, results in interaction_results.items()],
         key=lambda x: abs(x[1]),
         reverse=True,
     )
@@ -2643,14 +2459,10 @@ def analyze_parameter_robustness(
 
             # Calculate performance
             base_perf = simulate_model_performance_with_agent(base_params, n_trials=100)
-            perturbed_perf = simulate_model_performance_with_agent(
-                perturbed_params, n_trials=100
-            )
+            perturbed_perf = simulate_model_performance_with_agent(perturbed_params, n_trials=100)
 
             # Calculate degradation
-            degradation = (
-                (base_perf - perturbed_perf) / base_perf if base_perf > 0 else 0
-            )
+            degradation = (base_perf - perturbed_perf) / base_perf if base_perf > 0 else 0
             performance_degradations.append(degradation)
 
         # Calculate robustness metrics
@@ -2670,9 +2482,7 @@ def analyze_parameter_robustness(
         }
 
     # Overall robustness assessment
-    robustness_scores = [
-        results["robustness_score"] for results in robustness_results.values()
-    ]
+    robustness_scores = [results["robustness_score"] for results in robustness_results.values()]
     overall_robustness = np.mean(robustness_scores)
 
     return {
@@ -2681,9 +2491,7 @@ def analyze_parameter_robustness(
         "robustness_results": robustness_results,
         "overall_robustness_score": float(overall_robustness),
         "robustness_classification": (
-            "HIGH"
-            if overall_robustness > 0.8
-            else "MODERATE" if overall_robustness > 0.6 else "LOW"
+            "HIGH" if overall_robustness > 0.8 else "MODERATE" if overall_robustness > 0.6 else "LOW"
         ),
         "n_robustness_tests": n_robustness_tests,
     }
@@ -2721,9 +2529,7 @@ def analyze_local_sensitivity(
         local_gradients[param] = float(gradient)
 
         # Normalized sensitivity (elasticity)
-        elasticity = (
-            gradient * (base_value / base_performance) if base_performance > 0 else 0
-        )
+        elasticity = gradient * (base_value / base_performance) if base_performance > 0 else 0
         local_sensitivities[param] = float(elasticity)
 
     # Classify sensitivities
@@ -2755,16 +2561,10 @@ def analyze_local_sensitivity(
                 params_12[param1] += epsilon
                 params_12[param2] += epsilon
 
-                perf_base = simulate_model_performance_with_agent(
-                    params_base, n_trials=200
-                )
+                perf_base = simulate_model_performance_with_agent(params_base, n_trials=200)
                 perf_12 = simulate_model_performance_with_agent(params_12, n_trials=200)
 
-                cross_sensitivity = (
-                    (perf_12 - perf_base) / (2 * epsilon * perf_base)
-                    if perf_base > 0
-                    else 0
-                )
+                cross_sensitivity = (perf_12 - perf_base) / (2 * epsilon * perf_base) if perf_base > 0 else 0
                 sensitivity_matrix[i, j] = cross_sensitivity
 
     return {
@@ -2935,9 +2735,7 @@ def analyze_parameter_uncertainty_propagation(
         "q5": float(np.percentile(output_samples_arr, 5)),
         "q95": float(np.percentile(output_samples_arr, 95)),
         "cv": (
-            float(np.std(output_samples_arr) / np.mean(output_samples_arr))
-            if np.mean(output_samples_arr) > 0
-            else 0
+            float(np.std(output_samples_arr) / np.mean(output_samples_arr)) if np.mean(output_samples_arr) > 0 else 0
         ),
     }
 
@@ -2977,9 +2775,7 @@ def analyze_parameter_uncertainty_propagation(
         "most_influential_params": sorted_contributions[:5],
         "total_variance": float(total_variance),
         "explained_variance_ratio": (
-            float(sum(explained_variances.values()) / total_variance)
-            if total_variance > 0
-            else 0
+            float(sum(explained_variances.values()) / total_variance) if total_variance > 0 else 0
         ),
         "n_mc_samples": n_mc_samples,
     }
@@ -3036,42 +2832,20 @@ def validate_sensitivity_analysis_convergence(
 
     for i, param_name in enumerate(param_names):
         # Track first-order indices across sample sizes
-        fo_indices = [
-            convergence_results[f"n_samples_{n}"]["first_order_indices"][i]
-            for n in sample_sizes
-        ]
-        to_indices = [
-            convergence_results[f"n_samples_{n}"]["total_order_indices"][i]
-            for n in sample_sizes
-        ]
+        fo_indices = [convergence_results[f"n_samples_{n}"]["first_order_indices"][i] for n in sample_sizes]
+        to_indices = [convergence_results[f"n_samples_{n}"]["total_order_indices"][i] for n in sample_sizes]
 
         # Calculate convergence metrics
-        fo_stability = (
-            np.std(fo_indices) / np.mean(fo_indices)
-            if np.mean(fo_indices) > 0
-            else float("inf")
-        )
-        to_stability = (
-            np.std(to_indices) / np.mean(to_indices)
-            if np.mean(to_indices) > 0
-            else float("inf")
-        )
+        fo_stability = np.std(fo_indices) / np.mean(fo_indices) if np.mean(fo_indices) > 0 else float("inf")
+        to_stability = np.std(to_indices) / np.mean(to_indices) if np.mean(to_indices) > 0 else float("inf")
 
         # Check if indices have stabilized (using last 3 sample sizes)
         if len(sample_sizes) >= 3:
             recent_fo = fo_indices[-3:]
             recent_to = to_indices[-3:]
 
-            fo_converged = (
-                np.std(recent_fo) < 0.05 * np.mean(recent_fo)
-                if np.mean(recent_fo) > 0
-                else False
-            )
-            to_converged = (
-                np.std(recent_to) < 0.05 * np.mean(recent_to)
-                if np.mean(recent_to) > 0
-                else False
-            )
+            fo_converged = np.std(recent_fo) < 0.05 * np.mean(recent_fo) if np.mean(recent_fo) > 0 else False
+            to_converged = np.std(recent_to) < 0.05 * np.mean(recent_to) if np.mean(recent_to) > 0 else False
         else:
             fo_converged = False
             to_converged = False
@@ -3101,9 +2875,7 @@ def validate_sensitivity_analysis_convergence(
         "convergence_metrics": convergence_metrics,
         "converged_parameters": converged_params,
         "overall_convergence_score": float(overall_convergence),
-        "recommended_sample_size": (
-            sample_sizes[-1] if overall_convergence > 0.8 else sample_sizes[-1] * 2
-        ),
+        "recommended_sample_size": (sample_sizes[-1] if overall_convergence > 0.8 else sample_sizes[-1] * 2),
     }
 
 
@@ -3116,9 +2888,7 @@ def run_systematic_parameter_space_exploration(
     Systematic parameter space exploration for comprehensive sensitivity analysis.
     Explores the parameter space systematically to identify non-linear effects.
     """
-    logger.info(
-        f"Running systematic parameter space exploration with {n_grid_points} grid points..."
-    )
+    logger.info(f"Running systematic parameter space exploration with {n_grid_points} grid points...")
 
     # Select key parameters for systematic exploration
     key_params = ["beta", "Pi_i", "theta_0", "alpha"]
@@ -3130,12 +2900,8 @@ def run_systematic_parameter_space_exploration(
     # Generate grid for two most important parameters
     param1, param2 = available_key_params[:2]
 
-    param1_range = np.linspace(
-        param_bounds[param1][0], param_bounds[param1][1], n_grid_points
-    )
-    param2_range = np.linspace(
-        param_bounds[param2][0], param_bounds[param2][1], n_grid_points
-    )
+    param1_range = np.linspace(param_bounds[param1][0], param_bounds[param1][1], n_grid_points)
+    param2_range = np.linspace(param_bounds[param2][0], param_bounds[param2][1], n_grid_points)
 
     # Create parameter space grid
     performance_surface = np.zeros((n_grid_points, n_grid_points))
@@ -3170,9 +2936,7 @@ def run_systematic_parameter_space_exploration(
     # Test for non-linearity
     linear_fit = np.polyfit(param1_range, np.mean(performance_surface, axis=1), 1)
     linear_pred = np.polyval(linear_fit, param1_range)
-    non_linearity_score = 1 - (
-        np.corrcoef(linear_pred, np.mean(performance_surface, axis=1))[0, 1] ** 2
-    )
+    non_linearity_score = 1 - (np.corrcoef(linear_pred, np.mean(performance_surface, axis=1))[0, 1] ** 2)
 
     return {
         "space_exploration": True,
@@ -3211,9 +2975,7 @@ class ParameterSensitivityAnalyzer:
             return {"error": str(e), "comprehensive_report": "Analysis failed"}
 
 
-def run_falsification(
-    seed: Optional[int] = None, agent_instance: Optional[Any] = None
-) -> Dict[str, Any]:
+def run_falsification(seed: Optional[int] = None, agent_instance: Optional[Any] = None) -> Dict[str, Any]:
     """
     Falsification protocol entry point for parameter sensitivity analysis.
 
@@ -3248,9 +3010,7 @@ def run_falsification(
             "F8.SA results will be marked as using fallback methodology."
         )
         # Run the comprehensive parameter sensitivity analysis (fallback mode)
-        results = run_comprehensive_parameter_sensitivity_analysis(
-            agent_instance=agent_instance
-        )
+        results = run_comprehensive_parameter_sensitivity_analysis(agent_instance=agent_instance)
 
     # Add falsification-specific metadata
     results["protocol_id"] = "FP-08"
@@ -3261,9 +3021,7 @@ def run_falsification(
     # CRIT-04 FIX: Track agent usage in results
     results["agent_usage"] = {
         "agent_provided": agent_instance is not None,
-        "validation_method": (
-            "live_agent" if agent_instance is not None else "synthetic_fallback"
-        ),
+        "validation_method": ("live_agent" if agent_instance is not None else "synthetic_fallback"),
         "f8_sa_compliance": agent_instance is not None,  # F8.SA requires live agent
     }
 
@@ -3272,9 +3030,7 @@ def run_falsification(
     all_passed = f8_criteria.get("all_passed", False)
 
     # Also check for model falsification from sensitivity analysis
-    model_falsified = results.get("summary_statistics", {}).get(
-        "model_falsified", False
-    )
+    model_falsified = results.get("summary_statistics", {}).get("model_falsified", False)
 
     # VIF collinearity gate: HIGH_COLLINEARITY demotes the overall result
     sobol_res = results.get("sobol_sensitivity", {})
@@ -3286,8 +3042,7 @@ def run_falsification(
     if high_collinearity:
         results["collinearity_gate_triggered"] = True
         logger.warning(
-            "FP-08: HIGH_COLLINEARITY gate triggered — "
-            "overall result demoted to FAIL regardless of Sobol hierarchy."
+            "FP-08: HIGH_COLLINEARITY gate triggered — " "overall result demoted to FAIL regardless of Sobol hierarchy."
         )
 
     logger.info(
@@ -3351,16 +3106,12 @@ if __name__ == "__main__":
                 values = [passed, total - passed]
                 colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
 
-                wedges, texts, autotexts = ax.pie(
-                    values, labels=metrics, colors=colors, autopct="%1.1f%%"
-                )
+                wedges, texts, autotexts = ax.pie(values, labels=metrics, colors=colors, autopct="%1.1f%%")
                 ax.set_title(f"Parameter Sensitivity Criteria\n{passed}/{total} Passed")
                 return True
             return False
 
-        success = add_standard_png_output(
-            8, results, fp08_custom_plot, "Parameter Sensitivity"
-        )
+        success = add_standard_png_output(8, results, fp08_custom_plot, "Parameter Sensitivity")
         if success:
             print("✓ Generated protocol08.png visualization")
         else:
@@ -3404,17 +3155,11 @@ def run_protocol_main(config=None):
 
 
 # Aliases for test compatibility
-def analyze_parameter_sensitivity(
-    base_params, param_std_devs, n_levels=10, n_trials=1000
-):
+def analyze_parameter_sensitivity(base_params, param_std_devs, n_levels=10, n_trials=1000):
     """Alias for analyze_oat_sensitivity for test compatibility."""
     return analyze_oat_sensitivity(base_params, param_std_devs, n_levels, n_trials)
 
 
-def generate_sensitivity_report(
-    base_params, param_std_devs, n_levels=10, n_trials=1000
-):
+def generate_sensitivity_report(base_params, param_std_devs, n_levels=10, n_trials=1000):
     """Alias for generate_comprehensive_sensitivity_report for test compatibility."""
-    return generate_comprehensive_sensitivity_report(
-        base_params, param_std_devs, n_levels, n_trials
-    )
+    return generate_comprehensive_sensitivity_report(base_params, param_std_devs, n_levels, n_trials)

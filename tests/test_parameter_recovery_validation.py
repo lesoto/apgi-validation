@@ -91,9 +91,7 @@ def calculate_recovery_metrics(
 
             # Relative error
             if true_value != 0:
-                metrics[f"{param_name}_rel_error"] = abs(
-                    (recovered_value - true_value) / true_value
-                )
+                metrics[f"{param_name}_rel_error"] = abs((recovered_value - true_value) / true_value)
             else:
                 metrics[f"{param_name}_rel_error"] = abs(recovered_value)
 
@@ -114,8 +112,7 @@ def calculate_recovery_metrics(
 def test_parameter_recovery_accuracy():
     """Test that recovered parameters are close to true parameters."""
     try:
-        from Falsification.FP_10_BayesianEstimation_MCMC import \
-            run_bayesian_estimation_complete
+        from Falsification.FP_10_BayesianEstimation_MCMC import run_bayesian_estimation_complete
 
         # Test reduced parameter combinations for performance
         test_cases = [
@@ -134,9 +131,7 @@ def test_parameter_recovery_accuracy():
             )
 
             # Run parameter recovery
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             # Extract recovered parameters
             posterior_stats = results["posterior_statistics"]
@@ -175,17 +170,14 @@ def test_parameter_recovery_consistency():
     """Test that parameter recovery is consistent across multiple runs."""
     try:
         import Falsification.FP_10_BayesianEstimation_MCMC as fp10_module
-        from Falsification.FP_10_BayesianEstimation_MCMC import (
-            attempt_imports, run_bayesian_estimation_complete)
+        from Falsification.FP_10_BayesianEstimation_MCMC import attempt_imports, run_bayesian_estimation_complete
 
         # Ensure imports are attempted before checking HAS_PYMC
         attempt_imports()
 
         # Check HAS_PYMC from module (value may have changed after attempt_imports)
         if not fp10_module.HAS_PYMC:
-            pytest.skip(
-                "Consistency test requires PyMC NUTS sampler (NumPy fallback quality insufficient)"
-            )
+            pytest.skip("Consistency test requires PyMC NUTS sampler (NumPy fallback quality insufficient)")
 
         true_params = {"beta": 0.7, "pi": 0.5}
         n_runs = 3  # Reduced from 5 for performance
@@ -204,9 +196,7 @@ def test_parameter_recovery_consistency():
             )
 
             # Run parameter recovery
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             recovered_betas.append(posterior_stats["beta"]["mean"])
@@ -234,8 +224,7 @@ def test_parameter_recovery_consistency():
 def test_posterior_coverage():
     """Test that posterior credible intervals cover true parameters."""
     try:
-        from Falsification.FP_10_BayesianEstimation_MCMC import \
-            run_bayesian_estimation_complete
+        from Falsification.FP_10_BayesianEstimation_MCMC import run_bayesian_estimation_complete
 
         true_params = {"beta": 0.7, "pi": 0.5}
         n_simulations = 10
@@ -254,9 +243,7 @@ def test_posterior_coverage():
             )
 
             # Run parameter recovery
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_samples = results["posterior_samples"]
 
@@ -275,9 +262,7 @@ def test_posterior_coverage():
         coverage_prob = coverage_count / total_checks if total_checks > 0 else 0
 
         # Coverage should be close to 0.95 (within reasonable tolerance)
-        assert (
-            coverage_prob >= 0.80
-        ), f"Posterior coverage too low: {coverage_prob:.2f} < 0.80"
+        assert coverage_prob >= 0.80, f"Posterior coverage too low: {coverage_prob:.2f} < 0.80"
 
     except ImportError:
         pytest.skip("BayesianEstimation module not available")
@@ -287,8 +272,7 @@ def test_posterior_coverage():
 def test_parameter_identifiability():
     """Test that parameters are identifiable (not collinear)."""
     try:
-        from Falsification.FP_10_BayesianEstimation_MCMC import \
-            run_bayesian_estimation_complete
+        from Falsification.FP_10_BayesianEstimation_MCMC import run_bayesian_estimation_complete
 
         # Test with different parameter combinations to check identifiability
         test_cases = [
@@ -308,9 +292,7 @@ def test_parameter_identifiability():
                 seed=i,
             )
 
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             recovered_params_list.append(
@@ -340,8 +322,7 @@ def test_parameter_identifiability():
 def test_recovery_with_different_noise_levels():
     """Test parameter recovery robustness to different noise levels."""
     try:
-        from Falsification.FP_10_BayesianEstimation_MCMC import \
-            run_bayesian_estimation_complete
+        from Falsification.FP_10_BayesianEstimation_MCMC import run_bayesian_estimation_complete
 
         true_params = {"beta": 0.7, "pi": 0.5}
         noise_levels = [0.05, 0.1, 0.2, 0.3]
@@ -357,9 +338,7 @@ def test_recovery_with_different_noise_levels():
                 seed=i,
             )
 
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             recovered_params = {
@@ -374,9 +353,7 @@ def test_recovery_with_different_noise_levels():
             )
 
             # Calculate combined error
-            combined_error = np.sqrt(
-                metrics["beta_abs_error"] ** 2 + metrics["pi_abs_error"] ** 2
-            )
+            combined_error = np.sqrt(metrics["beta_abs_error"] ** 2 + metrics["pi_abs_error"] ** 2)
             recovery_errors.append(combined_error)
 
         # Error should increase with noise level (monotonic relationship)
@@ -391,24 +368,19 @@ def test_recovery_with_different_noise_levels():
 
 
 @pytest.mark.parameter_recovery
-@pytest.mark.xfail(
-    reason="MCMC convergence issues cause unreliable bias estimates - see divergence warnings"
-)
+@pytest.mark.xfail(reason="MCMC convergence issues cause unreliable bias estimates - see divergence warnings")
 def test_recovery_bias_assessment():
     """Test that parameter recovery has minimal systematic bias."""
     try:
         import Falsification.FP_10_BayesianEstimation_MCMC as fp10_module
-        from Falsification.FP_10_BayesianEstimation_MCMC import (
-            attempt_imports, run_bayesian_estimation_complete)
+        from Falsification.FP_10_BayesianEstimation_MCMC import attempt_imports, run_bayesian_estimation_complete
 
         # Ensure imports are attempted before checking HAS_PYMC
         attempt_imports()
 
         # Check HAS_PYMC from module (value may have changed after attempt_imports)
         if not fp10_module.HAS_PYMC:
-            pytest.skip(
-                "Bias assessment requires PyMC NUTS sampler (NumPy fallback quality insufficient)"
-            )
+            pytest.skip("Bias assessment requires PyMC NUTS sampler (NumPy fallback quality insufficient)")
 
         true_params = {"beta": 0.7, "pi": 0.5}
         n_runs = 10
@@ -425,9 +397,7 @@ def test_recovery_bias_assessment():
                 seed=i,
             )
 
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             recovered_beta = posterior_stats["beta"]["mean"]
@@ -458,8 +428,7 @@ def test_recovery_bias_assessment():
 def test_recovery_uncertainty_calibration():
     """Test that posterior uncertainty is well-calibrated."""
     try:
-        from Falsification.FP_10_BayesianEstimation_MCMC import (
-            attempt_imports, run_bayesian_estimation_complete)
+        from Falsification.FP_10_BayesianEstimation_MCMC import attempt_imports, run_bayesian_estimation_complete
 
         # Ensure imports are attempted before checking HAS_PYMC
         attempt_imports()
@@ -480,9 +449,7 @@ def test_recovery_uncertainty_calibration():
                 seed=i,
             )
 
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             posterior_samples = results["posterior_samples"]
@@ -504,9 +471,7 @@ def test_recovery_uncertainty_calibration():
         pi_coverage = np.mean(pi_std_errors)
 
         # Should be close to 0.95 (within reasonable tolerance)
-        assert (
-            beta_coverage >= 0.80
-        ), f"Beta uncertainty not calibrated: {beta_coverage:.2f}"
+        assert beta_coverage >= 0.80, f"Beta uncertainty not calibrated: {beta_coverage:.2f}"
         assert pi_coverage >= 0.80, f"Pi uncertainty not calibrated: {pi_coverage:.2f}"
 
     except ImportError:
@@ -518,17 +483,14 @@ def test_multivariate_parameter_recovery():
     """Test recovery of multiple parameters simultaneously."""
     try:
         import Falsification.FP_10_BayesianEstimation_MCMC as fp10_module
-        from Falsification.FP_10_BayesianEstimation_MCMC import (
-            attempt_imports, run_bayesian_estimation_complete)
+        from Falsification.FP_10_BayesianEstimation_MCMC import attempt_imports, run_bayesian_estimation_complete
 
         # Ensure imports are attempted before checking HAS_PYMC
         attempt_imports()
 
         # Check HAS_PYMC from module (value may have changed after attempt_imports)
         if not fp10_module.HAS_PYMC:
-            pytest.skip(
-                "Multivariate recovery requires PyMC NUTS sampler (NumPy fallback quality insufficient)"
-            )
+            pytest.skip("Multivariate recovery requires PyMC NUTS sampler (NumPy fallback quality insufficient)")
 
         # Test with multiple parameter sets
         parameter_sets = [
@@ -548,9 +510,7 @@ def test_multivariate_parameter_recovery():
                 seed=i,
             )
 
-            results = run_bayesian_estimation_complete(
-                data=observations, true_parameters=true_params
-            )
+            results = run_bayesian_estimation_complete(data=observations, true_parameters=true_params)
 
             posterior_stats = results["posterior_statistics"]
             recovered = {
@@ -570,12 +530,8 @@ def test_multivariate_parameter_recovery():
         # High correlation indicates good multivariate recovery
         # Relaxed threshold to 0.5 and skip if fundamentally broken
         if correlation < 0:
-            pytest.skip(
-                f"Multivariate recovery fundamentally broken: correlation={correlation:.2f}"
-            )
-        assert (
-            correlation > 0.5
-        ), f"Multivariate recovery poor: correlation={correlation:.2f}"
+            pytest.skip(f"Multivariate recovery fundamentally broken: correlation={correlation:.2f}")
+        assert correlation > 0.5, f"Multivariate recovery poor: correlation={correlation:.2f}"
 
     except ImportError:
         pytest.skip("BayesianEstimation module not available")

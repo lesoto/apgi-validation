@@ -17,7 +17,175 @@ pytest tests/ --cov=. --cov-report=html
 
 # Check coverage for specific module
 pytest tests/ --cov=utils/timeout_handler --cov-report=term-missing
+
 ```
+
+## FAILING TESTS organized by category
+
+### Parameter Recovery Validation Tests
+
+- `tests/test_parameter_recovery_validation.py::test_parameter_recovery_accuracy` FAILED
+- `tests/test_parameter_recovery_validation.py::test_parameter_recovery_consistency` FAILED
+- `tests/test_parameter_recovery_validation.py::test_posterior_coverage` FAILED
+- `tests/test_parameter_recovery_validation.py::test_parameter_identifiability` FAILED
+- `tests/test_parameter_recovery_validation.py::test_recovery_with_different_noise_levels` FAILED
+- `tests/test_parameter_recovery_validation.py::test_recovery_uncertainty_calibration` FAILED
+- `tests/test_parameter_recovery_validation.py::test_multivariate_parameter_recovery` FAILED
+
+### Security Audit Logger Tests
+
+- `tests/test_security_audit_logger.py::TestSecurityAuditLoggerInit::test_init_default` FAILED
+- `tests/test_security_audit_logger.py::TestLogConfigurationChange::test_log_configuration_change` FAILED
+
+### Security Logging Integration Tests
+
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_logger_initialization` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_operation` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_authentication` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_authentication_failure` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_permission_check` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_permission_denied` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_data_access` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_system_event` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_log_security_violation` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_get_recent_logs` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_filter_logs_by_user` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_filter_logs_by_operation` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_rotate_logs` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_clear_logs` FAILED
+- `tests/test_security_logging_integration_missing_coverage.py::test_security_audit_get_statistics` FAILED
+
+### Utility Module Tests
+
+- `tests/test_utility_modules.py::TestSecurityAuditLogger::test_logger_initialization` FAILED
+
+### Utils Remaining Tests
+
+- `tests/test_utils_remaining.py::TestUpdateProtocolMetadata::test_update_metadata` FAILED
+
+### Utils Zero Coverage Tests
+
+- `tests/test_utils_zero_coverage.py::TestDTO::test_master_validation_report_dto` FAILED
+- `tests/test_utils_zero_coverage.py::TestSecretPolicyEnforcer::test_enforce_secret_policy_fallback_detected` FAILED
+
+### Validation Master Complete Tests
+
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_validator_creation` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_protocol_tiers_structure` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_primary_protocols` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_secondary_protocols` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_tertiary_protocols` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_falsification_status_structure` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_is_protocol_passed_with_metadata` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_is_protocol_passed_with_named_predictions_all_pass` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_is_protocol_passed_with_named_predictions_some_fail` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_is_protocol_passed_empty_predictions` FAILED
+- `tests/test_validation_master_complete.py::TestAPGIMasterValidator::test_is_protocol_passed_no_metadata_or_predictions` FAILED
+- `tests/test_validation_master_complete.py::TestProtocolTiers::test_all_protocols_have_tiers` FAILED
+- `tests/test_validation_master_complete.py::TestProtocolTiers::test_no_duplicate_tier_conflicts` FAILED
+- `tests/test_validation_master_complete.py::TestProtocolTiers::test_valid_tier_values` FAILED
+- `tests/test_validation_master_complete.py::TestImports::test_import_apgi_master_validator` FAILED
+- `tests/test_validation_master_complete.py::TestImports::test_import_logger` FAILED
+
+### Validation Protocol Failures Tests
+
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolMidRunExceptions::test_protocol_exception_during_execution` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolMidRunExceptions::test_protocol_returns_invalid_result_format` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolMidRunExceptions::test_protocol_missing_required_function` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolMidRunExceptions::test_protocol_file_not_found` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolPartialRecovery::test_partial_results_preserved_on_failure` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolPartialRecovery::test_report_generation_after_partial_failures` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolPartialRecovery::test_recovery_from_corrupted_results` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolPartialRecovery::test_continue_after_single_protocol_failure` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolTimeoutHandling::test_protocol_timeout_detection` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolTimeoutHandling::test_timeout_error_reporting` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolTimeoutHandling::test_interrupt_handling` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolDependencyFailures::test_dependency_failure_cascade` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolDependencyFailures::test_circular_dependency_detection` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolDependencyFailures::test_missing_dependency_handling` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolEdgeCases::test_empty_protocol_list` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolEdgeCases::test_unknown_protocol` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolEdgeCases::test_concurrent_protocol_execution` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolEdgeCases::test_repeated_protocol_execution` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolResourceCleanup::test_file_handle_cleanup_on_exception` FAILED
+- `tests/test_validation_protocol_failures.py::TestValidationProtocolResourceCleanup::test_memory_cleanup_after_large_protocol` FAILED
+
+### Validation Protocol Integration Tests
+
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_03_ActiveInference_AgentSimulations] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_02_Behavioral_BayesianComparison] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_12_Clinical_CrossSpecies_Convergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_09_NeuralSignatures_EmpiricalPriority1] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_05_EvolutionaryEmergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_10_CausalManipulations_Priority2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_04_PhaseTransition_EpistemicLevel2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[Master_Validation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_06_LiquidNetwork_InductiveBias] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_08_Psychophysical_ThresholdEstimation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_11_MCMC_CulturalNeuroscience_Priority3] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_01_SyntheticEEG_MLClassification] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_07_TMS_CausalInterventions] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_13_Epistemic_Architecture] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_14_fMRI_Anticipation_Experience] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_import[VP_15_fMRI_Anticipation_vmPFC] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_03_ActiveInference_AgentSimulations] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_02_Behavioral_BayesianComparison] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_12_Clinical_CrossSpecies_Convergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocolHas_docstring[VP_09_NeuralSignatures_EmpiricalPriority1] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_05_EvolutionaryEmergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_10_CausalManipulations_Priority2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_04_PhaseTransition_EpistemicLevel2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[Master_Validation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_06_LiquidNetwork_InductiveBias] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_08_Psychophysical_ThresholdEstimation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_11_MCMC_CulturalNeuroscience_Priority3] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_01_SyntheticEEG_MLClassification] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_07_TMS_CausalInterventions] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_13_Epistemic_Architecture] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_14_fMRI_Anticipation_Experience] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolImports::test_protocol_has_docstring[VP_15_fMRI_Anticipation_vmPFC] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_03_ActiveInference_AgentSimulations] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_02_Behavioral_BayesianComparison] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_12_Clinical_CrossSpecies_Convergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_09_NeuralSignatures_EmpiricalPriority1] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_05_EvolutionaryEmergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_10_CausalManipulations_Priority2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_06_LiquidNetwork_InductiveBias] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_08_Psychophysical_ThresholdEstimation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_11_MCMC_CulturalNeuroscience_Priority3] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_01_SyntheticEEG_MLClassification] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_07_TMS_CausalInterventions] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_13_Epistemic_Architecture] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_14_fMRI_Anticipation_Experience] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_15_fMRI_Anticipation_vmPFC] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_09_NeuralSignatures_EmpiricalPriority1] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_05_EvolutionaryEmergence] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_10_CausalManipulations_Priority2] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_06_LiquidNetwork_InductiveBias] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_08_Psychophysical_ThresholdEstimation] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_11_MCMC_CulturalNeuroscience_Priority3] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_01_SyntheticEEG_MLClassification] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_07_TMS_CausalInterventions] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_13_Epistemic_Architecture] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_14_fMRI_Anticipation_Experience] FAILED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_error_handling[VP_15_fMRI_Anticipation_vmPFC] FAILED
+Validation Tests
+tests/test_validation.py::test_validation.py::TestValidationProtocols5To12::test_all_protocols_have_validation_interface[9] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[12-12-PASS: Strong validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[10-12-PASS: Strong validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[9-12-MARGINAL: Moderate validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[6-12-MARGINAL: Moderate validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[5-12-MARGINAL: Moderate validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[0-12-FAIL: Insufficient validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[1-1-PASS: Strong validation support] FAILED
+tests/test_validation.py::test_generate_master_report_decision_logic[1-1-FAIL: Insufficient validation support] FAILED
+tests/test_validation.py::test_generate_master_report_edge_cases FAILED
+EXPECTED FAILURES (XFAIL)
+tests/test_parameter_recovery_validation.py::test_recovery_bias_assessment XFAIL (MCMC convergence issues cause unreliable ...)
+SKIPPED TESTS
+tests/test_property_based.py::TestNumericalStabilityProperties::test_nan_handling_surprise SKIPPED (Overflow in surprise co...)
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[VP_04_PhaseTransition_EpistemicLevel2] SKIPPED
+tests/test_validation_protocol_integration.py::TestValidationProtocolExecution::test_protocol_basic_execution[Master_Validation] SKIPPED
 
 ## Current Test Metrics
 

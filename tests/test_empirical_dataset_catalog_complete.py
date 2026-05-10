@@ -22,10 +22,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from utils.empirical_dataset_catalog import (DataQuality, DatasetMetadata,
-                                                 DatasetType,
-                                                 EmpiricalDatasetCatalog,
-                                                 SearchCriteria)
+    from utils.empirical_dataset_catalog import (
+        DataQuality,
+        DatasetMetadata,
+        DatasetType,
+        EmpiricalDatasetCatalog,
+        SearchCriteria,
+    )
 
     EMPIRICAL_CATALOG_AVAILABLE = True
 except ImportError as e:
@@ -103,11 +106,7 @@ class TestEmpiricalDatasetCatalogComplete:
 
                 metadata = DatasetMetadata(
                     name=f"dataset_{i}",
-                    dataset_type=(
-                        DatasetType.BEHAVIORAL
-                        if i % 2 == 0
-                        else DatasetType.NEUROIMAGING
-                    ),
+                    dataset_type=(DatasetType.BEHAVIORAL if i % 2 == 0 else DatasetType.NEUROIMAGING),
                     description=f"Test dataset {i}",
                     source="test_lab",
                     date_created=datetime.now(),

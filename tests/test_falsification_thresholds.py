@@ -1,19 +1,10 @@
 import numpy as np
 import pytest
 
-from utils.falsification_thresholds import (
-    F6_1_LTCN_MAX_TRANSITION_MS,
-    F6_2_LTCN_MIN_WINDOW_MS,
-)
-from utils.falsification_thresholds import (
-    test_f6_1_intrinsic_threshold_behavior as _test_f6_1,
-)
-from utils.falsification_thresholds import (
-    test_f6_2_intrinsic_temporal_integration as _test_f6_2,
-)
-from utils.falsification_thresholds import (
-    test_f6_3_metabolic_selectivity as _test_f6_3,
-)
+from utils.falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS, F6_2_LTCN_MIN_WINDOW_MS
+from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior as _test_f6_1
+from utils.falsification_thresholds import test_f6_2_intrinsic_temporal_integration as _test_f6_2
+from utils.falsification_thresholds import test_f6_3_metabolic_selectivity as _test_f6_3
 
 
 def test_f6_1_intrinsic_threshold_behavior_pass():

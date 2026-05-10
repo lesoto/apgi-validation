@@ -165,9 +165,7 @@ class OddballEEGSimulator:
         self.timepoints_ms = np.linspace(-200.0, 600.0, self.n_timepoints)
 
         # Indices for GFP-AUC window
-        self.window_idx = (self.timepoints_ms >= GFP_WINDOW_MS[0]) & (
-            self.timepoints_ms <= GFP_WINDOW_MS[1]
-        )
+        self.window_idx = (self.timepoints_ms >= GFP_WINDOW_MS[0]) & (self.timepoints_ms <= GFP_WINDOW_MS[1])
 
         # Spatial covariance matrix (simple 1/distance kernel)
         self._spatial_cov = self._build_spatial_cov()
@@ -221,8 +219,7 @@ class OddballEEGSimulator:
 
         # Electrode-level signal: shared P3b source + independent noise
         electrode_signals = (
-            source[:, None] * (1.0 + 0.1 * self.rng.standard_normal(self.n_electrodes))
-            + spatial_noise
+            source[:, None] * (1.0 + 0.1 * self.rng.standard_normal(self.n_electrodes)) + spatial_noise
         )  # (n_timepoints, n_electrodes)
 
         # GFP = spatial standard deviation across electrodes at each timepoint
@@ -235,9 +232,7 @@ class OddballEEGSimulator:
         gfp_auc = float(trapz(window_gfp, window_t))
 
         return GFPResult(
-            epoch_meta=EpochMetadata(
-                subject_id, trial_id, condition, ignition_strength
-            ),
+            epoch_meta=EpochMetadata(subject_id, trial_id, condition, ignition_strength),
             gfp_timeseries=gfp,
             gfp_auc=gfp_auc,
             timepoints_ms=self.timepoints_ms,
@@ -252,9 +247,7 @@ class OddballEEGSimulator:
             for trial in range(self.n_trials_per_condition):
                 # Ignition trials: Sₜ drawn from Beta(3, 1.5) → skewed toward 1
                 st_ignition = float(self.rng.beta(3.0, 1.5))
-                dataset.append(
-                    self._simulate_epoch(subj, trial, "ignition", st_ignition)
-                )
+                dataset.append(self._simulate_epoch(subj, trial, "ignition", st_ignition))
 
                 # No-ignition trials: Sₜ drawn from Beta(1.5, 3) → skewed toward 0
                 st_no = float(self.rng.beta(1.5, 3.0))
@@ -323,15 +316,9 @@ class GFPMicrostateValidator:
         t_stat, p_value = stats.ttest_ind(ig_aucs, no_aucs, equal_var=False)
 
         pooled_sd = np.sqrt((np.var(ig_aucs, ddof=1) + np.var(no_aucs, ddof=1)) / 2.0)
-        cohens_d = (
-            (np.mean(ig_aucs) - np.mean(no_aucs)) / pooled_sd if pooled_sd > 0 else 0.0
-        )
+        cohens_d = (np.mean(ig_aucs) - np.mean(no_aucs)) / pooled_sd if pooled_sd > 0 else 0.0
 
-        passed = (
-            (p_value < DEFAULT_ALPHA)
-            and (t_stat > 0)
-            and (cohens_d >= V18_AUC_COHENS_D_MIN)
-        )
+        passed = (p_value < DEFAULT_ALPHA) and (t_stat > 0) and (cohens_d >= V18_AUC_COHENS_D_MIN)
 
         return {
             "test_name": "V18.1 GFP-AUC Ignition Effect",
@@ -391,9 +378,7 @@ class GFPMicrostateValidator:
         }
 
     # ------------------------------------------------------------------
-    def generate_summary_figure(
-        self, output_path: Optional[Path] = None
-    ) -> Optional[Path]:
+    def generate_summary_figure(self, output_path: Optional[Path] = None) -> Optional[Path]:
         """Save a three-panel summary figure if matplotlib is available."""
         if not HAS_MATPLOTLIB:
             return None

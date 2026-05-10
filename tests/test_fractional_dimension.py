@@ -100,9 +100,7 @@ class TestFractionalDimensionBiomarker:
         signal = np.random.randn(500)
         threshold = np.random.randn(500) * 0.5 + 2.0
 
-        result = self.model.compute_fractional_dimension_biomarker(
-            signal, threshold_time_series=threshold
-        )
+        result = self.model.compute_fractional_dimension_biomarker(signal, threshold_time_series=threshold)
 
         # Check proximity effects are included when threshold provided
         if "hurst_near_threshold" in result:
@@ -115,9 +113,7 @@ class TestFractionalDimensionBiomarker:
         signal = np.random.randn(300)
         threshold = np.random.randn(200)  # Different length
 
-        result = self.model.compute_fractional_dimension_biomarker(
-            signal, threshold_time_series=threshold
-        )
+        result = self.model.compute_fractional_dimension_biomarker(signal, threshold_time_series=threshold)
 
         # Should still work but without proximity analysis
         assert "hurst_exponent" in result
@@ -130,7 +126,6 @@ class TestFractionalDimensionBiomarker:
 
         result = self.model.compute_fractional_dimension_biomarker(signal)
 
-        assert isinstance(result, dict)
         assert all(isinstance(k, str) for k in result.keys())
 
     def test_deterministic_seed(self):

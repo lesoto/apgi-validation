@@ -60,10 +60,7 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
         logging.error(f"Syntax error in module {module_name}: {e}")
         return None
     except RuntimeError as e:
-        logging.warning(
-            f"Runtime issue loading module {module_name}: {e}. "
-            "Module will be treated as unavailable."
-        )
+        logging.warning(f"Runtime issue loading module {module_name}: {e}. " "Module will be treated as unavailable.")
         return None
     except (AttributeError, ValueError, TypeError) as e:
         logging.error(f"Error loading module {module_name}: {type(e).__name__}: {e}")
@@ -137,9 +134,7 @@ class APGIValidationGUI:
         # Add keyboard shortcuts for actions
         self.root.bind(
             "<Control-r>",
-            lambda e: (
-                self.run_selected_script() if self.get_selected_script() else None
-            ),
+            lambda e: (self.run_selected_script() if self.get_selected_script() else None),
         )
         self.root.bind("<Control-s>", lambda e: self.stop_selected_script())
         self.root.bind("<Control-e>", lambda e: self.save_results())
@@ -154,9 +149,7 @@ class APGIValidationGUI:
 
         # Initialize parameter dictionaries - conditionally create tkinter vars
         # Use duck typing to detect mock objects for testing
-        is_mock = (
-            hasattr(self.root, "_test_mock_") or getattr(self.root, "tk", None) is None
-        )
+        is_mock = hasattr(self.root, "_test_mock_") or getattr(self.root, "tk", None) is None
         self.param_vars = {}
         if not is_mock:
             self.param_vars = {
@@ -173,11 +166,7 @@ class APGIValidationGUI:
                     return_value=(
                         0.5
                         if param == "tau_S"
-                        else (
-                            30.0
-                            if param == "tau_theta"
-                            else 0.5 if param == "theta_0" else 5.0
-                        )
+                        else (30.0 if param == "tau_theta" else 0.5 if param == "theta_0" else 5.0)
                     )
                 )
                 mock_var.set = Mock()
@@ -193,9 +182,7 @@ class APGIValidationGUI:
         self._thread_cleanup_lock = threading.Lock()
 
         # GUI update queue for thread safety
-        self._update_queue: queue.Queue = queue.Queue(
-            maxsize=100
-        )  # Limit queue size to prevent memory issues
+        self._update_queue: queue.Queue = queue.Queue(maxsize=100)  # Limit queue size to prevent memory issues
         self._process_gui_updates()
 
         # Set environment variables to prevent GUI operations in worker threads
@@ -257,9 +244,7 @@ class APGIValidationGUI:
         except (OSError, PermissionError, IOError) as e:
             # Fallback to console logging if file logging fails
             print(f"Warning: Could not setup file logging: {e}")
-            logging.basicConfig(
-                level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-            )
+            logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
             logging.info("APGI Validation GUI initialized (console logging fallback)")
         except Exception as e:
             print(f"Critical: Failed to setup logging: {e}")
@@ -298,9 +283,7 @@ class APGIValidationGUI:
     def on_closing(self) -> None:
         """Handle window close event with proper cleanup."""
         if self.is_running:
-            if not messagebox.askyesno(
-                "Quit", "Validation in progress. Stop and quit?"
-            ):
+            if not messagebox.askyesno("Quit", "Validation in progress. Stop and quit?"):
                 return
             self.stop_validation()
         self.clear_protocol_cache()
@@ -323,9 +306,7 @@ class APGIValidationGUI:
                     if update_type == "status":
                         self.status_label.config(text=data)
                     elif update_type == "progress":
-                        self.progress_var.set(
-                            min(100, max(0, data))
-                        )  # Clamp between 0-100
+                        self.progress_var.set(min(100, max(0, data)))  # Clamp between 0-100
                     elif update_type == "results":
                         self.results_text.insert(tk.END, data)
                         self.results_text.see(tk.END)
@@ -362,9 +343,7 @@ class APGIValidationGUI:
         status_window.geometry("600x400")
 
         # Create scrolled text widget
-        text_widget = scrolledtext.ScrolledText(
-            status_window, wrap=tk.WORD, width=70, height=20
-        )
+        text_widget = scrolledtext.ScrolledText(status_window, wrap=tk.WORD, width=70, height=20)
         text_widget.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Add status information
@@ -398,29 +377,19 @@ class APGIValidationGUI:
             "2. Verify all dependencies are installed: pip install -r requirements.txt\n",
         )
         text_widget.insert(tk.END, "3. Check for syntax errors in protocol files\n")
-        text_widget.insert(
-            tk.END, "4. Ensure Python path includes the Validation directory\n"
-        )
-        text_widget.insert(
-            tk.END, "5. Run individual protocols from command line to test\n\n"
-        )
+        text_widget.insert(tk.END, "4. Ensure Python path includes the Validation directory\n")
+        text_widget.insert(tk.END, "5. Run individual protocols from command line to test\n\n")
 
         # Fallback options
         text_widget.insert(tk.END, "=== Fallback Options ===\n")
-        text_widget.insert(
-            tk.END, "• GUI will operate in limited mode without full validation\n"
-        )
-        text_widget.insert(
-            tk.END, "• Use command line: python main.py validate --protocol <number>\n"
-        )
+        text_widget.insert(tk.END, "• GUI will operate in limited mode without full validation\n")
+        text_widget.insert(tk.END, "• Use command line: python main.py validate --protocol <number>\n")
         text_widget.insert(tk.END, "• Check logs for detailed error information\n")
 
         text_widget.config(state=tk.DISABLED)
 
         # Close button
-        close_btn = ttk.Button(
-            status_window, text="Close", command=status_window.destroy
-        )
+        close_btn = ttk.Button(status_window, text="Close", command=status_window.destroy)
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
@@ -457,9 +426,7 @@ class APGIValidationGUI:
         validation_frame.rowconfigure(3, weight=1)
 
         # Protocol selection frame
-        protocol_frame = ttk.LabelFrame(
-            validation_frame, text="Protocol Selection", padding="10"
-        )
+        protocol_frame = ttk.LabelFrame(validation_frame, text="Protocol Selection", padding="10")
         protocol_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         protocol_frame.columnconfigure(0, weight=1)
 
@@ -501,67 +468,45 @@ class APGIValidationGUI:
             pady=(10, 0),
         )
 
-        ttk.Button(
-            select_frame, text="Select All", command=self.select_all_protocols
-        ).grid(row=0, column=0, padx=5)
-        ttk.Button(
-            select_frame, text="Deselect All", command=self.deselect_all_protocols
-        ).grid(row=0, column=1, padx=5)
+        ttk.Button(select_frame, text="Select All", command=self.select_all_protocols).grid(row=0, column=0, padx=5)
+        ttk.Button(select_frame, text="Deselect All", command=self.deselect_all_protocols).grid(row=0, column=1, padx=5)
 
         # Control buttons frame
         control_frame = ttk.Frame(validation_frame)
         control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
 
-        self.run_button = ttk.Button(
-            control_frame, text="Run Validation", command=self.run_validation
-        )
+        self.run_button = ttk.Button(control_frame, text="Run Validation", command=self.run_validation)
         self.run_button.grid(row=0, column=0, padx=5)
 
-        self.stop_button = ttk.Button(
-            control_frame, text="Stop", command=self.stop_validation, state=tk.DISABLED
-        )
+        self.stop_button = ttk.Button(control_frame, text="Stop", command=self.stop_validation, state=tk.DISABLED)
         self.stop_button.grid(row=0, column=1, padx=5)
 
-        self.save_button = ttk.Button(
-            control_frame, text="Save Results", command=self.save_results
-        )
+        self.save_button = ttk.Button(control_frame, text="Save Results", command=self.save_results)
         self.save_button.grid(row=0, column=2, padx=5)
 
         # Progress bar
         self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(
-            validation_frame, variable=self.progress_var, maximum=100, length=400
-        )
+        self.progress_bar = ttk.Progressbar(validation_frame, variable=self.progress_var, maximum=100, length=400)
         self.progress_bar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         # Status label
-        self.status_label = ttk.Label(
-            validation_frame, text="Ready to run validation", font=("Arial", 10)
-        )
+        self.status_label = ttk.Label(validation_frame, text="Ready to run validation", font=("Arial", 10))
         self.status_label.grid(row=3, column=0, columnspan=2, pady=(0, 10))
 
         # Results text area
-        results_frame = ttk.LabelFrame(
-            validation_frame, text="Validation Results", padding="10"
-        )
+        results_frame = ttk.LabelFrame(validation_frame, text="Validation Results", padding="10")
         results_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
-        self.results_text = scrolledtext.ScrolledText(
-            results_frame, height=15, width=80
-        )
+        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
         self.results_text.grid(row=0, column=0, sticky="nsew")
 
         # Summary frame
-        summary_frame = ttk.LabelFrame(
-            validation_frame, text="Validation Summary", padding="10"
-        )
+        summary_frame = ttk.LabelFrame(validation_frame, text="Validation Summary", padding="10")
         summary_frame.grid(row=5, column=0, columnspan=2, sticky="ew")
 
-        self.summary_label = ttk.Label(
-            summary_frame, text="No validation run yet", font=("Arial", 10)
-        )
+        self.summary_label = ttk.Label(summary_frame, text="No validation run yet", font=("Arial", 10))
         self.summary_label.grid(row=0, column=0)
 
         # Parameter Exploration Tab
@@ -629,9 +574,7 @@ class APGIValidationGUI:
         parent_frame.rowconfigure(1, weight=1)
 
         # Parameter controls frame
-        controls_frame = ttk.LabelFrame(
-            parent_frame, text="Parameter Controls", padding="10"
-        )
+        controls_frame = ttk.LabelFrame(parent_frame, text="Parameter Controls", padding="10")
         controls_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
         controls_frame.columnconfigure(1, weight=1)
 
@@ -675,28 +618,20 @@ class APGIValidationGUI:
         button_frame = ttk.Frame(controls_frame)
         button_frame.grid(row=row, column=0, columnspan=3, pady=(10, 0))
 
-        self.run_sim_button = ttk.Button(
-            button_frame, text="Run Simulation", command=self.run_parameter_simulation
-        )
+        self.run_sim_button = ttk.Button(button_frame, text="Run Simulation", command=self.run_parameter_simulation)
         self.run_sim_button.grid(row=0, column=0, padx=5)
 
-        self.reset_params_button = ttk.Button(
-            button_frame, text="Reset to Defaults", command=self.reset_parameters
-        )
+        self.reset_params_button = ttk.Button(button_frame, text="Reset to Defaults", command=self.reset_parameters)
         self.reset_params_button.grid(row=0, column=1, padx=5)
 
         # Results display frame
-        results_frame = ttk.LabelFrame(
-            parent_frame, text="Simulation Results", padding="10"
-        )
+        results_frame = ttk.LabelFrame(parent_frame, text="Simulation Results", padding="10")
         results_frame.grid(row=1, column=0, sticky="nsew")
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
         # Text area for results
-        self.param_results_text = scrolledtext.ScrolledText(
-            results_frame, height=15, width=80
-        )
+        self.param_results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
         self.param_results_text.grid(row=0, column=0, sticky="nsew")
 
         # Initialize parameter display
@@ -717,9 +652,7 @@ class APGIValidationGUI:
         parent_frame.rowconfigure(0, weight=1)
 
         # Settings frame
-        settings_frame = ttk.LabelFrame(
-            parent_frame, text="Configuration Settings", padding="10"
-        )
+        settings_frame = ttk.LabelFrame(parent_frame, text="Configuration Settings", padding="10")
         settings_frame.grid(row=0, column=0, sticky="nsew")
 
         # Initialize settings if not already done
@@ -734,9 +667,7 @@ class APGIValidationGUI:
             self._load_settings()
 
         # Update interval
-        ttk.Label(settings_frame, text="Update Interval (seconds):").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(settings_frame, text="Update Interval (seconds):").grid(row=0, column=0, sticky=tk.W, pady=5)
         ttk.Spinbox(
             settings_frame,
             from_=1,
@@ -753,9 +684,7 @@ class APGIValidationGUI:
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
         # Data retention
-        ttk.Label(settings_frame, text="Data Retention (days):").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(settings_frame, text="Data Retention (days):").grid(row=1, column=0, sticky=tk.W, pady=5)
         ttk.Spinbox(
             settings_frame,
             from_=1,
@@ -772,9 +701,7 @@ class APGIValidationGUI:
         ).grid(row=1, column=1, sticky=tk.W, padx=10)
 
         # Monitoring threshold
-        ttk.Label(settings_frame, text="Monitoring Threshold (error rate):").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(settings_frame, text="Monitoring Threshold (error rate):").grid(row=2, column=0, sticky=tk.W, pady=5)
         ttk.Spinbox(
             settings_frame,
             from_=0.0,
@@ -792,9 +719,9 @@ class APGIValidationGUI:
         ).grid(row=2, column=1, sticky=tk.W, padx=10)
 
         # Save settings button
-        ttk.Button(
-            settings_frame, text="Save Settings", command=self.save_settings
-        ).grid(row=3, column=0, columnspan=2, pady=20)
+        ttk.Button(settings_frame, text="Save Settings", command=self.save_settings).grid(
+            row=3, column=0, columnspan=2, pady=20
+        )
 
     def save_settings(self) -> None:
         """Save current settings to config/gui_config.yaml via ConfigManager"""
@@ -832,17 +759,11 @@ class APGIValidationGUI:
                 if saved_settings:
                     # Update settings variables with saved values
                     if "update_interval" in saved_settings:
-                        self.settings["update_interval"].set(
-                            saved_settings["update_interval"]
-                        )
+                        self.settings["update_interval"].set(saved_settings["update_interval"])
                     if "data_retention" in saved_settings:
-                        self.settings["data_retention"].set(
-                            saved_settings["data_retention"]
-                        )
+                        self.settings["data_retention"].set(saved_settings["data_retention"])
                     if "monitoring_threshold" in saved_settings:
-                        self.settings["monitoring_threshold"].set(
-                            saved_settings["monitoring_threshold"]
-                        )
+                        self.settings["monitoring_threshold"].set(saved_settings["monitoring_threshold"])
 
                 logging.info("GUI settings loaded from config/gui_config.yaml")
         except Exception as e:
@@ -874,9 +795,7 @@ class APGIValidationGUI:
                         if isinstance(threshold_value, (int, float)):
                             self.alert_settings["threshold"].set(float(threshold_value))
                         else:
-                            logging.warning(
-                                f"Invalid threshold type {type(threshold_value)} for alert settings"
-                            )
+                            logging.warning(f"Invalid threshold type {type(threshold_value)} for alert settings")
 
                     if "enabled" in saved_alert_settings:
                         enabled_value = saved_alert_settings["enabled"]
@@ -890,17 +809,11 @@ class APGIValidationGUI:
                             elif enabled_value.lower() in ("false", "no", "0", "off"):
                                 self.alert_settings["enabled"].set(False)
                             else:
-                                logging.warning(
-                                    f"Invalid enabled value: {enabled_value}"
-                                )
+                                logging.warning(f"Invalid enabled value: {enabled_value}")
                         else:
-                            logging.warning(
-                                f"Invalid enabled type: {type(enabled_value)}"
-                            )
+                            logging.warning(f"Invalid enabled type: {type(enabled_value)}")
 
-                logging.info(
-                    "GUI alert settings loaded from config/gui_alert_config.yaml"
-                )
+                logging.info("GUI alert settings loaded from config/gui_alert_config.yaml")
         except Exception as e:
             logging.warning(f"Failed to load GUI alert settings: {e}")
             # Continue with defaults
@@ -913,16 +826,12 @@ class APGIValidationGUI:
         parent_frame.rowconfigure(4, weight=1)
 
         # Export Options Section
-        options_frame = ttk.LabelFrame(
-            parent_frame, text="Export Options", padding="10"
-        )
+        options_frame = ttk.LabelFrame(parent_frame, text="Export Options", padding="10")
         options_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         options_frame.columnconfigure(1, weight=1)
 
         # Export type selection
-        ttk.Label(options_frame, text="Export Type:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(options_frame, text="Export Type:").grid(row=0, column=0, sticky=tk.W, pady=5)
         self.export_type_var = tk.StringVar(value="current_results")
         export_types = [
             ("Current Results", "current_results"),
@@ -931,63 +840,51 @@ class APGIValidationGUI:
         ]
 
         for i, (text, value) in enumerate(export_types):
-            ttk.Radiobutton(
-                options_frame, text=text, variable=self.export_type_var, value=value
-            ).grid(row=0, column=i + 1, padx=10, sticky=tk.W)
+            ttk.Radiobutton(options_frame, text=text, variable=self.export_type_var, value=value).grid(
+                row=0, column=i + 1, padx=10, sticky=tk.W
+            )
 
         # Date range for historical exports
-        ttk.Label(options_frame, text="Date Range:").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(options_frame, text="Date Range:").grid(row=1, column=0, sticky=tk.W, pady=5)
         date_frame = ttk.Frame(options_frame)
         date_frame.grid(row=1, column=1, columnspan=3, sticky="ew", pady=5)
 
         ttk.Label(date_frame, text="From:").pack(side=tk.LEFT, padx=(0, 5))
-        self.start_date_var = tk.StringVar(
-            value=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-        )
-        ttk.Entry(date_frame, textvariable=self.start_date_var, width=12).pack(
-            side=tk.LEFT, padx=5
-        )
+        self.start_date_var = tk.StringVar(value=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
+        ttk.Entry(date_frame, textvariable=self.start_date_var, width=12).pack(side=tk.LEFT, padx=5)
 
         ttk.Label(date_frame, text="To:").pack(side=tk.LEFT, padx=(10, 5))
         self.end_date_var = tk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
-        ttk.Entry(date_frame, textvariable=self.end_date_var, width=12).pack(
-            side=tk.LEFT, padx=5
-        )
+        ttk.Entry(date_frame, textvariable=self.end_date_var, width=12).pack(side=tk.LEFT, padx=5)
 
         # Export buttons
-        buttons_frame = ttk.LabelFrame(
-            parent_frame, text="Export Actions", padding="10"
-        )
+        buttons_frame = ttk.LabelFrame(parent_frame, text="Export Actions", padding="10")
         buttons_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         buttons_frame.columnconfigure(2, weight=1)
 
-        ttk.Button(
-            buttons_frame, text="📊 Export to JSON", command=self.export_enhanced_json
-        ).grid(row=0, column=0, pady=5, padx=5)
-        ttk.Button(
-            buttons_frame, text="📈 Export to CSV", command=self.export_enhanced_csv
-        ).grid(row=0, column=1, pady=5, padx=5)
+        ttk.Button(buttons_frame, text="📊 Export to JSON", command=self.export_enhanced_json).grid(
+            row=0, column=0, pady=5, padx=5
+        )
+        ttk.Button(buttons_frame, text="📈 Export to CSV", command=self.export_enhanced_csv).grid(
+            row=0, column=1, pady=5, padx=5
+        )
         ttk.Button(
             buttons_frame,
             text="📄 Generate PDF Report",
             command=self.generate_enhanced_report,
         ).grid(row=1, column=0, pady=5, padx=5)
-        ttk.Button(
-            buttons_frame, text="📧 Email Report", command=self.email_report
-        ).grid(row=1, column=1, pady=5, padx=5)
+        ttk.Button(buttons_frame, text="📧 Email Report", command=self.email_report).grid(
+            row=1, column=1, pady=5, padx=5
+        )
 
         # Historical Analysis Section
-        analysis_frame = ttk.LabelFrame(
-            parent_frame, text="Historical Analysis", padding="10"
-        )
+        analysis_frame = ttk.LabelFrame(parent_frame, text="Historical Analysis", padding="10")
         analysis_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         analysis_frame.columnconfigure(1, weight=1)
 
-        ttk.Button(
-            analysis_frame, text="🔍 Analyze Trends", command=self.analyze_trends
-        ).grid(row=0, column=0, pady=5, padx=5)
+        ttk.Button(analysis_frame, text="🔍 Analyze Trends", command=self.analyze_trends).grid(
+            row=0, column=0, pady=5, padx=5
+        )
         ttk.Button(
             analysis_frame,
             text="📊 Generate Analytics",
@@ -998,24 +895,18 @@ class APGIValidationGUI:
             text="🚀 Launch Historical Dashboard",
             command=self.launch_historical_dashboard,
         ).grid(row=1, column=0, pady=5, padx=5)
-        ttk.Button(
-            analysis_frame, text="📋 View Summary", command=self.view_historical_summary
-        ).grid(row=1, column=1, pady=5, padx=5)
+        ttk.Button(analysis_frame, text="📋 View Summary", command=self.view_historical_summary).grid(
+            row=1, column=1, pady=5, padx=5
+        )
 
         # Data Collection Status
-        status_frame = ttk.LabelFrame(
-            parent_frame, text="Data Collection Status", padding="10"
-        )
+        status_frame = ttk.LabelFrame(parent_frame, text="Data Collection Status", padding="10")
         status_frame.grid(row=3, column=0, sticky="ew", pady=(0, 10))
         status_frame.columnconfigure(1, weight=1)
 
         self.collection_status_var = tk.StringVar(value="Stopped")
-        ttk.Label(status_frame, text="Status:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
-        ttk.Label(status_frame, textvariable=self.collection_status_var).grid(
-            row=0, column=1, sticky=tk.W, pady=5
-        )
+        ttk.Label(status_frame, text="Status:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        ttk.Label(status_frame, textvariable=self.collection_status_var).grid(row=0, column=1, sticky=tk.W, pady=5)
 
         self.start_collection_btn = ttk.Button(
             status_frame, text="▶️ Start Collection", command=self.start_data_collection
@@ -1031,16 +922,12 @@ class APGIValidationGUI:
         self.stop_collection_btn.grid(row=1, column=1, pady=5, padx=5)
 
         # Results display area
-        results_frame = ttk.LabelFrame(
-            parent_frame, text="Export Results", padding="10"
-        )
+        results_frame = ttk.LabelFrame(parent_frame, text="Export Results", padding="10")
         results_frame.grid(row=4, column=0, sticky="nsew", pady=(0, 10))
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
-        self.export_results_text = scrolledtext.ScrolledText(
-            results_frame, height=15, width=80
-        )
+        self.export_results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
         self.export_results_text.grid(row=0, column=0, sticky="nsew")
 
         # Initialize data collector
@@ -1134,15 +1021,9 @@ class APGIValidationGUI:
             end_date = self.end_date_var.get()
 
             # Get historical data
-            system_data = self.data_collector.get_recent_data(
-                "system_metrics", hours=24 * 30
-            )  # 30 days
-            validation_data = self.data_collector.get_recent_data(
-                "validation_results", hours=24 * 30
-            )
-            performance_data = self.data_collector.get_recent_data(
-                "performance_metrics", hours=24 * 30
-            )
+            system_data = self.data_collector.get_recent_data("system_metrics", hours=24 * 30)  # 30 days
+            validation_data = self.data_collector.get_recent_data("validation_results", hours=24 * 30)
+            performance_data = self.data_collector.get_recent_data("performance_metrics", hours=24 * 30)
 
             historical_data = {
                 "export_metadata": {
@@ -1171,18 +1052,12 @@ class APGIValidationGUI:
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(historical_data, f, indent=2, default=str)
 
-                messagebox.showinfo(
-                    "Export Success", f"Historical data exported to {file_path}"
-                )
-                self.export_results_text.insert(
-                    tk.END, f"📊 Exported historical data to {file_path}\n"
-                )
+                messagebox.showinfo("Export Success", f"Historical data exported to {file_path}")
+                self.export_results_text.insert(tk.END, f"📊 Exported historical data to {file_path}\n")
                 self.export_results_text.see(tk.END)
 
         except Exception as e:
-            messagebox.showerror(
-                "Export Error", f"Failed to export historical data: {e}"
-            )
+            messagebox.showerror("Export Error", f"Failed to export historical data: {e}")
             logging.error(f"Historical export error: {e}")
 
     def export_comprehensive_json(self):
@@ -1214,18 +1089,12 @@ class APGIValidationGUI:
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(comprehensive_data, f, indent=2, default=str)
 
-                messagebox.showinfo(
-                    "Export Success", f"Comprehensive report exported to {file_path}"
-                )
-                self.export_results_text.insert(
-                    tk.END, f"📋 Exported comprehensive report to {file_path}\n"
-                )
+                messagebox.showinfo("Export Success", f"Comprehensive report exported to {file_path}")
+                self.export_results_text.insert(tk.END, f"📋 Exported comprehensive report to {file_path}\n")
                 self.export_results_text.see(tk.END)
 
         except Exception as e:
-            messagebox.showerror(
-                "Export Error", f"Failed to export comprehensive report: {e}"
-            )
+            messagebox.showerror("Export Error", f"Failed to export comprehensive report: {e}")
             logging.error(f"Comprehensive export error: {e}")
 
     def export_enhanced_csv(self):
@@ -1253,12 +1122,8 @@ class APGIValidationGUI:
             import csv
 
             # Get historical data
-            system_data = self.data_collector.get_recent_data(
-                "system_metrics", hours=24 * 30
-            )
-            validation_data = self.data_collector.get_recent_data(
-                "validation_results", hours=24 * 30
-            )
+            system_data = self.data_collector.get_recent_data("system_metrics", hours=24 * 30)
+            validation_data = self.data_collector.get_recent_data("validation_results", hours=24 * 30)
 
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
@@ -1320,18 +1185,12 @@ class APGIValidationGUI:
                                 ]
                             )
 
-                messagebox.showinfo(
-                    "Export Success", f"Historical CSV exported to {file_path}"
-                )
-                self.export_results_text.insert(
-                    tk.END, f"📈 Exported historical CSV to {file_path}\n"
-                )
+                messagebox.showinfo("Export Success", f"Historical CSV exported to {file_path}")
+                self.export_results_text.insert(tk.END, f"📈 Exported historical CSV to {file_path}\n")
                 self.export_results_text.see(tk.END)
 
         except Exception as e:
-            messagebox.showerror(
-                "Export Error", f"Failed to export historical CSV: {e}"
-            )
+            messagebox.showerror("Export Error", f"Failed to export historical CSV: {e}")
 
     def generate_enhanced_report(self):
         """Generate enhanced PDF report with historical analysis."""
@@ -1349,21 +1208,15 @@ class APGIValidationGUI:
             # Generate PDF (placeholder implementation)
             self.generate_report()
 
-            self.export_results_text.insert(
-                tk.END, "📄 Enhanced PDF report generated\n"
-            )
+            self.export_results_text.insert(tk.END, "📄 Enhanced PDF report generated\n")
             self.export_results_text.see(tk.END)
 
         except Exception as e:
-            messagebox.showerror(
-                "Report Error", f"Failed to generate enhanced report: {e}"
-            )
+            messagebox.showerror("Report Error", f"Failed to generate enhanced report: {e}")
 
     def email_report(self):
         """Email report functionality (placeholder)."""
-        messagebox.showinfo(
-            "Email Report", "Email functionality would be implemented here"
-        )
+        messagebox.showinfo("Email Report", "Email functionality would be implemented here")
         self.export_results_text.insert(tk.END, "📧 Email report feature coming soon\n")
         self.export_results_text.see(tk.END)
 
@@ -1375,12 +1228,8 @@ class APGIValidationGUI:
                 return
 
             # Get recent data for analysis
-            system_data = self.data_collector.get_recent_data(
-                "system_metrics", hours=24 * 7
-            )  # Last week
-            validation_data = self.data_collector.get_recent_data(
-                "validation_results", hours=24 * 7
-            )
+            system_data = self.data_collector.get_recent_data("system_metrics", hours=24 * 7)  # Last week
+            validation_data = self.data_collector.get_recent_data("validation_results", hours=24 * 7)
 
             # Perform trend analysis
             trends = {
@@ -1402,9 +1251,7 @@ class APGIValidationGUI:
 
             self.export_results_text.insert(tk.END, "\nValidation Trends:\n")
             for metric, trend in trends["validation_trends"].items():
-                self.export_results_text.insert(
-                    tk.END, f"  {metric}: {trend['direction']}\n"
-                )
+                self.export_results_text.insert(tk.END, f"  {metric}: {trend['direction']}\n")
 
             self.export_results_text.insert(tk.END, "\n" + "=" * 50 + "\n")
             self.export_results_text.see(tk.END)
@@ -1429,9 +1276,7 @@ class APGIValidationGUI:
             self.export_results_text.see(tk.END)
 
         except Exception as e:
-            messagebox.showerror(
-                "Analytics Error", f"Failed to generate analytics: {e}"
-            )
+            messagebox.showerror("Analytics Error", f"Failed to generate analytics: {e}")
 
     def launch_historical_dashboard(self):
         """Launch the historical dashboard in a web browser."""
@@ -1458,12 +1303,8 @@ class APGIValidationGUI:
             browser_thread = threading.Thread(target=open_browser, daemon=True)
             browser_thread.start()
 
-            messagebox.showinfo(
-                "Dashboard", "Historical dashboard launching at http://127.0.0.1:8051"
-            )
-            self.export_results_text.insert(
-                tk.END, "🚀 Historical dashboard launched\n"
-            )
+            messagebox.showinfo("Dashboard", "Historical dashboard launching at http://127.0.0.1:8051")
+            self.export_results_text.insert(tk.END, "🚀 Historical dashboard launched\n")
             self.export_results_text.see(tk.END)
 
         except Exception as e:
@@ -1498,40 +1339,28 @@ class APGIValidationGUI:
             return {"error": "Data collector not available"}
 
         try:
-            system_data = self.data_collector.get_recent_data(
-                "system_metrics", hours=24
-            )
-            validation_data = self.data_collector.get_recent_data(
-                "validation_results", hours=24 * 7
-            )
+            system_data = self.data_collector.get_recent_data("system_metrics", hours=24)
+            validation_data = self.data_collector.get_recent_data("validation_results", hours=24 * 7)
 
             return {
                 "system_metrics_24h": {
                     "total_records": len(system_data),
                     "avg_cpu": (
-                        sum(r.get("cpu_percent", 0) for r in system_data)
-                        / len(system_data)
-                        if system_data
-                        else 0
+                        sum(r.get("cpu_percent", 0) for r in system_data) / len(system_data) if system_data else 0
                     ),
                     "avg_memory": (
-                        sum(r.get("memory_percent", 0) for r in system_data)
-                        / len(system_data)
-                        if system_data
-                        else 0
+                        sum(r.get("memory_percent", 0) for r in system_data) / len(system_data) if system_data else 0
                     ),
                 },
                 "validation_results_7d": {
                     "total_runs": len(validation_data),
                     "success_rate": (
-                        sum(r.get("success_rate", 0) for r in validation_data)
-                        / len(validation_data)
+                        sum(r.get("success_rate", 0) for r in validation_data) / len(validation_data)
                         if validation_data
                         else 0
                     ),
                     "avg_execution_time": (
-                        sum(r.get("execution_time", 0) for r in validation_data)
-                        / len(validation_data)
+                        sum(r.get("execution_time", 0) for r in validation_data) / len(validation_data)
                         if validation_data
                         else 0
                     ),
@@ -1575,31 +1404,19 @@ class APGIValidationGUI:
         # Simple trend analysis
         recent_cpu = data[-1].get("cpu_percent", 0)
         older_cpu = data[0].get("cpu_percent", 0)
-        cpu_change = (
-            ((recent_cpu - older_cpu) / older_cpu * 100) if older_cpu > 0 else 0
-        )
+        cpu_change = ((recent_cpu - older_cpu) / older_cpu * 100) if older_cpu > 0 else 0
 
         recent_mem = data[-1].get("memory_percent", 0)
         older_mem = data[0].get("memory_percent", 0)
-        mem_change = (
-            ((recent_mem - older_mem) / older_mem * 100) if older_mem > 0 else 0
-        )
+        mem_change = ((recent_mem - older_mem) / older_mem * 100) if older_mem > 0 else 0
 
         return {
             "cpu": {
-                "direction": (
-                    "increasing"
-                    if cpu_change > 5
-                    else "decreasing" if cpu_change < -5 else "stable"
-                ),
+                "direction": ("increasing" if cpu_change > 5 else "decreasing" if cpu_change < -5 else "stable"),
                 "change": f"{cpu_change:+.1f}%",
             },
             "memory": {
-                "direction": (
-                    "increasing"
-                    if mem_change > 5
-                    else "decreasing" if mem_change < -5 else "stable"
-                ),
+                "direction": ("increasing" if mem_change > 5 else "decreasing" if mem_change < -5 else "stable"),
                 "change": f"{mem_change:+.1f}%",
             },
         }
@@ -1609,9 +1426,7 @@ class APGIValidationGUI:
         if not data:
             return {"success_rate": {"direction": "no_data"}}
 
-        success_rates = [
-            r.get("success_rate", 0) for r in data if r.get("success_rate") is not None
-        ]
+        success_rates = [r.get("success_rate", 0) for r in data if r.get("success_rate") is not None]
 
         if len(success_rates) < 2:
             return {"success_rate": {"direction": "insufficient_data"}}
@@ -1622,11 +1437,7 @@ class APGIValidationGUI:
 
         return {
             "success_rate": {
-                "direction": (
-                    "improving"
-                    if change > 5
-                    else "declining" if change < -5 else "stable"
-                ),
+                "direction": ("improving" if change > 5 else "declining" if change < -5 else "stable"),
                 "change": f"{change:+.1f}%",
             }
         }
@@ -1662,13 +1473,8 @@ class APGIValidationGUI:
 
     def export_csv(self) -> None:
         """Export validation results to CSV"""
-        if (
-            not hasattr(self.validator, "protocol_results")
-            or not self.validator.protocol_results
-        ):
-            messagebox.showwarning(
-                "Export", "No results to export. Run validation first."
-            )
+        if not hasattr(self.validator, "protocol_results") or not self.validator.protocol_results:
+            messagebox.showwarning("Export", "No results to export. Run validation first.")
             return
 
         file_path = filedialog.asksaveasfilename(
@@ -1693,20 +1499,13 @@ class APGIValidationGUI:
                 writer = csv.writer(f)
                 writer.writerow(["Protocol", "Status", "Passed"])
                 for protocol, result in self.validator.protocol_results.items():
-                    writer.writerow(
-                        [protocol, result.get("status", ""), result.get("passed", "")]
-                    )
+                    writer.writerow([protocol, result.get("status", ""), result.get("passed", "")])
             messagebox.showinfo("Export", f"Results exported to {file_path}")
 
     def export_json(self) -> None:
         """Export validation results to JSON"""
-        if (
-            not hasattr(self.validator, "protocol_results")
-            or not self.validator.protocol_results
-        ):
-            messagebox.showwarning(
-                "Export", "No results to export. Run validation first."
-            )
+        if not hasattr(self.validator, "protocol_results") or not self.validator.protocol_results:
+            messagebox.showwarning("Export", "No results to export. Run validation first.")
             return
 
         file_path = filedialog.asksaveasfilename(
@@ -1759,14 +1558,10 @@ class APGIValidationGUI:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import letter
-            from reportlab.lib.styles import (ParagraphStyle,
-                                              getSampleStyleSheet)
-            from reportlab.platypus import (Paragraph, SimpleDocTemplate,
-                                            Spacer, Table, TableStyle)
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
         except ImportError:
-            raise ImportError(
-                "PDF generation requires reportlab. Install with: pip install reportlab"
-            )
+            raise ImportError("PDF generation requires reportlab. Install with: pip install reportlab")
 
         doc = SimpleDocTemplate(file_path, pagesize=letter)
         styles = getSampleStyleSheet()
@@ -1783,16 +1578,12 @@ class APGIValidationGUI:
         story.append(Spacer(1, 12))
 
         # Overall decision
-        decision_text = (
-            f"<b>Overall Decision:</b> {report.get('overall_decision', 'Unknown')}"
-        )
+        decision_text = f"<b>Overall Decision:</b> {report.get('overall_decision', 'Unknown')}"
         story.append(Paragraph(decision_text, styles["Normal"]))
         story.append(Spacer(1, 12))
 
         # Summary
-        summary_text = (
-            f"<b>Summary:</b> {report.get('summary', 'No summary available')}"
-        )
+        summary_text = f"<b>Summary:</b> {report.get('summary', 'No summary available')}"
         story.append(Paragraph(summary_text, styles["Normal"]))
         story.append(Spacer(1, 12))
 
@@ -1833,9 +1624,7 @@ class APGIValidationGUI:
 
             for tier, results in report["falsification_status"].items():
                 story.append(Spacer(1, 6))
-                story.append(
-                    Paragraph(f"<i>{tier.title()} Tier:</i>", styles["Heading3"])
-                )
+                story.append(Paragraph(f"<i>{tier.title()} Tier:</i>", styles["Heading3"]))
 
                 if results:
                     tier_data = [["Protocol", "Passed"]]
@@ -1856,9 +1645,7 @@ class APGIValidationGUI:
                     )
                     story.append(tier_table)
                 else:
-                    story.append(
-                        Paragraph("No protocols in this tier", styles["Italic"])
-                    )
+                    story.append(Paragraph("No protocols in this tier", styles["Italic"]))
 
         # Build PDF
         doc.build(story)
@@ -1871,9 +1658,7 @@ class APGIValidationGUI:
         parent_frame.rowconfigure(0, weight=1)
 
         # Alerts frame
-        alerts_frame = ttk.LabelFrame(
-            parent_frame, text="Alert Configuration", padding="10"
-        )
+        alerts_frame = ttk.LabelFrame(parent_frame, text="Alert Configuration", padding="10")
         alerts_frame.grid(row=0, column=0, sticky="nsew")
 
         # Initialize alert settings if not already done
@@ -1887,9 +1672,7 @@ class APGIValidationGUI:
         self._load_alert_settings()
 
         # Alert threshold
-        ttk.Label(alerts_frame, text="Alert Threshold:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(alerts_frame, text="Alert Threshold:").grid(row=0, column=0, sticky=tk.W, pady=5)
         ttk.Spinbox(
             alerts_frame,
             from_=0.0,
@@ -1907,14 +1690,14 @@ class APGIValidationGUI:
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
         # Enable alerts
-        ttk.Checkbutton(
-            alerts_frame, text="Enable Alerts", variable=self.alert_settings["enabled"]
-        ).grid(row=1, column=0, columnspan=2, pady=10)
+        ttk.Checkbutton(alerts_frame, text="Enable Alerts", variable=self.alert_settings["enabled"]).grid(
+            row=1, column=0, columnspan=2, pady=10
+        )
 
         # Save alerts button
-        ttk.Button(
-            alerts_frame, text="Save Alert Settings", command=self.save_alert_settings
-        ).grid(row=2, column=0, columnspan=2, pady=20)
+        ttk.Button(alerts_frame, text="Save Alert Settings", command=self.save_alert_settings).grid(
+            row=2, column=0, columnspan=2, pady=20
+        )
 
     def save_alert_settings(self) -> None:
         """Save alert settings to config/gui_alert_config.yaml via ConfigManager"""
@@ -2004,9 +1787,7 @@ class APGIValidationGUI:
         self.param_results_text.insert(tk.END, "\n")
 
         # Run simulation in thread to avoid blocking GUI
-        threading.Thread(
-            target=self._run_parameter_simulation_worker, args=(params,), daemon=True
-        ).start()
+        threading.Thread(target=self._run_parameter_simulation_worker, args=(params,), daemon=True).start()
 
     def run_validation(self) -> None:
         """Run the selected validation protocols"""
@@ -2019,16 +1800,11 @@ class APGIValidationGUI:
                 return
 
             # Get selected protocols with validation
-            selected_protocols: List[int] = [
-                num for num, var in self.protocol_vars.items() if var.get()
-            ]
+            selected_protocols: List[int] = [num for num, var in self.protocol_vars.items() if var.get()]
 
             # Validate protocol numbers
             for protocol_num in selected_protocols:
-                if (
-                    not isinstance(protocol_num, int)
-                    or protocol_num not in self.validator.PROTOCOL_TIERS
-                ):
+                if not isinstance(protocol_num, int) or protocol_num not in self.validator.PROTOCOL_TIERS:
                     messagebox.showerror(
                         "Error",
                         f"Invalid protocol number: {protocol_num}. Must be between 1 and {len(self.validator.PROTOCOL_TIERS)}.",
@@ -2122,24 +1898,20 @@ class APGIValidationGUI:
             final_ignition_prob = ignition_prob_history[-1]
             max_ignition_prob = max(ignition_prob_history)
             time_to_half_max = next(
-                (
-                    i
-                    for i, p in enumerate(ignition_prob_history)
-                    if p >= max_ignition_prob / 2
-                ),
+                (i for i, p in enumerate(ignition_prob_history) if p >= max_ignition_prob / 2),
                 steps,
             )
 
             # Update results text
             result_text = f"""Simulation Results:
-Final Ignition Probability: {final_ignition_prob:.3f}
+    Final Ignition Probability: {final_ignition_prob:.3f}
 Maximum Ignition Probability: {max_ignition_prob:.3f}
 Time to Half-Max Ignition: {time_to_half_max * dt:.2f} seconds
 Final Signal Level (S): {S:.3f}
 Final Threshold (θ): {theta:.3f}
 
 Interpretation:
-"""
+    """
             if final_ignition_prob > 0.5:
                 result_text += "• High ignition probability - parameters favor conscious detection\n"
             else:
@@ -2151,15 +1923,11 @@ Interpretation:
                 result_text += "• Slow response - gradual conscious access\n"
 
             # Update GUI from main thread
-            self.root.after(
-                0, lambda: self.param_results_text.insert(tk.END, result_text)
-            )
+            self.root.after(0, lambda: self.param_results_text.insert(tk.END, result_text))
 
         except Exception as e:
             error_text = f"Simulation failed: {str(e)}\n"
-            self.root.after(
-                0, lambda: self.param_results_text.insert(tk.END, error_text)
-            )
+            self.root.after(0, lambda: self.param_results_text.insert(tk.END, error_text))
 
     def _execute_single_protocol(
         self,
@@ -2226,9 +1994,7 @@ Interpretation:
                 # Import protocol module dynamically
                 spec = importlib.util.spec_from_file_location(cache_key, protocol_path)
                 if spec is None or spec.loader is None:
-                    raise ImportError(
-                        f"Could not create spec for protocol {protocol_num}"
-                    )
+                    raise ImportError(f"Could not create spec for protocol {protocol_num}")
 
                 protocol_module = importlib.util.module_from_spec(spec)
                 # Register module in sys.modules BEFORE execution for cross-import compatibility
@@ -2255,16 +2021,10 @@ Interpretation:
 
             # Execute protocol in a completely isolated manner
             with contextlib.redirect_stdout(captured_output):
-                logging.debug(
-                    f"Protocol {protocol_num} - Inside redirect_stdout, calling _execute_protocol_safely"
-                )
+                logging.debug(f"Protocol {protocol_num} - Inside redirect_stdout, calling _execute_protocol_safely")
                 # Create a subprocess-like environment for protocol execution
-                protocol_result = self._execute_protocol_safely(
-                    protocol_module, protocol_num, i, total_protocols
-                )
-                logging.debug(
-                    f"Protocol {protocol_num} - _execute_protocol_safely returned"
-                )
+                protocol_result = self._execute_protocol_safely(protocol_module, protocol_num, i, total_protocols)
+                logging.debug(f"Protocol {protocol_num} - _execute_protocol_safely returned")
 
             logging.info(f"Protocol {protocol_num} main function completed")
 
@@ -2282,18 +2042,17 @@ Interpretation:
 
             # Determine protocol success with strict validation
             passed = self._determine_protocol_success(
-                protocol_result, output_text, result
+                protocol_result=protocol_result if protocol_result else {},
+                output_text=self.results_text.get("1.0", tk.END),
+                result=result,
             )
 
             result["passed"] = passed
 
             # Safely assign to validator with validation
-            self._store_protocol_result(protocol_num, result, protocol_tiers, passed)
 
             self.update_results(f"Status: {'PASSED' if passed else 'FAILED'}\n\n")
-            logging.info(
-                f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}"
-            )
+            logging.info(f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}")
 
         except (ImportError, FileNotFoundError, SyntaxError) as e:
             logging.error(f"Protocol {protocol_num} import/syntax error: {e}")
@@ -2305,34 +2064,28 @@ Interpretation:
             logging.error(f"Protocol {protocol_num} critical error: {e}")
             self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
 
-    def _determine_protocol_success(
-        self, protocol_result: Any, output_text: str, result: Dict
-    ) -> bool:
+    def _determine_protocol_success(self, protocol_result: Any, output_text: str, result: Dict) -> bool:
         """Determine if protocol execution was successful"""
 
         # 1. First priority: Check the structured protocol_result object
         passed = False
-        if protocol_result and isinstance(protocol_result, dict):
-            # Check for explicit success indicators in the returned dictionary
-            passed = (
-                protocol_result.get("passed") is True
-                or protocol_result.get("success") is True
-                or protocol_result.get("status")
-                in ["PASSED", "success", "success_validated"]
-            )
+        # Check for explicit success indicators in the returned dictionary
+        passed = (
+            protocol_result.get("passed") is True
+            or protocol_result.get("success") is True
+            or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
+        )
 
-            # If the protocol explicitly returned a non-success status, override
-            if protocol_result.get("status") in [
-                "FAILED",
-                "failed",
-                "error",
-                "falsified",
-            ]:
-                passed = False
+        # If the protocol explicitly returned a non-success status, override
+        if protocol_result.get("status") in [
+            "FAILED",
+            "failed",
+            "error",
+            "falsified",
+        ]:
+            passed = False
 
-        # 2. Second priority: If no valid structured result, try to parse the output text
-        # (This is more primitive and error-prone, so used as fallback)
-        if not passed and not (protocol_result and isinstance(protocol_result, dict)):
+            # (This is more primitive and error-prone, so used as fallback)
             # Look for success markers in output
             success_markers = [
                 "OVERALL STATUS: ✓ PASS",
@@ -2348,9 +2101,7 @@ Interpretation:
             "CRITICAL ERROR:",
             "Exception:",
         ]
-        has_critical_crash = any(
-            indicator in output_text for indicator in critical_error_indicators
-        )
+        has_critical_crash = any(indicator in output_text for indicator in critical_error_indicators)
 
         if has_critical_crash:
             passed = False
@@ -2364,9 +2115,7 @@ Interpretation:
 
         return passed
 
-    def _store_protocol_result(
-        self, protocol_num: int, result: Dict, protocol_tiers: Dict, passed: bool
-    ) -> None:
+    def _store_protocol_result(self, protocol_num: int, result: Dict, protocol_tiers: Dict, passed: bool) -> None:
         """Store protocol result in validator with proper validation"""
         # Use consistent key format that matches Master_Validation expectations (Protocol-X)
         protocol_key = f"Protocol-{protocol_num}"
@@ -2379,10 +2128,7 @@ Interpretation:
         tier = protocol_tiers[protocol_num]
 
         # Validate tier exists in falsification_status
-        if (
-            hasattr(self.validator, "falsification_status")
-            and tier in self.validator.falsification_status
-        ):
+        if hasattr(self.validator, "falsification_status") and tier in self.validator.falsification_status:
             if not isinstance(self.validator.falsification_status[tier], list):
                 self.validator.falsification_status[tier] = []
 
@@ -2390,13 +2136,10 @@ Interpretation:
                 {
                     "protocol": protocol_num,
                     "passed": passed,
-                    "result": result,
                 }
             )
         else:
-            logging.error(
-                f"Validator missing or invalid falsification_status for tier: {tier}"
-            )
+            logging.error(f"Validator missing or invalid falsification_status for tier: {tier}")
             # Initialize if missing
             if not hasattr(self.validator, "falsification_status"):
                 self.validator.falsification_status = {
@@ -2408,7 +2151,6 @@ Interpretation:
                 {
                     "protocol": protocol_num,
                     "passed": passed,
-                    "result": result,
                 }
             ]
 
@@ -2440,9 +2182,7 @@ Interpretation:
                 progress = int((i / total_protocols) * 100)
                 self.update_progress(progress)
 
-                self._execute_single_protocol(
-                    protocol_num, i, total_protocols, protocol_tiers
-                )
+                self._execute_single_protocol(protocol_num, i, total_protocols, protocol_tiers)
 
                 # Update progress
                 progress = int(((i + 1) / total_protocols) * 100)
@@ -2465,9 +2205,7 @@ Interpretation:
                     # Validate report structure
                     self._validate_report(report)
                 except Exception as e:
-                    error_msg = (
-                        f"Failed to generate master report: {type(e).__name__}: {e}"
-                    )
+                    error_msg = f"Failed to generate master report: {type(e).__name__}: {e}"
                     self.update_status(error_msg)
                     self.update_results(f"CRITICAL ERROR: {error_msg}\n")
                     logging.error(error_msg)
@@ -2499,9 +2237,7 @@ Interpretation:
                 # Clear any pending GUI updates with non-blocking approach
                 try:
                     cleared_count = 0
-                    while (
-                        cleared_count < 50
-                    ):  # Limit iterations to prevent infinite loop
+                    while cleared_count < 50:  # Limit iterations to prevent infinite loop
                         try:
                             self._update_queue.get_nowait()
                             self._update_queue.task_done()
@@ -2513,13 +2249,9 @@ Interpretation:
 
                 # Clear validation thread reference without blocking
                 if self.validation_thread:
-                    is_current_thread = (
-                        self.validation_thread is threading.current_thread()
-                    )
+                    is_current_thread = self.validation_thread is threading.current_thread()
                     if self.validation_thread.is_alive() and not is_current_thread:
-                        logging.warning(
-                            "Validation thread still alive in finally block"
-                        )
+                        logging.warning("Validation thread still alive in finally block")
                         # Don't wait for thread - let daemon thread die with process
                         # This prevents hanging on thread cleanup
                         pass
@@ -2532,9 +2264,7 @@ Interpretation:
 
                 logging.info("Validation worker thread cleanup completed")
 
-    def _handle_protocol_error(
-        self, error: Exception, protocol_num: int
-    ) -> Dict[str, Any]:
+    def _handle_protocol_error(self, error: Exception, protocol_num: int) -> Dict[str, Any]:
         """Handle protocol errors and return error result with troubleshooting."""
         error_type = type(error).__name__
 
@@ -2595,9 +2325,7 @@ Interpretation:
         error_result = self._handle_protocol_error(error, protocol_num)
         tier = protocol_tiers[protocol_num]
 
-        logging.error(
-            f"Protocol {protocol_num} failed: {type(error).__name__}: {error}"
-        )
+        logging.error(f"Protocol {protocol_num} failed: {type(error).__name__}: {error}")
 
         if (
             hasattr(self.validator, "falsification_status")
@@ -2614,9 +2342,7 @@ Interpretation:
         self.update_results(f"ERROR: {error_msg}\n")
         self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
 
-    def _handle_validation_critical_error(
-        self, error: Exception, selected_protocols: List[int]
-    ) -> None:
+    def _handle_validation_critical_error(self, error: Exception, selected_protocols: List[int]) -> None:
         """Handle critical validation errors with detailed troubleshooting."""
         import traceback
 
@@ -2670,27 +2396,19 @@ Interpretation:
                 required_result_keys = ["protocol", "passed", "result"]
                 for result_key in required_result_keys:
                     if result_key not in result:
-                        raise ValueError(
-                            f"Result at {tier}[{i}] missing key: {result_key}"
-                        )
+                        raise ValueError(f"Result at {tier}[{i}] missing key: {result_key}")
 
                 # Validate protocol number
                 if not isinstance(result["protocol"], int):
-                    raise ValueError(
-                        f"Invalid protocol number at {tier}[{i}]: expected int"
-                    )
+                    raise ValueError(f"Invalid protocol number at {tier}[{i}]: expected int")
 
                 # Validate passed status
                 if not isinstance(result["passed"], bool):
-                    raise ValueError(
-                        f"Invalid passed status at {tier}[{i}]: expected bool"
-                    )
+                    raise ValueError(f"Invalid passed status at {tier}[{i}]: expected bool")
 
                 # Validate result object
                 if not isinstance(result["result"], dict):
-                    raise ValueError(
-                        f"Invalid result object at {tier}[{i}]: expected dict"
-                    )
+                    raise ValueError(f"Invalid result object at {tier}[{i}]: expected dict")
 
     def stop_validation(self) -> None:
         """Stop the running validation with proper thread cancellation"""
@@ -2710,9 +2428,7 @@ Interpretation:
                     # Brief wait for clean exit (reduced from 5s to 0.5s)
                     self.validation_thread.join(timeout=0.5)
                     if self.validation_thread.is_alive():
-                        logging.warning(
-                            "Validation thread did not stop cleanly within timeout"
-                        )
+                        logging.warning("Validation thread did not stop cleanly within timeout")
                         # Don't block - the thread is daemon and will die with process
                     else:
                         logging.info("Validation thread stopped successfully")
@@ -2765,11 +2481,7 @@ Interpretation:
             # Ensure we have write access to the chosen path
 
             # Check for common path traversal patterns even if though filedialog is used
-            if (
-                ".." in filename
-                or filename.startswith("/etc")
-                or filename.startswith("/var")
-            ):
+            if ".." in filename or filename.startswith("/etc") or filename.startswith("/var"):
                 logging.warning(f"Potential unsafe path detected in save: {filename}")
                 # We still proceed if the folder is writable, but log it.
             try:
@@ -2853,9 +2565,7 @@ Interpretation:
                     # Calculate overall progress with more granular tracking
                     protocol_start_progress = (protocol_index / total_protocols) * 100
                     protocol_progress_range = 100 / total_protocols
-                    overall_progress = protocol_start_progress + (
-                        percent / 100 * protocol_progress_range
-                    )
+                    overall_progress = protocol_start_progress + (percent / 100 * protocol_progress_range)
 
                     # Update progress with sub-protocol granularity
                     self.update_progress(overall_progress)
@@ -2864,16 +2574,12 @@ Interpretation:
                         f"(Step {protocol_index + 1}/{total_protocols})"
                     )
                 except Exception as e:
-                    logging.error(
-                        f"Progress callback error for Protocol {protocol_index + 1}: {e}"
-                    )
+                    logging.error(f"Progress callback error for Protocol {protocol_index + 1}: {e}")
 
             # Execute protocol with timeout in a separate thread to ensure isolation
             from concurrent.futures import ThreadPoolExecutor
 
-            executor = ThreadPoolExecutor(
-                max_workers=1, thread_name_prefix=f"protocol_{protocol_num}"
-            )
+            executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"protocol_{protocol_num}")
 
             import inspect
 
@@ -2896,7 +2602,6 @@ Interpretation:
                         "message": "Protocol returned None - cannot determine success",
                         "passed": False,
                     }
-                if not isinstance(result, dict):
                     return {
                         "status": "COMPLETED",
                         "message": f"Protocol completed with non-dict result: {result}",
@@ -2906,9 +2611,7 @@ Interpretation:
             except FutureTimeoutError:
                 # Cancel and re-raise for caller handling
                 future.cancel()
-                raise TimeoutError(
-                    f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
-                )
+                raise TimeoutError(f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds")
 
         except Exception as e:
             # Return error result instead of raising to prevent GUI crashes
@@ -2926,9 +2629,7 @@ Interpretation:
                     # Cancel any pending futures first (non-blocking)
                     executor.shutdown(wait=False, cancel_futures=True)
                 except Exception as e:
-                    logging.warning(
-                        f"Error shutting down executor for protocol {protocol_num}: {e}"
-                    )
+                    logging.warning(f"Error shutting down executor for protocol {protocol_num}: {e}")
 
     def update_status(self, message: str) -> None:
         """Update status label thread-safely"""
@@ -2963,9 +2664,7 @@ Interpretation:
         if "module not found" in error_str or "modulenotfounderror" in error_str:
             try:
                 module_name = (
-                    error_str.split("no module named")[-1].strip("'\"")
-                    if "no module named" in error_str
-                    else "unknown"
+                    error_str.split("no module named")[-1].strip("'\"") if "no module named" in error_str else "unknown"
                 )
             except (IndexError, AttributeError):
                 module_name = "unknown"
@@ -3045,9 +2744,7 @@ Interpretation:
         if not hasattr(self, "protocol_vars"):
             return None
 
-        selected_protocols = [
-            num for num, var in self.protocol_vars.items() if var.get()
-        ]
+        selected_protocols = [num for num, var in self.protocol_vars.items() if var.get()]
         return selected_protocols[0] if selected_protocols else None
 
     def run_selected_script(self) -> None:
@@ -3055,10 +2752,7 @@ Interpretation:
         selected = self.get_selected_script()
         if selected:
             # Create a temporary selection with just this protocol
-            temp_selection = {
-                num: tk.BooleanVar(value=(num == selected))
-                for num in self.protocol_vars.keys()
-            }
+            temp_selection = {num: tk.BooleanVar(value=(num == selected)) for num in self.protocol_vars.keys()}
             original_vars = self.protocol_vars
             self.protocol_vars = temp_selection
             try:
@@ -3152,8 +2846,7 @@ Interpretation:
             try:
                 from reportlab.lib.pagesizes import letter
                 from reportlab.lib.styles import getSampleStyleSheet
-                from reportlab.platypus import (Paragraph, SimpleDocTemplate,
-                                                Spacer)
+                from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
                 doc = SimpleDocTemplate(filename, pagesize=letter)
                 styles = getSampleStyleSheet()
@@ -3185,9 +2878,7 @@ def main() -> None:
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(
-        description="APGI Validation Framework GUI / Headless Runner"
-    )
+    parser = argparse.ArgumentParser(description="APGI Validation Framework GUI / Headless Runner")
     parser.add_argument(
         "--headless",
         action="store_true",
@@ -3216,9 +2907,7 @@ def main() -> None:
                     from utils.auth_adapter import get_auth_manager
 
                     auth_manager = get_auth_manager()
-                    dev_token = auth_manager.generate_token(
-                        "dev_user", Role.RESEARCHER, 24
-                    )  # 24 hour expiry
+                    dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)  # 24 hour expiry
                     print("Development mode: Generated token (valid 24 hours)")
                     args.token = dev_token
                 except Exception as e:
@@ -3245,17 +2934,13 @@ def run_headless() -> None:
     """Run all protocols in headless mode without GUI"""
     import logging
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger(__name__)
 
     logger.info("Running APGI Validation in HEADLESS mode")
 
     # Import and run Master Validation directly
-    master_validation_path = (
-        Path(__file__).parent / "Validation" / "Master_Validation.py"
-    )
+    master_validation_path = Path(__file__).parent / "Validation" / "Master_Validation.py"
     master_module = safe_import_module("Master_Validation", master_validation_path)
 
     if master_module and hasattr(master_module, "APGIMasterValidator"):
@@ -3267,24 +2952,14 @@ def run_headless() -> None:
             results = validator.run_all_protocols(seed=42)
 
             for protocol, result in results.items():
-                passed = (
-                    result.get("passed", False) if isinstance(result, dict) else False
-                )
-                status = (
-                    result.get("status", "unknown")
-                    if isinstance(result, dict)
-                    else "unknown"
-                )
-                logger.info(
-                    f"{protocol}: {'PASS' if passed else 'FAIL'} (status: {status})"
-                )
+                passed = result.get("passed", False)
+                status = result.get("status", "unknown")
+                logger.info(f"{protocol}: {'PASS' if passed else 'FAIL'} (status: {status})")
 
             # Generate master report
             report = validator.generate_master_report()
             logger.info(f"Overall Decision: {report.overall_decision}")
-            logger.info(
-                f"Protocols Passed: {report.passed_protocols}/{report.completed_protocols}"
-            )
+            logger.info(f"Protocols Passed: {report.passed_protocols}/{report.completed_protocols}")
 
         except Exception as e:
             logger.error(f"Error running protocols: {e}")

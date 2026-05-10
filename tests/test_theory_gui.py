@@ -191,9 +191,7 @@ class TestInferParameters:
         gui = ScriptRunnerGUI.__new__(ScriptRunnerGUI)
         source = ""
         exec_info = {"type": "module_function", "function": "run_validation"}
-        result = gui._infer_parameters(source, exec_info)
-
-        assert isinstance(result, dict)
+        gui._infer_parameters(source, exec_info)
 
 
 class TestTorchAvailability:

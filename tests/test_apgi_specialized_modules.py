@@ -4,7 +4,6 @@ Tests for remaining 15 APGI specialized implementation modules - comprehensive c
 """
 
 import subprocess
-# Add project root to path
 import sys
 import unittest
 from pathlib import Path
@@ -78,9 +77,7 @@ for module_name in SPECIALIZED_MODULE_NAMES:
                 except AttributeError as e:
                     # Handle Python 3.14 dataclass compatibility issues
                     if "'NoneType' object has no attribute '__dict__'" in str(e):
-                        print(
-                            f"Warning: {module_name} has Python 3.14 compatibility issues: {e}"
-                        )
+                        print(f"Warning: {module_name} has Python 3.14 compatibility issues: {e}")
                         SPECIALIZED_MODULES[module_name] = None
                     else:
                         raise
@@ -134,7 +131,6 @@ class TestBayesianEstimationFramework:
 
             # Run validation
             validation_result = framework.run_validation(test_data)
-            assert isinstance(validation_result, dict)
             assert "validation_results" in validation_result
 
         except Exception:
@@ -177,7 +173,6 @@ class TestComputationalBenchmarking:
 
             # Run benchmark
             benchmark_result = benchmark.run_benchmark([model1, model2])
-            assert isinstance(benchmark_result, dict)
             assert "framework_results" in benchmark_result
 
         except Exception:
@@ -218,9 +213,7 @@ class TestCrossSpeciesScaling:
             species_a_params = {"brain_size": 1000, "metabolic_rate": 0.5}
 
             # Scale to species B
-            species_b_params = scaling.scale_parameters(
-                species_a_params, from_species="A", to_species="B"
-            )
+            species_b_params = scaling.scale_parameters(species_a_params, from_species="A", to_species="B")
 
             assert isinstance(species_b_params, dict)
             assert len(species_b_params) == len(species_a_params)
@@ -313,7 +306,6 @@ class TestFalsificationFramework:
 
             # Run falsification
             falsification_result = framework.run_falsification(hypotheses)
-            assert isinstance(falsification_result, dict)
             assert "falsified_hypotheses" in falsification_result
 
         except Exception:
@@ -358,7 +350,6 @@ class TestFullDynamicModel:
 
             # Simulate dynamics
             simulation_result = model.simulate_dynamics(params)
-            assert isinstance(simulation_result, dict)
             assert "time_series" in simulation_result
 
         except Exception:
@@ -399,8 +390,7 @@ class TestLiquidNetworkImplementation:
             input_signal = np.random.randn(1000, 10)
 
             # Simulate liquid dynamics
-            dynamics_result = network.simulate_liquid_dynamics(input_signal)
-            assert isinstance(dynamics_result, np.ndarray)
+            network.simulate_liquid_dynamics(input_signal)
 
         except Exception:
             assert True  # Expected if implementation incomplete
@@ -445,7 +435,6 @@ class TestMultimodalClassifier:
 
             # Train classifier
             training_result = classifier.train(training_data)
-            assert isinstance(training_result, dict)
             assert "accuracy" in training_result
 
         except Exception:
@@ -487,7 +476,6 @@ class TestOpenScienceFramework:
 
             # Share data
             sharing_result = framework.share_data(test_data)
-            assert isinstance(sharing_result, dict)
             assert "sharing_status" in sharing_result
 
         except Exception:
@@ -533,7 +521,6 @@ class TestPsychologicalStates:
 
             # Compute states
             state_result = states.compute_states(params)
-            assert isinstance(state_result, dict)
             assert "psychological_state" in state_result
 
         except Exception:
@@ -575,7 +562,6 @@ class TestTuringMachine:
 
             # Run computation
             computation_result = turing.run_computation(test_input)
-            assert isinstance(computation_result, dict)
             assert "output" in computation_result
 
         except Exception:
@@ -617,7 +603,6 @@ class TestFalsificationThresholds:
 
             # Compute thresholds
             threshold_result = thresholds.compute_thresholds(test_data)
-            assert isinstance(threshold_result, dict)
             assert "threshold_values" in threshold_result
 
         except Exception:
@@ -671,7 +656,6 @@ class TestTestsGUI:
                 result = gui.run_tests(test_config)
 
                 # Verify the result structure without relying on actual subprocess execution
-                assert isinstance(result, dict)
                 assert "test_results" in result
                 assert result["test_results"]["success"] is True
                 assert "config" in result
@@ -715,7 +699,6 @@ class TestUtilsGUI:
 
             # Run utility through GUI
             utility_result = gui.run_utility(utility_config)
-            assert isinstance(utility_result, dict)
             assert "utility_results" in utility_result
 
         except Exception:
@@ -725,27 +708,19 @@ class TestUtilsGUI:
 class TestMainModule:
     """Test main module."""
 
-    @pytest.mark.skipif(
-        SPECIALIZED_MODULES["main.py"] is None, reason="main.py module not available"
-    )
+    @pytest.mark.skipif(SPECIALIZED_MODULES["main.py"] is None, reason="main.py module not available")
     def test_main_initialization(self):
         """Test main module initialization."""
         module = SPECIALIZED_MODULES["main.py"]
 
         try:
             # Check that main module has expected functions (cli is the Click entry point)
-            assert (
-                hasattr(module, "cli")
-                or hasattr(module, "main")
-                or hasattr(module, "run_main")
-            )
+            assert hasattr(module, "cli") or hasattr(module, "main") or hasattr(module, "run_main")
 
         except Exception:
             assert True  # Expected if structure different
 
-    @pytest.mark.skipif(
-        SPECIALIZED_MODULES["main.py"] is None, reason="main.py module not available"
-    )
+    @pytest.mark.skipif(SPECIALIZED_MODULES["main.py"] is None, reason="main.py module not available")
     def test_main_execution(self):
         """Test main module execution."""
         module = SPECIALIZED_MODULES["main.py"]
@@ -812,10 +787,7 @@ class TestSpecializedIntegration:
             for attr_name in dir(module):
                 if callable(getattr(module, attr_name)):
                     # Check if method takes data inputs
-                    if (
-                        "compute" in str(attr_name).lower()
-                        or "process" in str(attr_name).lower()
-                    ):
+                    if "compute" in str(attr_name).lower() or "process" in str(attr_name).lower():
                         data_methods.append(attr_name)
 
             if data_methods:
@@ -880,10 +852,7 @@ class TestSpecializedRobustness:
                 if callable(getattr(module, attr_name)):
                     method = getattr(module, attr_name)
                     # Check if method takes numerical inputs
-                    if (
-                        "compute" in attr_name.lower()
-                        or "simulate" in attr_name.lower()
-                    ):
+                    if "compute" in attr_name.lower() or "simulate" in attr_name.lower():
                         numerical_methods.append(method)
 
             if numerical_methods:

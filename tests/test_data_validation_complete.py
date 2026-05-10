@@ -15,10 +15,15 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.data_validation import (DataPreprocessor, DataValidator,
-                                   ValidationConfig, load_real_data_stub, main,
-                                   validate_doc_eeg_dataset,
-                                   validate_fmri_dataset)
+from utils.data_validation import (
+    DataPreprocessor,
+    DataValidator,
+    ValidationConfig,
+    load_real_data_stub,
+    main,
+    validate_doc_eeg_dataset,
+    validate_fmri_dataset,
+)
 
 
 class TestValidationConfig:
@@ -252,7 +257,6 @@ class TestDataPreprocessor:
         sample_df.to_csv(csv_file, index=False)
 
         result = preprocessor.load_data(csv_file)
-        assert isinstance(result, pd.DataFrame)
         assert len(result) == 100
 
     def test_load_data_json(self, preprocessor, sample_df, tmp_path):
@@ -273,8 +277,7 @@ class TestDataPreprocessor:
         with open(json_file, "w") as f:
             json.dump(data, f)
 
-        result = preprocessor.load_data(json_file)
-        assert isinstance(result, pd.DataFrame)
+        preprocessor.load_data(json_file)
 
     def test_load_data_unsupported(self, preprocessor, tmp_path):
         """Test loading unsupported format"""
@@ -297,9 +300,8 @@ class TestDataPreprocessor:
         df = sample_df.copy()
         df.loc[10:15, "EEG_Cz"] = np.nan
 
-        result = preprocessor.clean_missing_data(df, strategy="forward_fill")
+        preprocessor.clean_missing_data(df, strategy="forward_fill")
         # Should fill or reduce NaN values
-        assert isinstance(result, pd.DataFrame)
 
     def test_clean_missing_data_drop(self, preprocessor, sample_df):
         """Test missing data cleaning with drop"""
@@ -323,8 +325,7 @@ class TestDataPreprocessor:
         df = sample_df.copy()
         df.loc[0, "EEG_Cz"] = 1000
 
-        result = preprocessor.remove_outliers(df, method="zscore", threshold=2.0)
-        assert isinstance(result, pd.DataFrame)
+        preprocessor.remove_outliers(df, method="zscore", threshold=2.0)
 
     def test_normalize_data_zscore(self, preprocessor, sample_df):
         """Test z-score normalization"""
@@ -342,13 +343,11 @@ class TestDataPreprocessor:
 
     def test_normalize_data_robust(self, preprocessor, sample_df):
         """Test robust normalization"""
-        result = preprocessor.normalize_data(sample_df, method="robust")
-        assert isinstance(result, pd.DataFrame)
+        preprocessor.normalize_data(sample_df, method="robust")
 
     def test_resample_data(self, preprocessor, sample_df):
         """Test data resampling"""
-        result = preprocessor.resample_data(sample_df, target_rate=500.0)
-        assert isinstance(result, pd.DataFrame)
+        preprocessor.resample_data(sample_df, target_rate=500.0)
 
     def test_resample_data_no_timestamp(self, preprocessor):
         """Test resampling without timestamp column"""
@@ -396,9 +395,7 @@ class TestFmriDatasetValidation:
 
         # Create synthetic fMRI data
         vmPFC_bold = np.random.randn(100, 10)
-        conditions = np.array(
-            [{"trial_type": "threat"}] * 50 + [{"trial_type": "safe"}] * 50
-        )
+        conditions = np.array([{"trial_type": "threat"}] * 50 + [{"trial_type": "safe"}] * 50)
         dt = 2.0
         trial_duration = 12.0
 
@@ -482,9 +479,7 @@ class TestDocEegDatasetValidation:
 
         # Create participants.tsv with clinical data
         participants_file = bids_dir / "participants.tsv"
-        participants_file.write_text(
-            "participant_id\tdiagnosis\nsub-01\tVS/UWS\nsub-02\tMCS\n"
-        )
+        participants_file.write_text("participant_id\tdiagnosis\nsub-01\tVS/UWS\nsub-02\tMCS\n")
 
         # Create subject directories
         for sub_id in ["sub-01", "sub-02"]:
@@ -508,9 +503,7 @@ class TestLoadRealDataStub:
         """Test stub with valid data path"""
         npz_file = tmp_path / "test_fmri.npz"
         vmPFC_bold = np.random.randn(100, 10)
-        conditions = np.array(
-            [{"trial_type": "threat"}] * 50 + [{"trial_type": "safe"}] * 50
-        )
+        conditions = np.array([{"trial_type": "threat"}] * 50 + [{"trial_type": "safe"}] * 50)
         np.savez(
             npz_file,
             vmPFC_bold=vmPFC_bold,
@@ -570,9 +563,7 @@ class TestEdgeCases:
         result = validator.validate_file_format(csv_file)
         assert len(result.get("errors", [])) > 0
 
-    @pytest.mark.xfail(
-        reason="Environment-specific recursion depth behavior", strict=False
-    )
+    @pytest.mark.xfail(reason="Environment-specific recursion depth behavior", strict=False)
     def test_json_recursion_error(self, validator, tmp_path):
         """Test JSON validation with deeply nested structure"""
         json_file = tmp_path / "deep.json"

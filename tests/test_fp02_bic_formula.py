@@ -14,9 +14,7 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-    compute_model_selection_metrics,
-)
+from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import compute_model_selection_metrics
 
 
 class TestBICFormula:
@@ -94,12 +92,8 @@ class TestBICFormula:
         simple_params = 5
         complex_params = 15
 
-        _, simple_bic = compute_model_selection_metrics(
-            n_trials, simple_params, log_likelihood
-        )
-        _, complex_bic = compute_model_selection_metrics(
-            n_trials, complex_params, log_likelihood
-        )
+        _, simple_bic = compute_model_selection_metrics(n_trials, simple_params, log_likelihood)
+        _, complex_bic = compute_model_selection_metrics(n_trials, complex_params, log_likelihood)
 
         # Simpler model should have lower BIC with same fit
         assert simple_bic < complex_bic, (

@@ -137,9 +137,7 @@ except ImportError:
 class HistoricalDashboard:
     """Enhanced dashboard with historical analysis and export capabilities."""
 
-    def __init__(
-        self, db_path: str = "data_repository/historical_data.db", port: int = 8051
-    ):
+    def __init__(self, db_path: str = "data_repository/historical_data.db", port: int = 8051):
         """
         Initialize the historical dashboard.
 
@@ -147,9 +145,6 @@ class HistoricalDashboard:
             db_path: Path to SQLite database for historical data
             port: Port to run the dashboard on
         """
-        if not DASH_AVAILABLE:
-            print("Warning: Running in test mode without dash functionality")
-
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.port = port
@@ -176,6 +171,10 @@ class HistoricalDashboard:
     def _init_database(self):
         """Initialize SQLite database for historical data storage."""
         try:
+            # Ensure parent directory exists
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Connect to database
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
 
@@ -223,18 +222,10 @@ class HistoricalDashboard:
                 """)
 
                 # Create indexes for better query performance
-                cursor.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_system_timestamp ON system_metrics(timestamp)"
-                )
-                cursor.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_validation_timestamp ON validation_results(timestamp)"
-                )
-                cursor.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_performance_timestamp ON performance_metrics(timestamp)"
-                )
-                cursor.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_protocol_number ON validation_results(protocol_number)"
-                )
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_system_timestamp ON system_metrics(timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_validation_timestamp ON validation_results(timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_performance_timestamp ON performance_metrics(timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_protocol_number ON validation_results(protocol_number)")
 
                 conn.commit()
 
@@ -293,9 +284,7 @@ class HistoricalDashboard:
                 # Store for selected data
                 dcc.Store(id="selected-data-store"),
                 # Auto-refresh interval
-                dcc.Interval(
-                    id="auto-refresh", interval=30000, n_intervals=0  # 30 seconds
-                ),
+                dcc.Interval(id="auto-refresh", interval=30000, n_intervals=0),  # 30 seconds
             ]
         )
 
@@ -361,9 +350,7 @@ class HistoricalDashboard:
                         html.Div(
                             [
                                 html.H4("Memory Trend"),
-                                html.P(
-                                    id="memory-trend-summary", children="Analyzing..."
-                                ),
+                                html.P(id="memory-trend-summary", children="Analyzing..."),
                                 html.Div(id="memory-trend-indicator"),
                             ],
                             className="trend-card",
@@ -455,10 +442,7 @@ class HistoricalDashboard:
                         html.Label("Filter by Protocol:"),
                         dcc.Dropdown(
                             id="protocol-selector",
-                            options=[
-                                {"label": f"Protocol {i}", "value": str(i)}
-                                for i in range(1, 13)
-                            ],
+                            options=[{"label": f"Protocol {i}", "value": str(i)} for i in range(1, 13)],
                             value="all",
                             multi=True,
                             placeholder="Select protocols (leave empty for all)",
@@ -599,9 +583,7 @@ class HistoricalDashboard:
             ]
         )
 
-    def get_historical_data(
-        self, table: str, start_date: str = None, end_date: str = None
-    ) -> List[Dict]:
+    def get_historical_data(self, table: str, start_date: str = None, end_date: str = None) -> List[Dict]:
         """
         Retrieve historical data from database.
 
@@ -618,8 +600,13 @@ class HistoricalDashboard:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
-                query = f"SELECT * FROM {table}"
-                params = []
+                # Validate table name to prevent SQL injection
+                if not table.replace("_", "").isalnum():
+                    raise ValueError(f"Invalid table name: {table}")
+
+                # Use parameterized query to prevent SQL injection
+                query = "SELECT * FROM ?"
+                params = [table]
 
                 if start_date or end_date:
                     conditions = []
@@ -629,7 +616,8 @@ class HistoricalDashboard:
                     if end_date:
                         conditions.append("timestamp <= ?")
                         params.append(end_date)
-                    query += " WHERE " + " AND ".join(conditions)
+                    if conditions:
+                        query += " WHERE " + " AND ".join(conditions)
 
                 query += " ORDER BY timestamp DESC"
 
@@ -640,9 +628,7 @@ class HistoricalDashboard:
 
         except Exception as e:
             if apgi_logger:
-                apgi_logger.logger.error(
-                    f"Error retrieving historical data from {table}: {e}"
-                )
+                apgi_logger.logger.error(f"Error retrieving historical data from {table}: {e}")
             return []
 
     def analyze_trends(self, data: List[Dict], metric_column: str) -> Dict[str, Any]:
@@ -660,9 +646,7 @@ class HistoricalDashboard:
             return {"trend": "no_data", "change": 0, "direction": "neutral"}
 
         try:
-            values = [
-                row[metric_column] for row in data if row.get(metric_column) is not None
-            ]
+            values = [row[metric_column] for row in data if row.get(metric_column) is not None]
 
             if len(values) < 2:
                 return {
@@ -681,9 +665,7 @@ class HistoricalDashboard:
             else:
                 older_avg = values[0]
 
-            change_percent = (
-                ((recent_avg - older_avg) / older_avg) * 100 if older_avg != 0 else 0
-            )
+            change_percent = ((recent_avg - older_avg) / older_avg) * 100 if older_avg != 0 else 0
 
             # Determine trend direction
             if change_percent > 5:
@@ -743,14 +725,10 @@ class HistoricalDashboard:
             export_data: Dict[str, Any] = {}
 
             if data_type in ["all", "system"]:
-                export_data["system_metrics"] = self.get_historical_data(
-                    "system_metrics", start_date, end_date
-                )
+                export_data["system_metrics"] = self.get_historical_data("system_metrics", start_date, end_date)
 
             if data_type in ["all", "validation"]:
-                export_data["validation_results"] = self.get_historical_data(
-                    "validation_results", start_date, end_date
-                )
+                export_data["validation_results"] = self.get_historical_data("validation_results", start_date, end_date)
 
             if data_type in ["all", "performance"]:
                 export_data["performance_metrics"] = self.get_historical_data(
@@ -763,9 +741,7 @@ class HistoricalDashboard:
                 "date_range": {"start": start_date, "end": end_date},
                 "data_type": data_type,
                 "format": format_type,
-                "total_records": sum(
-                    len(data) for data in export_data.values() if isinstance(data, list)
-                ),
+                "total_records": sum(len(data) for data in export_data.values() if isinstance(data, list)),
             }
 
             # Generate filename if not provided
@@ -845,9 +821,7 @@ class HistoricalDashboard:
                 for category, items in data.items():
                     if isinstance(items, list) and items:
                         df = pd.DataFrame(items)
-                        df.to_excel(
-                            writer, sheet_name=category[:31], index=False
-                        )  # Excel sheet name limit
+                        df.to_excel(writer, sheet_name=category[:31], index=False)  # Excel sheet name limit
 
             if apgi_logger:
                 apgi_logger.logger.info(f"Data exported to Excel: {output_path}")
@@ -855,9 +829,7 @@ class HistoricalDashboard:
 
         except ImportError:
             if apgi_logger:
-                apgi_logger.logger.error(
-                    "Excel export requires openpyxl. Install with: pip install openpyxl"
-                )
+                apgi_logger.logger.error("Excel export requires openpyxl. Install with: pip install openpyxl")
             return False
         except Exception as e:
             if apgi_logger:
@@ -882,13 +854,9 @@ class HistoricalDashboard:
         """Run the historical dashboard server."""
         try:
             if apgi_logger:
-                apgi_logger.logger.info(
-                    f"Starting historical dashboard on {host}:{self.port}"
-                )
+                apgi_logger.logger.info(f"Starting historical dashboard on {host}:{self.port}")
 
-            self.app.run_server(
-                host=host, port=self.port, debug=False, use_reloader=False
-            )
+            self.app.run_server(host=host, port=self.port, debug=False, use_reloader=False)
 
         except Exception as e:
             if apgi_logger:

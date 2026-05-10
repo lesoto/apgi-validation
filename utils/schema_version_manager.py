@@ -65,9 +65,7 @@ class SchemaVersionManager:
     def __init__(self, schema_registry_path: Optional[Path] = None):
         self.current_version = "1.3.0"
         self.min_supported_version = "1.0.0"
-        self.schema_registry_path = (
-            schema_registry_path or Path(__file__).parent.parent / "config"
-        )
+        self.schema_registry_path = schema_registry_path or Path(__file__).parent.parent / "config"
         self.migrations: Dict[Tuple[str, str], MigrationContract] = {}
         self._register_default_migrations()
 
@@ -161,9 +159,7 @@ class SchemaVersionManager:
     ) -> None:
         """Register a migration contract between two versions."""
         key = (from_version, to_version)
-        self.migrations[key] = MigrationContract(
-            from_version, to_version, migration_func, description
-        )
+        self.migrations[key] = MigrationContract(from_version, to_version, migration_func, description)
         logger.info(f"Registered migration: {from_version} -> {to_version}")
 
     def validate_version(self, version: str) -> bool:
@@ -177,9 +173,7 @@ class SchemaVersionManager:
         except ValueError:
             return False
 
-    def get_compatibility_level(
-        self, from_version: str, to_version: str
-    ) -> CompatibilityLevel:
+    def get_compatibility_level(self, from_version: str, to_version: str) -> CompatibilityLevel:
         """Determine compatibility level between versions."""
         try:
             from_v = semver.VersionInfo.parse(from_version)
@@ -194,9 +188,7 @@ class SchemaVersionManager:
         except ValueError:
             return CompatibilityLevel.BREAKING
 
-    def migrate_config(
-        self, config: Dict[str, Any], target_version: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def migrate_config(self, config: Dict[str, Any], target_version: Optional[str] = None) -> Dict[str, Any]:
         """Migrate a configuration to the target version."""
         source_version = config.get("version", "1.0.0")
         target_version = target_version or self.current_version
@@ -213,9 +205,7 @@ class SchemaVersionManager:
         # Find migration path
         migration_path = self._find_migration_path(source_version, target_version)
         if not migration_path:
-            raise ValueError(
-                f"No migration path from {source_version} to {target_version}"
-            )
+            raise ValueError(f"No migration path from {source_version} to {target_version}")
 
         # Apply migrations sequentially
         current_config = config.copy()
@@ -224,9 +214,7 @@ class SchemaVersionManager:
         for next_version in migration_path[1:]:  # Skip first element (source version)
             key = (current_version, next_version)
             if key not in self.migrations:
-                raise ValueError(
-                    f"No migration defined for {current_version} -> {next_version}"
-                )
+                raise ValueError(f"No migration defined for {current_version} -> {next_version}")
 
             migration = self.migrations[key]
             logger.info(f"Applying migration: {current_version} -> {next_version}")
@@ -234,9 +222,7 @@ class SchemaVersionManager:
             current_config["version"] = next_version
             current_version = next_version
 
-        logger.info(
-            f"Successfully migrated config from {source_version} to {target_version}"
-        )
+        logger.info(f"Successfully migrated config from {source_version} to {target_version}")
         return current_config
 
     def _find_migration_path(self, from_version: str, to_version: str) -> List[str]:
@@ -256,9 +242,7 @@ class SchemaVersionManager:
 
         while current < to_v:
             # Try to increment patch version first
-            next_patch = semver.VersionInfo(
-                current.major, current.minor, current.patch + 1
-            )
+            next_patch = semver.VersionInfo(current.major, current.minor, current.patch + 1)
             if self._has_migration(str(current), str(next_patch)):
                 path.append(str(next_patch))
                 current = next_patch
@@ -319,72 +303,50 @@ class SchemaVersionManager:
         except Exception as e:
             return False, [f"Schema validation error: {e}"]
 
-    def _validate_recursive(
-        self, data: Any, schema: Dict[str, Any], path: str, errors: List[str]
-    ) -> None:
+    def _validate_recursive(self, data: Any, schema: Dict[str, Any], path: str, errors: List[str]) -> None:
         """Recursively validate data against schema."""
         if not isinstance(schema, dict) or "type" not in schema:
             return
 
         expected_type = schema["type"]
-        current_path = (
-            f"{path}.{schema.get('title', '')}" if path else schema.get("title", "")
-        )
+        current_path = f"{path}.{schema.get('title', '')}" if path else schema.get("title", "")
 
         if expected_type == "object":
             if not isinstance(data, dict):
-                errors.append(
-                    f"Expected object at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected object at {current_path}, got {type(data).__name__}")
                 return
 
             properties = schema.get("properties", {})
             for prop_name, prop_schema in properties.items():
                 if prop_name in data:
-                    self._validate_recursive(
-                        data[prop_name], prop_schema, current_path, errors
-                    )
+                    self._validate_recursive(data[prop_name], prop_schema, current_path, errors)
 
         elif expected_type == "array":
             if not isinstance(data, list):
-                errors.append(
-                    f"Expected array at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected array at {current_path}, got {type(data).__name__}")
                 return
 
         elif expected_type == "string":
             if not isinstance(data, str):
-                errors.append(
-                    f"Expected string at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected string at {current_path}, got {type(data).__name__}")
 
         elif expected_type == "number":
             if not isinstance(data, (int, float)):
-                errors.append(
-                    f"Expected number at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected number at {current_path}, got {type(data).__name__}")
             else:
                 # Check constraints
                 if "minimum" in schema and data < schema["minimum"]:
-                    errors.append(
-                        f"Value at {current_path} below minimum: {data} < {schema['minimum']}"
-                    )
+                    errors.append(f"Value at {current_path} below minimum: {data} < {schema['minimum']}")
                 if "maximum" in schema and data > schema["maximum"]:
-                    errors.append(
-                        f"Value at {current_path} above maximum: {data} > {schema['maximum']}"
-                    )
+                    errors.append(f"Value at {current_path} above maximum: {data} > {schema['maximum']}")
 
         elif expected_type == "boolean":
             if not isinstance(data, bool):
-                errors.append(
-                    f"Expected boolean at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected boolean at {current_path}, got {type(data).__name__}")
 
         elif expected_type == "integer":
             if not isinstance(data, int):
-                errors.append(
-                    f"Expected integer at {current_path}, got {type(data).__name__}"
-                )
+                errors.append(f"Expected integer at {current_path}, got {type(data).__name__}")
 
 
 # Global instance

@@ -70,9 +70,7 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    warnings.warn(
-        "PyTorch not available - Level 1 thermodynamic predictions will be disabled"
-    )
+    warnings.warn("PyTorch not available - Level 1 thermodynamic predictions will be disabled")
 
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
@@ -85,9 +83,7 @@ try:
     from utils.statistical_tests import apply_multiple_comparison_correction
 except ImportError:
     apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
-    logger.warning(
-        "statistical_tests.apply_multiple_comparison_correction not available"
-    )
+    logger.warning("statistical_tests.apply_multiple_comparison_correction not available")
 
 # ---------------------------------------------------------------------------
 # Import falsification thresholds
@@ -106,7 +102,8 @@ try:
     )
 
     # Fix 1: Assert DEFAULT_ALPHA value is 0.05
-    assert DEFAULT_ALPHA == 0.05, f"DEFAULT_ALPHA must be 0.05, got {DEFAULT_ALPHA}"
+    if DEFAULT_ALPHA != 0.05:
+        raise ValueError(f"DEFAULT_ALPHA must be 0.05, got {DEFAULT_ALPHA}")
 except ImportError:
     logger.warning("falsification_thresholds not available, using default values")
     DEFAULT_ALPHA = 0.05
@@ -136,9 +133,7 @@ class EpistemicArchitectureValidator:
             "overall_epistemic_score": 0.0,
         }
 
-    def validate_all_predictions(
-        self, synthetic_data: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    def validate_all_predictions(self, synthetic_data: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Validate all epistemic architecture predictions
 
@@ -170,9 +165,7 @@ class EpistemicArchitectureValidator:
         }
 
         # Cross-paper consistency check: VP-13 Level 2 vs FP-04 criteria
-        self.results["cross_paper_consistency"] = (
-            self._run_cross_paper_consistency_check()
-        )
+        self.results["cross_paper_consistency"] = self._run_cross_paper_consistency_check()
 
         # Calculate overall score
         self.results["overall_epistemic_score"] = self._calculate_epistemic_score()
@@ -215,19 +208,12 @@ class EpistemicArchitectureValidator:
         # Compute mutual information
         mi_baseline = np.mean(
             [
-                mutual_info_regression(
-                    baseline_stimulus[:, i : i + 1], baseline_neural[:, i]
-                )[0]
+                mutual_info_regression(baseline_stimulus[:, i : i + 1], baseline_neural[:, i])[0]
                 for i in range(n_features)
             ]
         )
         mi_cued = np.mean(
-            [
-                mutual_info_regression(cued_stimulus[:, i : i + 1], cued_neural[:, i])[
-                    0
-                ]
-                for i in range(n_features)
-            ]
+            [mutual_info_regression(cued_stimulus[:, i : i + 1], cued_neural[:, i])[0] for i in range(n_features)]
         )
 
         # Calculate increase
@@ -237,31 +223,18 @@ class EpistemicArchitectureValidator:
         n_permutations = 100  # Reduced for speed in validation
         permuted_increases = []
         for _ in range(n_permutations):
-            perm_baseline = np.random.permutation(baseline_neural.flatten()).reshape(
-                n_trials, n_features
-            )
-            perm_cued = np.random.permutation(cued_neural.flatten()).reshape(
-                n_trials, n_features
-            )
+            perm_baseline = np.random.permutation(baseline_neural.flatten()).reshape(n_trials, n_features)
+            perm_cued = np.random.permutation(cued_neural.flatten()).reshape(n_trials, n_features)
             perm_mi_baseline = np.mean(
                 [
-                    mutual_info_regression(
-                        baseline_stimulus[:, i : i + 1], perm_baseline[:, i]
-                    )[0]
+                    mutual_info_regression(baseline_stimulus[:, i : i + 1], perm_baseline[:, i])[0]
                     for i in range(n_features)
                 ]
             )
             perm_mi_cued = np.mean(
-                [
-                    mutual_info_regression(
-                        cued_stimulus[:, i : i + 1], perm_cued[:, i]
-                    )[0]
-                    for i in range(n_features)
-                ]
+                [mutual_info_regression(cued_stimulus[:, i : i + 1], perm_cued[:, i])[0] for i in range(n_features)]
             )
-            permuted_increases.append(
-                (perm_mi_cued - perm_mi_baseline) / (perm_mi_baseline + 1e-9) * 100
-            )
+            permuted_increases.append((perm_mi_cued - perm_mi_baseline) / (perm_mi_baseline + 1e-9) * 100)
 
         p_value = np.mean([inc >= mi_increase_pct for inc in permuted_increases])
 
@@ -304,9 +277,7 @@ class EpistemicArchitectureValidator:
             else:  # post_training
                 base_rate = 40.0
 
-            condition_rates = [
-                base_rate + np.random.normal(0, 2.0) for _ in range(n_modalities)
-            ]
+            condition_rates = [base_rate + np.random.normal(0, 2.0) for _ in range(n_modalities)]
             rates.extend(condition_rates)
 
         # Test asymptotic behavior
@@ -316,9 +287,7 @@ class EpistemicArchitectureValidator:
 
         # Fit asymptotic model: r(t) = r_inf * (1 - exp(-k*t))
         time_points = np.array([1, 2, 3, 4])  # Training phases
-        mean_rates = [
-            np.mean(rates[i * n_modalities : (i + 1) * n_modalities]) for i in range(4)
-        ]
+        mean_rates = [np.mean(rates[i * n_modalities : (i + 1) * n_modalities]) for i in range(4)]
 
         # Fix 5: Add bootstrap resampling for bandwidth asymptote
         # Generate bootstrap samples for confidence intervals
@@ -327,9 +296,7 @@ class EpistemicArchitectureValidator:
 
         for i in range(n_bootstrap):
             # Resample with replacement
-            bootstrap_sample = np.random.choice(
-                post_training_rates, size=len(post_training_rates), replace=True
-            )
+            bootstrap_sample = np.random.choice(post_training_rates, size=len(post_training_rates), replace=True)
             bootstrap_mean = np.mean(bootstrap_sample)
             bootstrap_rates[i] = bootstrap_mean
 
@@ -397,9 +364,7 @@ class EpistemicArchitectureValidator:
         # Fix 1: Replace hardcoded distributions with empirical data from VP-09
         # Import P3b distributions from FP-09's validated EEG analysis
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-                get_p3b_distributions,
-            )
+            from Falsification.FP_09_NeuralSignatures_P3b_HEP import get_p3b_distributions
 
             p3b_dists = get_p3b_distributions()
 
@@ -419,9 +384,7 @@ class EpistemicArchitectureValidator:
 
         except ImportError:
             # Fallback to hardcoded values only if FP-09 not available
-            logger.warning(
-                "VP-13 P7: FP-09 not available, using literature-based fallback distributions"
-            )
+            logger.warning("VP-13 P7: FP-09 not available, using literature-based fallback distributions")
             # Literature values from Polich (2007) normalized
             p3b_conscious_mean = 0.67  # 20/30 µV
             p3b_conscious_std = 0.10  # 3/30 µV
@@ -446,9 +409,7 @@ class EpistemicArchitectureValidator:
         # Linear detector (baseline comparison) - weaker discrimination
         signal_strength = np.random.randn(n_samples)
         linear_probs = 1 / (1 + np.exp(-1.2 * signal_strength))  # Weaker signal
-        linear_probs = np.clip(
-            linear_probs + np.random.normal(0, 0.08, n_samples), 0.01, 0.99
-        )
+        linear_probs = np.clip(linear_probs + np.random.normal(0, 0.08, n_samples), 0.01, 0.99)
 
         # Calculate AUC for both detectors
         apgi_auc = roc_auc_score(true_states, apgi_probs)
@@ -476,14 +437,10 @@ class EpistemicArchitectureValidator:
             "description": "APGI ignition probability as optimal Bayesian detector",
             "statistical_test": "DeLong test for correlated ROC curves (DeLong et al. 1988)",
             "empirical_source": empirical_source,
-            "p3b_distributions_used": (
-                "VP-09 FP_09" if "Polich (2007)" in empirical_source else "fallback"
-            ),
+            "p3b_distributions_used": ("VP-09 FP_09" if "Polich (2007)" in empirical_source else "fallback"),
         }
 
-    def _delong_test(
-        self, y_true: np.ndarray, scores1: np.ndarray, scores2: np.ndarray
-    ) -> float:
+    def _delong_test(self, y_true: np.ndarray, scores1: np.ndarray, scores2: np.ndarray) -> float:
         """
         DeLong test for comparing two correlated ROC AUCs.
 
@@ -516,14 +473,10 @@ class EpistemicArchitectureValidator:
             v01 = np.zeros(n0)
 
             for i, case_score in enumerate(case_scores):
-                v10[i] = np.mean(case_score > control_scores) + 0.5 * np.mean(
-                    case_score == control_scores
-                )
+                v10[i] = np.mean(case_score > control_scores) + 0.5 * np.mean(case_score == control_scores)
 
             for j, control_score in enumerate(control_scores):
-                v01[j] = np.mean(control_score > case_scores) + 0.5 * np.mean(
-                    control_score == case_scores
-                )
+                v01[j] = np.mean(control_score > case_scores) + 0.5 * np.mean(control_score == case_scores)
 
             return v10, v01
 
@@ -659,17 +612,11 @@ class EpistemicArchitectureValidator:
         )
 
         # Statistical test
-        t_stat, p_value, significant = safe_ttest_ind(
-            conscious_cost, non_conscious_cost, min_n=30
-        )
+        t_stat, p_value, significant = safe_ttest_ind(conscious_cost, non_conscious_cost, min_n=30)
 
         # Effect size (Cohen's d)
-        pooled_std = np.sqrt(
-            (np.var(non_conscious_cost, ddof=1) + np.var(conscious_cost, ddof=1)) / 2
-        )
-        cohens_d = (mean_conscious - mean_non_conscious) / (
-            pooled_std + 1e-9
-        )  # Added 1e-9 to prevent division by zero
+        pooled_std = np.sqrt((np.var(non_conscious_cost, ddof=1) + np.var(conscious_cost, ddof=1)) / 2)
+        cohens_d = (mean_conscious - mean_non_conscious) / (pooled_std + 1e-9)  # Added 1e-9 to prevent division by zero
 
         # Falsification criterion
         falsified = cost_increase_pct < 15.0 or p_value >= DEFAULT_ALPHA
@@ -720,19 +667,13 @@ class EpistemicArchitectureValidator:
         # Calculate efficiency advantage from measured data (not hardcoded)
         mean_baseline = np.mean(baseline_efficiency)
         mean_apgi = np.mean(apgi_efficiency)
-        efficiency_advantage_pct = (
-            (mean_apgi - mean_baseline) / (mean_baseline + 1e-9) * 100
-        )
+        efficiency_advantage_pct = (mean_apgi - mean_baseline) / (mean_baseline + 1e-9) * 100
 
         # Statistical test
-        t_stat, p_value, significant = safe_ttest_ind(
-            apgi_efficiency, baseline_efficiency, min_n=30
-        )
+        t_stat, p_value, significant = safe_ttest_ind(apgi_efficiency, baseline_efficiency, min_n=30)
 
         # Effect size
-        pooled_std = np.sqrt(
-            (np.var(baseline_efficiency, ddof=1) + np.var(apgi_efficiency, ddof=1)) / 2
-        )
+        pooled_std = np.sqrt((np.var(baseline_efficiency, ddof=1) + np.var(apgi_efficiency, ddof=1)) / 2)
         cohens_d = (mean_apgi - mean_baseline) / (pooled_std + 1e-9)
 
         # Falsification criterion
@@ -788,9 +729,7 @@ class EpistemicArchitectureValidator:
         if denominator == 0:
             std_err = np.inf  # Or handle as an error case
         else:
-            std_err = np.sqrt(
-                np.sum((threshold_elevation - predicted) ** 2) / df / denominator
-            )
+            std_err = np.sqrt(np.sum((threshold_elevation - predicted) ** 2) / df / denominator)
 
         if std_err == 0:  # If std_err is zero, t_stat would be inf or nan
             t_stat = np.inf if slope != 0 else 0
@@ -838,21 +777,9 @@ class EpistemicArchitectureValidator:
 
         # Apply allometric scaling with exponent ~0.75
         # Fix: Reduce noise to ensure exponent stays within expected range [0.60, 0.90]
-        threshold_params = (
-            base_threshold
-            * (brain_masses / 1300.0) ** 0.75
-            * (1 + np.random.normal(0, 0.01, 4))
-        )
-        precision_params = (
-            base_precision
-            * (brain_masses / 1300.0) ** 0.75
-            * (1 + np.random.normal(0, 0.008, 4))
-        )
-        timescale_params = (
-            base_timescale
-            * (brain_masses / 1300.0) ** 0.75
-            * (1 + np.random.normal(0, 0.006, 4))
-        )
+        threshold_params = base_threshold * (brain_masses / 1300.0) ** 0.75 * (1 + np.random.normal(0, 0.01, 4))
+        precision_params = base_precision * (brain_masses / 1300.0) ** 0.75 * (1 + np.random.normal(0, 0.008, 4))
+        timescale_params = base_timescale * (brain_masses / 1300.0) ** 0.75 * (1 + np.random.normal(0, 0.006, 4))
 
         # Fit allometric scaling: log(y) = a + b*log(brain_mass)
         log_brain = np.log(brain_masses)
@@ -867,9 +794,7 @@ class EpistemicArchitectureValidator:
             predicted = slope * log_brain + intercept
 
             # Calculate R²
-            r2 = 1 - np.sum((log_param - predicted) ** 2) / np.sum(
-                (log_param - np.mean(log_param)) ** 2
-            )
+            r2 = 1 - np.sum((log_param - predicted) ** 2) / np.sum((log_param - np.mean(log_param)) ** 2)
 
             # Test residuals for normality (KS test)
             residuals = log_param - predicted
@@ -919,9 +844,7 @@ class EpistemicArchitectureValidator:
         Returns:
             Dictionary with consistency check results
         """
-        logger.info(
-            "Running cross-paper consistency check with FP-04 Level 2 criteria..."
-        )
+        logger.info("Running cross-paper consistency check with FP-04 Level 2 criteria...")
 
         try:
             # Import FP-04's falsification criteria function
@@ -1155,10 +1078,10 @@ def run_validation(**kwargs) -> Dict[str, Any]:
                 p_values=predictions_p_values, method="fdr_bh", alpha=0.05
             )
             results["multiple_comparison_correction"] = {
-                "bonferroni": bonferroni_result,
-                "fdr_bh": fdr_result,
                 "n_tests": len(predictions_p_values),
                 "correction_applied": True,
+                "bonferroni_result": bonferroni_result,
+                "fdr_result": fdr_result,
             }
         else:
             results["multiple_comparison_correction"] = {
@@ -1183,9 +1106,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
                 "passed": not results.get("level_1_predictions", {})
                 .get("P11_fatigue_threshold", {})
                 .get("falsified", True),
-                "actual": results.get("level_1_predictions", {})
-                .get("P11_fatigue_threshold", {})
-                .get("fitted_slope"),
+                "actual": results.get("level_1_predictions", {}).get("P11_fatigue_threshold", {}).get("fitted_slope"),
                 "threshold": "Developmental Load Sensitivity (slope > 0)",
             },
             "V13.3": {
@@ -1270,11 +1191,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -1285,11 +1202,7 @@ def run_protocol_main(config=None):
         data_sources=["Epistemic Simulations", "Information Theory Benchmarks"],
         methodology="epistemic_architecture_validation",
         errors=[],
-        metadata={
-            "overall_epistemic_score": legacy_result.get("results", {}).get(
-                "overall_epistemic_score"
-            )
-        },
+        metadata={"overall_epistemic_score": legacy_result.get("results", {}).get("overall_epistemic_score")},
     ).to_dict()
 
 

@@ -10,8 +10,8 @@ This script checks:
 """
 
 import os
-import signal
 import sys
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -32,7 +32,7 @@ def timeout_handler(signum, frame):
 
 
 def run_with_timeout(func, timeout_secs=30):
-    """Run a function with a timeout.
+    """Run a function with a timeout using threading (works on all platforms).
 
     Args:
         func: Function to call
@@ -44,21 +44,29 @@ def run_with_timeout(func, timeout_secs=30):
     Raises:
         TimeoutError: If function takes longer than timeout_secs
     """
-    # Set up timeout
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(timeout_secs)
+    result = [None]
+    exception = [None]
 
-    try:
-        result = func()
-        return result
-    finally:
-        signal.alarm(0)  # Cancel alarm
-        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+    def target():
+        try:
+            result[0] = func()
+        except Exception as e:
+            exception[0] = e
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout_secs)
+
+    if thread.is_alive():
+        raise TimeoutError(f"Protocol execution timed out after {timeout_secs}s")
+
+    if exception[0]:
+        raise exception[0]
+
+    return result[0]
 
 
-def check_protocol(
-    module_path: str, protocol_id: str, timeout_secs: int = 30, quick_mode: bool = False
-) -> dict:
+def check_protocol(module_path: str, protocol_id: str, timeout_secs: int = 30, quick_mode: bool = False) -> dict:
     """Check a single protocol.
 
     Args:
@@ -114,8 +122,7 @@ def check_protocol(
                     "status": "INVALID_DICT",
                     "message": f"Cannot convert dict to ProtocolResult: {str(e)[:50]}",
                 }
-
-        if not isinstance(result, ProtocolResult):
+        elif not isinstance(result, ProtocolResult):
             return {
                 "status": "WRONG_TYPE",
                 "message": f"Result is {type(result).__name__}, not ProtocolResult",
@@ -256,16 +263,12 @@ def main():
     for module_path, protocol_id in fp_protocols:
         # Use longer timeout for protocols that may be slow (e.g., MCMC sampling)
         timeout_secs = 30 if "Bayesian" in protocol_id or "MCMC" in protocol_id else 5
-        result = check_protocol(
-            module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode
-        )
+        result = check_protocol(module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode)
         status = result["status"]
 
         if status == "OK":
             fp_ok += 1
-            print(
-                f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete"
-            )
+            print(f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete")
         elif status == "TIMEOUT":
             print(f"⏱️  {protocol_id:50} {status}: {result['message']}")
         else:
@@ -279,16 +282,12 @@ def main():
     for module_path, protocol_id in vp_protocols:
         # Use longer timeout for protocols that may be slow (e.g., MCMC sampling)
         timeout_secs = 30 if "Bayesian" in protocol_id or "MCMC" in protocol_id else 5
-        result = check_protocol(
-            module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode
-        )
+        result = check_protocol(module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode)
         status = result["status"]
 
         if status == "OK":
             vp_ok += 1
-            print(
-                f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete"
-            )
+            print(f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete")
         elif status == "TIMEOUT":
             print(f"⏱️  {protocol_id:50} {status}: {result['message']}")
         else:
@@ -307,12 +306,8 @@ def main():
         print("✅ Metadata standardization working")
         print(f"   - Status enum: {ProtocolStatus.COMPLETE.value}")
         print(f"   - DataSource enum: {DataSource.SYNTHETIC.value}")
-        print(
-            f"   - Protocol dependencies: {len(PROTOCOL_DEPENDENCIES)} protocols tracked"
-        )
-        print(
-            f"   - Predictions registry: {len(PROTOCOL_PREDICTIONS)} protocols registered"
-        )
+        print(f"   - Protocol dependencies: {len(PROTOCOL_DEPENDENCIES)} protocols tracked")
+        print(f"   - Predictions registry: {len(PROTOCOL_PREDICTIONS)} protocols registered")
     except Exception as e:
         print(f"❌ Metadata standardization failed: {str(e)}")
 
@@ -343,9 +338,7 @@ def main():
     total_ok = fp_ok + vp_ok
     total_protocols = len(fp_protocols) + len(vp_protocols)
 
-    print(
-        f"Protocols OK: {total_ok}/{total_protocols} ({100 * total_ok // total_protocols}%)"
-    )
+    print(f"Protocols OK: {total_ok}/{total_protocols} ({100 * total_ok // total_protocols}%)")
     print(f"  - FP: {fp_ok}/{len(fp_protocols)}")
     print(f"  - VP: {vp_ok}/{len(vp_protocols)}")
 

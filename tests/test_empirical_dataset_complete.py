@@ -19,8 +19,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from utils.empirical_dataset_catalog import (AccessStatus, DatasetTier,
-                                                 EmpiricalDataset)
+    from utils.empirical_dataset_catalog import AccessStatus, DatasetTier, EmpiricalDataset
 
     EMPIRICAL_CATALOG_AVAILABLE = True
 except ImportError as e:
@@ -266,18 +265,10 @@ class TestEmpiricalDatasetComplete:
         ]
 
         # Filter by access status
-        public_datasets = [
-            d for d in datasets if d.access_status == AccessStatus.FULLY_PUBLIC
-        ]
-        author_datasets = [
-            d for d in datasets if d.access_status == AccessStatus.AUTHOR_REQUEST
-        ]
-        institutional_datasets = [
-            d for d in datasets if d.access_status == AccessStatus.INSTITUTIONAL
-        ]
-        forthcoming_datasets = [
-            d for d in datasets if d.access_status == AccessStatus.FORTHCOMING
-        ]
+        public_datasets = [d for d in datasets if d.access_status == AccessStatus.FULLY_PUBLIC]
+        author_datasets = [d for d in datasets if d.access_status == AccessStatus.AUTHOR_REQUEST]
+        institutional_datasets = [d for d in datasets if d.access_status == AccessStatus.INSTITUTIONAL]
+        forthcoming_datasets = [d for d in datasets if d.access_status == AccessStatus.FORTHCOMING]
 
         assert len(public_datasets) == 1
         assert len(author_datasets) == 1

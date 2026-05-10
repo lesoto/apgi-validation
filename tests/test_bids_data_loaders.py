@@ -5,10 +5,12 @@ import json
 import pandas as pd
 import pytest
 
-from utils.bids_data_loaders import (discover_bids_dataset,
-                                     load_carhart_harris_fmri,
-                                     load_cogitate_ieeg_data,
-                                     load_openneuro_depression_eeg)
+from utils.bids_data_loaders import (
+    discover_bids_dataset,
+    load_carhart_harris_fmri,
+    load_cogitate_ieeg_data,
+    load_openneuro_depression_eeg,
+)
 
 
 class TestDiscoverBidsDataset:

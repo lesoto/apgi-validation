@@ -47,9 +47,7 @@ class TestValidateCommand:
     def test_validate_with_output_dir(self, cli, tmp_path):
         """Test validate command with output directory."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["validate", "--protocol", "1", "--output-dir", str(tmp_path)]
-        )
+        result = runner.invoke(cli, ["validate", "--protocol", "1", "--output-dir", str(tmp_path)])
         assert result.exit_code == 0
 
     @pytest.mark.timeout(60)  # 1 minute timeout
@@ -92,9 +90,7 @@ class TestFalsifyCommand:
         """Test falsify command with output file."""
         output_file = tmp_path / "falsification_results.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["falsify", "--protocol", "1", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["falsify", "--protocol", "1", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
     def test_falsify_invalid_protocol(self, cli):
@@ -121,9 +117,7 @@ class TestEstimateParamsCommand:
         data_file = tmp_path / "test_data.json"
         data_file.write_text('{"data": [1, 2, 3]}')
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["estimate-params", "--data-file", str(data_file), "--method", "mle"]
-        )
+        result = runner.invoke(cli, ["estimate-params", "--data-file", str(data_file), "--method", "mle"])
         assert result.exit_code == 0
 
     @pytest.mark.timeout(300)  # 5 minutes timeout
@@ -171,9 +165,7 @@ class TestCrossSpeciesCommand:
         """Test cross_species command with output file."""
         output_file = tmp_path / "cross_species.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["cross-species", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["cross-species", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
     def test_cross_species_with_plot(self, cli):
@@ -184,10 +176,7 @@ class TestCrossSpeciesCommand:
         # The important thing is that the command doesn't crash
         assert result.exit_code in [0, 1]
         # Check that output contains expected content
-        assert (
-            "Cross-Species Scaling" in result.output
-            or "cross-species" in result.output.lower()
-        )
+        assert "Cross-Species Scaling" in result.output or "cross-species" in result.output.lower()
 
 
 class TestAnalyzeLogsCommand:
@@ -313,9 +302,7 @@ class TestNeuralSignaturesCommand:
         eeg_file = tmp_path / "eeg_data.json"
         eeg_file.write_text('{"eeg": [1, 2, 3]}')
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["neural-signatures", "--neural-data", str(eeg_file)]
-        )
+        result = runner.invoke(cli, ["neural-signatures", "--neural-data", str(eeg_file)])
         assert result.exit_code == 0
 
     def test_neural_signatures_with_fmri_data(self, cli, tmp_path):
@@ -323,18 +310,14 @@ class TestNeuralSignaturesCommand:
         fmri_file = tmp_path / "fmri_data.json"
         fmri_file.write_text('{"fmri": [1, 2, 3]}')
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["neural-signatures", "--fmri-data", str(fmri_file)]
-        )
+        result = runner.invoke(cli, ["neural-signatures", "--fmri-data", str(fmri_file)])
         assert result.exit_code == 0
 
     def test_neural_signatures_with_output_file(self, cli, tmp_path):
         """Test neural_signatures command with output file."""
         output_file = tmp_path / "neural_results.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["neural-signatures", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["neural-signatures", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
 
@@ -363,9 +346,7 @@ class TestCausalManipulationsCommand:
         """Test causal_manipulations command with output file."""
         output_file = tmp_path / "causal_results.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["causal-manipulations", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["causal-manipulations", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
 
@@ -379,9 +360,7 @@ class TestQuantitativeFitsCommand:
 
         mock_module = MagicMock()
         mock_validator_instance = MagicMock()
-        mock_validator_instance.validate_quantitative_fits.return_value = {
-            "overall_quantitative_score": 0.85
-        }
+        mock_validator_instance.validate_quantitative_fits.return_value = {"overall_quantitative_score": 0.85}
         mock_module.QuantitativeModelValidator.return_value = mock_validator_instance
         return mock_module, MagicMock()
 
@@ -423,9 +402,7 @@ class TestQuantitativeFitsCommand:
             patch("importlib.util.module_from_spec", return_value=mock_module),
         ):
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["quantitative-fits", "--data-file", str(data_file)]
-            )
+            result = runner.invoke(cli, ["quantitative-fits", "--data-file", str(data_file)])
             assert result.exit_code == 0
 
     def test_quantitative_fits_with_output_file(self, cli, tmp_path):
@@ -439,9 +416,7 @@ class TestQuantitativeFitsCommand:
             patch("importlib.util.module_from_spec", return_value=mock_module),
         ):
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["quantitative-fits", "--output-file", str(output_file)]
-            )
+            result = runner.invoke(cli, ["quantitative-fits", "--output-file", str(output_file)])
             assert result.exit_code == 0
 
 
@@ -457,26 +432,20 @@ class TestClinicalConvergenceCommand:
     def test_clinical_convergence_with_population(self, cli):
         """Test clinical_convergence command with population."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["clinical-convergence", "--population", "clinical"]
-        )
+        result = runner.invoke(cli, ["clinical-convergence", "--population", "clinical"])
         assert result.exit_code == 0
 
     def test_clinical_convergence_with_condition(self, cli):
         """Test clinical_convergence command with condition."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["clinical-convergence", "--condition", "schizophrenia"]
-        )
+        result = runner.invoke(cli, ["clinical-convergence", "--condition", "schizophrenia"])
         assert result.exit_code == 0
 
     def test_clinical_convergence_with_output_file(self, cli, tmp_path):
         """Test clinical_convergence command with output file."""
         output_file = tmp_path / "clinical_results.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["clinical-convergence", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["clinical-convergence", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
 
@@ -504,9 +473,7 @@ class TestOpenScienceCommand:
     def test_open_science_with_repository(self, cli):
         """Test open_science command with repository URL."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["open-science", "--data-repository", "https://github.com/test/repo"]
-        )
+        result = runner.invoke(cli, ["open-science", "--data-repository", "https://github.com/test/repo"])
         assert result.exit_code == 0
 
 
@@ -662,9 +629,7 @@ class TestComprehensiveValidationCommand:
         """Test comprehensive_validation command with output file."""
         output_file = tmp_path / "comprehensive_results.json"
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["comprehensive-validation", "--output-file", str(output_file)]
-        )
+        result = runner.invoke(cli, ["comprehensive-validation", "--output-file", str(output_file)])
         assert result.exit_code == 0
 
     @pytest.mark.timeout(300)

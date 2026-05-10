@@ -64,16 +64,12 @@ class ComplianceExporter:
 
     def export_audit_log(self, report_data: Dict[str, Any]) -> str:
         """Export report and sign it immutably."""
-        export_id = (
-            f"audit_export_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-        )
+        export_id = f"audit_export_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
         export_path = self.export_dir / f"{export_id}.json"
 
         # Sign the payload
         payload_str = json.dumps(report_data, sort_keys=True)
-        signature = hmac.new(
-            self._get_signing_key(), payload_str.encode(), hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(self._get_signing_key(), payload_str.encode(), hashlib.sha256).hexdigest()
 
         export_package = {
             "id": export_id,

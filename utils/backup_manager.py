@@ -109,9 +109,7 @@ class BackupManager:
         # Validate backup HMAC key: minimum length and entropy
         try:
             # Check if key is hex format (64 hex chars = 32 bytes)
-            if len(backup_hmac_key) == 64 and all(
-                c in "0123456789abcdefABCDEF" for c in backup_hmac_key
-            ):
+            if len(backup_hmac_key) == 64 and all(c in "0123456789abcdefABCDEF" for c in backup_hmac_key):
                 # Hex format - convert to bytes for validation
                 key_bytes = bytes.fromhex(backup_hmac_key)
                 logging.info("Using hex format HMAC key")
@@ -127,8 +125,7 @@ class BackupManager:
             # Check minimum length (at least 16 bytes / 128 bits)
             if len(key_bytes) < 16:
                 raise ValueError(
-                    f"APGI_BACKUP_HMAC_KEY must be at least 16 bytes (128 bits), "
-                    f"got {len(key_bytes)} bytes"
+                    f"APGI_BACKUP_HMAC_KEY must be at least 16 bytes (128 bits), " f"got {len(key_bytes)} bytes"
                 )
 
             # Calculate Shannon entropy
@@ -252,9 +249,7 @@ class BackupManager:
 
                     # Use a fixed key for history integrity (not sensitive, just prevents tampering)
                     history_key = self._backup_hmac_key.encode()
-                    expected_signature = hmac.new(
-                        history_key, history_data, hashlib.sha256
-                    ).digest()
+                    expected_signature = hmac.new(history_key, history_data, hashlib.sha256).digest()
 
                     if not hmac.compare_digest(signature, expected_signature):
                         raise ValueError("History file signature verification failed")
@@ -319,9 +314,7 @@ class BackupManager:
                     hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
         except (FileNotFoundError, PermissionError) as e:
-            apgi_logger.logger.warning(
-                f"Error calculating checksum for {file_path}: {e}"
-            )
+            apgi_logger.logger.warning(f"Error calculating checksum for {file_path}: {e}")
             return ""
 
     def _calculate_files_checksum(self, files: List[Path]) -> str:
@@ -369,9 +362,7 @@ class BackupManager:
                         try:
                             path.resolve().relative_to(self.project_root.resolve())
                         except ValueError:
-                            apgi_logger.logger.warning(
-                                f"Path traversal detected in backup component: {path_pattern}"
-                            )
+                            apgi_logger.logger.warning(f"Path traversal detected in backup component: {path_pattern}")
                             continue
                         files_to_backup.append(path)
                     elif path.is_dir():
@@ -379,18 +370,14 @@ class BackupManager:
                             if file_path.is_file():
                                 # Validate file is within project root
                                 try:
-                                    file_path.resolve().relative_to(
-                                        self.project_root.resolve()
-                                    )
+                                    file_path.resolve().relative_to(self.project_root.resolve())
                                 except ValueError:
                                     apgi_logger.logger.warning(
                                         f"Path traversal detected in backup component: {file_path}"
                                     )
                                     continue
                                 if not os.access(file_path, os.R_OK):
-                                    apgi_logger.logger.warning(
-                                        f"No read permission for {file_path}"
-                                    )
+                                    apgi_logger.logger.warning(f"No read permission for {file_path}")
                                     continue
                                 files_to_backup.append(file_path)
                 else:
@@ -426,9 +413,7 @@ class BackupManager:
             if components is None:
                 components = list(self.backup_components.keys())
 
-            apgi_logger.logger.info(
-                f"Creating backup {backup_id} with components: {components}"
-            )
+            apgi_logger.logger.info(f"Creating backup {backup_id} with components: {components}")
 
             # Collect files to backup
             files_to_backup = self._collect_files(components)
@@ -444,14 +429,10 @@ class BackupManager:
             # Create backup file
             if compress:
                 backup_file = self.backup_dir / f"{backup_id}.zip"
-                self._create_zip_backup(
-                    backup_file, files_to_backup, backup_id, include_metadata
-                )
+                self._create_zip_backup(backup_file, files_to_backup, backup_id, include_metadata)
             else:
                 backup_file = self.backup_dir / f"{backup_id}.tar"
-                self._create_tar_backup(
-                    backup_file, files_to_backup, backup_id, include_metadata
-                )
+                self._create_tar_backup(backup_file, files_to_backup, backup_id, include_metadata)
 
             # Calculate checksum of original files (before archiving)
             checksum = self._calculate_files_checksum(files_to_backup)
@@ -492,8 +473,7 @@ class BackupManager:
             self._save_history()
 
             apgi_logger.logger.info(
-                f"Backup created successfully: {backup_file} "
-                f"({total_size_mb:.2f} MB, {len(files_to_backup)} files)"
+                f"Backup created successfully: {backup_file} " f"({total_size_mb:.2f} MB, {len(files_to_backup)} files)"
             )
 
             return backup_id
@@ -516,9 +496,7 @@ class BackupManager:
                         relative_path = file_path.relative_to(self.project_root)
                         zipf.write(file_path, relative_path)
                     except (ValueError, OSError) as e:
-                        apgi_logger.logger.warning(
-                            f"Error adding {file_path} to backup: {e}"
-                        )
+                        apgi_logger.logger.warning(f"Error adding {file_path} to backup: {e}")
 
                 # Add backup metadata
                 if include_metadata:
@@ -526,10 +504,7 @@ class BackupManager:
                         "backup_id": backup_id,
                         "created_at": datetime.now().isoformat(),
                         "created_by": "APGI Backup Manager",
-                        "file_list": [
-                            str(f.relative_to(self.project_root))
-                            for f in files_to_backup
-                        ],
+                        "file_list": [str(f.relative_to(self.project_root)) for f in files_to_backup],
                     }
                     zipf.writestr("backup_info.json", json.dumps(backup_info, indent=2))
         except Exception as e:
@@ -540,9 +515,7 @@ class BackupManager:
                     backup_file.unlink()
                     apgi_logger.logger.info(f"Cleaned up partial backup: {backup_file}")
                 except OSError as cleanup_error:
-                    apgi_logger.logger.error(
-                        f"Failed to clean up partial backup {backup_file}: {cleanup_error}"
-                    )
+                    apgi_logger.logger.error(f"Failed to clean up partial backup {backup_file}: {cleanup_error}")
             raise
 
     def _create_tar_backup(
@@ -562,9 +535,7 @@ class BackupManager:
                         relative_path = file_path.relative_to(self.project_root)
                         tarf.add(file_path, relative_path)
                     except (ValueError, OSError) as e:
-                        apgi_logger.logger.warning(
-                            f"Error adding {file_path} to backup: {e}"
-                        )
+                        apgi_logger.logger.warning(f"Error adding {file_path} to backup: {e}")
 
                 # Add backup metadata
                 if include_metadata:
@@ -572,10 +543,7 @@ class BackupManager:
                         "backup_id": backup_id,
                         "created_at": datetime.now().isoformat(),
                         "created_by": "APGI Backup Manager",
-                        "file_list": [
-                            str(f.relative_to(self.project_root))
-                            for f in files_to_backup
-                        ],
+                        "file_list": [str(f.relative_to(self.project_root)) for f in files_to_backup],
                     }
 
                     # Create temporary metadata file
@@ -583,9 +551,7 @@ class BackupManager:
 
                     tmp_path = None
                     try:
-                        with tempfile.NamedTemporaryFile(
-                            mode="w", suffix=".json", delete=False
-                        ) as tmp:
+                        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
                             json.dump(backup_info, tmp, indent=2)
                             tmp_path = Path(tmp.name)
 
@@ -602,9 +568,7 @@ class BackupManager:
                     backup_file.unlink()
                     apgi_logger.logger.info(f"Cleaned up partial backup: {backup_file}")
                 except OSError as cleanup_error:
-                    apgi_logger.logger.error(
-                        f"Failed to clean up partial backup {backup_file}: {cleanup_error}"
-                    )
+                    apgi_logger.logger.error(f"Failed to clean up partial backup {backup_file}: {cleanup_error}")
             raise
 
     def list_backups(self) -> List[Dict[str, Any]]:
@@ -659,13 +623,9 @@ class BackupManager:
 
             try:
                 if backup_file.suffix == ".zip":
-                    success = self._restore_zip_backup(
-                        backup_file, target_dir, components, overwrite
-                    )
+                    success = self._restore_zip_backup(backup_file, target_dir, components, overwrite)
                 else:
-                    success = self._restore_tar_backup(
-                        backup_file, target_dir, components, overwrite
-                    )
+                    success = self._restore_tar_backup(backup_file, target_dir, components, overwrite)
 
                 if success:
                     apgi_logger.logger.info(f"Backup {backup_id} restored successfully")
@@ -702,9 +662,7 @@ class BackupManager:
 
                     # Filter files if components specified
                     if components:
-                        file_list = self._filter_files_by_components(
-                            file_list, components
-                        )
+                        file_list = self._filter_files_by_components(file_list, components)
 
                     for file_path in file_list:
                         # Skip metadata files
@@ -726,14 +684,10 @@ class BackupManager:
                                 shutil.copyfileobj(source, target)
 
                 # Validate extraction and verify integrity
-                success = self._verify_restored_integrity(
-                    backup_file, temp_path, file_list
-                )
+                success = self._verify_restored_integrity(backup_file, temp_path, file_list)
                 if not success:
                     backup_id = backup_file.stem  # Extract backup ID from filename
-                    apgi_logger.logger.error(
-                        f"Integrity verification failed for backup {backup_id}"
-                    )
+                    apgi_logger.logger.error(f"Integrity verification failed for backup {backup_id}")
                     return False
 
                 # Now atomically move files to target directory
@@ -759,15 +713,11 @@ class BackupManager:
                 return True
 
             except Exception as e:
-                apgi_logger.logger.error(
-                    f"Error during atomic restore from {backup_file}: {e}"
-                )
+                apgi_logger.logger.error(f"Error during atomic restore from {backup_file}: {e}")
                 # Temp directory is automatically cleaned up
                 return False
 
-    def _verify_restored_integrity(
-        self, backup_file: Path, temp_dir: Path, file_list: List[str]
-    ) -> bool:
+    def _verify_restored_integrity(self, backup_file: Path, temp_dir: Path, file_list: List[str]) -> bool:
         """Verify integrity of restored files using checksums from metadata."""
         try:
             # Load backup metadata
@@ -851,9 +801,7 @@ class BackupManager:
                             # Check if resolved target is within target directory
                             resolved_target_dir in resolved_target.parents or resolved_target == resolved_target_dir
                         except (ValueError, OSError) as e:
-                            raise ValueError(
-                                f"Symlink bypass detected: {file_path} -> {link_target} (error: {e})"
-                            )
+                            raise ValueError(f"Symlink bypass detected: {file_path} -> {link_target} (error: {e})")
                         # Skip symlinks for safety
                         apgi_logger.logger.warning(f"Skipping symlink: {file_path}")
                         continue
@@ -871,16 +819,12 @@ class BackupManager:
                         try:
                             resolved.relative_to(target_dir.resolve())
                         except ValueError:
-                            raise ValueError(
-                                f"Path traversal detected in TAR: {file_path}"
-                            )
+                            raise ValueError(f"Path traversal detected in TAR: {file_path}")
                         target_path = resolved
 
                         # Check overwrite condition
                         if target_path.exists() and not overwrite:
-                            apgi_logger.logger.warning(
-                                f"Skipping existing file: {target_path}"
-                            )
+                            apgi_logger.logger.warning(f"Skipping existing file: {target_path}")
                             continue
 
                         # Create parent directories
@@ -899,9 +843,7 @@ class BackupManager:
 
         return True
 
-    def _filter_files_by_components(
-        self, file_list: List[str], components: List[str]
-    ) -> List[str]:
+    def _filter_files_by_components(self, file_list: List[str], components: List[str]) -> List[str]:
         """Filter file list by specified components."""
         filtered_files = []
 
@@ -931,9 +873,7 @@ class BackupManager:
                     backup_file.unlink()
                     apgi_logger.logger.info(f"Deleted backup file: {backup_file}")
                 except OSError as e:
-                    apgi_logger.logger.error(
-                        f"Error deleting backup file {backup_file}: {e}"
-                    )
+                    apgi_logger.logger.error(f"Error deleting backup file {backup_file}: {e}")
                     success = False
 
         # Delete metadata file
@@ -943,16 +883,12 @@ class BackupManager:
                 metadata_file.unlink()
                 apgi_logger.logger.info(f"Deleted metadata file: {metadata_file}")
             except OSError as e:
-                apgi_logger.logger.error(
-                    f"Error deleting metadata file {metadata_file}: {e}"
-                )
+                apgi_logger.logger.error(f"Error deleting metadata file {metadata_file}: {e}")
                 success = False
 
         # Update history
         if success:
-            self.backup_history = [
-                b for b in self.backup_history if b.get("backup_id") != backup_id
-            ]
+            self.backup_history = [b for b in self.backup_history if b.get("backup_id") != backup_id]
             self._save_history()
 
         return success
@@ -1014,34 +950,19 @@ class BackupManager:
                 # Extract backup to temp directory
                 if backup_file.suffix == ".zip":
                     with zipfile.ZipFile(backup_file, "r") as zipf:
-                        file_list = [
-                            f
-                            for f in zipf.namelist()
-                            if not f.endswith("backup_info.json")
-                        ]
+                        file_list = [f for f in zipf.namelist() if not f.endswith("backup_info.json")]
                         # Validate and extract only safe members
-                        safe_list = [
-                            f
-                            for f in file_list
-                            if not f.startswith(("/", "\\", "..")) and ".." not in f
-                        ]
-                        zipf.extractall(temp_path, members=safe_list)
+                        safe_list = [f for f in file_list if not f.startswith(("/", "\\", "..")) and ".." not in f]
+                        zipf.extractall(temp_path, members=safe_list)  # nosec B202
                 else:
                     with tarfile.open(backup_file, "r") as tarf:
                         # Get TarInfo objects instead of just names
-                        members = [
-                            tarf.getmember(f)
-                            for f in tarf.getnames()
-                            if not f.endswith("backup_info.json")
-                        ]
+                        members = [tarf.getmember(f) for f in tarf.getnames() if not f.endswith("backup_info.json")]
                         # Validate and extract only safe members
                         safe_tar_members = [
-                            m
-                            for m in members
-                            if not m.name.startswith(("/", "\\", ".."))
-                            and ".." not in m.name
+                            m for m in members if not m.name.startswith(("/", "\\", "..")) and ".." not in m.name
                         ]
-                        tarf.extractall(temp_path, members=safe_tar_members)
+                        tarf.extractall(temp_path, members=safe_tar_members)  # nosec B202
 
                 # Calculate checksum of extracted files
                 extracted_files = []
@@ -1071,9 +992,7 @@ class BackupManager:
                 with tarfile.open(backup_file, "r") as tarf:
                     tarf.getmembers()
         except (zipfile.BadZipFile, tarfile.ReadError) as e:
-            apgi_logger.logger.error(
-                f"Backup file corruption detected for {backup_id}: {e}"
-            )
+            apgi_logger.logger.error(f"Backup file corruption detected for {backup_id}: {e}")
             return False
 
         return True
@@ -1114,49 +1033,27 @@ class BackupManager:
                     # Extract backup to temp directory
                     if backup_file.suffix == ".zip":
                         with zipfile.ZipFile(backup_file, "r") as zipf:
-                            file_list = [
-                                f
-                                for f in zipf.namelist()
-                                if not f.endswith("backup_info.json")
-                            ]
+                            file_list = [f for f in zipf.namelist() if not f.endswith("backup_info.json")]
                             # Validate and extract only safe members
-                            safe_list = [
-                                f
-                                for f in file_list
-                                if not f.startswith(("/", "\\", "..")) and ".." not in f
-                            ]
-                            zipf.extractall(temp_path, members=safe_list)
+                            safe_list = [f for f in file_list if not f.startswith(("/", "\\", "..")) and ".." not in f]
+                            zipf.extractall(temp_path, members=safe_list)  # nosec B202  # nosec B202
                     else:
                         with tarfile.open(backup_file, "r") as tarf:
-                            file_list = [
-                                f
-                                for f in tarf.getnames()
-                                if not f.endswith("backup_info.json")
-                            ]
+                            file_list = [f for f in tarf.getnames() if not f.endswith("backup_info.json")]
                             # Validate and extract only safe members
-                            safe_list = [
-                                f
-                                for f in file_list
-                                if not f.startswith(("/", "\\", "..")) and ".." not in f
-                            ]
+                            safe_list = [f for f in file_list if not f.startswith(("/", "\\", "..")) and ".." not in f]
                             safe_tar_members = [tarf.getmember(f) for f in safe_list]
-                            tarf.extractall(temp_path, members=safe_tar_members)
+                            tarf.extractall(temp_path, members=safe_tar_members)  # nosec B202
 
                     # Calculate checksum of extracted content
-                    actual_checksum = self._calculate_restored_checksum(
-                        temp_path, file_list
-                    )
+                    actual_checksum = self._calculate_restored_checksum(temp_path, file_list)
 
                     if actual_checksum != expected_checksum:
-                        apgi_logger.logger.error(
-                            f"Backup content checksum mismatch for {backup_id}"
-                        )
+                        apgi_logger.logger.error(f"Backup content checksum mismatch for {backup_id}")
                         return False
 
                 except Exception as e:
-                    apgi_logger.logger.error(
-                        f"Error extracting backup for verification {backup_id}: {e}"
-                    )
+                    apgi_logger.logger.error(f"Error extracting backup for verification {backup_id}: {e}")
                     return False
 
         # Test file integrity (basic corruption check)
@@ -1168,9 +1065,7 @@ class BackupManager:
                 with tarfile.open(backup_file, "r") as tarf:
                     tarf.getmembers()
         except (zipfile.BadZipFile, tarfile.ReadError) as e:
-            apgi_logger.logger.error(
-                f"Backup file corruption detected for {backup_id}: {e}"
-            )
+            apgi_logger.logger.error(f"Backup file corruption detected for {backup_id}: {e}")
             return False
 
         return True
@@ -1181,9 +1076,7 @@ try:
     backup_manager = BackupManager()
 except (ValueError, RuntimeError) as e:
     print(f"Error initializing backup manager: {e}")
-    print(
-        "Please check your APGI_BACKUP_HMAC_KEY environment variable or run the script again to generate a new key."
-    )
+    print("Please check your APGI_BACKUP_HMAC_KEY environment variable or run the script again to generate a new key.")
     backup_manager = None
 
 
@@ -1215,12 +1108,8 @@ def _add_data_backup_methods():
         # Ensure key is a string
         if isinstance(key, bytes):
             key = key.hex()
-        data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode(
-            "utf-8"
-        )
-        signature = hashlib.pbkdf2_hmac(
-            "sha256", data_bytes, key.encode(), 100000
-        ).hex()
+        data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        signature = hashlib.pbkdf2_hmac("sha256", data_bytes, key.encode(), 100000).hex()
 
         # Write signature file
         sig_path = backup_path.with_suffix(".sig")
@@ -1260,9 +1149,7 @@ def _add_data_backup_methods():
                 stored_signature = f.read().strip()
 
             # Validate signature format
-            if len(stored_signature) != 64 or not all(
-                c in "0123456789abcdef" for c in stored_signature.lower()
-            ):
+            if len(stored_signature) != 64 or not all(c in "0123456789abcdef" for c in stored_signature.lower()):
                 return False
 
             # Generate expected signature using the stored key
@@ -1270,12 +1157,8 @@ def _add_data_backup_methods():
             # Ensure key is a string
             if isinstance(key, bytes):
                 key = key.hex()
-            data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode(
-                "utf-8"
-            )
-            expected_signature = hashlib.pbkdf2_hmac(
-                "sha256", data_bytes, key.encode(), 100000
-            ).hex()
+            data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode("utf-8")
+            expected_signature = hashlib.pbkdf2_hmac("sha256", data_bytes, key.encode(), 100000).hex()
 
             # Compare signatures
             return stored_signature == expected_signature
@@ -1301,9 +1184,7 @@ _add_data_backup_methods()
 def create_backup_cli(components: str = "", description: str = "") -> str:
     """CLI command to create backup."""
     if backup_manager is None:
-        raise RuntimeError(
-            "Backup manager not initialized. Please check your configuration."
-        )
+        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
     component_list = components.split(",") if components else None
     return backup_manager.create_backup(component_list, description)
 
@@ -1311,18 +1192,14 @@ def create_backup_cli(components: str = "", description: str = "") -> str:
 def list_backups_cli() -> List[Dict[str, Any]]:
     """CLI command to list backups."""
     if backup_manager is None:
-        raise RuntimeError(
-            "Backup manager not initialized. Please check your configuration."
-        )
+        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
     return backup_manager.list_backups()
 
 
 def restore_backup_cli(backup_id: str, target_dir: str = "") -> bool:
     """CLI command to restore backup."""
     if backup_manager is None:
-        raise RuntimeError(
-            "Backup manager not initialized. Please check your configuration."
-        )
+        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
     target = Path(target_dir) if target_dir else None
     return backup_manager.restore_backup(backup_id, target)
 
@@ -1330,18 +1207,14 @@ def restore_backup_cli(backup_id: str, target_dir: str = "") -> bool:
 def delete_backup_cli(backup_id: str) -> bool:
     """CLI command to delete backup."""
     if backup_manager is None:
-        raise RuntimeError(
-            "Backup manager not initialized. Please check your configuration."
-        )
+        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
     return backup_manager.delete_backup(backup_id)
 
 
 def cleanup_backups_cli(keep_count: int = 10) -> int:
     """CLI command to cleanup old backups."""
     if backup_manager is None:
-        raise RuntimeError(
-            "Backup manager not initialized. Please check your configuration."
-        )
+        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
     return backup_manager.cleanup_old_backups(keep_count)
 
 
@@ -1354,9 +1227,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Create a test backup
-    backup_id = backup_manager.create_backup(
-        components=["config", "logs"], description="Test backup"
-    )
+    backup_id = backup_manager.create_backup(components=["config", "logs"], description="Test backup")
     print(f"Created backup: {backup_id}")
 
     # List backups

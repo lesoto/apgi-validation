@@ -122,9 +122,7 @@ class ScreenshotComparator:
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
         self.current_dir.mkdir(parents=True, exist_ok=True)
 
-    def compare_images(
-        self, baseline: np.ndarray, current: np.ndarray, test_name: str
-    ) -> ScreenshotComparisonResult:
+    def compare_images(self, baseline: np.ndarray, current: np.ndarray, test_name: str) -> ScreenshotComparisonResult:
         """
         Compare two images and calculate similarity.
 
@@ -141,9 +139,7 @@ class ScreenshotComparator:
             if baseline.shape != current.shape:
                 if PIL_AVAILABLE:
                     current_pil = Image.fromarray(current)
-                    current_pil = current_pil.resize(
-                        (baseline.shape[1], baseline.shape[0]), Image.Resampling.LANCZOS
-                    )
+                    current_pil = current_pil.resize((baseline.shape[1], baseline.shape[0]), Image.Resampling.LANCZOS)
                     current = np.array(current_pil)
                 else:
                     # Fallback: crop or pad
@@ -177,9 +173,7 @@ class ScreenshotComparator:
             diff_path = None
             if not passed:
                 diff_normalized = (
-                    (diff / diff.max() * 255).astype(np.uint8)
-                    if diff.max() > 0
-                    else diff.astype(np.uint8)
+                    (diff / diff.max() * 255).astype(np.uint8) if diff.max() > 0 else diff.astype(np.uint8)
                 )
                 diff_path = self.diff_output_dir / f"{test_name}_diff.png"
                 if PIL_AVAILABLE:
@@ -193,9 +187,7 @@ class ScreenshotComparator:
                 total_pixels=int(total_pixels),
                 diff_path=diff_path,
                 error_message=(
-                    None
-                    if passed
-                    else f"Similarity {combined_similarity:.3f} below threshold {self.threshold}"
+                    None if passed else f"Similarity {combined_similarity:.3f} below threshold {self.threshold}"
                 ),
             )
 
@@ -209,9 +201,7 @@ class ScreenshotComparator:
                 error_message=str(e),
             )
 
-    def _resize_array(
-        self, arr: np.ndarray, target_shape: Tuple[int, ...]
-    ) -> np.ndarray:
+    def _resize_array(self, arr: np.ndarray, target_shape: Tuple[int, ...]) -> np.ndarray:
         """Resize numpy array to target shape."""
         # Simple cropping/padding approach
         result = np.zeros(target_shape, dtype=arr.dtype)
@@ -254,24 +244,14 @@ class UIStateMachine:
     def validate_transition(self, from_state: str, to_state: str, trigger: str) -> bool:
         """Check if a state transition is valid."""
         for t in self.transitions:
-            if (
-                t.from_state == from_state
-                and t.to_state == to_state
-                and t.trigger == trigger
-            ):
+            if t.from_state == from_state and t.to_state == to_state and t.trigger == trigger:
                 return True
         return False
 
-    def get_expected_side_effects(
-        self, from_state: str, to_state: str, trigger: str
-    ) -> Dict[str, Any]:
+    def get_expected_side_effects(self, from_state: str, to_state: str, trigger: str) -> Dict[str, Any]:
         """Get expected side effects for a transition."""
         for t in self.transitions:
-            if (
-                t.from_state == from_state
-                and t.to_state == to_state
-                and t.trigger == trigger
-            ):
+            if t.from_state == from_state and t.to_state == to_state and t.trigger == trigger:
                 return t.expected_side_effects
         return {}
 
@@ -298,9 +278,7 @@ class UIStateMachine:
 
         return True, None
 
-    def validate_current_state(
-        self, widget_values: Dict[str, Any]
-    ) -> Tuple[bool, List[str]]:
+    def validate_current_state(self, widget_values: Dict[str, Any]) -> Tuple[bool, List[str]]:
         """Validate current state against expected values."""
         if self.current_state not in self.states:
             return False, [f"Unknown state: {self.current_state}"]
@@ -312,9 +290,7 @@ class UIStateMachine:
             if widget not in widget_values:
                 errors.append(f"Missing widget: {widget}")
             elif widget_values[widget] != expected_value:
-                errors.append(
-                    f"Widget {widget}: expected {expected_value}, got {widget_values[widget]}"
-                )
+                errors.append(f"Widget {widget}: expected {expected_value}, got {widget_values[widget]}")
 
         return len(errors) == 0, errors
 
@@ -379,15 +355,11 @@ class HeadlessBrowserTester:
                 # Collect console errors
                 page.on(
                     "console",
-                    lambda msg: (
-                        console_errors.append(msg.text) if msg.type == "error" else None
-                    ),
+                    lambda msg: (console_errors.append(msg.text) if msg.type == "error" else None),
                 )
 
                 # Collect network errors
-                page.on(
-                    "requestfailed", lambda request: network_errors.append(request.url)
-                )
+                page.on("requestfailed", lambda request: network_errors.append(request.url))
 
                 # Navigate and measure load time
                 start_time = time.time()
@@ -395,9 +367,7 @@ class HeadlessBrowserTester:
                 load_time = (time.time() - start_time) * 1000
 
                 if response is None or not response.ok:
-                    network_errors.append(
-                        f"Failed to load {url}: {response.status if response else 'No response'}"
-                    )
+                    network_errors.append(f"Failed to load {url}: {response.status if response else 'No response'}")
 
                 # Wait for specific element if requested
                 if wait_for_selector:
@@ -413,8 +383,7 @@ class HeadlessBrowserTester:
 
                 result = HeadlessBrowserTestResult(
                     test_name=test_name,
-                    passed=len(network_errors) == 0
-                    and len([e for e in console_errors if "error" in e.lower()]) == 0,
+                    passed=len(network_errors) == 0 and len([e for e in console_errors if "error" in e.lower()]) == 0,
                     page_url=url,
                     load_time_ms=load_time,
                     console_errors=console_errors,
@@ -616,45 +585,31 @@ class GUITestSuite:
 
         # Define transitions
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="initial", to_state="loading", trigger="load_data"
-            )
+            UIStateTransition(from_state="initial", to_state="loading", trigger="load_data")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="loading", to_state="ready", trigger="data_loaded"
-            )
+            UIStateTransition(from_state="loading", to_state="ready", trigger="data_loaded")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="loading", to_state="error", trigger="load_failed"
-            )
+            UIStateTransition(from_state="loading", to_state="error", trigger="load_failed")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="ready", to_state="processing", trigger="run_analysis"
-            )
+            UIStateTransition(from_state="ready", to_state="processing", trigger="run_analysis")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="processing", to_state="ready", trigger="analysis_complete"
-            )
+            UIStateTransition(from_state="processing", to_state="ready", trigger="analysis_complete")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="processing", to_state="error", trigger="analysis_failed"
-            )
+            UIStateTransition(from_state="processing", to_state="error", trigger="analysis_failed")
         )
 
         self.state_machine.add_transition(
-            UIStateTransition(
-                from_state="error", to_state="initial", trigger="dismiss_error"
-            )
+            UIStateTransition(from_state="error", to_state="initial", trigger="dismiss_error")
         )
 
     def run_all_tests(self) -> Dict[str, Any]:
@@ -677,9 +632,7 @@ class GUITestSuite:
             self._test_headless_browser()
         else:
             print("\n⚠️ Playwright not available - skipping headless browser tests")
-            print(
-                "   Install with: pip install playwright && playwright install chromium"
-            )
+            print("   Install with: pip install playwright && playwright install chromium")
 
         return self._generate_report()
 
@@ -693,18 +646,12 @@ class GUITestSuite:
         different = np.ones((100, 100, 3), dtype=np.uint8) * 150
 
         # Test identical images
-        result1 = self.screenshot_comparator.compare_images(
-            baseline, identical, "identical_test"
-        )
+        result1 = self.screenshot_comparator.compare_images(baseline, identical, "identical_test")
         assert result1.passed, "Identical images should pass"
-        assert (
-            result1.similarity_score > 0.99
-        ), "Identical images should have high similarity"
+        assert result1.similarity_score > 0.99, "Identical images should have high similarity"
 
         # Test different images
-        result2 = self.screenshot_comparator.compare_images(
-            baseline, different, "different_test"
-        )
+        result2 = self.screenshot_comparator.compare_images(baseline, different, "different_test")
         # Different images should fail with default threshold of 0.95
 
         self.test_results["screenshot_comparison"] = {
@@ -742,9 +689,7 @@ class GUITestSuite:
         assert not success, "Invalid transition should fail"
 
         # Verify transition history
-        assert (
-            len(self.state_machine.transition_history) >= 4
-        ), "Should have recorded transitions"
+        assert len(self.state_machine.transition_history) >= 4, "Should have recorded transitions"
 
         self.test_results["ui_state_transitions"] = {
             "valid_transitions_passed": True,
@@ -821,18 +766,12 @@ class GUITestSuite:
 
     def _generate_report(self) -> Dict[str, Any]:
         """Generate comprehensive test report."""
-        all_passed = all(
-            r.get("overall_passed", False) for r in self.test_results.values()
-        )
+        all_passed = all(r.get("overall_passed", False) for r in self.test_results.values())
 
         report = {
             "gui_testing": {
-                "screenshot_comparison": self.test_results.get(
-                    "screenshot_comparison", {}
-                ),
-                "ui_state_transitions": self.test_results.get(
-                    "ui_state_transitions", {}
-                ),
+                "screenshot_comparison": self.test_results.get("screenshot_comparison", {}),
+                "ui_state_transitions": self.test_results.get("ui_state_transitions", {}),
                 "headless_browser": self.test_results.get("headless_browser", {}),
                 "all_passed": all_passed,
             }
@@ -850,9 +789,7 @@ class GUITestSuite:
         print(
             f"Headless Browser: {'✓' if self.test_results.get('headless_browser', {}).get('overall_passed') else '⚠ (Playwright not installed)'}"
         )
-        print(
-            f"\nOverall: {'✅ All tests passed' if all_passed else '⚠️ Some tests failed'}"
-        )
+        print(f"\nOverall: {'✅ All tests passed' if all_passed else '⚠️ Some tests failed'}")
 
         return report
 

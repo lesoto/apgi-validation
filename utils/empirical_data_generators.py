@@ -68,9 +68,7 @@ def generate_cross_cultural_eeg_data(
                 freqs = np.fft.rfftfreq(n_timepoints, 1 / sampling_rate)
                 power_spectrum = 1.0 / np.maximum(freqs, 1)  # 1/f spectrum
                 phases = np.random.uniform(0, 2 * np.pi, len(power_spectrum))
-                base_signal = np.fft.irfft(
-                    np.sqrt(power_spectrum) * np.exp(1j * phases), n_timepoints
-                )
+                base_signal = np.fft.irfft(np.sqrt(power_spectrum) * np.exp(1j * phases), n_timepoints)
 
                 # Add culture-specific response
                 response_window = np.exp(-((t - latency_ms / 1000) ** 2) / (0.1**2))

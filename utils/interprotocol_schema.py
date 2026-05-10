@@ -148,9 +148,7 @@ def check_parameter_in_bounds(param_name: str, value: float) -> bool:
 # =============================================================================
 
 
-def load_vp5_genome_data(
-    base_path: Optional[str] = None, metadata_file: str = "genome_data.json"
-) -> Dict[str, Any]:
+def load_vp5_genome_data(base_path: Optional[str] = None, metadata_file: str = "genome_data.json") -> Dict[str, Any]:
     """
     Load genome data from VP-05 outputs.
 
@@ -174,9 +172,7 @@ def load_vp5_genome_data(
         RuntimeError: If VP-05 hasn't been run
     """
     if base_path is None:
-        base_path = str(
-            INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"]
-        )
+        base_path = str(INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"])
 
     metadata_path = Path(base_path) / metadata_file
 
@@ -276,9 +272,7 @@ def load_vp5_network_topology(
         Dictionary containing network topology data or None if not available
     """
     if base_path is None:
-        base_path = str(
-            INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"]
-        )
+        base_path = str(INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"])
 
     topology_path = Path(base_path) / "network_topology.json"
 
@@ -335,9 +329,7 @@ def load_fp7_validated_bounds(
         FileNotFoundError: If FP-07 output files don't exist
     """
     if base_path is None:
-        base_path = str(
-            INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["export_path"]
-        )
+        base_path = str(INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["export_path"])
 
     bounds_path = Path(base_path) / bounds_file
 
@@ -379,9 +371,7 @@ def requires_fp7_bounds(func):
 # =============================================================================
 
 
-def export_vp5_genome_data(
-    genome_data: Dict[str, Any], output_dir: Optional[str] = None
-) -> str:
+def export_vp5_genome_data(genome_data: Dict[str, Any], output_dir: Optional[str] = None) -> str:
     """
     Export VP-05 genome data in standard format.
 
@@ -393,16 +383,12 @@ def export_vp5_genome_data(
         Path to exported file
     """
     if output_dir is None:
-        output_dir = str(
-            INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"]
-        )
+        output_dir = str(INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["export_path"])
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    metadata_file = str(
-        INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["metadata_file"]
-    )
+    metadata_file = str(INTERPROTOCOL_DATA_SCHEMA["VP_05_EvolutionaryEmergence"]["metadata_file"])
     output_file = output_path / metadata_file
 
     # Convert numpy arrays to lists for JSON serialization
@@ -411,10 +397,7 @@ def export_vp5_genome_data(
         if isinstance(value, np.ndarray):
             serializable_data[key] = value.tolist()
         elif isinstance(value, dict):
-            serializable_data[key] = {
-                k: v.tolist() if isinstance(v, np.ndarray) else v
-                for k, v in value.items()
-            }
+            serializable_data[key] = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in value.items()}
         else:
             serializable_data[key] = value
 
@@ -443,22 +426,16 @@ def export_fp7_validated_bounds(
         bounds = VALIDATED_PARAMETER_BOUNDS
 
     if output_dir is None:
-        output_dir = str(
-            INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["export_path"]
-        )
+        output_dir = str(INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["export_path"])
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    bounds_file = str(
-        INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["metadata_file"]
-    )
+    bounds_file = str(INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["metadata_file"])
     output_file = output_path / bounds_file
 
     # Convert tuples to lists for JSON serialization
-    serializable_bounds = {
-        k: list(v) if isinstance(v, tuple) else v for k, v in bounds.items()
-    }
+    serializable_bounds = {k: list(v) if isinstance(v, tuple) else v for k, v in bounds.items()}
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(serializable_bounds, f, indent=2)

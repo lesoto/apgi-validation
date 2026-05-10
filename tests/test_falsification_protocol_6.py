@@ -66,9 +66,7 @@ class TestCausalManipulationsTMSProtocol6:
         framework.validate_causal_manipulation = MagicMock(return_value=True)
         return framework
 
-    def test_tms_intervention_creation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_tms_intervention_creation(self, sample_protocol_data, mock_validation_framework):
         """Test TMS intervention creation."""
         # TMSIntervention expects coil_type and intensity
         tms = TMSIntervention(
@@ -81,9 +79,7 @@ class TestCausalManipulationsTMSProtocol6:
         assert hasattr(tms, "intensity")
         assert tms.coil_type == "figure8"
 
-    def test_pharmacological_intervention_creation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_pharmacological_intervention_creation(self, sample_protocol_data, mock_validation_framework):
         """Test pharmacological intervention creation."""
         # PharmacologicalIntervention expects drug_name and dose
         pharma = PharmacologicalIntervention(
@@ -96,9 +92,7 @@ class TestCausalManipulationsTMSProtocol6:
         assert hasattr(pharma, "dose")
         assert pharma.drug_name == "propranolol"
 
-    def test_metabolic_intervention_creation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_metabolic_intervention_creation(self, sample_protocol_data, mock_validation_framework):
         """Test metabolic intervention creation."""
         # MetabolicIntervention expects glucose_level and fasting_duration
         metabolic = MetabolicIntervention(
@@ -110,9 +104,7 @@ class TestCausalManipulationsTMSProtocol6:
         assert hasattr(metabolic, "glucose_level")
         assert hasattr(metabolic, "fasting_duration")
 
-    def test_causal_manipulations_validator(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_causal_manipulations_validator(self, sample_protocol_data, mock_validation_framework):
         """Test causal manipulations validator."""
         # CausalManipulationsValidator takes no required arguments
         validator = CausalManipulationsValidator()
@@ -131,9 +123,7 @@ class TestCausalManipulationsTMSProtocol6:
         pharma = PharmacologicalIntervention(drug_name="unknown_drug", dose=10.0)
         assert pharma.drug_name == "unknown_drug"
 
-    def test_performance_benchmarks(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_performance_benchmarks(self, sample_protocol_data, mock_validation_framework):
         """Test performance benchmarks and timing."""
         # CausalManipulationsValidator takes no arguments
         validator = CausalManipulationsValidator()
@@ -146,9 +136,7 @@ class TestCausalManipulationsTMSProtocol6:
         # Should complete quickly
         assert True
 
-    def test_integration_compatibility(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_integration_compatibility(self, sample_protocol_data, mock_validation_framework):
         """Test integration compatibility with other protocols."""
         # CausalManipulationsValidator takes no arguments
         validator = CausalManipulationsValidator()

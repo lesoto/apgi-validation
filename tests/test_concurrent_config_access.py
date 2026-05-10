@@ -37,9 +37,7 @@ class TestConcurrentConfigAccess:
             thread.join()
 
         expected = num_threads * num_iterations
-        assert (
-            shared_value[0] == expected
-        ), f"Race condition detected: {shared_value[0]} != {expected}"
+        assert shared_value[0] == expected, f"Race condition detected: {shared_value[0]} != {expected}"
 
     def test_config_lock_read_write_concurrency(self):
         """Test concurrent reads and writes with _config_lock."""
@@ -169,9 +167,7 @@ class TestConcurrentConfigAccess:
                 with _config_lock:
                     counter[0] += 1
 
-        threads = [
-            threading.Thread(target=increment_counter) for _ in range(num_threads)
-        ]
+        threads = [threading.Thread(target=increment_counter) for _ in range(num_threads)]
         start_time = time.time()
 
         for thread in threads:
@@ -213,10 +209,7 @@ class TestConcurrentConfigAccess:
             with _config_lock:
                 acquisition_order.append(thread_id)
 
-        threads = [
-            threading.Thread(target=acquire_and_record, args=(i,))
-            for i in range(num_threads)
-        ]
+        threads = [threading.Thread(target=acquire_and_record, args=(i,)) for i in range(num_threads)]
 
         for thread in threads:
             thread.start()
@@ -250,10 +243,7 @@ class TestConcurrentConfigAccess:
             except Exception as e:
                 results.append(f"Error: {e}")
 
-        threads = [
-            threading.Thread(target=update_config, args=(i,))
-            for i in range(num_threads)
-        ]
+        threads = [threading.Thread(target=update_config, args=(i,)) for i in range(num_threads)]
 
         for thread in threads:
             thread.start()

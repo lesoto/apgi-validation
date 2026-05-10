@@ -37,9 +37,7 @@ class TestScanWithPipAudit:
     @patch("subprocess.run")
     def test_scan_with_pip_audit_success(self, mock_run):
         """Test successful pip-audit scan."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout='{"vulnerabilities": []}', stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout='{"vulnerabilities": []}', stderr="")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_pip_audit()
@@ -62,17 +60,13 @@ class TestScanWithPipAudit:
         result = scanner.scan_with_pip_audit()
 
         assert result["scanner"] == "pip-audit"
-        assert (
-            result["vulnerabilities_found"] == 0
-        )  # pip-audit returns 0 even with vulns
+        assert result["vulnerabilities_found"] == 0  # pip-audit returns 0 even with vulns
         assert len(result["details"]) == 1
 
     @patch("subprocess.run")
     def test_scan_with_pip_audit_error(self, mock_run):
         """Test pip-audit scan with error."""
-        mock_run.return_value = MagicMock(
-            returncode=1, stdout="", stderr="Error scanning dependencies"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Error scanning dependencies")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_pip_audit()
@@ -152,9 +146,7 @@ class TestScanWithSafety:
     @patch("subprocess.run")
     def test_scan_with_safety_error(self, mock_run):
         """Test safety scan with error."""
-        mock_run.return_value = MagicMock(
-            returncode=1, stdout="", stderr="Error scanning with safety"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Error scanning with safety")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_safety()
@@ -194,9 +186,7 @@ class TestScanWithBandit:
     @patch("subprocess.run")
     def test_scan_with_bandit_success(self, mock_run):
         """Test successful bandit scan."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout='{"results": [], "metrics": {} }', stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout='{"results": [], "metrics": {} }', stderr="")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_bandit()
@@ -224,9 +214,7 @@ class TestScanWithBandit:
     @patch("subprocess.run")
     def test_scan_with_bandit_error(self, mock_run):
         """Test bandit scan with error."""
-        mock_run.return_value = MagicMock(
-            returncode=2, stdout="", stderr="Error scanning with bandit"
-        )
+        mock_run.return_value = MagicMock(returncode=2, stdout="", stderr="Error scanning with bandit")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_bandit()
@@ -262,9 +250,7 @@ class TestScanWithBandit:
     @patch("subprocess.run")
     def test_scan_with_bandit_invalid_json(self, mock_run):
         """Test bandit scan with invalid JSON output."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="invalid json", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="invalid json", stderr="")
 
         scanner = DependencyScanner()
         result = scanner.scan_with_bandit()
@@ -280,9 +266,7 @@ class TestRunComprehensiveScan:
     @patch.object(DependencyScanner, "scan_with_pip_audit")
     @patch.object(DependencyScanner, "scan_with_safety")
     @patch.object(DependencyScanner, "scan_with_bandit")
-    def test_run_comprehensive_scan_all_success(
-        self, mock_bandit, mock_safety, mock_pip
-    ):
+    def test_run_comprehensive_scan_all_success(self, mock_bandit, mock_safety, mock_pip):
         """Test comprehensive scan with all scanners successful."""
         mock_pip.return_value = {
             "scanner": "pip-audit",
@@ -315,9 +299,7 @@ class TestRunComprehensiveScan:
     @patch.object(DependencyScanner, "scan_with_pip_audit")
     @patch.object(DependencyScanner, "scan_with_safety")
     @patch.object(DependencyScanner, "scan_with_bandit")
-    def test_run_comprehensive_scan_with_failures(
-        self, mock_bandit, mock_safety, mock_pip
-    ):
+    def test_run_comprehensive_scan_with_failures(self, mock_bandit, mock_safety, mock_pip):
         """Test comprehensive scan with some scanners failing."""
         mock_pip.return_value = {
             "scanner": "pip-audit",
@@ -518,9 +500,7 @@ class TestRunDependencyScan:
 
     @patch.object(DependencyScanner, "run_comprehensive_scan")
     @patch.object(DependencyScanner, "save_scan_report")
-    def test_run_dependency_scan_with_project_root(
-        self, mock_save, mock_scan, tmp_path
-    ):
+    def test_run_dependency_scan_with_project_root(self, mock_save, mock_scan, tmp_path):
         """Test run_dependency_scan with custom project root."""
         mock_scan.return_value = {"test": "results"}
 

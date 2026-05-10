@@ -65,9 +65,7 @@ class InputValidator:
 
         return ValidationResult(True, "Valid", value)
 
-    def validate_field(
-        self, field_name: str, value: Any, schema: Dict[str, Any]
-    ) -> ValidationResult:
+    def validate_field(self, field_name: str, value: Any, schema: Dict[str, Any]) -> ValidationResult:
         """Validate a field against a schema definition."""
         rules = self._parse_schema(schema)
         result = self.validate(value, rules)
@@ -79,23 +77,17 @@ class InputValidator:
 
         return result
 
-    def validate_form(
-        self, data: Dict[str, Any], schema: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, ValidationResult]:
+    def validate_form(self, data: Dict[str, Any], schema: Dict[str, Dict[str, Any]]) -> Dict[str, ValidationResult]:
         """Validate an entire form against a schema."""
         results = {}
 
         for field_name, field_schema in schema.items():
             field_value = data.get(field_name)
-            results[field_name] = self.validate_field(
-                field_name, field_value, field_schema
-            )
+            results[field_name] = self.validate_field(field_name, field_value, field_schema)
 
         return results
 
-    def add_custom_validator(
-        self, name: str, validator: Callable[[Any], ValidationResult]
-    ):
+    def add_custom_validator(self, name: str, validator: Callable[[Any], ValidationResult]):
         """Add a custom validator function."""
         self.custom_validators[name] = validator
 
@@ -132,9 +124,7 @@ class InputValidator:
         else:
             return ValidationResult(False, f"Unknown validation type: {rule.type}")
 
-    def _validate_required(
-        self, value: Any, params: Dict[str, Any]
-    ) -> ValidationResult:
+    def _validate_required(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate required field."""
         if value is None or (isinstance(value, str) and not value.strip()):
             message = params.get("message", "This field is required")
@@ -156,9 +146,7 @@ class InputValidator:
             return ValidationResult(False, message)
 
         if max_length is not None and len(value) > max_length:
-            message = params.get(
-                "message", f"Must be no more than {max_length} characters"
-            )
+            message = params.get("message", f"Must be no more than {max_length} characters")
             return ValidationResult(False, message)
 
         return ValidationResult(True, "Valid")
@@ -254,9 +242,7 @@ class InputValidator:
             message = params.get("message", "Invalid path format")
             return ValidationResult(False, message)
 
-    def _validate_file_path(
-        self, value: Any, params: Dict[str, Any]
-    ) -> ValidationResult:
+    def _validate_file_path(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate file path input."""
         if not isinstance(params, dict):
             return ValidationResult(False, "Invalid validation parameters")
@@ -296,9 +282,7 @@ class InputValidator:
 
         return result
 
-    def _validate_directory_path(
-        self, value: Any, params: Dict[str, Any]
-    ) -> ValidationResult:
+    def _validate_directory_path(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate directory path input."""
         if not isinstance(params, dict):
             return ValidationResult(False, "Invalid validation parameters")
@@ -339,9 +323,7 @@ class InputValidator:
 
         # Only allow http and https protocols for security
         if not (value.startswith("http://") or value.startswith("https://")):
-            message = params.get(
-                "message", "Must be a valid URL starting with http:// or https://"
-            )
+            message = params.get("message", "Must be a valid URL starting with http:// or https://")
             return ValidationResult(False, message)
 
         # Basic URL regex for structure validation
@@ -404,9 +386,7 @@ class InputValidator:
             return ValidationResult(False, message)
 
         if max_length is not None and length > max_length:
-            message = params.get(
-                "message", f"Must have no more than {max_length} items"
-            )
+            message = params.get("message", f"Must have no more than {max_length} items")
             return ValidationResult(False, message)
 
         return ValidationResult(True, "Valid")
@@ -444,9 +424,7 @@ class InputValidator:
 
         if thread.is_alive():
             # Thread is still running - regex took too long
-            return ValidationResult(
-                False, "Regex matching timed out (possible ReDoS attack)"
-            )
+            return ValidationResult(False, "Regex matching timed out (possible ReDoS attack)")
 
         if timeout_exception[0]:
             # Re-raise the caught exception if any

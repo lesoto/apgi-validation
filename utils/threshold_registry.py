@@ -95,12 +95,8 @@ class FalsificationThresholds:
                 "cumulative_reward_advantage_threshold",
                 thresholds.cumulative_reward_advantage_threshold,
             )
-            thresholds.cohens_d_threshold = getattr(
-                falsif_config, "cohens_d_threshold", thresholds.cohens_d_threshold
-            )
-            thresholds.significance_level = getattr(
-                falsif_config, "significance_level", thresholds.significance_level
-            )
+            thresholds.cohens_d_threshold = getattr(falsif_config, "cohens_d_threshold", thresholds.cohens_d_threshold)
+            thresholds.significance_level = getattr(falsif_config, "significance_level", thresholds.significance_level)
             thresholds.threshold_reduction_min = getattr(
                 falsif_config,
                 "threshold_reduction_min",
@@ -111,12 +107,8 @@ class FalsificationThresholds:
                 "cohens_d_adaptation_threshold",
                 thresholds.cohens_d_adaptation_threshold,
             )
-            thresholds.tau_theta_min = getattr(
-                falsif_config, "tau_theta_min", thresholds.tau_theta_min
-            )
-            thresholds.tau_theta_max = getattr(
-                falsif_config, "tau_theta_max", thresholds.tau_theta_max
-            )
+            thresholds.tau_theta_min = getattr(falsif_config, "tau_theta_min", thresholds.tau_theta_min)
+            thresholds.tau_theta_max = getattr(falsif_config, "tau_theta_max", thresholds.tau_theta_max)
 
             logger.info("Loaded falsification thresholds from configuration")
 
@@ -142,15 +134,10 @@ class ThresholdRegistry:
 
         # Check core thresholds
         if self.thresholds.cumulative_reward_advantage_threshold <= 0:
-            validation_errors.append(
-                "cumulative_reward_advantage_threshold must be > 0"
-            )
+            validation_errors.append("cumulative_reward_advantage_threshold must be > 0")
         if self.thresholds.cohens_d_threshold <= 0:
             validation_errors.append("cohens_d_threshold must be > 0")
-        if (
-            self.thresholds.significance_level <= 0
-            or self.thresholds.significance_level >= 1
-        ):
+        if self.thresholds.significance_level <= 0 or self.thresholds.significance_level >= 1:
             validation_errors.append("significance_level must be between 0 and 1")
         if self.thresholds.threshold_reduction_min <= 0:
             validation_errors.append("threshold_reduction_min must be > 0")
@@ -213,9 +200,7 @@ class ThresholdRegistry:
                 min_val = getattr(bounds, min_attr)
                 max_val = getattr(bounds, max_attr)
                 if not (min_val <= value <= max_val):
-                    raise ValueError(
-                        f"Threshold {name} must be between {min_val} and {max_val}, got {value}"
-                    )
+                    raise ValueError(f"Threshold {name} must be between {min_val} and {max_val}, got {value}")
         except AttributeError:
             # Bounds not available, skip validation
             pass

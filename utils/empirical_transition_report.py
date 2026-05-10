@@ -221,9 +221,7 @@ class EmpiricalTransitionReport:
         print("-" * 40)
         summary = report["summary"]
         print(f"Protocols in Transition: {summary['protocols_in_transition']}")
-        print(
-            f"Public Datasets Available: {summary['total_public_datasets_available']}"
-        )
+        print(f"Public Datasets Available: {summary['total_public_datasets_available']}")
         print(f"Pending Datasets: {summary['total_pending_datasets']}")
         print(f"Estimated Completion: {summary['estimated_completion']}")
         print()
@@ -236,9 +234,7 @@ class EmpiricalTransitionReport:
             print(f"  Target Mode:  {proto['target_mode']}")
             print(f"  Public Datasets: {', '.join(proto['available_datasets'])}")
             print(f"  Pending Datasets: {', '.join(proto['pending_datasets'])}")
-            print(
-                f"  Data Loaders: {'✓' if proto['data_loaders_implemented'] else '✗'}"
-            )
+            print(f"  Data Loaders: {'✓' if proto['data_loaders_implemented'] else '✗'}")
             print(f"  BIDS Support: {'✓' if proto['bids_support'] else '✗'}")
 
             if proto["critical_gaps"]:

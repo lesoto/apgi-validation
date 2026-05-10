@@ -111,7 +111,7 @@ try:
     import mne
 
     HAS_MNE = True
-except Exception:
+except ModuleNotFoundError:  # pragma: no cover
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 
@@ -129,9 +129,7 @@ V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # spike must be ≥1.20× pre-igniti
 try:
     from utils.falsification_thresholds import DEFAULT_ALPHA as _DEFAULT_ALPHA
     from utils.falsification_thresholds import V21_HEP_MIN_R2 as _V21_HEP_MIN_R2
-    from utils.falsification_thresholds import (
-        V21_IGNITION_TRANSIENT_RATIO as _V21_IGNITION_TRANSIENT_RATIO,
-    )
+    from utils.falsification_thresholds import V21_IGNITION_TRANSIENT_RATIO as _V21_IGNITION_TRANSIENT_RATIO
     from utils.falsification_thresholds import V21_MMN_MIN_R2 as _V21_MMN_MIN_R2
 
     DEFAULT_ALPHA = _DEFAULT_ALPHA
@@ -216,17 +214,13 @@ class SubjectTrajectory:
 # ---------------------------------------------------------------------------
 
 
-def _bandpass(
-    data: np.ndarray, low: float, high: float, fs: float, order: int = 4
-) -> np.ndarray:
+def _bandpass(data: np.ndarray, low: float, high: float, fs: float, order: int = 4) -> np.ndarray:
     nyq = fs / 2.0
     b, a = butter(order, [low / nyq, high / nyq], btype="band")
     return filtfilt(b, a, data)
 
 
-def _epoch_mean(
-    data: np.ndarray, fs: float, t_start_ms: float, t_end_ms: float
-) -> float:
+def _epoch_mean(data: np.ndarray, fs: float, t_start_ms: float, t_end_ms: float) -> float:
     """Mean amplitude in a time window of a 1-D ERP (t=0 at epoch centre)."""
     n = len(data)
     epoch_start_ms = -n / (2.0 * fs) * 1000.0
@@ -254,9 +248,7 @@ class MMNExtractor:
     MMN = deviant ERP − standard ERP, amplitude read in the 100–200 ms window.
     """
 
-    def __init__(
-        self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None
-    ) -> None:
+    def __init__(self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None) -> None:
         self.fs = fs
         self.rng = rng if rng is not None else np.random.default_rng(RANDOM_SEED)
         self._dt = 1.0 / fs
@@ -295,17 +287,11 @@ class MMNExtractor:
         template = self._mmn_template(mmn_amplitude)
         # Simulate trial-level noise then average
         trials = np.stack(
-            [
-                template
-                + self.rng.normal(0.0, noise_level * mmn_amplitude, self.n_samples)
-                for _ in range(n_deviants)
-            ]
+            [template + self.rng.normal(0.0, noise_level * mmn_amplitude, self.n_samples) for _ in range(n_deviants)]
         )
         erp = np.mean(trials, axis=0)
         # MMN peak = most negative point in 100–200 ms window
-        peak_idx = (self.t_ms >= MMN_PEAK_WINDOW_MS[0]) & (
-            self.t_ms <= MMN_PEAK_WINDOW_MS[1]
-        )
+        peak_idx = (self.t_ms >= MMN_PEAK_WINDOW_MS[0]) & (self.t_ms <= MMN_PEAK_WINDOW_MS[1])
         return float(np.min(erp[peak_idx]))
 
     def extract_from_epochs(
@@ -342,9 +328,7 @@ class HEPExtractor:
     Larger positive deviation → higher interoceptive PE.
     """
 
-    def __init__(
-        self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None
-    ) -> None:
+    def __init__(self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None) -> None:
         self.fs = fs
         self.rng = rng if rng is not None else np.random.default_rng(RANDOM_SEED)
         # Epoch: −200 to +700 ms around R-peak
@@ -355,9 +339,7 @@ class HEPExtractor:
         """Sinusoidal HEP component in 200–500 ms window."""
         wave = np.zeros(self.n_samples)
         mask = (self.t_ms >= HEP_WIN_MS[0]) & (self.t_ms <= HEP_WIN_MS[1])
-        wave[mask] = amplitude * np.sin(
-            np.pi * (self.t_ms[mask] - HEP_WIN_MS[0]) / (HEP_WIN_MS[1] - HEP_WIN_MS[0])
-        )
+        wave[mask] = amplitude * np.sin(np.pi * (self.t_ms[mask] - HEP_WIN_MS[0]) / (HEP_WIN_MS[1] - HEP_WIN_MS[0]))
         return wave
 
     def simulate_block_hep(
@@ -372,10 +354,7 @@ class HEPExtractor:
         template = self._hep_template(hep_amplitude)
         trials = np.stack(
             [
-                template
-                + self.rng.normal(
-                    0.0, noise_level * abs(hep_amplitude) + 0.1, self.n_samples
-                )
+                template + self.rng.normal(0.0, noise_level * abs(hep_amplitude) + 0.1, self.n_samples)
                 for _ in range(n_heartbeats)
             ]
         )
@@ -465,9 +444,7 @@ class FEProxySimulator:
 
             traj = SubjectTrajectory(subject_id=subject_id)
             for b in range(N_BLOCKS):
-                n_deviants = int(
-                    DEVIANT_PROB * (BLOCK_DURATION_S * 1000.0 / TONE_SOA_MS)
-                )
+                n_deviants = int(DEVIANT_PROB * (BLOCK_DURATION_S * 1000.0 / TONE_SOA_MS))
                 n_heartbeats = int(BLOCK_DURATION_S * 1.1)  # ~66 bpm
 
                 has_ignition = b in ignition_blocks
@@ -478,16 +455,8 @@ class FEProxySimulator:
                 ig_mmn: Optional[float] = None
                 ig_hep: Optional[float] = None
                 if has_ignition:
-                    ig_mmn = (
-                        mmn_amp
-                        * V21_IGNITION_TRANSIENT_RATIO
-                        * (1.0 + self.rng.normal(0.0, 0.05))
-                    )
-                    ig_hep = (
-                        hep_amp
-                        * V21_IGNITION_TRANSIENT_RATIO
-                        * (1.0 + self.rng.normal(0.0, 0.05))
-                    )
+                    ig_mmn = mmn_amp * V21_IGNITION_TRANSIENT_RATIO * (1.0 + self.rng.normal(0.0, 0.05))
+                    ig_hep = hep_amp * V21_IGNITION_TRANSIENT_RATIO * (1.0 + self.rng.normal(0.0, 0.05))
 
                 measured_mmn = self._mmn_ext.simulate_block_mmn(n_deviants, mmn_amp)
                 measured_hep = self._hep_ext.simulate_block_hep(n_heartbeats, hep_amp)
@@ -560,9 +529,7 @@ class BIDSFELoader:
             raw.resample(self.sfreq_target, verbose=False)
         return raw
 
-    def _load_events(
-        self, raw: "mne.io.BaseRaw", events_path: Path
-    ) -> Tuple[np.ndarray, Dict[str, int]]:
+    def _load_events(self, raw: "mne.io.BaseRaw", events_path: Path) -> Tuple[np.ndarray, Dict[str, int]]:
         import pandas as pd
 
         if not events_path.exists():
@@ -762,12 +729,7 @@ def test_monotone_decline(
     p_t_one = float(p_t / 2.0) if t_stat < 0 else 1.0
 
     # Pass if group regression meets R² and both group + subject tests significant
-    passed = (
-        slope < 0
-        and r2 >= min_r2
-        and p_group < DEFAULT_ALPHA
-        and p_t_one < DEFAULT_ALPHA
-    )
+    passed = slope < 0 and r2 >= min_r2 and p_group < DEFAULT_ALPHA and p_t_one < DEFAULT_ALPHA
 
     label = "V21.1 (MMN)" if signal == "mmn" else "V21.2 (HEP)"
     logger.info(
@@ -827,16 +789,8 @@ def test_ignition_transient(
             pre_mmn = abs(blocks[b_idx - 1].mmn_amplitude_uv)
             pre_hep = abs(blocks[b_idx - 1].hep_deviation_uv)
 
-            ig_mmn = (
-                abs(block.ignition_mmn_uv)
-                if block.ignition_mmn_uv is not None
-                else abs(block.mmn_amplitude_uv)
-            )
-            ig_hep = (
-                abs(block.ignition_hep_uv)
-                if block.ignition_hep_uv is not None
-                else abs(block.hep_deviation_uv)
-            )
+            ig_mmn = abs(block.ignition_mmn_uv) if block.ignition_mmn_uv is not None else abs(block.mmn_amplitude_uv)
+            ig_hep = abs(block.ignition_hep_uv) if block.ignition_hep_uv is not None else abs(block.hep_deviation_uv)
 
             post_mmn = abs(blocks[b_idx + 1].mmn_amplitude_uv)
             post_hep = abs(blocks[b_idx + 1].hep_deviation_uv)
@@ -990,8 +944,7 @@ def generate_figures(
 
     proxy_note = "3-level proxy chain: MMN/HEP (L3) → PE (L2) → F(t) (L1, not measured)"
     fig.suptitle(
-        f"VP-FE-Proxy: Free Energy Approximation via PE Tracking — {data_source.upper()} data\n"
-        f"{proxy_note}",
+        f"VP-FE-Proxy: Free Energy Approximation via PE Tracking — {data_source.upper()} data\n" f"{proxy_note}",
         fontsize=10,
     )
     fig.tight_layout()
@@ -1171,9 +1124,7 @@ def run_validation(
     max_subjects : cap subjects (useful for fast CI tests)
     """
     _seed = seed if seed is not None else RANDOM_SEED
-    validator = FEProxyValidator(
-        bids_root=bids_root, seed=_seed, max_subjects=max_subjects
-    )
+    validator = FEProxyValidator(bids_root=bids_root, seed=_seed, max_subjects=max_subjects)
     return validator.run_full_validation()
 
 
@@ -1186,9 +1137,7 @@ def main() -> None:
     """CLI entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="VP-FE-Proxy: PE tracking as F(t) approximation"
-    )
+    parser = argparse.ArgumentParser(description="VP-FE-Proxy: PE tracking as F(t) approximation")
     parser.add_argument("--bids-root", default=None, help="BIDS EEG dataset root")
     parser.add_argument("--seed", type=int, default=RANDOM_SEED)
     parser.add_argument("--max-subjects", type=int, default=None)

@@ -2,8 +2,7 @@
 
 import pytest
 
-from delete_pycache import (clear_log_files, delete_temporary_items, main,
-                            matches_any)
+from delete_pycache import clear_log_files, delete_temporary_items, main, matches_any
 
 
 class TestDeleteTemporaryItems:

@@ -104,9 +104,7 @@ class DataValidator:
         try:
             # Check file size to prevent DoS from large files
             file_size = file_path.stat().st_size
-            max_file_size = (
-                getattr(self.config, "max_file_size_mb", 100) * 1024 * 1024
-            )  # Default 100MB
+            max_file_size = getattr(self.config, "max_file_size_mb", 100) * 1024 * 1024  # Default 100MB
             if file_size > max_file_size:
                 results["errors"].append(
                     f"File too large: {file_size / (1024 * 1024):.1f}MB exceeds limit of {max_file_size / (1024 * 1024):.0f}MB"
@@ -138,13 +136,9 @@ class DataValidator:
                         return results
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_json_structure(data, results)
-            elif (
-                file_path.suffix.lower() == ".h5" or file_path.suffix.lower() == ".hdf5"
-            ):
+            elif file_path.suffix.lower() == ".h5" or file_path.suffix.lower() == ".hdf5":
                 if not HDF5_AVAILABLE:
-                    results["errors"].append(
-                        "HDF5 support not available - install h5py"
-                    )  # type: ignore[assignment]
+                    results["errors"].append("HDF5 support not available - install h5py")  # type: ignore[assignment]
                     return results
                 df = self._read_hdf5_file(file_path)
                 results["is_readable"] = True
@@ -188,26 +182,20 @@ class DataValidator:
                     try:
                         pd.to_datetime(df[col])
                     except (ValueError, TypeError):
-                        results["errors"].append(
-                            f"Column {col} cannot be converted to datetime"
-                        )
+                        results["errors"].append(f"Column {col} cannot be converted to datetime")
                         return False
             else:
                 if not pd.api.types.is_numeric_dtype(df[col]):
                     try:
                         pd.to_numeric(df[col], errors="coerce")
                     except (ValueError, TypeError):
-                        results["errors"].append(
-                            f"Column {col} cannot be converted to numeric"
-                        )
+                        results["errors"].append(f"Column {col} cannot be converted to numeric")
                         return False
 
         # Check for missing values
         missing_counts = df[required_columns].isnull().sum()
         if missing_counts.any():
-            results["warnings"].append(
-                f"Missing values found: {missing_counts[missing_counts > 0].to_dict()}"
-            )
+            results["warnings"].append(f"Missing values found: {missing_counts[missing_counts > 0].to_dict()}")
 
         # Check data ranges using configurable thresholds
         self._validate_data_ranges(df, results)
@@ -255,52 +243,32 @@ class DataValidator:
                 eeg_data = df[col].dropna()
                 if len(eeg_data) > 0:
                     eeg_min, eeg_max = eeg_data.min(), eeg_data.max()
-                    if (
-                        eeg_min < self.config.eeg_min_range
-                        or eeg_max > self.config.eeg_max_range
-                    ):
-                        results["warnings"].append(
-                            f"{col}: Unusual EEG range ({eeg_min:.2f} to {eeg_max:.2f} μV)"
-                        )
+                    if eeg_min < self.config.eeg_min_range or eeg_max > self.config.eeg_max_range:
+                        results["warnings"].append(f"{col}: Unusual EEG range ({eeg_min:.2f} to {eeg_max:.2f} μV)")
 
         # Pupil diameter (mm)
         if "pupil_diameter" in df.columns:
             pupil_data = df["pupil_diameter"].dropna()
             if len(pupil_data) > 0:
                 pupil_min, pupil_max = pupil_data.min(), pupil_data.max()
-                if (
-                    pupil_min < self.config.pupil_min_range
-                    or pupil_max > self.config.pupil_max_range
-                ):
-                    results["warnings"].append(
-                        f"Pupil diameter: Unusual range ({pupil_min:.2f} to {pupil_max:.2f} mm)"
-                    )
+                if pupil_min < self.config.pupil_min_range or pupil_max > self.config.pupil_max_range:
+                    results["warnings"].append(f"Pupil diameter: Unusual range ({pupil_min:.2f} to {pupil_max:.2f} mm)")
 
         # EDA (microsiemens)
         if "eda" in df.columns:
             eda_data = df["eda"].dropna()
             if len(eda_data) > 0:
                 eda_min, eda_max = eda_data.min(), eda_data.max()
-                if (
-                    eda_min < self.config.eda_min_range
-                    or eda_max > self.config.eda_max_range
-                ):
-                    results["warnings"].append(
-                        f"EDA: Unusual range ({eda_min:.3f} to {eda_max:.3f} μS)"
-                    )
+                if eda_min < self.config.eda_min_range or eda_max > self.config.eda_max_range:
+                    results["warnings"].append(f"EDA: Unusual range ({eda_min:.3f} to {eda_max:.3f} μS)")
 
         # Heart rate (BPM)
         if "heart_rate" in df.columns:
             hr_data = df["heart_rate"].dropna()
             if len(hr_data) > 0:
                 hr_min, hr_max = hr_data.min(), hr_data.max()
-                if (
-                    hr_min < self.config.hr_min_range
-                    or hr_max > self.config.hr_max_range
-                ):
-                    results["warnings"].append(
-                        f"Heart rate: Unusual range ({hr_min:.1f} to {hr_max:.1f} BPM)"
-                    )
+                if hr_min < self.config.hr_min_range or hr_max > self.config.hr_max_range:
+                    results["warnings"].append(f"Heart rate: Unusual range ({hr_min:.1f} to {hr_max:.1f} BPM)")
 
     def validate_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Assess data quality metrics."""
@@ -343,25 +311,17 @@ class DataValidator:
 
         # Signal quality metrics
         if "EEG_Cz" in df.columns:
-            quality_metrics["signal_quality"]["EEG_Cz"] = self._assess_signal_quality(
-                df["EEG_Cz"]
-            )
+            quality_metrics["signal_quality"]["EEG_Cz"] = self._assess_signal_quality(df["EEG_Cz"])
 
         if "pupil_diameter" in df.columns:
-            quality_metrics["signal_quality"]["pupil_diameter"] = (
-                self._assess_signal_quality(df["pupil_diameter"])
-            )
+            quality_metrics["signal_quality"]["pupil_diameter"] = self._assess_signal_quality(df["pupil_diameter"])
 
         if "eda" in df.columns:
-            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(
-                df["eda"]
-            )
+            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(df["eda"])
 
         # Temporal consistency
         if "timestamp" in df.columns:
-            quality_metrics["temporal_consistency"] = self._assess_temporal_consistency(
-                df
-            )
+            quality_metrics["temporal_consistency"] = self._assess_temporal_consistency(df)
 
         # Calculate overall quality score
         quality_score = self._calculate_quality_score(quality_metrics)
@@ -380,10 +340,7 @@ class DataValidator:
         score = 100.0
 
         # Check for flat segments using configurable threshold
-        if (
-            len(signal_clean.unique())
-            < len(signal_clean) * self.config.repeated_values_threshold
-        ):
+        if len(signal_clean.unique()) < len(signal_clean) * self.config.repeated_values_threshold:
             issues.append("Many repeated values")
             score -= 20
 
@@ -397,10 +354,7 @@ class DataValidator:
         else:
             z_scores = np.abs((signal_clean - signal_mean) / signal_std)
             extreme_count = (z_scores > self.config.extreme_value_zscore).sum()
-            if (
-                extreme_count
-                > len(signal_clean) * self.config.extreme_value_percentage_threshold
-            ):
+            if extreme_count > len(signal_clean) * self.config.extreme_value_percentage_threshold:
                 issues.append(f"Many extreme values ({extreme_count})")
                 score -= 15
 
@@ -438,12 +392,8 @@ class DataValidator:
                 expected_interval = time_diffs.mode().iloc[0]  # Most common interval
                 irregular_diffs = time_diffs[time_diffs != expected_interval]
 
-                if len(irregular_diffs) > len(time_diffs) * (
-                    self.config.temporal_irregular_threshold / 100
-                ):
-                    issues.append(
-                        f"Irregular sampling: {len(irregular_diffs)} irregular intervals"
-                    )
+                if len(irregular_diffs) > len(time_diffs) * (self.config.temporal_irregular_threshold / 100):
+                    issues.append(f"Irregular sampling: {len(irregular_diffs)} irregular intervals")
                     score -= 20
 
                 # Check for gaps
@@ -455,14 +405,8 @@ class DataValidator:
             return {
                 "score": max(0, score),
                 "issues": issues,
-                "expected_interval": (
-                    str(expected_interval) if len(time_diffs) > 0 else "unknown"
-                ),
-                "total_duration": (
-                    str(timestamps.iloc[-1] - timestamps.iloc[0])
-                    if len(timestamps) > 1
-                    else "unknown"
-                ),
+                "expected_interval": (str(expected_interval) if len(time_diffs) > 0 else "unknown"),
+                "total_duration": (str(timestamps.iloc[-1] - timestamps.iloc[0]) if len(timestamps) > 1 else "unknown"),
             }
 
         except (
@@ -483,16 +427,12 @@ class DataValidator:
         score = 100.0
 
         # Penalize missing data using configurable threshold
-        total_missing = sum(
-            info["percentage"] for info in metrics["missing_data"].values()
-        )
+        total_missing = sum(info["percentage"] for info in metrics["missing_data"].values())
         if total_missing > self.config.missing_data_threshold:
             score -= min(30, total_missing / 2)
 
         # Penalize outliers using configurable threshold
-        total_outliers = sum(
-            info["percentage"] for info in metrics["outliers"].values()
-        )
+        total_outliers = sum(info["percentage"] for info in metrics["outliers"].values())
         if total_outliers > self.config.outlier_threshold:
             score -= min(20, total_outliers)
 
@@ -528,9 +468,7 @@ class DataValidator:
             try:
                 if file_path.suffix.lower() == ".csv":
                     # Limit rows for large files to prevent memory exhaustion
-                    max_rows_for_validation = getattr(
-                        self.config, "max_rows_for_validation", 100000
-                    )
+                    max_rows_for_validation = getattr(self.config, "max_rows_for_validation", 100000)
                     file_size_mb = file_path.stat().st_size / (1024 * 1024)
                     if file_size_mb > 10:  # For files > 10MB, limit rows
                         df = pd.read_csv(file_path, nrows=max_rows_for_validation)
@@ -582,43 +520,31 @@ class DataValidator:
         missing_data = report["data_quality"].get("missing_data", {})
         for col, info in missing_data.items():
             if info["percentage"] > self.config.missing_data_threshold:
-                recommendations.append(
-                    f"Consider imputation or removal of missing data in {col}"
-                )
+                recommendations.append(f"Consider imputation or removal of missing data in {col}")
 
         # Outlier recommendations using configurable threshold
         outliers = report["data_quality"].get("outliers", {})
         for col, info in outliers.items():
             if info["percentage"] > self.config.outlier_threshold:
-                recommendations.append(
-                    f"Review outliers in {col} ({info['percentage']:.1f}%)"
-                )
+                recommendations.append(f"Review outliers in {col} ({info['percentage']:.1f}%)")
 
         # Signal quality recommendations using configurable threshold
         signal_quality = report["data_quality"].get("signal_quality", {})
         for col, info in signal_quality.items():
             if info["score"] < self.config.signal_quality_threshold:
-                recommendations.append(
-                    f"Improve signal quality for {col}: {', '.join(info['issues'])}"
-                )
+                recommendations.append(f"Improve signal quality for {col}: {', '.join(info['issues'])}")
 
         # Temporal consistency recommendations using configurable threshold
         temporal = report["data_quality"].get("temporal_consistency", {})
         if temporal.get("score", 100) < self.config.temporal_quality_threshold:
-            recommendations.append(
-                f"Address temporal consistency issues: {', '.join(temporal.get('issues', []))}"
-            )
+            recommendations.append(f"Address temporal consistency issues: {', '.join(temporal.get('issues', []))}")
 
         # Overall quality recommendations using configurable thresholds
         overall_score = report["data_quality"].get("overall_score", 100)
         if overall_score < self.config.overall_poor_threshold:
-            recommendations.append(
-                "Overall data quality is poor - consider data cleaning and preprocessing"
-            )
+            recommendations.append("Overall data quality is poor - consider data cleaning and preprocessing")
         elif overall_score < self.config.overall_acceptable_threshold:
-            recommendations.append(
-                "Data quality is acceptable but could be improved with preprocessing"
-            )
+            recommendations.append("Data quality is acceptable but could be improved with preprocessing")
 
         return recommendations
 
@@ -697,26 +623,20 @@ class DataValidator:
                         try:
                             pd.to_datetime(df[col])
                         except (ValueError, TypeError):
-                            results["errors"].append(
-                                f"Column {col} cannot be converted to datetime"
-                            )
+                            results["errors"].append(f"Column {col} cannot be converted to datetime")
                             return False
                 else:
                     if not pd.api.types.is_numeric_dtype(df[col]):
                         try:
                             pd.to_numeric(df[col], errors="coerce")
                         except (ValueError, TypeError):
-                            results["errors"].append(
-                                f"Column {col} cannot be converted to numeric"
-                            )
+                            results["errors"].append(f"Column {col} cannot be converted to numeric")
                             return False
 
         # Check for missing values
         missing_counts = df[required_columns].isnull().sum()
         if missing_counts.any():
-            results["warnings"].append(
-                f"Missing values found: {missing_counts[missing_counts > 0].to_dict()}"
-            )
+            results["warnings"].append(f"Missing values found: {missing_counts[missing_counts > 0].to_dict()}")
 
         # Check data ranges
         self._validate_data_ranges(df, results)
@@ -743,9 +663,7 @@ class DataPreprocessor(DataValidator):
             file_size_mb = file_path.stat().st_size / (1024 * 1024)
             max_size_mb = getattr(self.config, "max_json_size_mb", 50)
             if file_size_mb > max_size_mb:
-                raise ValueError(
-                    f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
-                )
+                raise ValueError(f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)")
             with open(file_path, "r") as f:
                 data = json.load(f)
             df = pd.DataFrame(data["data"])
@@ -758,16 +676,12 @@ class DataPreprocessor(DataValidator):
 
         # Convert timestamp if present
         if "timestamp" in df.columns:
-            df = (
-                df.copy()
-            )  # Ensure we're working with a copy to avoid SettingWithCopyWarning
+            df = df.copy()  # Ensure we're working with a copy to avoid SettingWithCopyWarning
             df.loc[:, "timestamp"] = pd.to_datetime(df["timestamp"])
 
         return df
 
-    def clean_missing_data(
-        self, df: pd.DataFrame, strategy: str = "interpolate"
-    ) -> pd.DataFrame:
+    def clean_missing_data(self, df: pd.DataFrame, strategy: str = "interpolate") -> pd.DataFrame:
         """Clean missing data using various strategies."""
         df_clean = df.copy()
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
@@ -779,24 +693,16 @@ class DataPreprocessor(DataValidator):
         elif strategy == "backward_fill":
             df_clean[numeric_cols] = df_clean[numeric_cols].bfill()
         elif strategy == "mean":
-            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(
-                df_clean[numeric_cols].mean()
-            )
+            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(df_clean[numeric_cols].mean())
         elif strategy == "median":
-            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(
-                df_clean[numeric_cols].median()
-            )
+            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(df_clean[numeric_cols].median())
         elif strategy == "drop":
             df_clean = df_clean.dropna(subset=numeric_cols)
 
-        self.preprocessing_steps.append(
-            f"Missing data cleaned using {strategy} strategy"
-        )
+        self.preprocessing_steps.append(f"Missing data cleaned using {strategy} strategy")
         return df_clean
 
-    def remove_outliers(
-        self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5
-    ) -> pd.DataFrame:
+    def remove_outliers(self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5) -> pd.DataFrame:
         """Remove outliers from numeric columns."""
         df_clean = df.copy()
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
@@ -813,15 +719,11 @@ class DataPreprocessor(DataValidator):
                 lower_bound = Q1 - threshold * IQR
                 upper_bound = Q3 + threshold * IQR
 
-                outlier_mask = (df_clean[col] < lower_bound) | (
-                    df_clean[col] > upper_bound
-                )
+                outlier_mask = (df_clean[col] < lower_bound) | (df_clean[col] > upper_bound)
                 combined_mask |= outlier_mask
 
             elif method == "zscore":
-                z_scores = np.abs(
-                    (df_clean[col] - df_clean[col].mean()) / df_clean[col].std()
-                )
+                z_scores = np.abs((df_clean[col] - df_clean[col].mean()) / df_clean[col].std())
                 outlier_mask = z_scores > threshold
                 combined_mask |= outlier_mask
 
@@ -829,9 +731,7 @@ class DataPreprocessor(DataValidator):
         if outliers_removed > 0:
             df_clean = df_clean[~combined_mask]
 
-        self.preprocessing_steps.append(
-            f"Removed {outliers_removed} outliers using {method} method"
-        )
+        self.preprocessing_steps.append(f"Removed {outliers_removed} outliers using {method} method")
         return df_clean
 
     def filter_signals(
@@ -847,11 +747,7 @@ class DataPreprocessor(DataValidator):
         df_filtered = df.copy()
 
         if columns is None:
-            columns = [
-                col
-                for col in df.columns
-                if col.startswith("eeg") or col.startswith("pupil") or col == "eda"
-            ]
+            columns = [col for col in df.columns if col.startswith("eeg") or col.startswith("pupil") or col == "eda"]
 
         for col in columns:
             if col in df_filtered.columns:
@@ -860,27 +756,15 @@ class DataPreprocessor(DataValidator):
                 if filter_type == "bandpass":
                     low_freq = filter_params.get(
                         "low_freq",
-                        (
-                            getattr(self.config, "default_low_freq", 1.0)
-                            if self.config
-                            else 1.0
-                        ),
+                        (getattr(self.config, "default_low_freq", 1.0) if self.config else 1.0),
                     )
                     high_freq = filter_params.get(
                         "high_freq",
-                        (
-                            getattr(self.config, "default_high_freq", 50.0)
-                            if self.config
-                            else 50.0
-                        ),
+                        (getattr(self.config, "default_high_freq", 50.0) if self.config else 50.0),
                     )
                     fs = filter_params.get(
                         "sampling_rate",
-                        (
-                            getattr(self.config, "default_sampling_rate", 1000.0)
-                            if self.config
-                            else 1000.0
-                        ),
+                        (getattr(self.config, "default_sampling_rate", 1000.0) if self.config else 1000.0),
                     )
 
                     nyquist = fs / 2
@@ -895,19 +779,11 @@ class DataPreprocessor(DataValidator):
                 elif filter_type == "lowpass":
                     cutoff_freq = filter_params.get(
                         "cutoff_freq",
-                        (
-                            getattr(self.config, "default_cutoff_freq", 50.0)
-                            if self.config
-                            else 50.0
-                        ),
+                        (getattr(self.config, "default_cutoff_freq", 50.0) if self.config else 50.0),
                     )
                     fs = filter_params.get(
                         "sampling_rate",
-                        (
-                            getattr(self.config, "default_sampling_rate", 1000.0)
-                            if self.config
-                            else 1000.0
-                        ),
+                        (getattr(self.config, "default_sampling_rate", 1000.0) if self.config else 1000.0),
                     )
 
                     nyquist = fs / 2
@@ -921,9 +797,7 @@ class DataPreprocessor(DataValidator):
         self.preprocessing_steps.append(f"Applied {filter_type} filter to {columns}")
         return df_filtered
 
-    def normalize_data(
-        self, df: pd.DataFrame, method: str = "zscore", columns: List[str] = None
-    ) -> pd.DataFrame:
+    def normalize_data(self, df: pd.DataFrame, method: str = "zscore", columns: List[str] = None) -> pd.DataFrame:
         """Normalize data using various methods."""
         df_normalized = df.copy()
 
@@ -959,9 +833,7 @@ class DataPreprocessor(DataValidator):
         self.preprocessing_steps.append(f"Normalized {columns} using {method} method")
         return df_normalized
 
-    def resample_data(
-        self, df: pd.DataFrame, target_rate: float, time_column: str = "timestamp"
-    ) -> pd.DataFrame:
+    def resample_data(self, df: pd.DataFrame, target_rate: float, time_column: str = "timestamp") -> pd.DataFrame:
         """Resample data to target sampling rate."""
         if time_column not in df.columns:
             raise ValueError(f"Time column '{time_column}' not found")
@@ -1040,9 +912,7 @@ def main():
 
             print(f"  File readable: {report['file_info']['is_readable']}")
             print(f"  Format valid: {report['file_info']['format_valid']}")
-            print(
-                f"  Overall quality: {report['data_quality'].get('overall_score', 'N/A'):.1f}"
-            )
+            print(f"  Overall quality: {report['data_quality'].get('overall_score', 'N/A'):.1f}")
 
             if report["recommendations"]:
                 print("  Recommendations:")
@@ -1187,9 +1057,7 @@ def _validate_fmri_npz(
             report["metadata"]["n_trials_estimated"] = int(n_trials_est)
 
             if n_trials_est < min_trials:
-                report["warnings"].append(
-                    f"Low trial count: ~{int(n_trials_est)} (minimum {min_trials})"
-                )
+                report["warnings"].append(f"Low trial count: ~{int(n_trials_est)} (minimum {min_trials})")
 
         # Check conditions
         if "conditions" in data and required_conditions:
@@ -1236,9 +1104,7 @@ def _validate_bids_fmri(
     # Find subject directories
     sub_dirs = list(bids_path.glob("sub-*"))
     if len(sub_dirs) < min_subjects:
-        report["warnings"].append(
-            f"Only {len(sub_dirs)} subjects found (minimum {min_subjects} recommended)"
-        )
+        report["warnings"].append(f"Only {len(sub_dirs)} subjects found (minimum {min_subjects} recommended)")
 
     report["metadata"]["n_subjects_found"] = len(sub_dirs)
 
@@ -1262,9 +1128,7 @@ def _validate_bids_fmri(
         if required_conditions:
             events_files = list(func_dir.glob("*_events.tsv"))
             if not events_files:
-                report["warnings"].append(
-                    f"{sub_id}: No events.tsv (required for conditions)"
-                )
+                report["warnings"].append(f"{sub_id}: No events.tsv (required for conditions)")
 
         valid_subjects.append(sub_id)
 
@@ -1277,10 +1141,7 @@ def _validate_bids_fmri(
             import nibabel as nib
 
             sample_file = (
-                bids_path
-                / valid_subjects[0]
-                / "func"
-                / f"{valid_subjects[0]}_task-anticipation_run-01_bold.nii.gz"
+                bids_path / valid_subjects[0] / "func" / f"{valid_subjects[0]}_task-anticipation_run-01_bold.nii.gz"
             )
             if sample_file.exists():
                 img = nib.load(str(sample_file))
@@ -1289,13 +1150,9 @@ def _validate_bids_fmri(
                     tr = float(zooms[-1])
                     report["metadata"]["tr"] = tr
                     if tr < min_tr or tr > max_tr:
-                        report["warnings"].append(
-                            f"TR = {tr}s outside range [{min_tr}, {max_tr}]"
-                        )
+                        report["warnings"].append(f"TR = {tr}s outside range [{min_tr}, {max_tr}]")
         except ImportError:
-            report["warnings"].append(
-                "nibabel not available - skipping NIfTI validation"
-            )
+            report["warnings"].append("nibabel not available - skipping NIfTI validation")
         except Exception as e:
             report["warnings"].append(f"Error reading sample NIfTI: {e}")
 
@@ -1337,9 +1194,7 @@ def validate_doc_eeg_dataset(
 
     # Check if it's a BIDS dataset
     if data_path.is_dir():
-        return _validate_bids_doc(
-            data_path, report, required_modalities, min_patients, check_bids
-        )
+        return _validate_bids_doc(data_path, report, required_modalities, min_patients, check_bids)
 
     report["errors"].append(  # type: ignore[attr-defined]
         f"Unsupported data format: {data_path.suffix}. Use .npz or BIDS directory."
@@ -1370,9 +1225,7 @@ def _validate_doc_npz(
             report["n_patients"] = n_patients
 
             if n_patients < min_patients:
-                report["warnings"].append(
-                    f"Low patient count: {n_patients} (minimum {min_patients} recommended)"
-                )
+                report["warnings"].append(f"Low patient count: {n_patients} (minimum {min_patients} recommended)")
 
             # Check diagnosis distribution
             if "consciousness_labels" in data:
@@ -1387,9 +1240,7 @@ def _validate_doc_npz(
                 # Check balance
                 min_count = min(report["diagnoses"].values())
                 if min_count < 10:
-                    report["warnings"].append(
-                        f"Imbalanced diagnoses: minimum category has only {min_count} patients"
-                    )
+                    report["warnings"].append(f"Imbalanced diagnoses: minimum category has only {min_count} patients")
 
         if not report["errors"]:
             report["valid"] = True
@@ -1423,9 +1274,7 @@ def _validate_bids_doc(
                 diag_counts = participants["diagnosis"].value_counts().to_dict()
                 report["diagnoses"] = diag_counts
         except ImportError:
-            report["warnings"].append(
-                "pandas not available - skipping participants.tsv validation"
-            )
+            report["warnings"].append("pandas not available - skipping participants.tsv validation")
         except Exception as e:
             report["warnings"].append(f"Error reading participants.tsv: {e}")
     else:
@@ -1434,9 +1283,7 @@ def _validate_bids_doc(
     # Find subject directories
     sub_dirs = list(bids_path.glob("sub-*"))
     if len(sub_dirs) < min_patients:
-        report["warnings"].append(
-            f"Only {len(sub_dirs)} patients found (minimum {min_patients} recommended)"
-        )
+        report["warnings"].append(f"Only {len(sub_dirs)} patients found (minimum {min_patients} recommended)")
 
     report["metadata"]["n_patients_found"] = len(sub_dirs)
 
@@ -1453,9 +1300,7 @@ def _validate_bids_doc(
 
         # Check for required modalities
         for modality in required_modalities:
-            modality_files = list(eeg_dir.glob(f"*_{modality}_*.set")) or list(
-                eeg_dir.glob(f"*_{modality}_*.fif")
-            )
+            modality_files = list(eeg_dir.glob(f"*_{modality}_*.set")) or list(eeg_dir.glob(f"*_{modality}_*.fif"))
             if not modality_files:
                 report["warnings"].append(f"{sub_id}: No {modality} recording found")
 
@@ -1463,9 +1308,7 @@ def _validate_bids_doc(
         if clinical_dir.exists():
             crs_r_file = clinical_dir / f"{sub_id}_crs-r.tsv"
             if not crs_r_file.exists():
-                report["warnings"].append(
-                    f"{sub_id}: No CRS-R scores (clinical assessment)"
-                )
+                report["warnings"].append(f"{sub_id}: No CRS-R scores (clinical assessment)")
         else:
             report["warnings"].append(f"{sub_id}: No clinical/ directory")
 
@@ -1480,9 +1323,7 @@ def _validate_bids_doc(
     return report
 
 
-def load_real_data_stub(
-    protocol_id: str, data_path: Optional[str] = None
-) -> Dict[str, Any]:
+def load_real_data_stub(protocol_id: str, data_path: Optional[str] = None) -> Dict[str, Any]:
     """
     Stub function for loading real P4 data - returns clear status when unavailable.
 

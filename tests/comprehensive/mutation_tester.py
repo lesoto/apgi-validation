@@ -137,14 +137,9 @@ class ComparisonMutator(MutationOperator):
             return None
 
         for mut_type, (orig, new) in self.MUTATIONS.items():
-            if (
-                any(isinstance(op, orig) for op in node.ops)
-                and mut_type == self.mutation_type
-            ):
+            if any(isinstance(op, orig) for op in node.ops) and mut_type == self.mutation_type:
                 new_node = deepcopy(node)
-                new_node.ops = [
-                    new() if isinstance(op, orig) else op for op in node.ops
-                ]
+                new_node.ops = [new() if isinstance(op, orig) else op for op in node.ops]
                 return new_node
 
         return None
@@ -158,9 +153,7 @@ class ConstantMutator(MutationOperator):
         self.delta = delta
 
     def apply(self, node: ast.AST) -> Optional[ast.AST]:
-        if not isinstance(node, ast.Constant) or not isinstance(
-            node.value, (int, float)
-        ):
+        if not isinstance(node, ast.Constant) or not isinstance(node.value, (int, float)):
             return None
 
         value = node.value
@@ -373,9 +366,7 @@ class MutationTester:
         if mutation_score < 50:
             print("\n⚠️  CRITICAL: Mutation score below 50%. Tests need strengthening.")
         elif mutation_score < 80:
-            print(
-                "\n⚠️  WARNING: Mutation score below 80%. Consider adding more assertions."
-            )
+            print("\n⚠️  WARNING: Mutation score below 80%. Consider adding more assertions.")
         else:
             print("\n✅ Excellent mutation coverage!")
 

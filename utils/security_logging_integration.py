@@ -14,11 +14,7 @@ if str(Path(__file__).parent.parent) not in sys.path:
 
 from utils.auth_adapter import Role, get_auth_manager
 from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
-from utils.security_audit_logger import (
-    audit_file_operation,
-    audit_path_resolution,
-    get_audit_logger,
-)
+from utils.security_audit_logger import audit_file_operation, audit_path_resolution, get_audit_logger
 
 
 class SecurityAuthorizationError(APGIError):
@@ -54,15 +50,11 @@ def _require_role(context: Optional[SecurityContext], required_role: str) -> Non
     ctx = context or SecurityContext()
     if required_role in ctx.roles:
         return
-    if ctx.jwt_role is not None and required_role in _ROLE_PERMISSIONS.get(
-        ctx.jwt_role, frozenset()
-    ):
+    if ctx.jwt_role is not None and required_role in _ROLE_PERMISSIONS.get(ctx.jwt_role, frozenset()):
         return
     # No permission via explicit roles or JWT role mapping.
     # Deny by default.
-    allowed = sorted(
-        set(ctx.roles) | set(_ROLE_PERMISSIONS.get(ctx.jwt_role, frozenset()))
-    )
+    allowed = sorted(set(ctx.roles) | set(_ROLE_PERMISSIONS.get(ctx.jwt_role, frozenset())))
     raise SecurityAuthorizationError(
         f"User '{ctx.user_id}' lacks required permission '{required_role}' (allowed: {allowed})"
     )
@@ -106,9 +98,7 @@ def secure_file_write(
 
 
 @audit_file_operation("delete")
-def secure_file_delete(
-    file_path: str, context: Optional[SecurityContext] = None
-) -> None:
+def secure_file_delete(file_path: str, context: Optional[SecurityContext] = None) -> None:
     """Delete file with mandatory authorization and audit logging."""
     _require_role(context, "writer")
     path = _validate_path(file_path)

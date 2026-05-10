@@ -67,9 +67,7 @@ class SampleDataGenerator:
         self.n_samples = int(sampling_rate * duration)
         self.time_vector = np.linspace(0, duration, self.n_samples)
 
-    def generate_eeg_data(
-        self, include_artifacts: bool = True
-    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def generate_eeg_data(self, include_artifacts: bool = True) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
         Generate realistic EEG data with P300 components and optional artifacts.
 
@@ -122,9 +120,7 @@ class SampleDataGenerator:
                 p300_template = self._generate_p300_waveform()
                 p300_start = event_idx
                 p300_end = min(p300_start + len(p300_template), self.n_samples)
-                eeg_signal[p300_start:p300_end] += p300_template[
-                    : p300_end - p300_start
-                ]
+                eeg_signal[p300_start:p300_end] += p300_template[: p300_end - p300_start]
                 p300_events.append(event_time)
 
         # Add artifacts if requested
@@ -134,18 +130,14 @@ class SampleDataGenerator:
                 blink_idx = np.random.randint(0, self.n_samples - 100)
                 blink_template = self._generate_blink_waveform()
                 blink_end = min(blink_idx + len(blink_template), self.n_samples)
-                eeg_signal[blink_idx:blink_end] += blink_template[
-                    : blink_end - blink_idx
-                ]
+                eeg_signal[blink_idx:blink_end] += blink_template[: blink_end - blink_idx]
 
             # Muscle artifacts
             for _ in range(np.random.randint(3, 8)):
                 artifact_idx = np.random.randint(0, self.n_samples - 200)
                 artifact_duration = np.random.randint(50, 200)
                 artifact_end = min(artifact_idx + artifact_duration, self.n_samples)
-                eeg_signal[artifact_idx:artifact_end] += np.random.normal(
-                    0, 5, artifact_end - artifact_idx
-                )
+                eeg_signal[artifact_idx:artifact_end] += np.random.normal(0, 5, artifact_end - artifact_idx)
 
         return eeg_signal, {"p300_events": p300_events}
 
@@ -158,20 +150,14 @@ class SampleDataGenerator:
         # Task-related dilation
         if task_related:
             # Dilation events (similar timing to P300)
-            for event_time in np.arange(
-                10, self.duration - 5, np.random.uniform(10, 15)
-            ):
+            for event_time in np.arange(10, self.duration - 5, np.random.uniform(10, 15)):
                 event_idx = int(event_time * self.sampling_rate)
                 if event_idx < self.n_samples - 1000:
                     # Pupil dilation response (peaks around 1-2 seconds)
                     dilation_template = self._generate_pupil_dilation()
                     dilation_start = event_idx
-                    dilation_end = min(
-                        dilation_start + len(dilation_template), self.n_samples
-                    )
-                    pupil_signal[dilation_start:dilation_end] += dilation_template[
-                        : dilation_end - dilation_start
-                    ]
+                    dilation_end = min(dilation_start + len(dilation_template), self.n_samples)
+                    pupil_signal[dilation_start:dilation_end] += dilation_template[: dilation_end - dilation_start]
 
         # Spontaneous fluctuations
         spontaneous = self._generate_pink_noise(self.n_samples) * 0.3
@@ -202,9 +188,7 @@ class SampleDataGenerator:
         # Phasic responses (SCR - skin conductance responses)
         if responsive:
             # SCR events (peaks around 1-4 seconds after stimulus)
-            for event_time in np.arange(
-                15, self.duration - 5, np.random.uniform(12, 20)
-            ):
+            for event_time in np.arange(15, self.duration - 5, np.random.uniform(12, 20)):
                 event_idx = int(event_time * self.sampling_rate)
                 if event_idx < self.n_samples - 4000:
                     scr_template = self._generate_scr_waveform()
@@ -229,9 +213,7 @@ class SampleDataGenerator:
 
         # Respiratory sinus arrhythmia
         respiratory_freq = 0.25  # 15 breaths per minute
-        respiratory_variation = 5.0 * np.sin(
-            2 * np.pi * respiratory_freq * self.time_vector
-        )
+        respiratory_variation = 5.0 * np.sin(2 * np.pi * respiratory_freq * self.time_vector)
         hr_signal += respiratory_variation
 
         # Task-related increases
@@ -385,8 +367,7 @@ class SampleDataGenerator:
             "subject_id": [subject_id] * self.n_samples,
             "session_id": [session_id] * self.n_samples,
             "eeg_fz": eeg_signal,
-            "eeg_pz": eeg_signal * 0.8
-            + np.random.normal(0, 0.5, self.n_samples),  # Slightly different signal
+            "eeg_pz": eeg_signal * 0.8 + np.random.normal(0, 0.5, self.n_samples),  # Slightly different signal
             "pupil_diameter": pupil_signal,
             "eda": eda_signal,
             "heart_rate": hr_signal,
@@ -470,9 +451,7 @@ def generate_sample_multimodal_data(
 
     # Time base
     start_time = datetime.now()
-    time_points = [
-        start_time + timedelta(seconds=i / sampling_rate) for i in range(n_samples)
-    ]
+    time_points = [start_time + timedelta(seconds=i / sampling_rate) for i in range(n_samples)]
 
     # Generate base signals
     t = np.linspace(0, duration_minutes * 60, n_samples)
@@ -485,9 +464,7 @@ def generate_sample_multimodal_data(
     eeg_alpha = 10 * np.sin(2 * np.pi * 10 * t)  # 10 Hz alpha
     eeg_beta = 5 * np.sin(2 * np.pi * 20 * t)  # 20 Hz beta
     eeg_theta = 8 * np.sin(2 * np.pi * 6 * t)  # 6 Hz theta
-    eeg_fz = (
-        eeg_alpha + eeg_beta + eeg_theta + np.random.normal(0, noise_level, n_samples)
-    )
+    eeg_fz = eeg_alpha + eeg_beta + eeg_theta + np.random.normal(0, noise_level, n_samples)
 
     # Validate EEG signal
     if not np.all(np.isfinite(eeg_fz)):
@@ -495,9 +472,7 @@ def generate_sample_multimodal_data(
 
     # Pupil diameter (2-8mm range, with task-related changes)
     base_pupil = 4.0
-    task_response = 1.5 * np.exp(
-        -((t - duration_minutes * 30) ** 2) / (2 * 25**2)
-    )  # Gaussian response
+    task_response = 1.5 * np.exp(-((t - duration_minutes * 30) ** 2) / (2 * 25**2))  # Gaussian response
     pupil_noise = np.random.normal(0, 0.2, n_samples)
     pupil_diameter = np.clip(base_pupil + task_response + pupil_noise, 2.0, 8.0)
 
@@ -537,18 +512,14 @@ def generate_sample_multimodal_data(
     # Add artifacts if requested
     if include_artifacts:
         # Eye blink artifacts in EEG (spikes)
-        blink_indices = np.random.choice(
-            n_samples, size=int(n_samples * 0.02), replace=False
-        )
+        blink_indices = np.random.choice(n_samples, size=int(n_samples * 0.02), replace=False)
         for idx in blink_indices:
             start = max(0, idx - 5)
             end = min(n_samples, idx + 5)
             eeg_fz[start:end] += np.random.normal(0, 5, end - start)
 
         # Motion artifacts in pupil data
-        motion_indices = np.random.choice(
-            n_samples, size=int(n_samples * 0.01), replace=False
-        )
+        motion_indices = np.random.choice(n_samples, size=int(n_samples * 0.01), replace=False)
         for idx in motion_indices:
             start = max(0, idx - 10)
             end = min(n_samples, idx + 10)
@@ -564,11 +535,7 @@ def generate_sample_multimodal_data(
             "heart_rate": heart_rate,
             "sample_id": range(n_samples),
             "task_phase": [
-                (
-                    "baseline"
-                    if t < duration_minutes * 30
-                    else "task" if t < duration_minutes * 45 else "recovery"
-                )
+                ("baseline" if t < duration_minutes * 30 else "task" if t < duration_minutes * 45 else "recovery")
                 for t in np.linspace(0, duration_minutes, n_samples)
             ],
         }
@@ -623,26 +590,10 @@ def save_sample_data(output_dir: Path = None) -> Dict[str, Path]:
         "data_types": {col: str(dtype) for col, dtype in sample_data.dtypes.items()},
         "statistics": {
             col: {
-                "mean": (
-                    float(sample_data[col].mean())
-                    if pd.api.types.is_numeric_dtype(sample_data[col])
-                    else None
-                ),
-                "std": (
-                    float(sample_data[col].std())
-                    if pd.api.types.is_numeric_dtype(sample_data[col])
-                    else None
-                ),
-                "min": (
-                    float(sample_data[col].min())
-                    if pd.api.types.is_numeric_dtype(sample_data[col])
-                    else None
-                ),
-                "max": (
-                    float(sample_data[col].max())
-                    if pd.api.types.is_numeric_dtype(sample_data[col])
-                    else None
-                ),
+                "mean": (float(sample_data[col].mean()) if pd.api.types.is_numeric_dtype(sample_data[col]) else None),
+                "std": (float(sample_data[col].std()) if pd.api.types.is_numeric_dtype(sample_data[col]) else None),
+                "min": (float(sample_data[col].min()) if pd.api.types.is_numeric_dtype(sample_data[col]) else None),
+                "max": (float(sample_data[col].max()) if pd.api.types.is_numeric_dtype(sample_data[col]) else None),
             }
             for col in sample_data.columns
             if col != "timestamp"
@@ -693,9 +644,7 @@ def main() -> None:
             generator.save_dataset(df, metadata, "data")
 
     # Generate a shorter demo dataset
-    demo_generator = SampleDataGenerator(
-        sampling_rate=250, duration=30
-    )  # Lower sampling rate for demo
+    demo_generator = SampleDataGenerator(sampling_rate=250, duration=30)  # Lower sampling rate for demo
     demo_df, demo_metadata = demo_generator.create_multimodal_dataset("demo", "demo")
     demo_output_dir = Path("data_repository/raw_data")
     try:

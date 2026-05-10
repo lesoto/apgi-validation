@@ -1,4 +1,5 @@
 """
+
 APGI Falsification Testing Framework
 ====================================
 
@@ -41,9 +42,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -93,9 +92,7 @@ class FalsificationCriterion:
                 f"Supported values: {[s.value for s in TestStatistic]}"
             ) from e
         if direction not in ["greater", "less", "two_sided"]:
-            raise ValueError(
-                f"Invalid direction: {direction}. Must be 'greater', 'less', or 'two_sided'"
-            )
+            raise ValueError(f"Invalid direction: {direction}. Must be 'greater', 'less', or 'two_sided'")
         if not (0 < alpha <= 1):
             raise ValueError(f"Alpha must be between 0 and 1, got {alpha}")
 
@@ -129,9 +126,7 @@ class FalsificationCriterion:
             group2 = data.get("group2", [])
 
             # Input validation
-            if not isinstance(group1, (list, np.ndarray)) or not isinstance(
-                group2, (list, np.ndarray)
-            ):
+            if not isinstance(group1, (list, np.ndarray)) or not isinstance(group2, (list, np.ndarray)):
                 return {"error": "Groups must be lists or numpy arrays"}
 
             group1 = np.array(group1, dtype=float)
@@ -141,18 +136,14 @@ class FalsificationCriterion:
                 return {"error": "Insufficient data for mean difference test"}
 
             if len(group1) < 3 or len(group2) < 3:
-                logger.warning(
-                    f"Small sample sizes: group1={len(group1)}, group2={len(group2)}"
-                )
+                logger.warning(f"Small sample sizes: group1={len(group1)}, group2={len(group2)}")
 
             # Check for normality (optional warning)
             try:
                 _, normality_p1 = stats.shapiro(group1)
                 _, normality_p2 = stats.shapiro(group2)
                 if normality_p1 < 0.05 or normality_p2 < 0.05:
-                    logger.warning(
-                        "Data may not be normally distributed, consider non-parametric tests"
-                    )
+                    logger.warning("Data may not be normally distributed, consider non-parametric tests")
             except Exception as e:
                 logger.debug(f"Normality test failed: {e}")
 
@@ -169,9 +160,7 @@ class FalsificationCriterion:
             else:
                 falsified = abs(t_stat) > self.threshold and p_value < self.alpha
 
-            logger.info(
-                f"Criterion {self.name}: t={t_stat:.3f}, p={p_value:.3f}, falsified={falsified}"
-            )
+            logger.info(f"Criterion {self.name}: t={t_stat:.3f}, p={p_value:.3f}, falsified={falsified}")
 
             return {
                 "test_statistic": float(t_stat),
@@ -187,9 +176,7 @@ class FalsificationCriterion:
             }
 
         except Exception as e:
-            logger.error(
-                f"Error in mean difference test for criterion {self.name}: {e}"
-            )
+            logger.error(f"Error in mean difference test for criterion {self.name}: {e}")
             return {"error": f"Test execution failed: {str(e)}"}
 
     def _test_correlation(self, data: Dict) -> Dict:
@@ -199,9 +186,7 @@ class FalsificationCriterion:
             y = data.get("y", [])
 
             # Input validation
-            if not isinstance(x, (list, np.ndarray)) or not isinstance(
-                y, (list, np.ndarray)
-            ):
+            if not isinstance(x, (list, np.ndarray)) or not isinstance(y, (list, np.ndarray)):
                 return {"error": "Data must be lists or numpy arrays"}
 
             x = np.array(x, dtype=float)
@@ -211,9 +196,7 @@ class FalsificationCriterion:
                 return {"error": "Insufficient data for correlation test"}
 
             if len(x) != len(y):
-                return {
-                    "error": f"Arrays must have same length: x={len(x)}, y={len(y)}"
-                }
+                return {"error": f"Arrays must have same length: x={len(x)}, y={len(y)}"}
 
             if len(x) < 3:
                 logger.warning(f"Very small sample size for correlation: n={len(x)}")
@@ -235,9 +218,7 @@ class FalsificationCriterion:
             else:
                 falsified = abs(corr) < self.threshold and p_value < self.alpha
 
-            logger.info(
-                f"Criterion {self.name}: r={corr:.3f}, p={p_value:.3f}, falsified={falsified}"
-            )
+            logger.info(f"Criterion {self.name}: r={corr:.3f}, p={p_value:.3f}, falsified={falsified}")
 
             return {
                 "test_statistic": float(corr),
@@ -287,9 +268,7 @@ class FalsificationCriterion:
                 return {"error": "Both models must use the same information criterion"}
 
             # Validate criterion values
-            if not isinstance(crit1, (int, float)) or not isinstance(
-                crit2, (int, float)
-            ):
+            if not isinstance(crit1, (int, float)) or not isinstance(crit2, (int, float)):
                 return {"error": f"{criterion_name} values must be numeric"}
 
             aic_diff = crit2 - crit1  # Positive means model2 is better
@@ -305,9 +284,7 @@ class FalsificationCriterion:
             else:
                 falsified = abs(aic_diff) < self.threshold
 
-            logger.info(
-                f"Criterion {self.name}: {criterion_name} diff={aic_diff:.1f}, falsified={falsified}"
-            )
+            logger.info(f"Criterion {self.name}: {criterion_name} diff={aic_diff:.1f}, falsified={falsified}")
 
             return {
                 "test_statistic": float(aic_diff),
@@ -316,17 +293,13 @@ class FalsificationCriterion:
                 "threshold": self.threshold,
                 "direction": self.direction,
                 "criterion": criterion_name,
-                f"{criterion_name.lower()}_difference": float(
-                    aic_diff
-                ),  # Keep for backward compatibility
+                f"{criterion_name.lower()}_difference": float(aic_diff),  # Keep for backward compatibility
                 f"model1_{criterion_name.lower()}": float(crit1),
                 f"model2_{criterion_name.lower()}": float(crit2),
             }
 
         except Exception as e:
-            logger.error(
-                f"Error in model comparison test for criterion {self.name}: {e}"
-            )
+            logger.error(f"Error in model comparison test for criterion {self.name}: {e}")
             return {"error": f"Test execution failed: {str(e)}"}
 
     def _test_effect_size(self, data: Dict) -> Dict:
@@ -352,9 +325,7 @@ class FalsificationCriterion:
             else:
                 falsified = abs(effect_size) < self.threshold
 
-            logger.info(
-                f"Criterion {self.name}: effect_size={effect_size:.3f}, falsified={falsified}"
-            )
+            logger.info(f"Criterion {self.name}: effect_size={effect_size:.3f}, falsified={falsified}")
 
             return {
                 "test_statistic": float(effect_size),
@@ -513,9 +484,7 @@ class APGIFalsificationProtocol:
                 criterion_data = test_data.get(criterion.name, {})
 
                 if not criterion_data:
-                    logger.warning(
-                        f"No test data provided for criterion: {criterion.name}"
-                    )
+                    logger.warning(f"No test data provided for criterion: {criterion.name}")
                     result = {
                         "criterion": criterion.name,
                         "error": "No test data provided",
@@ -528,9 +497,7 @@ class APGIFalsificationProtocol:
 
                         if result.get("falsified", False):
                             falsified_count += 1
-                            logger.warning(
-                                f"Criterion {criterion.name} falsified the theory"
-                            )
+                            logger.warning(f"Criterion {criterion.name} falsified the theory")
 
                     except Exception as e:
                         logger.error(f"Failed to test criterion {criterion.name}: {e}")
@@ -544,21 +511,15 @@ class APGIFalsificationProtocol:
             # Determine overall falsification
             results["falsified_criteria"] = falsified_count
             results["total_criteria"] = total_tests
-            results["falsification_rate"] = (
-                falsified_count / total_tests if total_tests > 0 else 0
-            )
+            results["falsification_rate"] = falsified_count / total_tests if total_tests > 0 else 0
 
             # Theory is falsified if ANY criterion is met (strict Popperian)
             results["overall_falsified"] = falsified_count > 0
 
             # Falsification strength (0-1, higher = stronger evidence against theory)
-            results["falsification_strength"] = (
-                falsified_count / total_tests if total_tests > 0 else 0
-            )
+            results["falsification_strength"] = falsified_count / total_tests if total_tests > 0 else 0
 
-            logger.info(
-                f"Priority {priority}: {falsified_count}/{total_tests} criteria falsified"
-            )
+            logger.info(f"Priority {priority}: {falsified_count}/{total_tests} criteria falsified")
             if results["overall_falsified"]:
                 logger.warning(f"Priority {priority} falsifies the theory")
 
@@ -579,9 +540,7 @@ class APGIFalsificationProtocol:
             Comprehensive falsification results
         """
         try:
-            logger.info(
-                "Starting comprehensive falsification testing across all priorities"
-            )
+            logger.info("Starting comprehensive falsification testing across all priorities")
 
             if not isinstance(all_test_data, dict):
                 logger.error("All test data must be a dictionary")
@@ -610,14 +569,10 @@ class APGIFalsificationProtocol:
                         total_criteria += result.get("total_criteria", 0)
                         priorities_tested += 1
                     else:
-                        logger.error(
-                            f"Failed to test priority {priority}: {result['error']}"
-                        )
+                        logger.error(f"Failed to test priority {priority}: {result['error']}")
 
                 except Exception as e:
-                    logger.error(
-                        f"Exception during priority testing for {priority}: {e}"
-                    )
+                    logger.error(f"Exception during priority testing for {priority}: {e}")
                     error_result = {
                         "priority": priority,
                         "error": f"Priority testing failed: {str(e)}",
@@ -628,9 +583,7 @@ class APGIFalsificationProtocol:
             if total_criteria > 0:
                 comprehensive_results["total_falsified_criteria"] = total_falsified
                 comprehensive_results["total_criteria"] = total_criteria
-                comprehensive_results["overall_falsification_rate"] = (
-                    total_falsified / total_criteria
-                )
+                comprehensive_results["overall_falsification_rate"] = total_falsified / total_criteria
 
                 # Theory status determination
                 if total_falsified > 0:
@@ -654,17 +607,12 @@ class APGIFalsificationProtocol:
                     "falsified": priority_result.get("falsified_criteria", 0),
                     "total": priority_result.get("total_criteria", 0),
                     "rate": priority_result.get("falsification_rate", 0),
-                    "error": "error" in priority_result,
                 }
                 for priority_result in comprehensive_results["priority_results"]
             }
 
-            logger.info(
-                f"Comprehensive testing complete. Theory status: {comprehensive_results['theory_status']}"
-            )
-            logger.info(
-                f"Overall falsification rate: {comprehensive_results.get('overall_falsification_rate', 0):.3f}"
-            )
+            logger.info(f"Comprehensive testing complete. Theory status: {comprehensive_results['theory_status']}")
+            logger.info(f"Overall falsification rate: {comprehensive_results.get('overall_falsification_rate', 0):.3f}")
 
             return comprehensive_results
 
@@ -753,9 +701,7 @@ class RobustnessTestingFramework:
         for model_name, model_info in self.alternative_models.items():
             discrimination_results[model_name] = {
                 "model_info": model_info,
-                "discriminating_power": self._assess_discriminating_power(
-                    model_name, empirical_data
-                ),
+                "discriminating_power": self._assess_discriminating_power(model_name, empirical_data),
                 "apgi_superior": False,  # To be determined
             }
 
@@ -768,46 +714,32 @@ class RobustnessTestingFramework:
         ]
 
         successful_discriminations = sum(
-            1
-            for test in apgi_discriminating_tests
-            if empirical_data.get(test, {}).get("passed", False)
+            1 for test in apgi_discriminating_tests if empirical_data.get(test, {}).get("passed", False)
         )
 
         discrimination_results["overall_assessment"] = {
             "apgi_unique_predictions_tested": len(apgi_discriminating_tests),
             "apgi_unique_predictions_passed": successful_discriminations,
-            "discrimination_success_rate": successful_discriminations
-            / len(apgi_discriminating_tests),
-            "theory_discriminated": successful_discriminations
-            > len(apgi_discriminating_tests) * 0.7,
+            "discrimination_success_rate": successful_discriminations / len(apgi_discriminating_tests),
+            "theory_discriminated": successful_discriminations > len(apgi_discriminating_tests) * 0.7,
         }
 
         return discrimination_results
 
-    def _assess_discriminating_power(
-        self, model_name: str, empirical_data: Dict
-    ) -> Dict:
+    def _assess_discriminating_power(self, model_name: str, empirical_data: Dict) -> Dict:
         """Assess how well data discriminates APGI from alternative"""
 
         # Check if APGI makes unique predictions that alternatives don't
         unique_predictions = {
-            "precision_expectation_gap_anxiety": empirical_data.get(
-                "precision_expectation_gap_anxiety", {}
-            ).get("passed", False),
-            "metabolic_allostasis": empirical_data.get(
-                "metabolic_threshold_elevation", {}
-            ).get("passed", False),
-            "phase_transition": empirical_data.get("phase_transition_dynamics", {}).get(
+            "precision_expectation_gap_anxiety": empirical_data.get("precision_expectation_gap_anxiety", {}).get(
                 "passed", False
             ),
-            "discrete_ignition": empirical_data.get("discrete_ignition_events", {}).get(
-                "passed", False
-            ),
+            "metabolic_allostasis": empirical_data.get("metabolic_threshold_elevation", {}).get("passed", False),
+            "phase_transition": empirical_data.get("phase_transition_dynamics", {}).get("passed", False),
+            "discrete_ignition": empirical_data.get("discrete_ignition_events", {}).get("passed", False),
         }
 
-        discriminating_power = sum(unique_predictions.values()) / len(
-            unique_predictions
-        )
+        discriminating_power = sum(unique_predictions.values()) / len(unique_predictions)
 
         return {
             "unique_predictions_tested": unique_predictions,
@@ -838,19 +770,13 @@ class PopperianFalsificationFramework:
         test_data = self._extract_test_data(empirical_results)
 
         # Run falsification tests
-        falsification_results = (
-            self.falsification_protocol.run_comprehensive_falsification(test_data)
-        )
+        falsification_results = self.falsification_protocol.run_comprehensive_falsification(test_data)
 
         # Test robustness against alternatives
-        discrimination_results = self.robustness_framework.test_model_discrimination(
-            empirical_results
-        )
+        discrimination_results = self.robustness_framework.test_model_discrimination(empirical_results)
 
         # Overall scientific assessment
-        scientific_assessment = self._assess_scientific_status(
-            falsification_results, discrimination_results
-        )
+        scientific_assessment = self._assess_scientific_status(falsification_results, discrimination_results)
 
         return {
             "falsification_results": falsification_results,
@@ -897,16 +823,12 @@ class PopperianFalsificationFramework:
 
         # Priority 3: Quantitative fits
         test_data["priority_3_quantitative_fits"] = {
-            "no_phase_transition": {
-                "effect_size": empirical_results.get("psychometric_beta", 0)
-            },
+            "no_phase_transition": {"effect_size": empirical_results.get("psychometric_beta", 0)},
             "lnn_fails_paradigm": {
                 "model1": empirical_results.get("apgi_lnn_fit", {}),
                 "model2": empirical_results.get("alternative_fit", {}),
             },
-            "bayesian_no_convergence": {
-                "effect_size": empirical_results.get("bayesian_rhat", 1.0)
-            },
+            "bayesian_no_convergence": {"effect_size": empirical_results.get("bayesian_rhat", 1.0)},
         }
 
         # Priority 4: Clinical convergence
@@ -916,9 +838,7 @@ class PopperianFalsificationFramework:
                 "group2": empirical_results.get("healthy_p3b", []),
             },
             "psychiatric_no_differentiation": {
-                "effect_size": empirical_results.get(
-                    "psychiatric_classification_accuracy", 0
-                )
+                "effect_size": empirical_results.get("psychiatric_classification_accuracy", 0)
             },
             "no_species_homology": {
                 "x": empirical_results.get("species_brain_size", []),
@@ -928,16 +848,12 @@ class PopperianFalsificationFramework:
 
         return test_data
 
-    def _assess_scientific_status(
-        self, falsification_results: Dict, discrimination_results: Dict
-    ) -> Dict:
+    def _assess_scientific_status(self, falsification_results: Dict, discrimination_results: Dict) -> Dict:
         """Assess overall scientific status using Popperian criteria"""
 
         # Corroboration vs falsification
         falsification_rate = falsification_results.get("overall_falsification_rate", 0)
-        discrimination_success = discrimination_results.get(
-            "overall_assessment", {}
-        ).get("theory_discriminated", False)
+        discrimination_success = discrimination_results.get("overall_assessment", {}).get("theory_discriminated", False)
 
         # Scientific status determination
         if falsification_results.get("overall_falsification", False):
@@ -961,19 +877,15 @@ class PopperianFalsificationFramework:
             "falsification_rate": falsification_rate,
             "discrimination_success": discrimination_success,
             "testability_score": 1 - falsification_rate,  # How well tested
-            "corroboration_score": discrimination_results.get(
-                "overall_assessment", {}
-            ).get("discrimination_success_rate", 0),
-            "recommendations": self._generate_recommendations(
-                status, falsification_rate
+            "corroboration_score": discrimination_results.get("overall_assessment", {}).get(
+                "discrimination_success_rate", 0
             ),
+            "recommendations": self._generate_recommendations(status, falsification_rate),
         }
 
         return assessment
 
-    def _generate_recommendations(
-        self, status: str, falsification_rate: float
-    ) -> List[str]:
+    def _generate_recommendations(self, status: str, falsification_rate: float) -> List[str]:
         """Generate recommendations based on falsification results"""
 
         recommendations = []
@@ -1048,20 +960,12 @@ def main():
 
     print("APGI Falsification Testing Framework Results")
     print("=" * 50)
-    print(
-        f"Scientific Status: {falsification_assessment['scientific_assessment']['scientific_status']}"
-    )
-    print(
-        f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']}"
-    )
-    print(
-        f"Testability Score: {falsification_assessment['scientific_assessment']['testability_score']:.3f}"
-    )
+    print(f"Scientific Status: {falsification_assessment['scientific_assessment']['scientific_status']}")
+    print(f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']}")
+    print(f"Testability Score: {falsification_assessment['scientific_assessment']['testability_score']:.3f}")
 
     print("\nFalsification Results by Priority:")
-    for priority_result in falsification_assessment["falsification_results"][
-        "priority_results"
-    ]:
+    for priority_result in falsification_assessment["falsification_results"]["priority_results"]:
         print(
             f"  {priority_result['priority']}: {priority_result['falsified_criteria']}/{priority_result['total_criteria']} falsified"
         )

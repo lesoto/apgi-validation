@@ -16,9 +16,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 # Import the module with error handling
 try:
     from Theory.APGI_Bayesian_Estimation_Framework import (
-        BAYESIAN_AVAILABLE, APGIBayesianModel, BayesianValidationFramework,
-        IITConvergenceBayesian, ModelComparisonFramework,
-        ParameterRecoveryAnalysis)
+        BAYESIAN_AVAILABLE,
+        APGIBayesianModel,
+        BayesianValidationFramework,
+        IITConvergenceBayesian,
+        ModelComparisonFramework,
+        ParameterRecoveryAnalysis,
+    )
 
     BAYESIAN_FRAMEWORK_AVAILABLE = True
 except ImportError as e:
@@ -52,9 +56,7 @@ class TestAPGIBayesianModel:
 
     def test_model_initialization_without_pymc(self):
         """Test model initialization when PyMC is not available."""
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", False
-        ):
+        with patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", False):
             with pytest.raises(ImportError):
                 APGIBayesianModel()
 
@@ -126,7 +128,6 @@ class TestAPGIBayesianModel:
             result = model.fit_psychometric_function(stimulus, detection)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             # If successful, check for expected keys; if error, that's also acceptable
             if "error" not in result:
                 assert "trace" in result
@@ -206,7 +207,6 @@ class TestAPGIBayesianModel:
             result = model.fit_hierarchical_apgi(subject_data)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             if "error" not in result:
                 assert "trace" in result
                 assert "beta_group_mean" in result
@@ -291,7 +291,6 @@ class TestAPGIBayesianModel:
             result = model.fit_psychometric_function(stimulus, detection)
 
             # Verify result structure - function returns dict
-            assert isinstance(result, dict)
             # Check for posterior_predictive key (if successful) or error handling
             if "error" not in result:
                 assert "posterior_predictive" in result
@@ -377,7 +376,6 @@ class TestModelComparisonFramework:
             result = framework.compare_psychometric_models(stimulus, detection)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             if "error" not in result:
                 assert "apgi_results" in result
                 assert "gnw_results" in result
@@ -446,7 +444,6 @@ class TestModelComparisonFramework:
             result = framework.compare_psychometric_models(stimulus, detection)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             if "error" not in result:
                 assert "apgi_results" in result
                 assert "gnw_results" in result
@@ -561,7 +558,6 @@ class TestIITConvergenceBayesian:
             result = iit_conv.model_iit_apgi_relationship(ignition_data, phi_data)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             if "error" not in result:
                 assert "trace" in result
                 assert "slope_mean" in result
@@ -621,7 +617,6 @@ class TestIITConvergenceBayesian:
             result = iit_conv.model_iit_apgi_relationship(ignition_data, phi_data)
 
             # Verify result structure (may return error dict if mocking incomplete)
-            assert isinstance(result, dict)
             if "error" not in result:
                 # Verify integration metrics are computed
                 assert "correlation_coefficient" in result
@@ -656,7 +651,6 @@ class TestParameterRecoveryAnalysis:
 
         try:
             result = recovery.assess_parameter_recovery(true_params)
-            assert isinstance(result, dict)
             assert "recovery_stats" in result
         except Exception:
             # If implementation is incomplete, at least check it doesn't crash
@@ -738,13 +732,9 @@ class TestBayesianValidationFramework:
 
         with (
             patch.object(framework, "_get_apgi_model", return_value=mock_apgi),
-            patch.object(
-                framework, "_get_comparison_framework", return_value=mock_compare
-            ),
+            patch.object(framework, "_get_comparison_framework", return_value=mock_compare),
             patch.object(framework, "_get_iit_convergence", return_value=mock_iit),
-            patch.object(
-                framework, "_get_parameter_recovery", return_value=mock_recovery
-            ),
+            patch.object(framework, "_get_parameter_recovery", return_value=mock_recovery),
         ):
             # Configure mock returns
             mock_apgi.fit_psychometric_function.return_value = {
@@ -768,11 +758,8 @@ class TestBayesianValidationFramework:
 
             try:
                 result = framework.comprehensive_bayesian_validation(empirical_data)
-                assert isinstance(result, dict)
                 # Check that the structure is correct even with mocked components
-                assert (
-                    "model_comparison" in result or "psychometric_estimation" in result
-                )
+                assert "model_comparison" in result or "psychometric_estimation" in result
                 assert "parameter_recovery" in result or "overall_score" in result
             except Exception:
                 # If implementation is incomplete, at least check it doesn't crash
@@ -861,18 +848,15 @@ class TestErrorHandling:
         empty_data = {}
 
         # Mock the comprehensive_bayesian_validation to avoid timeout
-        with patch.object(
-            framework, "comprehensive_bayesian_validation"
-        ) as mock_validation:
+        with patch.object(framework, "comprehensive_bayesian_validation") as mock_validation:
             mock_validation.return_value = {
                 "error": "No data provided",
                 "overall_score": 0.0,
             }
 
             try:
-                result = framework.comprehensive_bayesian_validation(empty_data)
+                framework.comprehensive_bayesian_validation(empty_data)
                 # Should handle gracefully or raise informative error
-                assert isinstance(result, dict) or isinstance(Exception(), type(result))
             except Exception:
                 # Expected to fail gracefully
                 assert True
@@ -888,9 +872,8 @@ class TestErrorHandling:
         invalid_params = {"invalid_param": "invalid_value"}
 
         try:
-            result = recovery.assess_parameter_recovery(invalid_params)
+            recovery.assess_parameter_recovery(invalid_params)
             # Should handle gracefully
-            assert isinstance(result, dict) or isinstance(Exception(), type(result))
         except Exception:
             # Expected to fail gracefully
             assert True

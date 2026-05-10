@@ -59,12 +59,8 @@ class AuthAdapter:
         try:
             secret = get_jwt_secret()
             if not secret:
-                logger.critical(
-                    "JWT secret could not be loaded from secure key manager."
-                )
-                raise RuntimeError(
-                    "JWT secret not available from secure key manager. Check key configuration."
-                )
+                logger.critical("JWT secret could not be loaded from secure key manager.")
+                raise RuntimeError("JWT secret not available from secure key manager. Check key configuration.")
             self.jwt_secret: str = secret
             self.algorithm = "HS256"
             self._sessions: Dict[str, AuthSession] = {}
@@ -72,9 +68,7 @@ class AuthAdapter:
             logger.critical(f"Failed to initialize AuthAdapter: {e}")
             raise RuntimeError(f"Authentication system initialization failed: {e}")
 
-    def generate_token(
-        self, user_id: str, role: Role, expiration_hours: int = 1
-    ) -> str:
+    def generate_token(self, user_id: str, role: Role, expiration_hours: int = 1) -> str:
         """Generate a secure JWT token for a session."""
         payload = {
             "sub": user_id,
@@ -147,11 +141,23 @@ def require_roles(roles: List[Role]) -> Callable[[T], T]:
         @wraps(func)
         def wrapper(token: str, *args: Any, **kwargs: Any) -> Any:
             if not get_auth_manager().check_permission(token, roles):
-                raise PermissionError(
-                    f"Access denied. Requires one of: {[r.value for r in roles]}"
-                )
+                raise PermissionError(f"Access denied. Requires one of: {[r.value for r in roles]}")
             return func(token, *args, **kwargs)
 
         return cast(T, wrapper)
 
     return decorator
+
+
+if __name__ == "__main__":
+    # Demo/test mode
+    print("APGI Authentication & Authorization Adapter")
+    print("=" * 50)
+    try:
+        auth_manager = get_auth_manager()
+        print("✅ AuthAdapter initialized successfully")
+        print(f"   - Available roles: {[r.value for r in Role]}")
+        print(f"   - Default role: {DEFAULT_ROLE.value}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)

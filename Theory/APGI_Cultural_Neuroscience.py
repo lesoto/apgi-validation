@@ -1,4 +1,5 @@
 """
+
 ===============================================================================
 APGI Cultural Neuroscience Module
 ===============================================================================
@@ -42,9 +43,7 @@ if "APGI_Cultural_Neuroscience" not in sys.modules:
     if _self is None:
         # Loaded via importlib: build a temporary module reference from globals
         _self = types.ModuleType("APGI_Cultural_Neuroscience")
-        _self.__dict__.update(
-            {k: v for k, v in globals().items() if not k.startswith("__")}
-        )
+        _self.__dict__.update({k: v for k, v in globals().items() if not k.startswith("__")})
     sys.modules["APGI_Cultural_Neuroscience"] = _self
 
 from dataclasses import dataclass
@@ -266,9 +265,7 @@ SELF_CONSTRUAL_PREDICTIONS = [
 # =============================================================================
 
 
-def power_analysis_cultural_predictions(
-    alpha: float = 0.05, power: float = 0.80, effect_size_d: float = 0.5
-) -> int:
+def power_analysis_cultural_predictions(alpha: float = 0.05, power: float = 0.80, effect_size_d: float = 0.5) -> int:
     """
     Compute required sample size per group for cultural predictions.
 
@@ -503,41 +500,19 @@ class CulturalParameterModulator:
         # Embedding depth effects (hierarchical processing)
         embedding_effect = linguistic.embedding_depth / 5.0  # Normalize to 0-1
         modulated["coupling_strength"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["embedding_depth"]["coupling_strength"]
-            * embedding_effect
+            1.0 + self.linguistic_modulation_coeffs["embedding_depth"]["coupling_strength"] * embedding_effect
         )
-        modulated["tau_S"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["embedding_depth"]["tau_S"]
-            * embedding_effect
-        )
-        modulated["theta"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["embedding_depth"]["theta"]
-            * embedding_effect
-        )
+        modulated["tau_S"] *= 1.0 + self.linguistic_modulation_coeffs["embedding_depth"]["tau_S"] * embedding_effect
+        modulated["theta"] *= 1.0 + self.linguistic_modulation_coeffs["embedding_depth"]["theta"] * embedding_effect
 
         # Morphological complexity effects (precision and load)
         morph_effect = linguistic.morphological_complexity / 10.0  # Normalize to 0-1
-        modulated["Pi_e"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["morphological_complexity"]["Pi_e"]
-            * morph_effect
-        )
+        modulated["Pi_e"] *= 1.0 + self.linguistic_modulation_coeffs["morphological_complexity"]["Pi_e"] * morph_effect
 
         # Semantic density effects (interoception and embodiment)
         semantic_effect = linguistic.semantic_density
-        modulated["Pi_i"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["semantic_density"]["Pi_i"]
-            * semantic_effect
-        )
-        modulated["beta"] *= (
-            1.0
-            + self.linguistic_modulation_coeffs["semantic_density"]["beta"]
-            * semantic_effect
-        )
+        modulated["Pi_i"] *= 1.0 + self.linguistic_modulation_coeffs["semantic_density"]["Pi_i"] * semantic_effect
+        modulated["beta"] *= 1.0 + self.linguistic_modulation_coeffs["semantic_density"]["beta"] * semantic_effect
 
         # Working memory effects on processing dynamics
         wm_effect = linguistic.working_memory_load
@@ -564,42 +539,24 @@ class CulturalParameterModulator:
         # Attention stability effects
         attention_effect = contemplative.attention_stability
         modulated["Pi_e"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["attention_stability"]["Pi_e"]
-            * attention_effect
+            1.0 + self.contemplative_modulation_coeffs["attention_stability"]["Pi_e"] * attention_effect
         )
         modulated["tau_theta"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["attention_stability"]["tau_theta"]
-            * attention_effect
+            1.0 + self.contemplative_modulation_coeffs["attention_stability"]["tau_theta"] * attention_effect
         )
 
         # Emotional regulation effects
         emotion_effect = contemplative.emotional_regulation
-        modulated["beta"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["emotional_regulation"]["beta"]
-            * emotion_effect
-        )
-        modulated["Pi_i"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["emotional_regulation"]["Pi_i"]
-            * emotion_effect
-        )
+        modulated["beta"] *= 1.0 + self.contemplative_modulation_coeffs["emotional_regulation"]["beta"] * emotion_effect
+        modulated["Pi_i"] *= 1.0 + self.contemplative_modulation_coeffs["emotional_regulation"]["Pi_i"] * emotion_effect
 
         # Decentering effects (meta-awareness)
         decentering_effect = contemplative.decentering_ability
         modulated["theta"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["decentering_ability"]["theta"]
-            * decentering_effect
+            1.0 + self.contemplative_modulation_coeffs["decentering_ability"]["theta"] * decentering_effect
         )
         modulated["coupling_strength"] *= (
-            1.0
-            + self.contemplative_modulation_coeffs["decentering_ability"][
-                "coupling_strength"
-            ]
-            * decentering_effect
+            1.0 + self.contemplative_modulation_coeffs["decentering_ability"]["coupling_strength"] * decentering_effect
         )
 
         # Default mode network effects
@@ -655,15 +612,11 @@ class CulturalParameterModulator:
         modulated["coupling_strength"] *= 1.0 + 0.12 * education_effect
 
         urbanization_effect = cultural.urbanization_rate
-        modulated["tau_S"] *= (
-            1.0 - 0.08 * urbanization_effect
-        )  # Faster processing in cities
+        modulated["tau_S"] *= 1.0 - 0.08 * urbanization_effect  # Faster processing in cities
 
         return modulated
 
-    def compute_cultural_apgi_parameters(
-        self, cultural_context: CulturalContext
-    ) -> Dict[str, float]:
+    def compute_cultural_apgi_parameters(self, cultural_context: CulturalContext) -> Dict[str, float]:
         """
         Compute complete APGI parameter set for a cultural context.
 
@@ -678,15 +631,11 @@ class CulturalParameterModulator:
         params = self.base_params.copy()
 
         # Apply linguistic modulation
-        params = self.modulate_linguistic_parameters(
-            params, cultural_context.primary_language
-        )
+        params = self.modulate_linguistic_parameters(params, cultural_context.primary_language)
 
         # Apply contemplative modulation (if present)
         if cultural_context.dominant_contemplative_practice:
-            params = self.modulate_contemplative_parameters(
-                params, cultural_context.dominant_contemplative_practice
-            )
+            params = self.modulate_contemplative_parameters(params, cultural_context.dominant_contemplative_practice)
 
         # Apply cultural dimension modulation
         params = self.modulate_cultural_dimensions(params, cultural_context)
@@ -737,12 +686,8 @@ class CulturalPredictionMap:
         """
 
         # Create parameter grids
-        linguistic_vals = np.linspace(
-            linguistic_range[0], linguistic_range[1], grid_resolution
-        )
-        contemplative_vals = np.linspace(
-            contemplative_range[0], contemplative_range[1], grid_resolution
-        )
+        linguistic_vals = np.linspace(linguistic_range[0], linguistic_range[1], grid_resolution)
+        contemplative_vals = np.linspace(contemplative_range[0], contemplative_range[1], grid_resolution)
 
         L, C = np.meshgrid(linguistic_vals, contemplative_vals)
 
@@ -819,9 +764,7 @@ class CulturalPredictionMap:
                 cultural_context.dominant_contemplative_practice = contemp_params
 
                 # Compute modulated parameters
-                params = self.modulator.compute_cultural_apgi_parameters(
-                    cultural_context
-                )
+                params = self.modulator.compute_cultural_apgi_parameters(cultural_context)
 
                 # Store in grids
                 for param_name in param_grids:
@@ -832,9 +775,7 @@ class CulturalPredictionMap:
 
         return param_grids
 
-    def plot_cultural_prediction_maps(
-        self, param_grids: Dict[str, np.ndarray], save_path: Optional[str] = None
-    ):
+    def plot_cultural_prediction_maps(self, param_grids: Dict[str, np.ndarray], save_path: Optional[str] = None):
         """
         Create visualization of cultural prediction maps.
 
@@ -894,9 +835,7 @@ class CulturalPredictionMap:
         else:
             plt.show()
 
-    def analyze_cultural_gradients(
-        self, param_grids: Dict[str, np.ndarray]
-    ) -> Dict[str, Dict[str, float]]:
+    def analyze_cultural_gradients(self, param_grids: Dict[str, np.ndarray]) -> Dict[str, Dict[str, float]]:
         """
         Analyze how parameters change with cultural factors.
 
@@ -914,12 +853,8 @@ class CulturalPredictionMap:
                 continue
 
             # Compute gradients
-            dL = np.gradient(
-                param_grid, axis=0
-            )  # Gradient w.r.t. linguistic complexity
-            dC = np.gradient(
-                param_grid, axis=1
-            )  # Gradient w.r.t. contemplative experience
+            dL = np.gradient(param_grid, axis=0)  # Gradient w.r.t. linguistic complexity
+            dC = np.gradient(param_grid, axis=1)  # Gradient w.r.t. contemplative experience
 
             # Average gradients
             mean_dL = np.mean(np.abs(dL))
@@ -1139,9 +1074,7 @@ def generate_cross_cultural_comparison() -> pd.DataFrame:
             "culture": culture.culture_name,
             "language": culture.primary_language.language_name,
             "contemplative_tradition": (
-                culture.dominant_contemplative_practice.tradition
-                if culture.dominant_contemplative_practice
-                else "None"
+                culture.dominant_contemplative_practice.tradition if culture.dominant_contemplative_practice else "None"
             ),
             "individualism": culture.individualism_score,
             "education_years": culture.education_years,
@@ -1234,19 +1167,13 @@ def validate_cultural_modulation_effects() -> Dict[str, Any]:
     # Check if individualist cultures have higher Pi_e (with minimum effect size)
     pi_e_diff = western_params["Pi_e"] - eastern_params["Pi_e"]
     pi_e_effect_size = pi_e_diff / eastern_params["Pi_e"]  # Relative effect size
-    validation_results["individualism_pi_e_effect"] = (
-        pi_e_diff > 0.1
-    )  # Minimum 0.1 difference
+    validation_results["individualism_pi_e_effect"] = pi_e_diff > 0.1  # Minimum 0.1 difference
     validation_results["individualism_pi_e_effect_size"] = pi_e_effect_size
 
     # Check if collectivist cultures have higher coupling (with minimum effect size)
-    coupling_diff = (
-        eastern_params["coupling_strength"] - western_params["coupling_strength"]
-    )
+    coupling_diff = eastern_params["coupling_strength"] - western_params["coupling_strength"]
     coupling_effect_size = coupling_diff / western_params["coupling_strength"]
-    validation_results["collectivism_coupling_effect"] = (
-        coupling_diff > 0.05
-    )  # Minimum 0.05 difference
+    validation_results["collectivism_coupling_effect"] = coupling_diff > 0.05  # Minimum 0.05 difference
     validation_results["collectivism_coupling_effect_size"] = coupling_effect_size
 
     # Test contemplative effects (compare with/without practice)
@@ -1256,16 +1183,12 @@ def validate_cultural_modulation_effects() -> Dict[str, Any]:
 
     theta_diff = western_params["theta"] - baseline_params["theta"]
     theta_effect_size = theta_diff / baseline_params["theta"]
-    validation_results["contemplative_theta_effect"] = (
-        theta_diff > 0.02
-    )  # Minimum 0.02 difference
+    validation_results["contemplative_theta_effect"] = theta_diff > 0.02  # Minimum 0.02 difference
     validation_results["contemplative_theta_effect_size"] = theta_effect_size
 
     beta_diff = baseline_params["beta"] - western_params["beta"]
     beta_effect_size = beta_diff / baseline_params["beta"]
-    validation_results["contemplative_beta_effect"] = (
-        beta_diff > 0.05
-    )  # Minimum 0.05 difference
+    validation_results["contemplative_beta_effect"] = beta_diff > 0.05  # Minimum 0.05 difference
     validation_results["contemplative_beta_effect_size"] = beta_effect_size
 
     # Add cross-cultural consistency checks
@@ -1274,9 +1197,7 @@ def validate_cultural_modulation_effects() -> Dict[str, Any]:
     me_params = modulator.compute_cultural_apgi_parameters(middle_eastern)
 
     # Check if ME falls between Western and East Asian on individualism-collectivism spectrum
-    me_pi_e_intermediate = (
-        western_params["Pi_e"] > me_params["Pi_e"] > eastern_params["Pi_e"]
-    )
+    me_pi_e_intermediate = western_params["Pi_e"] > me_params["Pi_e"] > eastern_params["Pi_e"]
     validation_results["middle_eastern_intermediate_pi_e"] = me_pi_e_intermediate
 
     # Add linguistic complexity validation
@@ -1284,9 +1205,7 @@ def validate_cultural_modulation_effects() -> Dict[str, Any]:
     arabic_culture = next(c for c in cultures if c.culture_name == "Middle Eastern")
     arabic_params = modulator.compute_cultural_apgi_parameters(arabic_culture)
 
-    embedding_depth_effect = (
-        arabic_params["coupling_strength"] > western_params["coupling_strength"]
-    )
+    embedding_depth_effect = arabic_params["coupling_strength"] > western_params["coupling_strength"]
     validation_results["embedding_depth_coupling_effect"] = embedding_depth_effect
 
     # Calculate overall validation score (weighted by effect sizes)
@@ -1311,9 +1230,7 @@ def validate_cultural_modulation_effects() -> Dict[str, Any]:
 
     # Overall score combines binary success with effect magnitude
     validation_results_float: Dict[str, float] = {}
-    validation_results_float["overall_validation_score"] = (
-        0.7 * binary_score + 0.3 * min(avg_effect_size, 1.0)
-    )
+    validation_results_float["overall_validation_score"] = 0.7 * binary_score + 0.3 * min(avg_effect_size, 1.0)
     validation_results_float["average_effect_size"] = avg_effect_size
     validation_results_float["binary_success_rate"] = binary_score
     validation_results.update(validation_results_float)  # type: ignore[arg-type]

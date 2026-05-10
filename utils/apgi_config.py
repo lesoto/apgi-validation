@@ -1,8 +1,10 @@
 """
 Canonical APGI config accessors.
 
-Use `get_apgi_settings()` and pass the returned settings object around.
-Avoid importing settings as mutable globals or relying on class-level attributes.
+Use `get_apgi_settings()` and pass the returned settings object
+around.
+Avoid importing settings as mutable globals or relying on
+class-level attributes.
 """
 
 from __future__ import annotations
@@ -15,15 +17,13 @@ from typing import Optional
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.apgi_settings import APGISettings, resolve_apgi_config_path
+from utils.apgi_settings import APGISettings, resolve_apgi_config_path  # noqa: E402
 
 _settings_lock = threading.Lock()
 _settings_singleton: Optional[APGISettings] = None
 
 
-def get_apgi_settings(
-    path: Optional[Path] = None, *, reload: bool = False
-) -> APGISettings:
+def get_apgi_settings(path: Optional[Path] = None, *, reload: bool = False) -> APGISettings:
     """Return the process-wide APGI settings instance.
 
     Args:

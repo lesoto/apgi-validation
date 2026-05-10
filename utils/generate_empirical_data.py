@@ -81,18 +81,12 @@ def main():
 
     print("\nUsage in protocols:")
     print("\nVP-11 (Cross-cultural EEG):")
-    print(
-        "  from Validation.VP_11_MCMC_CulturalNeuroscience_Priority3 import run_validation"
-    )
+    print("  from Validation.VP_11_MCMC_CulturalNeuroscience_Priority3 import run_validation")
     print(f"  result = run_validation(empirical_data_path='{eeg_file}')")
 
     print("\nVP-15 (fMRI vmPFC):")
     print("  from Validation.VP_15_fMRI_Anticipation_vmPFC import run_validation")
-    print(
-        "  result = run_validation(fmri_data_path='{}', behavior_path='{}')".format(
-            fmri_file, behavior_file
-        )
-    )
+    print("  result = run_validation(fmri_data_path='{}', behavior_path='{}')".format(fmri_file, behavior_file))
 
     print("\n" + "=" * 80)
 

@@ -32,11 +32,17 @@ model the thermodynamic costs of conscious processing.
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
+
+# Import APGIConfig for type annotations
+try:
+    from apgi_core.model import APGIConfig
+except ImportError:
+    APGIConfig = Dict  # type: ignore[assignment, misc]
 
 # Matplotlib imports for PNG visualization
 try:
@@ -115,9 +121,7 @@ class MetabolicGroundTruthSimulator:
         trace += np.random.normal(0, 0.005 * np.max(trace), n_steps)
         return trace
 
-    def simulate_pmrs_flux(
-        self, trace: np.ndarray, window_ms: float = 200.0
-    ) -> np.ndarray:
+    def simulate_pmrs_flux(self, trace: np.ndarray, window_ms: float = 200.0) -> np.ndarray:
         """
         Simulate bulk ATP turnover measured by functional P-MRS (200ms resolution).
         """
@@ -175,7 +179,7 @@ class APGIMetabolicValidator:
         fitted_params = []
 
         for intensity in intensities:
-            model = APGIModel(config=self.config)
+            model = APGIModel(config=cast(Optional[Dict[str, Any]], self.config.__dict__ if self.config else None))
             # Use constant inputs to get stable ignition rates
             inputs = intensity + np.random.randn(len(t)) * 0.2
             outputs = model.run(inputs)
@@ -194,9 +198,7 @@ class APGIMetabolicValidator:
             actual_consumption += np.random.normal(0, 0.002, len(actual_consumption))
 
             # Also generate the sensor trace for realism (though we use actual for grounding)
-            self.simulator.simulate_iatpsnfr_trace(
-                ignitions, c1_true=c1_gt, c2_true=c2_gt
-            )
+            self.simulator.simulate_iatpsnfr_trace(ignitions, c1_true=c1_gt, c2_true=c2_gt)
 
             all_costs_apgi.extend(apgi_cost)
             all_traces_gt.extend(actual_consumption)  # Compare with actual consumption
@@ -207,9 +209,7 @@ class APGIMetabolicValidator:
 
             # We fit against the actual consumption to establish the coefficients
             try:
-                popt, _ = curve_fit(
-                    cost_func, p_ignitions, actual_consumption, p0=[0.1, 0.02]
-                )
+                popt, _ = curve_fit(cost_func, p_ignitions, actual_consumption, p0=[0.1, 0.02])
                 fitted_params.append(popt)
             except Exception:
                 fitted_params.append([0.0, 0.0])
@@ -235,9 +235,7 @@ class APGIMetabolicValidator:
         apgi_total_cost = np.sum(all_costs_apgi)
         # Non-gating baseline (fixed high cost proportional to signal S)
         baseline_cost = np.sum([0.1 * intensity for intensity in intensities]) * len(t)
-        results["v16_3_efficiency_gain"] = float(
-            (baseline_cost - apgi_total_cost) / baseline_cost
-        )
+        results["v16_3_efficiency_gain"] = float((baseline_cost - apgi_total_cost) / baseline_cost)
 
         # Aggregate Status
         results["passed"] = (

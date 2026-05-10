@@ -39,9 +39,7 @@ def test_config_manager_compare_and_diff(tmp_path, monkeypatch):
 
     modified = json.loads(json.dumps(current))
     modified.setdefault("simulation", {})
-    modified["simulation"]["default_steps"] = (
-        modified["simulation"].get("default_steps", 100) or 100
-    ) + 1
+    modified["simulation"]["default_steps"] = (modified["simulation"].get("default_steps", 100) or 100) + 1
 
     diff = mgr.compare_configs(current, modified)
     assert isinstance(diff, dict)

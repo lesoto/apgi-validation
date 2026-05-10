@@ -1,4 +1,5 @@
 """
+
 =============================================================================
 APGI THERMODYNAMIC PROGRAM AGGREGATOR
 =============================================================================
@@ -211,9 +212,7 @@ class NeuralMetabolicCost:
         cost_per_spike_J: float = COST_PER_SPIKE_J,
     ) -> None:
         if cost_per_spike_J <= 0:
-            raise ValueError(
-                f"cost_per_spike_J must be positive; got {cost_per_spike_J}"
-            )
+            raise ValueError(f"cost_per_spike_J must be positive; got {cost_per_spike_J}")
         self.cost_per_spike_J = cost_per_spike_J
 
     def compute(
@@ -239,9 +238,7 @@ class NeuralMetabolicCost:
             raise ValueError(f"duration_ms must be positive; got {duration_ms}")
 
         duration_s = duration_ms / 1000.0
-        metabolic_cost_J = (
-            firing_rate_Hz * n_neurons * duration_s * self.cost_per_spike_J
-        )
+        metabolic_cost_J = firing_rate_Hz * n_neurons * duration_s * self.cost_per_spike_J
         metabolic_cost_ATP = metabolic_cost_J / ATP_ENERGY_J
 
         return MetabolicCostResult(
@@ -488,9 +485,7 @@ class CrossSpeciesScalingValidator:
         self.species_data = species_data or self.DEFAULT_SPECIES_DATA
         self.apgi_predicted_exponent = apgi_predicted_exponent
 
-    def _cmr_to_atp_per_bit(
-        self, cmr_glucose: float, neurons_M: float, brain_mass_g: float
-    ) -> float:
+    def _cmr_to_atp_per_bit(self, cmr_glucose: float, neurons_M: float, brain_mass_g: float) -> float:
         """
         Derive ATP/bit from CMR and neuron count.
 
@@ -530,9 +525,7 @@ class CrossSpeciesScalingValidator:
         """
         if brain_masses_g is not None and CMR_glucose is not None:
             if len(brain_masses_g) != len(CMR_glucose):
-                raise ValueError(
-                    "brain_masses_g and CMR_glucose must have the same length"
-                )
+                raise ValueError("brain_masses_g and CMR_glucose must have the same length")
             masses = np.asarray(brain_masses_g, dtype=float)
             cmr = np.asarray(CMR_glucose, dtype=float)
             neurons_M = np.array([1.0] * len(masses))
@@ -543,12 +536,7 @@ class CrossSpeciesScalingValidator:
             neurons_M = np.array([d["neurons_M"] for d in self.species_data])
             labels = [d["name"] for d in self.species_data]
 
-        atp_per_bit = np.array(
-            [
-                self._cmr_to_atp_per_bit(cmr[i], neurons_M[i], masses[i])
-                for i in range(len(masses))
-            ]
-        )
+        atp_per_bit = np.array([self._cmr_to_atp_per_bit(cmr[i], neurons_M[i], masses[i]) for i in range(len(masses))])
 
         log_mass = np.log10(masses)
         log_atp = np.log10(atp_per_bit)
@@ -556,9 +544,7 @@ class CrossSpeciesScalingValidator:
         slope, intercept, r_value, p_value, _ = stats.linregress(log_mass, log_atp)
         r_squared = r_value**2
 
-        exponent_matches = (
-            abs(slope - self.apgi_predicted_exponent) <= self.EXPONENT_TOLERANCE
-        )
+        exponent_matches = abs(slope - self.apgi_predicted_exponent) <= self.EXPONENT_TOLERANCE
 
         return ScalingResult(
             brain_masses_g=masses,
@@ -661,9 +647,7 @@ class AggregatorReport:
         if self.sensitivity is not None:
             s = self.sensitivity
             print(f"\n  Sensitivity analysis (Monte Carlo, n={s.get('n', '?')}):")
-            print(
-                f"    κ mean ± std  = {s['kappa_mean']:.1f} ± {s['kappa_std']:.1f} ATP/bit"
-            )
+            print(f"    κ mean ± std  = {s['kappa_mean']:.1f} ± {s['kappa_std']:.1f} ATP/bit")
             print(f"    κ median      = {s['kappa_median']:.1f} ATP/bit")
             print(f"    κ [P5, P95]   = [{s['kappa_p5']:.1f}, {s['kappa_p95']:.1f}]")
             print(f"    Fraction in [50,200] = {s['fraction_in_range'] * 100:.1f}%")
@@ -678,16 +662,9 @@ class AggregatorReport:
         print(f"{'─' * 70}")
         kappa_ok = self.double_bridge.kappa_in_range
         exponent_ok = self.scaling.exponent_matches_apgi
-        print(
-            f"  κ ≈ 100 ATP/bit in [50, 200] range : {'PASS' if kappa_ok else 'FAIL'}"
-        )
-        print(
-            f"  Scaling exponent ≈ 0.75            : {'PASS' if exponent_ok else 'FAIL'}"
-        )
-        print(
-            f"  Neural overhead factor             : "
-            f"{self.double_bridge.efficiency_ratio:.2e}× Landauer minimum"
-        )
+        print(f"  κ ≈ 100 ATP/bit in [50, 200] range : {'PASS' if kappa_ok else 'FAIL'}")
+        print(f"  Scaling exponent ≈ 0.75            : {'PASS' if exponent_ok else 'FAIL'}")
+        print(f"  Neural overhead factor             : " f"{self.double_bridge.efficiency_ratio:.2e}× Landauer minimum")
         print("  (expected 10⁴–10⁶×; reflects noise, redundancy, metabolic overhead)")
 
         if self.figure_path:
@@ -707,15 +684,9 @@ class ThermodynamicProgramAggregator:
         cfg = self.config
 
         self.landauer_module = LandauerMinimum(temperature_K=cfg.temperature_K)
-        self.metabolic_module = NeuralMetabolicCost(
-            cost_per_spike_J=cfg.cost_per_spike_J
-        )
-        self.double_bridge_module = DoubleBridgeCalculator(
-            landauer=self.landauer_module
-        )
-        self.scaling_module = CrossSpeciesScalingValidator(
-            apgi_predicted_exponent=cfg.apgi_predicted_exponent
-        )
+        self.metabolic_module = NeuralMetabolicCost(cost_per_spike_J=cfg.cost_per_spike_J)
+        self.double_bridge_module = DoubleBridgeCalculator(landauer=self.landauer_module)
+        self.scaling_module = CrossSpeciesScalingValidator(apgi_predicted_exponent=cfg.apgi_predicted_exponent)
 
     def run(self) -> AggregatorReport:
         """Execute the full pipeline and return an AggregatorReport."""
@@ -724,7 +695,14 @@ class ThermodynamicProgramAggregator:
 
         # Module 1
         logger.info("Module 1: Landauer minimum")
-        landauer_result = self.landauer_module.compute(n_bits=cfg.I_bits)
+        self.landauer_module.compute(n_bits=cfg.I_bits)
+
+        # Module 4
+        logger.info("Module 4: Scaling analysis")
+        scaling_result = self.scaling_module.compute(
+            brain_masses_g=np.array([cfg.brain_mass_kg * 1000]),  # Convert kg to g
+            CMR_glucose=None,
+        )
 
         # Module 2
         logger.info("Module 2: Neural metabolic cost")
@@ -735,7 +713,7 @@ class ThermodynamicProgramAggregator:
         )
 
         # Module 3
-        logger.info("Module 3: Double Bridge κ derivation")
+        logger.info("Module 3: Double bridge metabolism")
         double_bridge_result = self.double_bridge_module.compute(
             I_bits=cfg.I_bits,
             metabolic_result=metabolic_result,
@@ -758,7 +736,7 @@ class ThermodynamicProgramAggregator:
 
         # Module 4
         logger.info("Module 4: Cross-species scaling")
-        scaling_result = self.scaling_module.compute()
+        # scaling_result = self.scaling_module.compute()
 
         # Figure
         figure_path: Optional[str] = None
@@ -772,6 +750,9 @@ class ThermodynamicProgramAggregator:
             )
         else:
             logger.warning("matplotlib not available; figure skipped")
+
+        # Get landauer result
+        landauer_result = self.landauer_module.compute(n_bits=cfg.I_bits)
 
         report = AggregatorReport(
             landauer=landauer_result,
@@ -885,9 +866,7 @@ class ThermodynamicProgramAggregator:
                 edgecolor="white",
                 linewidth=0.4,
             )
-            ax2.axvspan(
-                50, 200, alpha=0.15, color="green", label="APGI range [50, 200]"
-            )
+            ax2.axvspan(50, 200, alpha=0.15, color="green", label="APGI range [50, 200]")
             ax2.axvline(
                 double_bridge_result.kappa,
                 color="tomato",
@@ -904,9 +883,7 @@ class ThermodynamicProgramAggregator:
 
             ax2.set_xlabel("κ [ATP / bit]", fontsize=11)
             ax2.set_ylabel("Count", fontsize=11)
-            ax2.set_title(
-                "κ Sensitivity Analysis\n(Module 3 — Monte Carlo)", fontsize=11
-            )
+            ax2.set_title("κ Sensitivity Analysis\n(Module 3 — Monte Carlo)", fontsize=11)
             ax2.legend(fontsize=8)
             ax2.text(
                 0.97,

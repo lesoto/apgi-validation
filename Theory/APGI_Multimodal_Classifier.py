@@ -1,4 +1,5 @@
 """
+
 =============================================================================
 APGI Multimodal Classifier
 =============================================================================
@@ -94,10 +95,7 @@ class APGIBayesianInversion:
 
     def __init__(self, dt: float = 0.001, draws: int = 2000, tune: int = 1000):
         if not HAS_PYMC:
-            raise ImportError(
-                "PyMC is required for Bayesian inversion. "
-                "Install it with: pip install pymc"
-            )
+            raise ImportError("PyMC is required for Bayesian inversion. " "Install it with: pip install pymc")
         self.dt = dt
         self.draws = draws
         self.tune = tune
@@ -126,39 +124,27 @@ class APGIBayesianInversion:
             # Strong informative priors based on APGI empirical operational ranges
             # theta_0: ignition threshold ∈ [0.25, 0.85]
             theta_0_raw = pm.Normal("theta_0_raw", 0, 1)
-            theta_0 = pm.Deterministic(
-                "theta_0", 0.55 + 0.15 * theta_0_raw
-            )  # centered at 0.55, ±0.15
+            theta_0 = pm.Deterministic("theta_0", 0.55 + 0.15 * theta_0_raw)  # centered at 0.55, ±0.15
 
             # pi_e: exteroceptive precision, LogNormal around 1.5 ± 0.5
             pi_e_log_raw = pm.Normal("pi_e_log_raw", 0, 0.3)
-            pi_e = pm.Deterministic(
-                "pi_e", pt.exp(pm.math.log(1.5) + 0.3 * pi_e_log_raw)
-            )
+            pi_e = pm.Deterministic("pi_e", pt.exp(pm.math.log(1.5) + 0.3 * pi_e_log_raw))
 
             # FIX: Combined parameter for beta * pi_i to address collinearity
             # Only the product is identifiable in the model, so we estimate it directly
             # beta_pi_i represents the effective somatic-scaled interoceptive precision
             beta_pi_i_log_raw = pm.Normal("beta_pi_i_log_raw", 0, 0.3)
-            beta_pi_i = pm.Deterministic(
-                "beta_pi_i", pt.exp(pm.math.log(1.8) + 0.4 * beta_pi_i_log_raw)
-            )
+            beta_pi_i = pm.Deterministic("beta_pi_i", pt.exp(pm.math.log(1.8) + 0.4 * beta_pi_i_log_raw))
 
             # Store individual parameters for interpretation (prior on ratio)
             # beta / pi_i ratio prior: centered at ~1.0 with moderate uncertainty
             beta_pi_ratio_raw = pm.Normal("beta_pi_ratio_raw", 0, 0.5)
-            beta_pi_ratio = pm.Deterministic(
-                "beta_pi_ratio", 0.8 + 0.3 * beta_pi_ratio_raw
-            )
+            beta_pi_ratio = pm.Deterministic("beta_pi_ratio", 0.8 + 0.3 * beta_pi_ratio_raw)
 
             # Derive individual parameters from identifiable quantities
             # These are accessed from the trace in invert_parameters()
-            pi_i = pm.Deterministic(  # noqa: F841
-                "pi_i", pt.sqrt(beta_pi_i / beta_pi_ratio)
-            )
-            beta = pm.Deterministic(  # noqa: F841
-                "beta", pt.sqrt(beta_pi_i * beta_pi_ratio)
-            )
+            pi_i = pm.Deterministic("pi_i", pt.sqrt(beta_pi_i / beta_pi_ratio))  # noqa: F841
+            beta = pm.Deterministic("beta", pt.sqrt(beta_pi_i * beta_pi_ratio))  # noqa: F841
 
             # alpha: ignition slope, tightly constrained around 5.0
             alpha = pm.TruncatedNormal("alpha", 5.0, 0.3, lower=3.0, upper=8.0)
@@ -261,14 +247,10 @@ class APGIBayesianInversion:
             sigma_noise = 0.1
             for t in range(1, time_steps):
                 # Precision-weighted surprise input
-                surprise_input = true_pi_e * np.abs(
-                    z_e[t]
-                ) + true_beta * true_pi_i * np.abs(z_i[t])
+                surprise_input = true_pi_e * np.abs(z_e[t]) + true_beta * true_pi_i * np.abs(z_i[t])
                 # ODE step
                 S_t[t] = S_t[t - 1] + self.dt * (
-                    -S_t[t - 1] / true_tau_s
-                    + surprise_input
-                    + np.random.normal(0, sigma_noise)
+                    -S_t[t - 1] / true_tau_s + surprise_input + np.random.normal(0, sigma_noise)
                 )
 
             # Simulate ignition
@@ -296,9 +278,7 @@ class APGIBayesianInversion:
         for param, covered in coverage.items():
             if covered:
                 prop = np.mean(covered)
-                print(
-                    f"  {param}: {prop:.3f} ({len(covered)}/{n_simulations} simulations)"
-                )
+                print(f"  {param}: {prop:.3f} ({len(covered)}/{n_simulations} simulations)")
                 if prop < 0.9:
                     print(f"    WARNING: Poor identifiability for {param}")
             else:
@@ -356,9 +336,7 @@ class APGIMechanisticStratifier:
         if self.classifier_type == "random_forest":
             self.classifier = RandomForestClassifier(n_estimators=100, random_state=42)
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         self.classifier.fit(X_train, y_train)
 
@@ -397,21 +375,9 @@ class APGIMechanisticStratifier:
             for _ in range(n_per_class):
                 # Increased noise + systematic shift
                 sample = {
-                    "pi_i": (
-                        params["pi_i"]
-                        + shift[disorder]["pi_i"]
-                        + rng.normal(0, 0.2 * noise_factor)
-                    ),
-                    "theta_0": (
-                        params["theta_0"]
-                        + shift[disorder]["theta_0"]
-                        + rng.normal(0, 0.1 * noise_factor)
-                    ),
-                    "beta": (
-                        params["beta"]
-                        + shift[disorder]["beta"]
-                        + rng.normal(0, 0.15 * noise_factor)
-                    ),
+                    "pi_i": (params["pi_i"] + shift[disorder]["pi_i"] + rng.normal(0, 0.2 * noise_factor)),
+                    "theta_0": (params["theta_0"] + shift[disorder]["theta_0"] + rng.normal(0, 0.1 * noise_factor)),
+                    "beta": (params["beta"] + shift[disorder]["beta"] + rng.normal(0, 0.15 * noise_factor)),
                 }
                 X_ood.append([sample["pi_i"], sample["theta_0"], sample["beta"]])
                 y_ood.append(disorder)
@@ -439,9 +405,7 @@ class APGIMechanisticStratifier:
 
         return prediction
 
-    def stratify_patient_with_uncertainty(
-        self, params: Dict[str, float], trace
-    ) -> Tuple[str, float]:
+    def stratify_patient_with_uncertainty(self, params: Dict[str, float], trace) -> Tuple[str, float]:
         """
         Classify patient with uncertainty quantification from posterior samples.
 
@@ -522,14 +486,8 @@ if __name__ == "__main__":
         S_t = np.zeros(time_steps)
         sigma_noise = 0.1
         for t in range(1, time_steps):
-            surprise_input = true_pi_e * np.abs(
-                z_e_series[t]
-            ) + true_beta * true_pi_i * np.abs(z_i_series[t])
-            S_t[t] = S_t[t - 1] + 0.001 * (
-                -S_t[t - 1] / true_tau_s
-                + surprise_input
-                + np.random.normal(0, sigma_noise)
-            )
+            surprise_input = true_pi_e * np.abs(z_e_series[t]) + true_beta * true_pi_i * np.abs(z_i_series[t])
+            S_t[t] = S_t[t - 1] + 0.001 * (-S_t[t - 1] / true_tau_s + surprise_input + np.random.normal(0, sigma_noise))
 
         # Simulate ignition decisions
         alpha = 5.0
@@ -538,9 +496,7 @@ if __name__ == "__main__":
 
         # Perform Bayesian inversion
         inverter = APGIBayesianInversion()
-        params, trace = inverter.invert_parameters(
-            S_t, ignition, z_e_series, z_i_series
-        )
+        params, trace = inverter.invert_parameters(S_t, ignition, z_e_series, z_i_series)
 
         print("Recovered Parameters:")
         for param, value in params.items():
@@ -562,7 +518,5 @@ if __name__ == "__main__":
             print("Feature Importance:")
             for feat, imp in importance.items():
                 print(f"  {feat}: {imp:.3f}")
-        print(
-            "\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations"
-        )
+        print("\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations")
         print("(e.g., interoceptive training) are needed for full identifiability.")

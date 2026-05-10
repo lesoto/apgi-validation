@@ -29,8 +29,7 @@ from typing import Any, Dict, List, Tuple, Union
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -43,17 +42,14 @@ if str(project_root) not in sys.path:
 
 # FIX #2: Import VP-05 genome data loader for cross-protocol data dependency
 try:
-    from utils.interprotocol_schema import (load_vp5_genome_data,
-                                            requires_vp5_data)
+    from utils.interprotocol_schema import load_vp5_genome_data, requires_vp5_data
 
     HAS_VP5_LOADER = True
 except ImportError:
     HAS_VP5_LOADER = False
 
     # Fallback loader function
-    def load_vp5_genome_data(
-        base_path: str | None = None, metadata_file: str = "genome_data.json"
-    ) -> dict[str, Any]:
+    def load_vp5_genome_data(base_path: str | None = None, metadata_file: str = "genome_data.json") -> dict[str, Any]:
         """Fallback genome data loader when interprotocol_schema not available."""
         import json
         from pathlib import Path
@@ -72,9 +68,7 @@ except ImportError:
                 with open(path, "r", encoding="utf-8") as f:
                     return json.load(f)
 
-        raise FileNotFoundError(
-            "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
-        )
+        raise FileNotFoundError("VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first.")
 
     def requires_vp5_data(func):
         """Fallback decorator that checks for genome_data.json existence."""
@@ -83,9 +77,7 @@ except ImportError:
             try:
                 _ = load_vp5_genome_data()
             except FileNotFoundError:
-                raise RuntimeError(
-                    "VP-05 genome_data required - run VP-05_EvolutionaryEmergence first."
-                )
+                raise RuntimeError("VP-05 genome_data required - run VP-05_EvolutionaryEmergence first.")
             return func(*args, **kwargs)
 
         return wrapper
@@ -93,40 +85,28 @@ except ImportError:
 
 try:
     from utils.config_manager import ConfigManager
-    from utils.constants import (APGI_GLOBAL_SEED, DIM_CONSTANTS,
-                                 VISUAL_CONSTANTS)
-    from utils.falsification_thresholds import (F1_6_MIN_LOW_AROUSAL_SLOPE,
-                                                F2_3_ALPHA,
-                                                F2_3_MIN_RT_ADVANTAGE_MS)
-    from utils.falsification_thresholds import \
-        F5_1_BINOMIAL_ALPHA_SIMULATION as F5_1_BINOMIAL_ALPHA
-    from utils.falsification_thresholds import \
-        F5_1_MIN_ALPHA_SIMULATION as F5_1_MIN_ALPHA
-    from utils.falsification_thresholds import \
-        F5_1_MIN_COHENS_D_SIMULATION as F5_1_MIN_COHENS_D
-    from utils.falsification_thresholds import \
-        F5_1_MIN_PROPORTION_SIMULATION as F5_1_MIN_PROPORTION
-    from utils.falsification_thresholds import \
-        F5_2_BINOMIAL_ALPHA_SIMULATION as F5_2_BINOMIAL_ALPHA
-    from utils.falsification_thresholds import \
-        F5_2_MIN_CORRELATION_SIMULATION as F5_2_MIN_CORRELATION
-    from utils.falsification_thresholds import \
-        F5_2_MIN_PROPORTION_SIMULATION as F5_2_MIN_PROPORTION
+    from utils.constants import APGI_GLOBAL_SEED, DIM_CONSTANTS, VISUAL_CONSTANTS
+    from utils.falsification_thresholds import F1_6_MIN_LOW_AROUSAL_SLOPE, F2_3_ALPHA, F2_3_MIN_RT_ADVANTAGE_MS
+    from utils.falsification_thresholds import F5_1_BINOMIAL_ALPHA_SIMULATION as F5_1_BINOMIAL_ALPHA
+    from utils.falsification_thresholds import F5_1_MIN_ALPHA_SIMULATION as F5_1_MIN_ALPHA
+    from utils.falsification_thresholds import F5_1_MIN_COHENS_D_SIMULATION as F5_1_MIN_COHENS_D
+    from utils.falsification_thresholds import F5_1_MIN_PROPORTION_SIMULATION as F5_1_MIN_PROPORTION
+    from utils.falsification_thresholds import F5_2_BINOMIAL_ALPHA_SIMULATION as F5_2_BINOMIAL_ALPHA
+    from utils.falsification_thresholds import F5_2_MIN_CORRELATION_SIMULATION as F5_2_MIN_CORRELATION
+    from utils.falsification_thresholds import F5_2_MIN_PROPORTION_SIMULATION as F5_2_MIN_PROPORTION
     from utils.falsification_thresholds import F5_3_BINOMIAL_ALPHA
-    from utils.falsification_thresholds import \
-        F5_3_MIN_GAIN_RATIO_SIMULATION as F5_3_MIN_GAIN_RATIO
-    from utils.falsification_thresholds import \
-        F5_3_MIN_PROPORTION_SIMULATION as F5_3_MIN_PROPORTION
-    from utils.falsification_thresholds import (F5_4_MIN_PEAK_SEPARATION,
-                                                F5_4_MIN_PROPORTION,
-                                                F5_5_PCA_MIN_LOADING)
-    from utils.falsification_thresholds import \
-        F5_5_PCA_MIN_VARIANCE_SIMULATION as F5_5_PCA_MIN_VARIANCE
-    from utils.falsification_thresholds import (F5_6_ALPHA, F5_6_MIN_COHENS_D,
-                                                F5_6_MIN_PERFORMANCE_DIFF_PCT,
-                                                F6_5_BIFURCATION_ERROR_MAX,
-                                                F6_5_HYSTERESIS_MAX,
-                                                F6_5_HYSTERESIS_MIN)
+    from utils.falsification_thresholds import F5_3_MIN_GAIN_RATIO_SIMULATION as F5_3_MIN_GAIN_RATIO
+    from utils.falsification_thresholds import F5_3_MIN_PROPORTION_SIMULATION as F5_3_MIN_PROPORTION
+    from utils.falsification_thresholds import F5_4_MIN_PEAK_SEPARATION, F5_4_MIN_PROPORTION, F5_5_PCA_MIN_LOADING
+    from utils.falsification_thresholds import F5_5_PCA_MIN_VARIANCE_SIMULATION as F5_5_PCA_MIN_VARIANCE
+    from utils.falsification_thresholds import (
+        F5_6_ALPHA,
+        F5_6_MIN_COHENS_D,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F6_5_BIFURCATION_ERROR_MAX,
+        F6_5_HYSTERESIS_MAX,
+        F6_5_HYSTERESIS_MIN,
+    )
 except ImportError:
     # Fallback if utils not available
     class MockDimConstants:
@@ -176,8 +156,7 @@ import numpy as np
 import scipy.stats as stats
 
 # Import spectral band constants from centralized location
-from utils.constants import (EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ,
-                             VISUAL_CONSTANTS)
+from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ, VISUAL_CONSTANTS
 from utils.statistical_tests import safe_ttest_1samp
 
 THETA_BAND_HZ = EEG_THETA_BAND_HZ
@@ -189,9 +168,7 @@ def _set_random_seed(seed: int) -> None:
     np.random.seed(seed)
 
 
-def _compute_band_peak(
-    signal: np.ndarray, sample_rate_hz: float, band_hz: Tuple[float, float]
-) -> Dict[str, Any]:
+def _compute_band_peak(signal: np.ndarray, sample_rate_hz: float, band_hz: Tuple[float, float]) -> Dict[str, Any]:
     """Find the dominant spectral peak within a frequency band."""
     centered = signal - np.mean(signal)
     freqs = np.fft.rfftfreq(centered.size, d=1.0 / sample_rate_hz)
@@ -288,16 +265,12 @@ def validate_against_empirical_constraints(
             total_validations += sum(validation_results[key])
             total_checks += len(validation_results[key])
 
-    validation_results["empirical_compliance_rate"] = (
-        total_validations / total_checks if total_checks > 0 else 0.0
-    )
+    validation_results["empirical_compliance_rate"] = total_validations / total_checks if total_checks > 0 else 0.0
 
     return validation_results
 
 
-def _simulate_ignition_trace(
-    genome: Dict[str, Any], n_steps: int = 256, sample_rate_hz: float = 100.0
-) -> np.ndarray:
+def _simulate_ignition_trace(genome: Dict[str, Any], n_steps: int = 256, sample_rate_hz: float = 100.0) -> np.ndarray:
     """Generate an ignition trace from an evolved genome for spectral analysis."""
     agent = EvolvableAgent(genome)
     env = ThreatRewardTradeoffEnvironment()
@@ -314,9 +287,7 @@ def _simulate_ignition_trace(
     return np.asarray(trace, dtype=float)
 
 
-def _assess_population_frequency_bands(
-    genomes: List[Dict[str, Any]], sample_rate_hz: float = 100.0
-) -> Dict[str, Any]:
+def _assess_population_frequency_bands(genomes: List[Dict[str, Any]], sample_rate_hz: float = 100.0) -> Dict[str, Any]:
     """
     Assess theta/gamma peak presence from evolved ignition traces.
 
@@ -350,27 +321,13 @@ def _assess_population_frequency_bands(
             }
         )
 
-    valid_ratios = [
-        entry["separation_ratio"]
-        for entry in per_genome
-        if entry["separation_ratio"] is not None
-    ]
-    theta_peaks = [
-        entry["theta_peak_hz"]
-        for entry in per_genome
-        if entry["theta_peak_hz"] is not None
-    ]
-    gamma_peaks = [
-        entry["gamma_peak_hz"]
-        for entry in per_genome
-        if entry["gamma_peak_hz"] is not None
-    ]
+    valid_ratios = [entry["separation_ratio"] for entry in per_genome if entry["separation_ratio"] is not None]
+    theta_peaks = [entry["theta_peak_hz"] for entry in per_genome if entry["theta_peak_hz"] is not None]
+    gamma_peaks = [entry["gamma_peak_hz"] for entry in per_genome if entry["gamma_peak_hz"] is not None]
 
     return {
         "multi_timescale_proportion": (qualifying / len(genomes) if genomes else 0.0),
-        "mean_peak_separation_ratio": (
-            float(np.mean(valid_ratios)) if valid_ratios else 0.0
-        ),
+        "mean_peak_separation_ratio": (float(np.mean(valid_ratios)) if valid_ratios else 0.0),
         "mean_theta_peak_hz": float(np.mean(theta_peaks)) if theta_peaks else None,
         "mean_gamma_peak_hz": float(np.mean(gamma_peaks)) if gamma_peaks else None,
         "theta_band_confirmed": bool(theta_peaks),
@@ -399,38 +356,26 @@ def _assess_timescale_frequency_list(timescales: List[float]) -> Dict[str, Any]:
     gamma = freqs_hz[(freqs_hz >= GAMMA_BAND_HZ[0]) & (freqs_hz <= GAMMA_BAND_HZ[1])]
     theta_mean = float(np.mean(theta)) if theta.size else None
     gamma_mean = float(np.mean(gamma)) if gamma.size else None
-    separation_ratio = (
-        gamma_mean / max(theta_mean, 1e-10)
-        if theta_mean is not None and gamma_mean is not None
-        else 0.0
-    )
+    separation_ratio = gamma_mean / max(theta_mean, 1e-10) if theta_mean is not None and gamma_mean is not None else 0.0
     return {
         "theta_band_confirmed": theta.size > 0,
         "gamma_band_confirmed": gamma.size > 0,
         "theta_peak_hz": theta_mean,
         "gamma_peak_hz": gamma_mean,
         "separation_ratio": separation_ratio,
-        "frequency_band_pass": theta.size > 0
-        and gamma.size > 0
-        and separation_ratio >= F5_4_MIN_PEAK_SEPARATION,
+        "frequency_band_pass": theta.size > 0 and gamma.size > 0 and separation_ratio >= F5_4_MIN_PEAK_SEPARATION,
     }
 
 
-def _summarize_replicate(
-    history: Dict[str, Any], analysis: Dict[str, Any], seed: int
-) -> Dict[str, Any]:
+def _summarize_replicate(history: Dict[str, Any], analysis: Dict[str, Any], seed: int) -> Dict[str, Any]:
     """Extract replicate-level metrics and pass/fail status from one evolutionary run."""
     final_freq = history["architecture_frequencies"][-1]
     final_population = history.get("final_population", [])
     gain_ratios = [
-        float(genome.get("beta", 1.0))
-        for genome in final_population
-        if genome.get("has_intero_weighting", False)
+        float(genome.get("beta", 1.0)) for genome in final_population if genome.get("has_intero_weighting", False)
     ]
     alpha_values = [
-        float(genome.get("alpha", 0.0))
-        for genome in final_population
-        if genome.get("has_threshold", False)
+        float(genome.get("alpha", 0.0)) for genome in final_population if genome.get("has_threshold", False)
     ]
     mean_gain_ratio = float(np.mean(gain_ratios)) if gain_ratios else 0.0
     spectral_summary = _assess_population_frequency_bands(final_population)
@@ -529,17 +474,9 @@ def _compute_neutral_baseline_comparison(
 
     return {
         "evolved_fitness_mean": float(np.mean(evolved_fitnesses)),
-        "evolved_fitness_std": (
-            float(np.std(evolved_fitnesses, ddof=1))
-            if len(evolved_fitnesses) > 1
-            else 0.0
-        ),
+        "evolved_fitness_std": (float(np.std(evolved_fitnesses, ddof=1)) if len(evolved_fitnesses) > 1 else 0.0),
         "random_fitness_mean": float(np.mean(random_fitnesses)),
-        "random_fitness_std": (
-            float(np.std(random_fitnesses, ddof=1))
-            if len(random_fitnesses) > 1
-            else 0.0
-        ),
+        "random_fitness_std": (float(np.std(random_fitnesses, ddof=1)) if len(random_fitnesses) > 1 else 0.0),
         "mann_whitney_u": float(u_statistic),
         "p_value": float(p_value),
         "effect_size": float(effect_size),
@@ -588,9 +525,7 @@ class EvolvableAgent:
         self.surprise = 0.0  # Initialize surprise attribute
 
         # Simple policy network using centralized constants
-        state_dim = (
-            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
-        )  # extero + intero
+        state_dim = DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM  # extero + intero
         action_dim = DIM_CONSTANTS.ACTION_DIM
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
@@ -629,16 +564,12 @@ class EvolvableAgent:
 
         # Update surprise using paper Eq. 1: dS = (dt/tau_S)*(-S + Pi_e*|eps_e| + beta*Pi_i*|eps_i|)
         # This implements the allostatic time constant tau_S from the paper with absolute prediction errors
-        dS = (dt / self.tau_theta) * (
-            -self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i)
-        )
+        dS = (dt / self.tau_theta) * (-self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i))
         self.surprise = np.clip(self.surprise + dS, 0.0, 10.0)
 
         # Check ignition
         if self.has_threshold:
-            ignition_prob = self._stable_sigmoid(
-                self.alpha * (self.surprise - self.threshold)
-            )
+            ignition_prob = self._stable_sigmoid(self.alpha * (self.surprise - self.threshold))
             self._conscious_access = np.random.random() < ignition_prob
         else:
             self._conscious_access = True  # Always conscious
@@ -656,9 +587,7 @@ class EvolvableAgent:
 
         return np.random.choice(len(action_probs), p=action_probs)
 
-    def receive_outcome(
-        self, reward: float, intero_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
         """Process outcome"""
         # Simple learning update
         if reward > 0:
@@ -695,9 +624,7 @@ class EvolvableAgent:
     def conscious_access(self) -> bool:
         """Get conscious access state"""
         if self.has_threshold:
-            ignition_prob = self._stable_sigmoid(
-                self.alpha * (self.surprise - self.threshold)
-            )
+            ignition_prob = self._stable_sigmoid(self.alpha * (self.surprise - self.threshold))
             return np.random.random() < ignition_prob
         else:
             return True  # Always conscious when no threshold
@@ -726,9 +653,7 @@ class GWTAgent(EvolvableAgent):
     def __init__(self, genome: Dict = None):
         """Initialize GWT agent with broadcast-based workspace"""
         # Define dimensions outside of conditional
-        state_dim = (
-            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
-        )  # extero + intero
+        state_dim = DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM  # extero + intero
         action_dim = DIM_CONSTANTS.ACTION_DIM
 
         if genome is None:
@@ -768,9 +693,7 @@ class GWTAgent(EvolvableAgent):
         # Precision weights
         self.Pi_e = 1.0
         self.Pi_i = 1.0
-        self.pi_lr = (
-            genome.get("Pi_e_lr", 0.01) if self.has_precision_weighting else 0.0
-        )
+        self.pi_lr = genome.get("Pi_e_lr", 0.01) if self.has_precision_weighting else 0.0
         self.surprise = 0.0
         self.threshold = 0.0  # No threshold for GWT
         self._conscious_access = False
@@ -833,9 +756,7 @@ class GWTAgent(EvolvableAgent):
         eps_i = np.linalg.norm(intero)
 
         # Update surprise using paper Eq. 1
-        dS = (dt / self.tau_theta) * (
-            -self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i)
-        )
+        dS = (dt / self.tau_theta) * (-self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i))
         self.surprise = np.clip(self.surprise + dS, 0.0, 10.0)
 
         # GWT broadcast mechanism: check novelty criterion (no threshold gating)
@@ -870,9 +791,7 @@ class GWTAgent(EvolvableAgent):
 
         return np.random.choice(len(action_probs), p=action_probs)
 
-    def receive_outcome(
-        self, reward: float, interoceptive_cost: float, next_observation: Dict
-    ):
+    def receive_outcome(self, reward: float, interoceptive_cost: float, next_observation: Dict):
         """Process outcome"""
         if reward > 0:
             pass
@@ -999,14 +918,10 @@ class VolatileForagingEnvironment(SimpleEnvironment):
         self.position = np.clip(self.position + move, 0, self.grid_size - 1)
 
         # Check if in reward zone
-        in_reward_zone = any(
-            np.all(self.position == np.array(zone)) for zone in self.reward_zones
-        )
+        in_reward_zone = any(np.all(self.position == np.array(zone)) for zone in self.reward_zones)
 
         reward = float(np.random.normal(2.0 if in_reward_zone else 0.2, 0.5))
-        intero_cost = float(
-            0.3 + np.linalg.norm(self.position - np.array([5, 5])) * 0.05
-        )
+        intero_cost = float(0.3 + np.linalg.norm(self.position - np.array([5, 5])) * 0.05)
 
         obs = {
             "extero": np.random.randn(32) * 0.5 + (1.0 if in_reward_zone else 0),
@@ -1117,9 +1032,7 @@ def compute_pca_on_evolved_agents(
         threshold_var = np.var([g.get("has_threshold", False) for g in population])
         intero_var = np.var([g.get("has_intero_weighting", False) for g in population])
         somatic_var = np.var([g.get("has_somatic_markers", False) for g in population])
-        precision_var = np.var(
-            [g.get("has_precision_weighting", False) for g in population]
-        )
+        precision_var = np.var([g.get("has_precision_weighting", False) for g in population])
 
         # Approximate variance explained as proportion of features with variance > 0.1
         n_significant = sum(
@@ -1131,9 +1044,7 @@ def compute_pca_on_evolved_agents(
             ]
         )
 
-        estimated_variance = min(
-            1.0, n_significant / 3.0
-        )  # Estimate: 3 main components
+        estimated_variance = min(1.0, n_significant / 3.0)  # Estimate: 3 main components
 
         # Compute actual PCA loadings using sklearn when available
         try:
@@ -1251,21 +1162,15 @@ class EvolutionaryAPGIEmergence:
                 # fitness = (net_reward / max_possible_reward) - lambda_metabolic * metabolic_cost_per_trial
                 # where lambda_metabolic is a free-energy-inspired Lagrange multiplier drawn from [0.1, 0.5]
                 max_possible_reward = 200.0  # 100 trials * max reward per trial (~2.0)
-                lambda_metabolic = np.random.uniform(
-                    0.1, 0.5
-                )  # Free-energy-inspired Lagrange multiplier
+                lambda_metabolic = np.random.uniform(0.1, 0.5)  # Free-energy-inspired Lagrange multiplier
 
                 # Calculate metabolic cost per trial (normalize by timesteps)
-                metabolic_cost_per_trial = homeostatic_violations / max(
-                    survival_time, 1
-                )
+                metabolic_cost_per_trial = homeostatic_violations / max(survival_time, 1)
 
                 # Net reward fitness with metabolic constraint
                 env_fitness = (
-                    float(cumulative_reward)
-                    / max_possible_reward  # Reward seeking (normalized)
-                    - lambda_metabolic
-                    * metabolic_cost_per_trial  # Metabolic cost penalty
+                    float(cumulative_reward) / max_possible_reward  # Reward seeking (normalized)
+                    - lambda_metabolic * metabolic_cost_per_trial  # Metabolic cost penalty
                     + survival_time / 100.0  # Survival bonus
                 )
             total_fitness += env_fitness
@@ -1304,9 +1209,7 @@ class EvolutionaryAPGIEmergence:
 
         return mutated
 
-    def run_evolution(
-        self, max_time_seconds: float = 30.0, random_seed: int | None = None
-    ) -> Dict:
+    def run_evolution(self, max_time_seconds: float = 30.0, random_seed: int | None = None) -> Dict:
         """Run evolutionary optimization with timeout"""
         if random_seed is not None:
             _set_random_seed(random_seed)
@@ -1337,9 +1240,7 @@ class EvolutionaryAPGIEmergence:
             )
 
             if os.path.exists(protocol2_path):
-                spec2 = importlib.util.spec_from_file_location(
-                    "Protocol_2", protocol2_path
-                )
+                spec2 = importlib.util.spec_from_file_location("Protocol_2", protocol2_path)
                 if spec2 and spec2.loader:
                     protocol2 = importlib.util.module_from_spec(spec2)
                     spec2.loader.exec_module(protocol2)
@@ -1359,9 +1260,7 @@ class EvolutionaryAPGIEmergence:
                         ]
                         print("Using primary environments from Protocol-2")
                     else:
-                        missing = [
-                            env for env in required_envs if not hasattr(protocol2, env)
-                        ]
+                        missing = [env for env in required_envs if not hasattr(protocol2, env)]
                         print(f"Protocol-2 missing environments: {missing}")
                         raise ImportError(f"Missing environment classes: {missing}")
                 else:
@@ -1419,18 +1318,14 @@ class EvolutionaryAPGIEmergence:
                 fitness_scores.append(fitness)
 
             # Evaluate continuous agents for F5.4 comparison
-            continuous_agents: List[Any] = [
-                ContinuousUpdateAgent() for _ in range(self.pop_size)
-            ]
+            continuous_agents: List[Any] = [ContinuousUpdateAgent() for _ in range(self.pop_size)]
             continuous_fitness_scores = []
             for agent in continuous_agents:
                 fitness = self.evaluate_fitness(agent, environments)
                 continuous_fitness_scores.append(fitness)
 
             # Compute performance difference (APGI - continuous)
-            performance_difference = np.mean(fitness_scores) - np.mean(
-                continuous_fitness_scores
-            )
+            performance_difference = np.mean(fitness_scores) - np.mean(continuous_fitness_scores)
 
             # Track continuous agent performance
             history["continuous_fitness"] = [float(np.mean(continuous_fitness_scores))]
@@ -1444,15 +1339,11 @@ class EvolutionaryAPGIEmergence:
             # Fix 6: Add per-generation convergence check before gen 50
             # If fitness plateaus at sub-criterion levels, mark replicate as falsified
             # Check runs every generation, not just after gen 50
-            if (
-                len(history["best_fitness"]) >= 10
-            ):  # Need at least 10 generations for variance
+            if len(history["best_fitness"]) >= 10:  # Need at least 10 generations for variance
                 recent_fitness = np.array(history["best_fitness"][-10:])
                 fitness_std = np.std(recent_fitness)
                 max_recent_fitness = np.max(recent_fitness)
-                _ = np.mean(
-                    recent_fitness
-                )  # computed but unused (reserved for logging)
+                _ = np.mean(recent_fitness)  # computed but unused (reserved for logging)
 
                 # Convergence criterion: low variance AND below minimum threshold
                 if fitness_std < 0.001 and max_recent_fitness < F5_1_MIN_PROPORTION:
@@ -1471,15 +1362,9 @@ class EvolutionaryAPGIEmergence:
             # Track architecture frequencies
             arch_freq = {
                 "has_threshold": np.mean([g["has_threshold"] for g in population]),
-                "has_intero_weighting": float(
-                    np.mean([g["has_intero_weighting"] for g in population])
-                ),
-                "has_somatic_markers": float(
-                    np.mean([g["has_somatic_markers"] for g in population])
-                ),
-                "has_precision_weighting": float(
-                    np.mean([g["has_precision_weighting"] for g in population])
-                ),
+                "has_intero_weighting": float(np.mean([g["has_intero_weighting"] for g in population])),
+                "has_somatic_markers": float(np.mean([g["has_somatic_markers"] for g in population])),
+                "has_precision_weighting": float(np.mean([g["has_precision_weighting"] for g in population])),
             }
             history["architecture_frequencies"].append(arch_freq)
 
@@ -1561,9 +1446,7 @@ class EvolutionaryAPGIEmergence:
                 slope, _ = np.polyfit(x, logit_y, 1)
                 selection_coefficients[trait] = float(slope)
             except (TypeError, ValueError, np.linalg.LinAlgError) as e:
-                logger.warning(
-                    f"FP-05 exception swallowed in selection coefficient calculation for {trait}: {e}"
-                )
+                logger.warning(f"FP-05 exception swallowed in selection coefficient calculation for {trait}: {e}")
                 selection_coefficients[trait] = 0.0
 
         return {
@@ -1596,9 +1479,7 @@ class EvolutionaryAPGIEmergence:
 
         return fixation_gens
 
-    def test_emergence_order_kendall_tau(
-        self, history: Dict, expected_order: list = None
-    ) -> Dict[str, Any]:
+    def test_emergence_order_kendall_tau(self, history: Dict, expected_order: list = None) -> Dict[str, Any]:
         """
         Test emergence order using Kendall's tau
 
@@ -1632,13 +1513,14 @@ class EvolutionaryAPGIEmergence:
         valid_fixation_gens = [fixation_gens[t] for t in valid_traits]
 
         if len(valid_traits) < 2:
+            test_passed = False
             return {
                 "kendall_tau": 0.0,
                 "p_value": 1.0,
                 "n_traits": len(valid_traits),
                 "emergence_order": list(fixation_gens.items()),
                 "expected_order": expected_order,
-                "pass": False,
+                "pass": test_passed,
                 "note": "Insufficient traits fixed for Kendall's tau test",
             }
 
@@ -1689,9 +1571,7 @@ if __name__ == "__main__":
         print(f"Final Frequencies: {analysis['final_frequencies']}")
         print(f"Selection Coefficients: {analysis['selection_coefficients']}")
         print(f"Generations to Fixation: {analysis['generations_to_fixation']}")
-        print(
-            f"PCA Variance Explained: {analysis.get('pca_variance_explained', 0.0):.2%}"
-        )
+        print(f"PCA Variance Explained: {analysis.get('pca_variance_explained', 0.0):.2%}")
         print(f"PCA Loadings: {analysis.get('pca_loadings', 0.0):.3f}")
 
     print("Evolution completed:", type(results))
@@ -1726,9 +1606,7 @@ def run_falsification(
 
         for seed in seeds[:target_replicates]:
             simulator = EvolutionaryAPGIEmergence()
-            history = simulator.run_evolution(
-                max_time_seconds=max_time_seconds, random_seed=seed
-            )
+            history = simulator.run_evolution(max_time_seconds=max_time_seconds, random_seed=seed)
             analysis = simulator.analyze_emergence(history)
             replicate_results.append(_summarize_replicate(history, analysis, seed))
 
@@ -1737,29 +1615,18 @@ def run_falsification(
             dtype=float,
         )
         precision_props = np.array(
-            [
-                rep["final_frequencies"]["has_precision_weighting"]
-                for rep in replicate_results
-            ],
+            [rep["final_frequencies"]["has_precision_weighting"] for rep in replicate_results],
             dtype=float,
         )
         intero_props = np.array(
-            [
-                rep["final_frequencies"]["has_intero_weighting"]
-                for rep in replicate_results
-            ],
+            [rep["final_frequencies"]["has_intero_weighting"] for rep in replicate_results],
             dtype=float,
         )
         multiscale_props = np.array(
-            [
-                rep["spectral_summary"]["multi_timescale_proportion"]
-                for rep in replicate_results
-            ],
+            [rep["spectral_summary"]["multi_timescale_proportion"] for rep in replicate_results],
             dtype=float,
         )
-        pca_vars = np.array(
-            [rep["pca_variance_explained"] for rep in replicate_results], dtype=float
-        )
+        pca_vars = np.array([rep["pca_variance_explained"] for rep in replicate_results], dtype=float)
 
         overall_pass = all(rep["passed"] for rep in replicate_results)
 
@@ -1790,35 +1657,19 @@ def run_falsification(
                 "n_replicates": len(replicate_results),
                 "threshold_emergence_mean_sd": [
                     float(np.mean(threshold_props)),
-                    (
-                        float(np.std(threshold_props, ddof=1))
-                        if len(threshold_props) > 1
-                        else 0.0
-                    ),
+                    (float(np.std(threshold_props, ddof=1)) if len(threshold_props) > 1 else 0.0),
                 ],
                 "precision_emergence_mean_sd": [
                     float(np.mean(precision_props)),
-                    (
-                        float(np.std(precision_props, ddof=1))
-                        if len(precision_props) > 1
-                        else 0.0
-                    ),
+                    (float(np.std(precision_props, ddof=1)) if len(precision_props) > 1 else 0.0),
                 ],
                 "interoceptive_emergence_mean_sd": [
                     float(np.mean(intero_props)),
-                    (
-                        float(np.std(intero_props, ddof=1))
-                        if len(intero_props) > 1
-                        else 0.0
-                    ),
+                    (float(np.std(intero_props, ddof=1)) if len(intero_props) > 1 else 0.0),
                 ],
                 "multiscale_mean_sd": [
                     float(np.mean(multiscale_props)),
-                    (
-                        float(np.std(multiscale_props, ddof=1))
-                        if len(multiscale_props) > 1
-                        else 0.0
-                    ),
+                    (float(np.std(multiscale_props, ddof=1)) if len(multiscale_props) > 1 else 0.0),
                 ],
                 "pca_variance_mean_sd": [
                     float(np.mean(pca_vars)),
@@ -1840,9 +1691,7 @@ def run_falsification(
             },
             "errors": [],
             "failure_reason": (
-                None
-                if overall_pass
-                else "At least one independent evolutionary replicate fell below threshold."
+                None if overall_pass else "At least one independent evolutionary replicate fell below threshold."
             ),
         }
         print("Evolution completed:", type(results))
@@ -1991,12 +1840,10 @@ def check_falsification(
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
     # Defensive validation for F6.6 parameters
-    assert (
-        alternative_modules_needed >= 0
-    ), f"alternative_modules_needed must be >= 0, got {alternative_modules_needed}"
-    assert (
-        performance_gap_without_addons >= 0
-    ), f"performance_gap_without_addons must be >= 0, got {performance_gap_without_addons}"
+    if alternative_modules_needed < 0:
+        raise ValueError(f"alternative_modules_needed must be >= 0, got {alternative_modules_needed}")
+    if performance_gap_without_addons < 0:
+        raise ValueError(f"performance_gap_without_addons must be >= 0, got {performance_gap_without_addons}")
 
     results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-5",
@@ -2015,10 +1862,7 @@ def check_falsification(
 
     # Cohen's d
     pooled_std = np.sqrt(
-        (
-            (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
-            + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
-        )
+        ((len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1) + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1))
         / max(1, (len(apgi_rewards) + len(pp_rewards) - 2))
     )
     # Guard against zero pooled_std
@@ -2059,9 +1903,7 @@ def check_falsification(
 
     # Eta-squared
     ss_total = np.sum((timescales - np.mean(timescales)) ** 2)  # type: ignore
-    ss_between = sum(
-        len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
-    )
+    ss_between = sum(len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means)
     # Guard against zero ss_total
     eta_squared = ss_between / max(1e-10, ss_total)
 
@@ -2105,12 +1947,7 @@ def check_falsification(
     df = n - 1 if n > 1 else 1
     partial_eta_sq = (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
 
-    f1_3_pass = (
-        mean_diff >= 15
-        and cohens_d_rm >= 0.35
-        and p_rm < 0.01
-        and partial_eta_sq >= 0.15
-    )
+    f1_3_pass = mean_diff >= 15 and cohens_d_rm >= 0.35 and p_rm < 0.01 and partial_eta_sq >= 0.15
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "mean_precision_diff_pct": mean_diff,
@@ -2186,17 +2023,9 @@ def check_falsification(
     for _ in range(n_permutations):
         perm_ignition = np.random.permutation(pac_ignition)
         perm_diffs.append(np.mean(perm_ignition) - np.mean(pac_baseline))
-    perm_p = np.mean(
-        np.abs(np.array(perm_diffs))
-        >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline))
-    )
+    perm_p = np.mean(np.abs(np.array(perm_diffs)) >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline)))
 
-    f1_5_pass = (
-        mean_pac_increase >= 30
-        and cohens_d_pac >= 0.50
-        and p_pac < 0.01
-        and perm_p < 0.01
-    )
+    f1_5_pass = mean_pac_increase >= 30 and cohens_d_pac >= 0.50 and p_pac < 0.01 and perm_p < 0.01
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
         "pac_increase_pct": mean_pac_increase,
@@ -2225,9 +2054,7 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_slope = stats.ttest_rel(low_arousal_slopes, active_slopes)
-    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(
-        low_arousal_slopes - active_slopes, ddof=1
-    )
+    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(low_arousal_slopes - active_slopes, ddof=1)
 
     # Goodness of fit (R²)
     residuals = active_slopes - mean_active
@@ -2237,8 +2064,7 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal
-        >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
+        and mean_low_arousal >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85
@@ -2274,8 +2100,7 @@ def check_falsification(
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (len(apgi_advantageous_selection) - 1)
-            * np.var(apgi_advantageous_selection, ddof=1)
+            (len(apgi_advantageous_selection) - 1) * np.var(apgi_advantageous_selection, ddof=1)
             + (len(no_somatic_selection) - 1) * np.var(no_somatic_selection, ddof=1)
         )
         / max(
@@ -2322,16 +2147,13 @@ def check_falsification(
     se_diff = np.sqrt(
         max(
             1e-10,
-            1 / max(1, len(apgi_advantageous_selection) - 3)
-            + 1 / max(1, len(no_somatic_selection) - 3),
+            1 / max(1, len(apgi_advantageous_selection) - 3) + 1 / max(1, len(no_somatic_selection) - 3),
         )
     )
     z_diff = (z_apgi - z_no_somatic) / max(1e-10, se_diff)
     p_diff = 2 * (1 - stats.norm.cdf(abs(z_diff)))
 
-    f2_2_pass = (
-        corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
-    )
+    f2_2_pass = corr >= 0.60 and corr_no_somatic <= 0.20 and p_diff < 0.01 and p_corr < 0.01
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
         "apgi_correlation": corr,
@@ -2437,9 +2259,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}"
-    )
+    logger.info(f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}, p={p_conf:.4f}")
 
     # F2.5: Beta Interaction Effects
     logger.info("Testing F2.5: Beta Interaction Effects")
@@ -2450,17 +2270,11 @@ def check_falsification(
         t_stat_beta, p_beta, _ = safe_ttest_1samp(beta_array, 0)
     else:
         # For single value, compute significance based on magnitude
-        t_stat_beta = abs(beta_interaction) / max(
-            1e-10, np.std(beta_array) if len(beta_array) > 1 else 1.0
-        )
-        p_beta = 2.0 * (
-            1.0 - stats.t.cdf(abs(t_stat_beta), df=max(1, len(beta_array) - 1))
-        )
+        t_stat_beta = abs(beta_interaction) / max(1e-10, np.std(beta_array) if len(beta_array) > 1 else 1.0)
+        p_beta = 2.0 * (1.0 - stats.t.cdf(abs(t_stat_beta), df=max(1, len(beta_array) - 1)))
 
     # Effect size (eta-squared) - simplified for single value
-    ss_total = np.sum(
-        (np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2
-    )
+    ss_total = np.sum((np.array([beta_interaction, 0]) - np.mean([beta_interaction, 0])) ** 2)
     ss_between = (np.mean([beta_interaction]) - np.mean([beta_interaction, 0])) ** 2
     eta_squared = ss_between / ss_total if ss_total > 0 else 0
 
@@ -2539,9 +2353,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Advantage: {interoceptive_advantage:.1f}%"
-    )
+    logger.info(f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Advantage: {interoceptive_advantage:.1f}%")
 
     # F3.3: Exteroceptive Task Advantage
     logger.info("Testing F3.3: Exteroceptive Task Advantage")
@@ -2556,9 +2368,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Advantage: {exteroceptive_advantage:.1f}%"
-    )
+    logger.info(f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Advantage: {exteroceptive_advantage:.1f}%")
 
     # F3.4: Threshold Reduction
     logger.info("Testing F3.4: Threshold Reduction")
@@ -2573,9 +2383,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {threshold_reduction:.1f}%"
-    )
+    logger.info(f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {threshold_reduction:.1f}%")
 
     # F3.5: Precision Reduction
     logger.info("Testing F3.5: Precision Reduction")
@@ -2590,21 +2398,14 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Reduction: {precision_reduction:.1f}%"
-    )
+    logger.info(f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Reduction: {precision_reduction:.1f}%")
 
     # F3.6: Performance Retention
     logger.info("Testing F3.6: Performance Retention")
     trial_advantage = (
-        (apgi_time_to_criterion - baseline_time_to_criterion)
-        / max(1e-10, baseline_time_to_criterion)
+        (apgi_time_to_criterion - baseline_time_to_criterion) / max(1e-10, baseline_time_to_criterion)
     ) * 100
-    hazard_ratio = (
-        baseline_time_to_criterion / apgi_time_to_criterion
-        if apgi_time_to_criterion > 0
-        else np.inf
-    )
+    hazard_ratio = baseline_time_to_criterion / apgi_time_to_criterion if apgi_time_to_criterion > 0 else np.inf
 
     # Log-rank test (simplified as proportion test)
     f3_6_pass = performance_retention >= 80 and hazard_ratio >= 1.5
@@ -2627,9 +2428,7 @@ def check_falsification(
     # F6.1: Liquid Transition Time Advantage
     logger.info("Testing F6.1: Liquid Transition Time Advantage")
     # Compare LTCN vs RNN transition times
-    t_stat, p_value = stats.ttest_ind(
-        [ltcn_transition_time], [feedforward_transition_time]
-    )
+    t_stat, p_value = stats.ttest_ind([ltcn_transition_time], [feedforward_transition_time])
     mean_ltcn = ltcn_transition_time
     mean_rnn = feedforward_transition_time
     safe_rnn = max(1e-10, mean_rnn)
@@ -2639,18 +2438,13 @@ def check_falsification(
     pooled_std = np.sqrt(
         (
             (len([ltcn_transition_time]) - 1) * np.var([ltcn_transition_time], ddof=1)
-            + (len([feedforward_transition_time]) - 1)
-            * np.var([feedforward_transition_time], ddof=1)
+            + (len([feedforward_transition_time]) - 1) * np.var([feedforward_transition_time], ddof=1)
         )
         / max(1, (len([ltcn_transition_time]) + len([feedforward_transition_time]) - 2))
     )
     cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_1_pass = (
-        ltcn_transition_time < feedforward_transition_time
-        and cohens_d <= -0.70
-        and p_value < 0.01
-    )
+    f6_1_pass = ltcn_transition_time < feedforward_transition_time and cohens_d <= -0.70 and p_value < 0.01
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "ltcn_time": ltcn_transition_time,
@@ -2673,9 +2467,7 @@ def check_falsification(
     # F6.2: Sparsity Reduction Advantage
     logger.info("Testing F6.2: Sparsity Reduction Advantage")
     # Compare LTCN vs RNN sparsity reduction
-    t_stat, p_value = stats.ttest_ind(
-        [ltcn_sparsity_reduction], [standard_sparsity_reduction]
-    )
+    t_stat, p_value = stats.ttest_ind([ltcn_sparsity_reduction], [standard_sparsity_reduction])
     mean_ltcn = ltcn_sparsity_reduction
     mean_rnn = standard_sparsity_reduction
 
@@ -2703,9 +2495,7 @@ def check_falsification(
 
     cohens_d_perf: float = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_2_pass = (
-        ltcn_sparsity_reduction >= 0.30 and cohens_d_perf >= 0.70 and p_value < 0.01
-    )
+    f6_2_pass = ltcn_sparsity_reduction >= 0.30 and cohens_d_perf >= 0.70 and p_value < 0.01
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "ltcn_reduction": ltcn_sparsity_reduction,
@@ -2727,19 +2517,14 @@ def check_falsification(
     # F6.3: Integration Window Advantage
     logger.info("Testing F6.3: Integration Window Advantage")
     # Compare LTCN vs RNN integration windows
-    t_stat, p_value = stats.ttest_ind(
-        [ltcn_integration_window], [rnn_integration_window]
-    )
+    t_stat, p_value = stats.ttest_ind([ltcn_integration_window], [rnn_integration_window])
     mean_ltcn = ltcn_integration_window
     mean_rnn = rnn_integration_window
 
     # Cohen's d
     pooled_std = float(
         np.sqrt(
-            (
-                (1 - 1) * np.var([ltcn_integration_window], ddof=1)
-                + (1 - 1) * np.var([rnn_integration_window], ddof=1)
-            )
+            ((1 - 1) * np.var([ltcn_integration_window], ddof=1) + (1 - 1) * np.var([rnn_integration_window], ddof=1))
             / (1 + 1 - 2)
         )
         if len([ltcn_integration_window]) > 1 and len([rnn_integration_window]) > 1
@@ -2747,11 +2532,7 @@ def check_falsification(
     )
     cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_3_pass = (
-        ltcn_integration_window > rnn_integration_window
-        and cohens_d >= 0.70
-        and p_value < 0.01
-    )
+    f6_3_pass = ltcn_integration_window > rnn_integration_window and cohens_d >= 0.70 and p_value < 0.01
     results["criteria"]["F6.3"] = {
         "passed": f6_3_pass,
         "ltcn_window": ltcn_integration_window,
@@ -2784,9 +2565,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {ltcn_memory_decay_time:.1f}s"
-    )
+    logger.info(f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {ltcn_memory_decay_time:.1f}s")
 
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
@@ -2809,10 +2588,7 @@ def check_falsification(
     bifurcation_point = bifurcation_analysis["bifurcation_point"]
     hysteresis = bifurcation_analysis["hysteresis_width"]
 
-    f6_5_pass = (
-        abs(bifurcation_point - theta_t) <= F6_5_BIFURCATION_ERROR_MAX
-        and bifurcation_analysis["passed"]
-    )
+    f6_5_pass = abs(bifurcation_point - theta_t) <= F6_5_BIFURCATION_ERROR_MAX and bifurcation_analysis["passed"]
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,
         "bifurcation_point": bifurcation_point,
@@ -2861,22 +2637,16 @@ def check_falsification(
         _, p_alpha, _ = safe_ttest_1samp(mean_alpha_value, F5_1_MIN_ALPHA)
     else:
         # Fallback for scalar or single-element list
-        val = (
-            mean_alpha_value[0]
-            if isinstance(mean_alpha_value, (list, np.ndarray))
-            else mean_alpha_value
-        )
+        val = mean_alpha_value[0] if isinstance(mean_alpha_value, (list, np.ndarray)) else mean_alpha_value
         _, _ = 0.0, (0.0001 if val >= F5_1_MIN_ALPHA else 1.0)
 
-    val_alpha = (
-        np.mean(mean_alpha_value)
-        if isinstance(mean_alpha_value, (list, np.ndarray))
-        else mean_alpha_value
-    )
+    val_alpha = np.mean(mean_alpha_value) if isinstance(mean_alpha_value, (list, np.ndarray)) else mean_alpha_value
     cohens_d_alpha = (val_alpha - F5_1_MIN_ALPHA) / 1.0  # Simplified
 
     from utils.falsification_thresholds import (  # Use correct threshold: 4.0 (not F5_1_FALSIFICATION_ALPHA = 3.0)
-        F5_1_MIN_ALPHA, F5_1_MIN_PROPORTION)
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_PROPORTION,
+    )
 
     # F5.1: Threshold Filtering Emergence - ≥75% proportion, α ≥ 4.0, separation ≥ 3.0
     # Use MIN_ALPHA (4.0) per specification, not FALSIFICATION_ALPHA (3.0)
@@ -2912,21 +2682,12 @@ def check_falsification(
     if isinstance(mean_correlation, (list, np.ndarray)) and len(mean_correlation) >= 2:
         _, p_corr, _ = safe_ttest_1samp(mean_correlation, F5_2_MIN_CORRELATION)
     else:
-        val = (
-            mean_correlation[0]
-            if isinstance(mean_correlation, (list, np.ndarray))
-            else mean_correlation
-        )
+        val = mean_correlation[0] if isinstance(mean_correlation, (list, np.ndarray)) else mean_correlation
         _, p_corr = 0.0, (0.0001 if val >= F5_2_MIN_CORRELATION else 1.0)
 
-    val_corr = (
-        np.mean(mean_correlation)
-        if isinstance(mean_correlation, (list, np.ndarray))
-        else mean_correlation
-    )
+    val_corr = np.mean(mean_correlation) if isinstance(mean_correlation, (list, np.ndarray)) else mean_correlation
 
-    from utils.falsification_thresholds import (F5_2_FALSIFICATION_CORR,
-                                                F5_2_MIN_PROPORTION)
+    from utils.falsification_thresholds import F5_2_FALSIFICATION_CORR, F5_2_MIN_PROPORTION
 
     f5_2_pass = (
         precision_emergence_proportion >= F5_2_MIN_PROPORTION
@@ -2959,18 +2720,10 @@ def check_falsification(
     if isinstance(mean_gain_ratio, (list, np.ndarray)) and len(mean_gain_ratio) >= 2:
         _, p_gain, _ = safe_ttest_1samp(mean_gain_ratio, F5_3_MIN_GAIN_RATIO)
     else:
-        val = (
-            mean_gain_ratio[0]
-            if isinstance(mean_gain_ratio, (list, np.ndarray))
-            else mean_gain_ratio
-        )
+        val = mean_gain_ratio[0] if isinstance(mean_gain_ratio, (list, np.ndarray)) else mean_gain_ratio
         _, _ = 0.0, (0.0001 if val >= F5_3_MIN_GAIN_RATIO else 1.0)
 
-    val_gain = (
-        np.mean(mean_gain_ratio)
-        if isinstance(mean_gain_ratio, (list, np.ndarray))
-        else mean_gain_ratio
-    )
+    val_gain = np.mean(mean_gain_ratio) if isinstance(mean_gain_ratio, (list, np.ndarray)) else mean_gain_ratio
     cohens_d_gain = (val_gain - F5_3_MIN_GAIN_RATIO) / 0.5  # Simplified
 
     from utils.falsification_thresholds import F5_3_FALSIFICATION_RATIO
@@ -3034,13 +2787,9 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    from utils.falsification_thresholds import (F5_5_PCA_MIN_LOADING,
-                                                F5_5_PCA_MIN_VARIANCE)
+    from utils.falsification_thresholds import F5_5_PCA_MIN_LOADING, F5_5_PCA_MIN_VARIANCE
 
-    f5_5_pass = (
-        pca_variance_explained >= F5_5_PCA_MIN_VARIANCE
-        and pca_loadings >= F5_5_PCA_MIN_LOADING
-    )
+    f5_5_pass = pca_variance_explained >= F5_5_PCA_MIN_VARIANCE and pca_loadings >= F5_5_PCA_MIN_LOADING
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
         "pca_variance_explained": pca_variance_explained,
@@ -3058,22 +2807,15 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    if (
-        isinstance(performance_difference, (list, np.ndarray))
-        and len(performance_difference) >= 2
-    ):
-        _, p_perf, _ = safe_ttest_1samp(
-            performance_difference, (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
-        )
+    if isinstance(performance_difference, (list, np.ndarray)) and len(performance_difference) >= 2:
+        _, p_perf, _ = safe_ttest_1samp(performance_difference, (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0))
     else:
         val = (
             performance_difference[0]
             if isinstance(performance_difference, (list, np.ndarray))
             else performance_difference
         )
-        _, p_perf = 0.0, (
-            0.0001 if val >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0) else 1.0
-        )
+        _, p_perf = 0.0, (0.0001 if val >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0) else 1.0)
 
     val_perf = (
         np.mean(performance_difference)
@@ -3082,17 +2824,10 @@ def check_falsification(
     )
 
     # Simple estimate of Cohen's d if we only have one value
-    if (
-        isinstance(performance_difference, (list, np.ndarray))
-        and len(performance_difference) >= 2
-    ):
-        cohens_d_perf = (val_perf - (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)) / np.std(
-            performance_difference, ddof=1
-        )
+    if isinstance(performance_difference, (list, np.ndarray)) and len(performance_difference) >= 2:
+        cohens_d_perf = (val_perf - (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)) / np.std(performance_difference, ddof=1)
     else:
-        cohens_d_perf = (
-            1.0 if val_perf >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0) else 0.0
-        )
+        cohens_d_perf = 1.0 if val_perf >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0) else 0.0
 
     f5_6_pass = (
         val_perf >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
@@ -3153,9 +2888,7 @@ def _save_fp05_outputs(results: Dict[str, Any]) -> None:
     try:
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(
-                ["criterion", "passed", "effect_size", "threshold", "description"]
-            )
+            writer.writerow(["criterion", "passed", "effect_size", "threshold", "description"])
             for criterion, data in results.get("criteria", {}).items():
                 writer.writerow(
                     [
@@ -3179,31 +2912,20 @@ def _save_fp05_outputs(results: Dict[str, Any]) -> None:
             criteria = results.get("criteria", {})
             if criteria:
                 criteria_ids = list(criteria.keys())[:6]
-                passed = [
-                    criteria.get(c, {}).get("passed", False) for c in criteria_ids
-                ]
-                effect_sizes = [
-                    criteria.get(c, {}).get("effect_size", 0) for c in criteria_ids
-                ]
+                passed = [criteria.get(c, {}).get("passed", False) for c in criteria_ids]
+                effect_sizes = [criteria.get(c, {}).get("effect_size", 0) for c in criteria_ids]
 
-                colors = [
-                    VISUAL_CONSTANTS.STATUS_PASS if p else VISUAL_CONSTANTS.STATUS_FAIL
-                    for p in passed
-                ]
+                colors = [VISUAL_CONSTANTS.STATUS_PASS if p else VISUAL_CONSTANTS.STATUS_FAIL for p in passed]
                 ax.bar(criteria_ids, effect_sizes, color=colors)
                 ax.axhline(y=0.5, color="black", linestyle="--", label="Threshold")
                 ax.set_title("Evolutionary Criteria Effect Sizes")
                 ax.set_ylabel("Effect Size")
                 ax.legend()
             else:
-                ax.text(
-                    0.5, 0.5, "No criteria data available", ha="center", va="center"
-                )
+                ax.text(0.5, 0.5, "No criteria data available", ha="center", va="center")
             return True
 
-        success = add_standard_png_output(
-            5, results, fp05_custom_plot, "Evolutionary Plausibility"
-        )
+        success = add_standard_png_output(5, results, fp05_custom_plot, "Evolutionary Plausibility")
         if success:
             print("✓ Generated protocol05.png visualization")
         else:
@@ -3227,9 +2949,7 @@ if __name__ == "__main__":
     print("FP-05 FALSIFICATION REPORT")
     print("=" * 50)
     summary = results.get("summary", {})
-    print(
-        f"Summary: {summary.get('passed', 0)}/{summary.get('total', 0)} criteria passed"
-    )
+    print(f"Summary: {summary.get('passed', 0)}/{summary.get('total', 0)} criteria passed")
     print("-" * 50)
     for criterion, data in results.get("criteria", {}).items():
         status = "PASS" if data.get("passed") else "FAIL"
@@ -3283,9 +3003,7 @@ def run_protocol_main(config: dict | None = None) -> Union[dict, object]:
                 passed=pred_data.get("passed", False),  # type: ignore[union-attr]
                 value=pred_data.get("effect_size"),  # type: ignore[union-attr]
                 threshold=pred_data.get("threshold"),  # type: ignore[union-attr]
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"  # type: ignore[union-attr]
-                ),
+                status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),  # type: ignore[union-attr]
                 evidence=[f"Evolutionary plausibility criterion: {pred_id}"],
                 sources=["FP_05_EvolutionaryPlausibility"],
                 metadata=pred_data,
@@ -3325,8 +3043,7 @@ class EvolutionaryModel:
     def initialize_population(self) -> List[Dict]:
         """Initialize population with random genomes."""
         self._population = [
-            {"genome": [np.random.random() for _ in range(10)], "fitness": 0.0}
-            for _ in range(self.population_size)
+            {"genome": [np.random.random() for _ in range(10)], "fitness": 0.0} for _ in range(self.population_size)
         ]
         return self._population
 
@@ -3340,9 +3057,7 @@ class EvolutionaryModel:
                 idx = np.random.randint(0, len(individual["genome"]))
                 individual["genome"][idx] += np.random.normal(0, 0.1)
                 individual["genome"][idx] = np.clip(individual["genome"][idx], 0, 1)
-            individual["fitness"] = sum(individual["genome"]) / len(
-                individual["genome"]
-            )
+            individual["fitness"] = sum(individual["genome"]) / len(individual["genome"])
         return self._population
 
 
@@ -3358,9 +3073,7 @@ class FitnessCalculator:
                 fitness += 1.0 - abs(value - optimal)
         return max(0.0, fitness / len(individual) if individual else 0.0)
 
-    def calculate_population_fitness(
-        self, population: List[Dict], environment: Dict
-    ) -> List[float]:
+    def calculate_population_fitness(self, population: List[Dict], environment: Dict) -> List[float]:
         """Calculate fitness for entire population."""
         return [self.calculate_fitness(ind, environment) for ind in population]
 
@@ -3397,8 +3110,7 @@ class EvolutionarySimulator:
         self.generations = generations
         # Initialize with placeholder trajectory entries
         self._trajectory: List[Dict] = [
-            {"generation": i, "fitness": 0.0, "population_size": 0}
-            for i in range(generations)
+            {"generation": i, "fitness": 0.0, "population_size": 0} for i in range(generations)
         ]
 
     def simulate(self, model: EvolutionaryModel) -> Dict:

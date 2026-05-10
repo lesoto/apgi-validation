@@ -162,15 +162,9 @@ class AdversarialTestFramework:
 
                 if "integration" in name or "integration" in file_path_str:
                     categories[TestCategory.INTEGRATION].append(str(test_file))
-                elif (
-                    "e2e" in name or "end_to_end" in name or "endtoend" in file_path_str
-                ):
+                elif "e2e" in name or "end_to_end" in name or "endtoend" in file_path_str:
                     categories[TestCategory.E2E].append(str(test_file))
-                elif (
-                    "performance" in name
-                    or "perf" in name
-                    or "performance" in file_path_str
-                ):
+                elif "performance" in name or "perf" in name or "performance" in file_path_str:
                     categories[TestCategory.PERFORMANCE].append(str(test_file))
                 elif "security" in name or "sec" in name or "security" in file_path_str:
                     categories[TestCategory.SECURITY].append(str(test_file))
@@ -182,11 +176,7 @@ class AdversarialTestFramework:
                     categories[TestCategory.REGRESSION].append(str(test_file))
                 elif "boundary" in name or "boundary" in file_path_str:
                     categories[TestCategory.BOUNDARY].append(str(test_file))
-                elif (
-                    "concurrency" in name
-                    or "race" in name
-                    or "concurrency" in file_path_str
-                ):
+                elif "concurrency" in name or "race" in name or "concurrency" in file_path_str:
                     categories[TestCategory.CONCURRENCY].append(str(test_file))
                 elif "comprehensive" in file_path_str:
                     # Skip comprehensive test files from individual categories
@@ -249,17 +239,13 @@ class AdversarialTestFramework:
         results_summary["coverage_summary"] = coverage_summary
 
         # Generate recommendations
-        results_summary["recommendations"] = self._generate_recommendations(
-            results_summary
-        )
+        results_summary["recommendations"] = self._generate_recommendations(results_summary)
 
         results_summary["duration_seconds"] = time.time() - start_time
 
         return results_summary
 
-    def _run_category_tests(
-        self, category: TestCategory, test_files: List[str], parallel: bool
-    ) -> Dict[str, Any]:
+    def _run_category_tests(self, category: TestCategory, test_files: List[str], parallel: bool) -> Dict[str, Any]:
         """Run tests for a specific category."""
         import json
         import subprocess
@@ -336,9 +322,7 @@ class AdversarialTestFramework:
                 results["total"] += 1
                 logger.error(f"Error running {test_file}: {e}")
 
-        print(
-            f"  {category.name} complete: {results['passed']}/{results['total']} passed"
-        )
+        print(f"  {category.name} complete: {results['passed']}/{results['total']} passed")
         return results
 
     def _generate_coverage_summary(self) -> Dict[str, Any]:
@@ -367,9 +351,7 @@ class AdversarialTestFramework:
                     "lines": len(analysis[1]),
                     "missing_lines": len(analysis[2]),
                     "line_coverage": (
-                        (len(analysis[1]) - len(analysis[2])) / len(analysis[1]) * 100
-                        if analysis[1]
-                        else 0
+                        (len(analysis[1]) - len(analysis[2])) / len(analysis[1]) * 100 if analysis[1] else 0
                     ),
                 }
 
@@ -393,37 +375,23 @@ class AdversarialTestFramework:
         coverage = results.get("coverage_summary", {}).get("overall_line_coverage", 0)
 
         if coverage < 50:
-            recommendations.append(
-                "CRITICAL: Coverage below 50%. Immediate action required."
-            )
+            recommendations.append("CRITICAL: Coverage below 50%. Immediate action required.")
         elif coverage < 80:
-            recommendations.append(
-                f"HIGH: Coverage at {coverage:.1f}%. Target 80% minimum."
-            )
+            recommendations.append(f"HIGH: Coverage at {coverage:.1f}%. Target 80% minimum.")
         elif coverage < 95:
-            recommendations.append(
-                f"MEDIUM: Coverage at {coverage:.1f}%. Target 95% for production."
-            )
+            recommendations.append(f"MEDIUM: Coverage at {coverage:.1f}%. Target 95% for production.")
 
         if results.get("failed", 0) > 0:
-            recommendations.append(
-                f"CRITICAL: {results['failed']} tests failing. Fix before deployment."
-            )
+            recommendations.append(f"CRITICAL: {results['failed']} tests failing. Fix before deployment.")
 
         # Check for missing test categories
         categories = results.get("by_category", {})
         if "PERFORMANCE" not in categories:
-            recommendations.append(
-                "MEDIUM: No performance tests found. Add stress testing."
-            )
+            recommendations.append("MEDIUM: No performance tests found. Add stress testing.")
         if "SECURITY" not in categories:
-            recommendations.append(
-                "HIGH: No security tests found. Add input validation tests."
-            )
+            recommendations.append("HIGH: No security tests found. Add input validation tests.")
         if "CONCURRENCY" not in categories:
-            recommendations.append(
-                "MEDIUM: No concurrency tests found. Add race condition tests."
-            )
+            recommendations.append("MEDIUM: No concurrency tests found. Add race condition tests.")
 
         return recommendations
 
@@ -567,9 +535,7 @@ def run_comprehensive_test_suite():
     print(f"Total Tests: {results['total_tests']}")
     print(f"Passed: {results['passed']} ✅")
     print(f"Failed: {results['failed']} {'✅' if results['failed'] == 0 else '❌'}")
-    print(
-        f"Coverage: {results['coverage_summary'].get('overall_line_coverage', 0):.1f}%"
-    )
+    print(f"Coverage: {results['coverage_summary'].get('overall_line_coverage', 0):.1f}%")
 
     print(f"\n{'=' * 80}")
     print("RECOMMENDATIONS")

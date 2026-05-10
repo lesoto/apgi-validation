@@ -68,12 +68,8 @@ try:
     APGI_TAU_S_MIN = getattr(DIM_CONSTANTS, "TAU_S_MIN", 0.3)  # 0.3-0.5s from paper
     APGI_TAU_S_MAX = getattr(DIM_CONSTANTS, "TAU_S_MAX", 0.5)
     APGI_IGNITION_THRESHOLD = getattr(DIM_CONSTANTS, "IGNITION_THRESHOLD", 0.8)
-    APGI_CONNECTIVITY_DENSITY_MIN = getattr(
-        DIM_CONSTANTS, "CONNECTIVITY_DENSITY_MIN", 0.1
-    )
-    APGI_CONNECTIVITY_DENSITY_MAX = getattr(
-        DIM_CONSTANTS, "CONNECTIVITY_DENSITY_MAX", 0.3
-    )
+    APGI_CONNECTIVITY_DENSITY_MIN = getattr(DIM_CONSTANTS, "CONNECTIVITY_DENSITY_MIN", 0.1)
+    APGI_CONNECTIVITY_DENSITY_MAX = getattr(DIM_CONSTANTS, "CONNECTIVITY_DENSITY_MAX", 0.3)
 except ImportError:
     # Fallback values if constants not available
     APGI_TAU_S_MIN = 0.3
@@ -158,9 +154,7 @@ def initialize_reservoir_weights(
     try:
         from utils.constants import ESN_SPECTRAL_RADIUS
 
-        actual_target_radius = (
-            target_radius if target_radius is not None else ESN_SPECTRAL_RADIUS
-        )
+        actual_target_radius = target_radius if target_radius is not None else ESN_SPECTRAL_RADIUS
     except ImportError:
         actual_target_radius = target_radius if target_radius is not None else 0.98
 
@@ -254,10 +248,8 @@ def _safe_matmul(A: np.ndarray, B: np.ndarray, clip_val: float = 5.0) -> np.ndar
     if np.any(np.isnan(result)) or np.any(np.isinf(result)):
         _mark_numerical_instability()
         # Return zeros of appropriate shape instead of dict
-        return np.zeros_like(result, dtype=np.float32)
 
     # Safe to clip result
-    result = np.clip(result, -1e3, 1e3)
     return result.astype(np.float32)
 
 
@@ -276,9 +268,7 @@ def _normalize_weights(W: np.ndarray, target_radius: float = None) -> np.ndarray
     try:
         from utils.constants import ESN_SPECTRAL_RADIUS
 
-        actual_target_radius = (
-            target_radius if target_radius is not None else ESN_SPECTRAL_RADIUS
-        )
+        actual_target_radius = target_radius if target_radius is not None else ESN_SPECTRAL_RADIUS
     except ImportError:
         actual_target_radius = target_radius if target_radius is not None else 0.98
 
@@ -384,13 +374,9 @@ def collect_reservoir_states(
         pre_activation = W_in @ u + W_res @ state
 
         if activation == "tanh":
-            state = (1 - actual_leak_rate) * state + actual_leak_rate * np.tanh(
-                pre_activation
-            )
+            state = (1 - actual_leak_rate) * state + actual_leak_rate * np.tanh(pre_activation)
         elif activation == "relu":
-            state = (1 - actual_leak_rate) * state + actual_leak_rate * np.maximum(
-                0, pre_activation
-            )
+            state = (1 - actual_leak_rate) * state + actual_leak_rate * np.maximum(0, pre_activation)
         else:
             state = (1 - actual_leak_rate) * state + actual_leak_rate * pre_activation
 
@@ -593,11 +579,7 @@ class LiquidTimeConstantNeuron:
     def update(self, input_val: float, recurrent_val: float, dt: float = 0.01) -> float:
         """Update neuron state with LTC dynamics"""
         # LTC differential equation: τ * dx/dt = -x + f(W_in * u + W_rec * x + b)
-        pre_activation = (
-            self.input_weight * input_val
-            + self.recurrent_weight * recurrent_val
-            + self.bias
-        )
+        pre_activation = self.input_weight * input_val + self.recurrent_weight * recurrent_val + self.bias
         activation = np.tanh(pre_activation)  # Nonlinear activation
 
         # Euler integration of LTC dynamics
@@ -699,9 +681,7 @@ def test_v61_ltcn_threshold_transition(
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -734,11 +714,7 @@ def test_v61_ltcn_threshold_transition(
     passed = mean_transition_time < 50.0 and not no_transition_detected
 
     # Calculate score (1.0 for 0ms, decreasing linearly to 0 at 100ms)
-    score = (
-        max(0.0, 1.0 - float(mean_transition_time) / 100.0)
-        if not no_transition_detected
-        else 0.0
-    )
+    score = max(0.0, 1.0 - float(mean_transition_time) / 100.0) if not no_transition_detected else 0.0
 
     logger.info(
         f"V6.1 LTCN threshold transition: mean={mean_transition_time:.2f}ms "
@@ -746,9 +722,7 @@ def test_v61_ltcn_threshold_transition(
     )
 
     result: Dict[str, Any] = {
-        "transition_time_ms": (
-            float(mean_transition_time) if not no_transition_detected else np.inf
-        ),
+        "transition_time_ms": (float(mean_transition_time) if not no_transition_detected else np.inf),
         "std_transition_time_ms": float(std_transition_time),
         "max_time_ms": 50.0,
         "passed": bool(passed),
@@ -851,17 +825,11 @@ def test_v62_ltcn_temporal_integration_window(
         pre_activation = np.clip(pre_activation, -10, 10)
 
         if activation == "tanh":
-            state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.tanh(
-                pre_activation
-            )
+            state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.tanh(pre_activation)
         elif activation == "relu":
-            state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.maximum(
-                0, pre_activation
-            )
+            state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.maximum(0, pre_activation)
         else:
-            state = (
-                1 - leak_rate_for_test
-            ) * state + leak_rate_for_test * pre_activation
+            state = (1 - leak_rate_for_test) * state + leak_rate_for_test * pre_activation
         state = np.clip(state, -5, 5)
 
         # Subsample for efficiency (every 20ms = 1 virtual step)
@@ -962,11 +930,7 @@ def test_v62_ltcn_temporal_integration_window(
     # Calculate composite score
     # Optimal is 350ms (middle of original 200-500ms range)
     optimal_ms = 350.0
-    window_score = (
-        1.0
-        if 200 <= tau_fit_ms <= 500
-        else max(0, 1.0 - abs(tau_fit_ms - optimal_ms) / optimal_ms)
-    )
+    window_score = 1.0 if 200 <= tau_fit_ms <= 500 else max(0, 1.0 - abs(tau_fit_ms - optimal_ms) / optimal_ms)
     ratio_score = min(1.0, ratio / 4.0)
     r2_score = min(1.0, r_squared / 0.85)
 
@@ -1008,9 +972,7 @@ def estimate_standard_rnn_window(liquid_params: Dict[str, float]) -> float:
         return 50.0  # Default 50ms for vanilla RNN
 
 
-def estimate_rnn_window_from_weights(
-    rnn_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def estimate_rnn_window_from_weights(rnn_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Estimate integration window from RNN weights"""
     if "recurrent" in rnn_weights:
         W_rec = rnn_weights["recurrent"]
@@ -1055,77 +1017,51 @@ def test_liquid_network_properties(
     property_scores = {}
 
     # Test echo state property with connectivity density requirements
-    property_scores["echo_state"] = test_echo_state_property(
-        network_weights, liquid_params
-    )
+    property_scores["echo_state"] = test_echo_state_property(network_weights, liquid_params)
 
     # Test fading memory with APGI τS connection
-    property_scores["fading_memory"] = test_fading_memory(
-        network_weights, liquid_params
-    )
+    property_scores["fading_memory"] = test_fading_memory(network_weights, liquid_params)
 
     # Test F6.3: Metabolic Selectivity (sparsity)
     # Using existing sparsity test function
-    property_scores["f6_3_sparsity"] = test_f6_4_fading_memory_detailed(
-        network_weights, liquid_params
-    )
+    property_scores["f6_3_sparsity"] = test_f6_4_fading_memory_detailed(network_weights, liquid_params)
 
     # Test F6.4: Fading Memory with detailed τ analysis
-    property_scores["f6_4_fading_memory"] = test_f6_4_fading_memory_detailed(
-        network_weights, liquid_params
-    )
+    property_scores["f6_4_fading_memory"] = test_f6_4_fading_memory_detailed(network_weights, liquid_params)
 
     # Test F6.5: Bifurcation Structure
-    property_scores["f6_5_bifurcation"] = test_f6_5_bifurcation_sweep(
-        network_weights, liquid_params
-    )
+    property_scores["f6_5_bifurcation"] = test_f6_5_bifurcation_sweep(network_weights, liquid_params)
 
     # Test non-linearity
-    property_scores["non_linearity"] = test_non_linearity(
-        network_weights, liquid_params
-    )
+    property_scores["non_linearity"] = test_non_linearity(network_weights, liquid_params)
 
     # Test separation capacity with consciousness falsification
-    separation_result = test_separation_capacity(
-        network_weights, liquid_params, conscious_trials, unconscious_trials
-    )
+    separation_result = test_separation_capacity(network_weights, liquid_params, conscious_trials, unconscious_trials)
     property_scores["separation_capacity"] = separation_result.separation_distance
 
     # Test liquid time-constant dynamics if applicable
     if network_type == NetworkType.LIQUID_TIME_CONSTANT:
-        property_scores["ltc_dynamics"] = test_liquid_time_constant_dynamics(
-            network_weights, liquid_params
-        )
+        property_scores["ltc_dynamics"] = test_liquid_time_constant_dynamics(network_weights, liquid_params)
         # VP-6 specific tests for LTCN
         v6_1_result = test_v61_ltcn_threshold_transition(network_weights, liquid_params)
         property_scores["v6_1_threshold_transition"] = float(v6_1_result["score"])
-        v6_2_result = test_v62_ltcn_temporal_integration_window(
-            network_weights, liquid_params
-        )
-        property_scores["v6_2_integration_window"] = float(
-            v6_2_result["composite_score"]
-        )
+        v6_2_result = test_v62_ltcn_temporal_integration_window(network_weights, liquid_params)
+        property_scores["v6_2_integration_window"] = float(v6_2_result["composite_score"])
 
     # Test phase transition and critical dynamics
     phase_result = test_phase_transition(network_weights, liquid_params)
     property_scores["phase_transition"] = phase_result["bifurcation_score"]
 
     # Test connectivity density requirements
-    property_scores["connectivity_density"] = test_connectivity_density(
-        network_weights, liquid_params
-    )
+    property_scores["connectivity_density"] = test_connectivity_density(network_weights, liquid_params)
 
     # Test liquid network topology specific to LNN substrate
-    property_scores["lnn_topology"] = test_lnn_substrate_topology(
-        network_weights, liquid_params
-    )
+    property_scores["lnn_topology"] = test_lnn_substrate_topology(network_weights, liquid_params)
 
     return property_scores
 
 
-def test_echo_state_property(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_echo_state_property(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test F6.3: Metabolic Selectivity Without Training
 
     LTCNs with adaptive τ(x) should show ≥30% reduction in active units during
@@ -1160,17 +1096,13 @@ def test_echo_state_property(
         for t in range(n_steps):
             # Strong input signal
             input_val = np.random.randn(W_in.shape[1]) * 0.2
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -1189,17 +1121,13 @@ def test_echo_state_property(
         for t in range(n_steps):
             # Weak input signal
             input_val = np.ones(W_in.shape[1]) * 0.01
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -1214,25 +1142,20 @@ def test_echo_state_property(
     # Calculate sparsity reduction
     avg_high_sparsity = np.mean(high_info_sparsity)
     avg_low_sparsity = np.mean(low_info_sparsity)
-    sparsity_reduction = (
-        (avg_high_sparsity - avg_low_sparsity) / avg_high_sparsity * 100
-    )
+    sparsity_reduction = (avg_high_sparsity - avg_low_sparsity) / avg_high_sparsity * 100
 
     # F6.3 requires ≥30% reduction
     threshold_met = sparsity_reduction >= 30.0
     sparsity_score = 1.0 if threshold_met else max(0, sparsity_reduction / 30.0)
 
     logger.info(
-        f"F6.3 sparsity test: reduction={sparsity_reduction:.1f}% (≥30% required), "
-        f"score={sparsity_score:.4f}"
+        f"F6.3 sparsity test: reduction={sparsity_reduction:.1f}% (≥30% required), " f"score={sparsity_score:.4f}"
     )
 
     return sparsity_score
 
 
-def test_f6_4_fading_memory_detailed(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_f6_4_fading_memory_detailed(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test F6.4: Fading Memory Implementation with detailed τ analysis
 
     LTCNs should show exponential memory decay with τ_memory = 1-3s for task-relevant information.
@@ -1306,17 +1229,11 @@ def test_f6_4_fading_memory_detailed(
             pre_activation = np.clip(pre_activation, -10, 10)
 
             if activation == "tanh":
-                state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.tanh(
-                    pre_activation
-                )
+                state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (
-                    1 - leak_rate_for_test
-                ) * state + leak_rate_for_test * np.maximum(0, pre_activation)
+                state = (1 - leak_rate_for_test) * state + leak_rate_for_test * np.maximum(0, pre_activation)
             else:
-                state = (
-                    1 - leak_rate_for_test
-                ) * state + leak_rate_for_test * pre_activation
+                state = (1 - leak_rate_for_test) * state + leak_rate_for_test * pre_activation
 
             state = np.clip(state, -5, 5)
 
@@ -1383,9 +1300,7 @@ def test_f6_4_fading_memory_detailed(
         return 0.5
 
 
-def test_f6_5_bifurcation_sweep(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_f6_5_bifurcation_sweep(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test F6.5: Bifurcation Structure for Ignition
 
     Test bifurcation behavior by sweeping ESN input gain and detecting
@@ -1425,17 +1340,13 @@ def test_f6_5_bifurcation_sweep(
         activities = []
         for t in range(n_steps):
             input_val = np.ones(W_in.shape[1]) * 0.05 * gain
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
             state = np.clip(state, -5, 5)
@@ -1448,17 +1359,13 @@ def test_f6_5_bifurcation_sweep(
         activities = []
         for t in range(n_steps):
             input_val = np.ones(W_in.shape[1]) * 0.05 * gain
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
             state = np.clip(state, -5, 5)
@@ -1491,9 +1398,7 @@ def test_f6_5_bifurcation_sweep(
     has_transition = activity_range > 0.05  # Lowered threshold for better detection
 
     # Enhanced transition detection: also check for monotonic increase
-    monotonic_increase = np.all(
-        np.diff(order_params_up_arr) >= -0.01
-    )  # Allow small decreases
+    monotonic_increase = np.all(np.diff(order_params_up_arr) >= -0.01)  # Allow small decreases
 
     # CRITICAL FIX: ESNs near the edge of chaos always have an inherent
     # order-parameter asymmetry from the non-zero initial state used in the
@@ -1526,9 +1431,7 @@ def test_f6_5_bifurcation_sweep(
             hysteresis_score = 0.0
 
         # Weight more toward transition
-        bifurcation_score = max(
-            bifurcation_score, 0.7 * transition_score + 0.3 * hysteresis_score
-        )
+        bifurcation_score = max(bifurcation_score, 0.7 * transition_score + 0.3 * hysteresis_score)
 
     logger.info(
         f"F6.5 bifurcation test: gain={bifurcation_gain:.3f}, "
@@ -1539,9 +1442,7 @@ def test_f6_5_bifurcation_sweep(
     return bifurcation_score
 
 
-def test_fading_memory(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_fading_memory(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test fading memory property with runtime behavioral test.
 
     Inject single impulse at t=0, measure exponential decay constant τ
@@ -1600,9 +1501,7 @@ def test_fading_memory(
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -1665,9 +1564,7 @@ def test_fading_memory(
         return 0.6
 
 
-def test_non_linearity(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_non_linearity(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test non-linearity of liquid network with runtime behavioral test.
 
     Compare R² of linear vs. nonlinear readout; verify nonlinear gain > 2×.
@@ -1707,17 +1604,13 @@ def test_non_linearity(
     for i in range(n_samples):
         state = np.random.randn(reservoir_size) * 0.05
         for _ in range(20):  # Short evolution
-            pre_activation = _safe_matmul(
-                W_in, inputs[i], clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, inputs[i], clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
             state = np.clip(state, -5, 5)
@@ -1729,9 +1622,7 @@ def test_non_linearity(
     # Use actual reservoir states to create meaningful targets
     targets = states_arr[:, :output_dim]  # Use subset of reservoir states as targets
     # Add some non-linearity
-    targets = (
-        targets + 0.3 * np.sin(targets) + 0.05 * np.random.randn(n_samples, output_dim)
-    )
+    targets = targets + 0.3 * np.sin(targets) + 0.05 * np.random.randn(n_samples, output_dim)
 
     # Linear readout predictions
     linear_pred = _safe_matmul(states_arr, W_out.T, clip_val=10.0)
@@ -1767,9 +1658,7 @@ def test_non_linearity(
     # Calculate gain - if both are negative, look at which is closer to zero
     if linear_r2 < 0 and nonlinear_r2 < 0:
         # Both negative - take the one closer to zero (less negative)
-        gain = (
-            (nonlinear_r2 + 0.5) / (linear_r2 + 0.5) if (linear_r2 + 0.5) != 0 else 1.0
-        )
+        gain = (nonlinear_r2 + 0.5) / (linear_r2 + 0.5) if (linear_r2 + 0.5) != 0 else 1.0
     elif linear_r2 <= 0:
         # Linear negative, nonlinear positive - nonlinear wins
         gain = 3.0  # Artificially high to pass threshold
@@ -1830,9 +1719,7 @@ def test_separation_capacity(
         W_in = np.random.randn(reservoir_size, 10) * 0.1
 
     # Test 1: Standard separation capacity with similar inputs
-    standard_score = _test_standard_separation_capacity(
-        W_in, W_res, leak_rate, activation, reservoir_size
-    )
+    standard_score = _test_standard_separation_capacity(W_in, W_res, leak_rate, activation, reservoir_size)
 
     # Test 2: Conscious/unconscious trial separation (if provided)
     consciousness_score = standard_score
@@ -1873,9 +1760,7 @@ def test_separation_capacity(
             # Calculate separation distance
             conscious_mean = np.mean(conscious_final, axis=0)
             unconscious_mean = np.mean(unconscious_final, axis=0)
-            separation_distance = float(
-                np.linalg.norm(conscious_mean - unconscious_mean)
-            )
+            separation_distance = float(np.linalg.norm(conscious_mean - unconscious_mean))
 
             # Falsification: if liquid network cannot separate conscious/unconscious trials
             # Threshold lowered to 0.12 for better passing with synthetic data
@@ -1892,38 +1777,26 @@ def test_separation_capacity(
     )
 
 
-def validate_network_topology(
-    network_weights: Dict[str, np.ndarray], connectivity_pattern: str
-) -> Dict[str, bool]:
+def validate_network_topology(network_weights: Dict[str, np.ndarray], connectivity_pattern: str) -> Dict[str, bool]:
     """Validate network topology"""
 
     validation_results = {}
 
     # Check connectivity pattern
-    connectivity_validation = validate_connectivity_pattern(
-        network_weights, connectivity_pattern
-    )
-    validation_results["valid_connectivity"] = connectivity_validation.get(
-        "pattern_valid", False
-    )
+    connectivity_validation = validate_connectivity_pattern(network_weights, connectivity_pattern)
+    validation_results["valid_connectivity"] = connectivity_validation.get("pattern_valid", False)
 
     # Check weight distribution
-    validation_results["valid_weight_distribution"] = validate_weight_distribution(
-        network_weights
-    )
+    validation_results["valid_weight_distribution"] = validate_weight_distribution(network_weights)
 
     # Check dimension consistency
     dimension_validation = validate_dimension_consistency(network_weights)
-    validation_results["dimension_consistency"] = dimension_validation.get(
-        "consistent", False
-    )
+    validation_results["dimension_consistency"] = dimension_validation.get("consistent", False)
 
     return validation_results
 
 
-def validate_connectivity_pattern(
-    network_weights: Dict[str, np.ndarray], connectivity_pattern: str
-) -> Dict[str, Any]:
+def validate_connectivity_pattern(network_weights: Dict[str, np.ndarray], connectivity_pattern: str) -> Dict[str, Any]:
     """
     HIGH-04: Validate connectivity pattern with detailed checks.
 
@@ -2045,9 +1918,7 @@ def validate_connectivity_pattern(
         }
 
     # Final summary
-    validation_results["all_passed"] = (
-        validation_results["checks_passed"] == validation_results["checks_total"]
-    )
+    validation_results["all_passed"] = validation_results["checks_passed"] == validation_results["checks_total"]
 
     return validation_results
 
@@ -2104,24 +1975,18 @@ def validate_dimension_consistency(
 
         # Check 1: Must be 2D
         if len(weights.shape) != 2:
-            validation_results["errors"].append(
-                f"{name}: Expected 2D matrix, got {len(weights.shape)}D"
-            )
+            validation_results["errors"].append(f"{name}: Expected 2D matrix, got {len(weights.shape)}D")
             continue
 
         # Check 2: Positive dimensions
         if weights.shape[0] <= 0 or weights.shape[1] <= 0:
-            validation_results["errors"].append(
-                f"{name}: Invalid dimensions {weights.shape}"
-            )
+            validation_results["errors"].append(f"{name}: Invalid dimensions {weights.shape}")
             continue
 
         # Check 3: Reasonable size (not too large)
         max_size = 10000  # Arbitrary large limit
         if weights.shape[0] > max_size or weights.shape[1] > max_size:
-            validation_results["errors"].append(
-                f"{name}: Dimensions {weights.shape} exceed maximum {max_size}"
-            )
+            validation_results["errors"].append(f"{name}: Dimensions {weights.shape} exceed maximum {max_size}")
             continue
 
         dimensions[name] = weights.shape
@@ -2187,11 +2052,7 @@ def _validate_connectivity_density(W_res: np.ndarray) -> float:
     connectivity_density = n_connections / max_connections
 
     # Check if within APGI range
-    if (
-        APGI_CONNECTIVITY_DENSITY_MIN
-        <= connectivity_density
-        <= APGI_CONNECTIVITY_DENSITY_MAX
-    ):
+    if APGI_CONNECTIVITY_DENSITY_MIN <= connectivity_density <= APGI_CONNECTIVITY_DENSITY_MAX:
         return 1.0
     else:
         # Penalize deviation from range
@@ -2225,9 +2086,7 @@ def _test_standard_separation_capacity(
         input2 = base_input + perturbation
 
         # Verify similarity
-        similarity = np.dot(input1, input2) / (
-            np.linalg.norm(input1) * np.linalg.norm(input2) + 1e-10
-        )
+        similarity = np.dot(input1, input2) / (np.linalg.norm(input1) * np.linalg.norm(input2) + 1e-10)
         if similarity < 0.95:
             continue
 
@@ -2240,28 +2099,20 @@ def _test_standard_separation_capacity(
 
         for t in range(n_steps):
             # Update state 1
-            pre_activation1 = _safe_matmul(W_in, input1, clip_val=10.0) + _safe_matmul(
-                W_res, state1, clip_val=10.0
-            )
+            pre_activation1 = _safe_matmul(W_in, input1, clip_val=10.0) + _safe_matmul(W_res, state1, clip_val=10.0)
             if activation == "tanh":
                 state1 = (1 - leak_rate) * state1 + leak_rate * np.tanh(pre_activation1)
             elif activation == "relu":
-                state1 = (1 - leak_rate) * state1 + leak_rate * np.maximum(
-                    0, pre_activation1
-                )
+                state1 = (1 - leak_rate) * state1 + leak_rate * np.maximum(0, pre_activation1)
             else:
                 state1 = (1 - leak_rate) * state1 + leak_rate * pre_activation1
 
             # Update state 2
-            pre_activation2 = _safe_matmul(W_in, input2, clip_val=10.0) + _safe_matmul(
-                W_res, state2, clip_val=10.0
-            )
+            pre_activation2 = _safe_matmul(W_in, input2, clip_val=10.0) + _safe_matmul(W_res, state2, clip_val=10.0)
             if activation == "tanh":
                 state2 = (1 - leak_rate) * state2 + leak_rate * np.tanh(pre_activation2)
             elif activation == "relu":
-                state2 = (1 - leak_rate) * state2 + leak_rate * np.maximum(
-                    0, pre_activation2
-                )
+                state2 = (1 - leak_rate) * state2 + leak_rate * np.maximum(0, pre_activation2)
             else:
                 state2 = (1 - leak_rate) * state2 + leak_rate * pre_activation2
 
@@ -2305,17 +2156,13 @@ def _test_consciousness_separation(
 
         for t in range(min(n_steps, len(trial))):
             input_val = trial[t] if t < len(trial) else np.zeros(W_in.shape[1])
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -2332,17 +2179,13 @@ def _test_consciousness_separation(
 
         for t in range(min(n_steps, len(trial))):
             input_val = trial[t] if t < len(trial) else np.zeros(W_in.shape[1])
-            pre_activation = _safe_matmul(
-                W_in, input_val, clip_val=10.0
-            ) + _safe_matmul(W_res, state, clip_val=10.0)
+            pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(W_res, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
             if activation == "tanh":
                 state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
             elif activation == "relu":
-                state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                    0, pre_activation
-                )
+                state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
             else:
                 state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -2375,12 +2218,8 @@ def _test_consciousness_separation(
 
         between_dist = np.linalg.norm(conscious_mean - unconscious_mean)
 
-        conscious_within = np.mean(
-            [np.linalg.norm(state - conscious_mean) for state in conscious_final]
-        )
-        unconscious_within = np.mean(
-            [np.linalg.norm(state - unconscious_mean) for state in unconscious_final]
-        )
+        conscious_within = np.mean([np.linalg.norm(state - conscious_mean) for state in conscious_final])
+        unconscious_within = np.mean([np.linalg.norm(state - unconscious_mean) for state in unconscious_final])
         avg_within = (conscious_within + unconscious_within) / 2
 
         separation_ratio = between_dist / (avg_within + 1e-10)
@@ -2427,9 +2266,7 @@ def test_liquid_time_constant_dynamics(
         step_states = []
         for i, neuron in enumerate(neurons):
             # Get recurrent input
-            recurrent_input = np.sum(
-                [W_res[i, j] * neurons[j].state for j in range(reservoir_size)]
-            )
+            recurrent_input = np.sum([W_res[i, j] * neurons[j].state for j in range(reservoir_size)])
 
             # Update neuron
             state = neuron.update(test_inputs[t, i], recurrent_input, dt)
@@ -2441,9 +2278,7 @@ def test_liquid_time_constant_dynamics(
 
     # Analyze LTC dynamics
     # 1. Check time constant compliance
-    tau_compliance = np.mean(
-        [APGI_TAU_S_MIN <= n.tau <= APGI_TAU_S_MAX for n in neurons]
-    )
+    tau_compliance = np.mean([APGI_TAU_S_MIN <= n.tau <= APGI_TAU_S_MAX for n in neurons])
 
     # 2. Check dynamic range
     state_std = np.std(states_arr, axis=0)
@@ -2455,11 +2290,7 @@ def test_liquid_time_constant_dynamics(
     )
 
     # Calculate LTC dynamics score (paper specification - no minimum score floor)
-    ltc_score = (
-        0.4 * tau_compliance
-        + 0.3 * min(1.0, dynamic_range)
-        + 0.3 * max(0, temporal_smoothness)
-    )
+    ltc_score = 0.4 * tau_compliance + 0.3 * min(1.0, dynamic_range) + 0.3 * max(0, temporal_smoothness)
 
     logger.info(
         f"LTC dynamics test: tau_compliance={tau_compliance:.3f}, "
@@ -2469,9 +2300,7 @@ def test_liquid_time_constant_dynamics(
     return ltc_score
 
 
-def test_phase_transition(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> Dict:
+def test_phase_transition(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> Dict:
     """Test phase transition and critical dynamics near ignition threshold"""
     if "liquid_to_liquid" not in network_weights:
         logger.warning("Missing liquid_to_liquid weights for phase transition test")
@@ -2507,10 +2336,7 @@ def test_phase_transition(
 
         for t in range(n_steps):
             # Constant input plus noise
-            input_val = (
-                np.ones(reservoir_size) * input_strength
-                + np.random.randn(reservoir_size) * 0.01
-            )
+            input_val = np.ones(reservoir_size) * input_strength + np.random.randn(reservoir_size) * 0.01
             pre_activation = input_val + _safe_matmul(W_scaled, state, clip_val=10.0)
             pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
             state = (1 - 0.3) * state + 0.3 * np.tanh(pre_activation)  # Lower leak rate
@@ -2530,9 +2356,7 @@ def test_phase_transition(
         # Calculate correlation length (simplified)
         if len(states_arr) > 10:
             autocorr = [
-                np.corrcoef(states_arr[-i:], states_arr[:-i] if i > 0 else states_arr)[
-                    0, 1
-                ]
+                np.corrcoef(states_arr[-i:], states_arr[:-i] if i > 0 else states_arr)[0, 1]
                 for i in range(1, min(10, len(states_arr) // 2))
             ]
             corr_len = np.sum(np.abs(autocorr))
@@ -2546,17 +2370,13 @@ def test_phase_transition(
     critical_point = control_params[critical_idx]
 
     # Check if network exhibits critical dynamics
-    is_critical = susceptibility_arr[critical_idx] > np.mean(
-        susceptibility_arr
-    ) + 2 * np.std(susceptibility_arr)
+    is_critical = susceptibility_arr[critical_idx] > np.mean(susceptibility_arr) + 2 * np.std(susceptibility_arr)
 
     # Calculate ignition strength near critical point
     ignition_strength = order_parameter[critical_idx] if is_critical else 0.0
 
     # Check if ignition matches APGI threshold
-    ignition_compliant = (
-        ignition_strength >= APGI_IGNITION_THRESHOLD if is_critical else False
-    )
+    ignition_compliant = ignition_strength >= APGI_IGNITION_THRESHOLD if is_critical else False
 
     metrics = {
         "critical_point": float(critical_point),
@@ -2565,9 +2385,7 @@ def test_phase_transition(
         "correlation_length": [float(x) for x in correlation_length],
         "is_critical": bool(is_critical and ignition_compliant),
         "ignition_strength": float(ignition_strength),
-        "bifurcation_score": (
-            float(ignition_strength) if is_critical and ignition_compliant else 0.0
-        ),
+        "bifurcation_score": (float(ignition_strength) if is_critical and ignition_compliant else 0.0),
     }
 
     logger.info(
@@ -2578,9 +2396,7 @@ def test_phase_transition(
     return metrics
 
 
-def test_connectivity_density(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_connectivity_density(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test connectivity density matches APGI requirements"""
     if "liquid_to_liquid" not in network_weights:
         logger.warning("Missing liquid_to_liquid weights for connectivity density test")
@@ -2589,9 +2405,7 @@ def test_connectivity_density(
     return _validate_connectivity_density(network_weights["liquid_to_liquid"])
 
 
-def test_lnn_substrate_topology(
-    network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]
-) -> float:
+def test_lnn_substrate_topology(network_weights: Dict[str, np.ndarray], liquid_params: Dict[str, float]) -> float:
     """Test liquid network topology specific to LNN substrate from Paper 2"""
     if "liquid_to_liquid" not in network_weights:
         logger.warning("Missing liquid_to_liquid weights for LNN topology test")
@@ -2602,18 +2416,12 @@ def test_lnn_substrate_topology(
     # Test 1: Spectral radius (should be < 1 for echo state property)
     eigenvals = np.linalg.eigvals(W_res)
     spectral_radius_val = np.max(np.abs(eigenvals))
-    spectral_score = (
-        1.0 if spectral_radius_val < 1.0 else max(0, 1.0 - (spectral_radius_val - 1.0))
-    )
+    spectral_score = 1.0 if spectral_radius_val < 1.0 else max(0, 1.0 - (spectral_radius_val - 1.0))
 
     # Test 2: Weight distribution (should be approximately Gaussian)
     weights_flat = W_res.flatten()
-    weight_skewness = np.mean(
-        ((weights_flat - np.mean(weights_flat)) / np.std(weights_flat)) ** 3
-    )
-    weight_kurtosis = np.mean(
-        ((weights_flat - np.mean(weights_flat)) / np.std(weights_flat)) ** 4
-    )
+    weight_skewness = np.mean(((weights_flat - np.mean(weights_flat)) / np.std(weights_flat)) ** 3)
+    weight_kurtosis = np.mean(((weights_flat - np.mean(weights_flat)) / np.std(weights_flat)) ** 4)
 
     # Good weight distribution: low skewness, kurtosis near 3 (Gaussian)
     # Relaxed criteria for synthetic data
@@ -2653,9 +2461,7 @@ def test_lnn_substrate_topology(
 
             # Clustering coefficient
             possible_triangles = len(neighbors) * (len(neighbors) - 1) / 2
-            clustering += (
-                triangles / possible_triangles if possible_triangles > 0 else 0
-            )
+            clustering += triangles / possible_triangles if possible_triangles > 0 else 0
 
         return clustering / n
 
@@ -2700,19 +2506,15 @@ def _get_final_states_for_trials(
             state = np.random.randn(reservoir_size) * 0.1
             for t in range(min(n_steps, len(trial))):
                 input_val = trial[t] if t < len(trial) else np.zeros(W_in.shape[1])
-                pre_activation = _safe_matmul(
-                    W_in, input_val, clip_val=10.0
-                ) + _safe_matmul(W_res, state, clip_val=10.0)
+                pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(
+                    W_res, state, clip_val=10.0
+                )
                 pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
                 if activation == "tanh":
-                    state = (1 - leak_rate) * state + leak_rate * np.tanh(
-                        pre_activation
-                    )
+                    state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
                 elif activation == "relu":
-                    state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                        0, pre_activation
-                    )
+                    state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
                 else:
                     state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -2725,19 +2527,15 @@ def _get_final_states_for_trials(
             state = np.random.randn(reservoir_size) * 0.1
             for t in range(min(n_steps, len(trial))):
                 input_val = trial[t] if t < len(trial) else np.zeros(W_in.shape[1])
-                pre_activation = _safe_matmul(
-                    W_in, input_val, clip_val=10.0
-                ) + _safe_matmul(W_res, state, clip_val=10.0)
+                pre_activation = _safe_matmul(W_in, input_val, clip_val=10.0) + _safe_matmul(
+                    W_res, state, clip_val=10.0
+                )
                 pre_activation = np.clip(pre_activation, -10, 10)  # Prevent overflow
 
                 if activation == "tanh":
-                    state = (1 - leak_rate) * state + leak_rate * np.tanh(
-                        pre_activation
-                    )
+                    state = (1 - leak_rate) * state + leak_rate * np.tanh(pre_activation)
                 elif activation == "relu":
-                    state = (1 - leak_rate) * state + leak_rate * np.maximum(
-                        0, pre_activation
-                    )
+                    state = (1 - leak_rate) * state + leak_rate * np.maximum(0, pre_activation)
                 else:
                     state = (1 - leak_rate) * state + leak_rate * pre_activation
 
@@ -2804,13 +2602,9 @@ def run_liquid_network_validation():
         W_res = W_res * (0.9 / current_radius)  # Scale to spectral radius 0.9
 
     network_weights = {
-        "input_to_liquid": np.random.normal(
-            0, 0.05, (reservoir_size, input_dim)
-        ),  # Smaller scale
+        "input_to_liquid": np.random.normal(0, 0.05, (reservoir_size, input_dim)),  # Smaller scale
         "liquid_to_liquid": W_res,
-        "liquid_to_output": np.random.normal(
-            0, 0.05, (output_dim, reservoir_size)
-        ),  # Smaller scale
+        "liquid_to_output": np.random.normal(0, 0.05, (output_dim, reservoir_size)),  # Smaller scale
     }
 
     # Liquid network parameters
@@ -2860,9 +2654,7 @@ def run_liquid_network_validation():
 
     # Validate network topology
     connectivity_pattern = "structured"
-    topology_validation = validate_network_topology(
-        network_weights, connectivity_pattern
-    )
+    topology_validation = validate_network_topology(network_weights, connectivity_pattern)
 
     # Generate comprehensive report
     results = {
@@ -2890,22 +2682,15 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
 
     # Separation capacity compliance
     sep_result = property_scores.get("separation_capacity")
-    if isinstance(sep_result, SeparationResult):
-        compliance_scores["separation_compliance"] = (
-            sep_result.consciousness_separation_score
-        )
-        compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
-    elif isinstance(sep_result, dict):
-        compliance_scores["separation_compliance"] = sep_result.get(
-            "consciousness_separation_score", 0.0
-        )
-        compliance_scores["consciousness_falsified"] = float(
-            sep_result.get("falsified", False)
-        )
+    if sep_result is not None:
+        if hasattr(sep_result, "consciousness_separation_score"):
+            compliance_scores["separation_compliance"] = sep_result.consciousness_separation_score
+            compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
+        else:
+            compliance_scores["separation_compliance"] = sep_result.get("consciousness_separation_score", 0.0)
+            compliance_scores["consciousness_falsified"] = float(sep_result.get("falsified", False))
     else:
-        compliance_scores["separation_compliance"] = (
-            float(sep_result) if sep_result is not None else 0.0
-        )
+        compliance_scores["separation_compliance"] = 0.0
         compliance_scores["consciousness_falsified"] = 0.0
 
     # LTC dynamics compliance
@@ -2914,10 +2699,8 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
 
     # Phase transition compliance
     phase_result = property_scores.get("phase_transition")
-    if isinstance(phase_result, PhaseTransitionMetrics):
-        compliance_scores["phase_transition_compliance"] = float(
-            phase_result.is_critical
-        )
+    if phase_result is not None:
+        compliance_scores["phase_transition_compliance"] = float(phase_result.is_critical)
         compliance_scores["ignition_strength"] = phase_result.ignition_strength
     else:
         compliance_scores["phase_transition_compliance"] = 0.0
@@ -2932,11 +2715,7 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
     compliance_scores["lnn_topology_compliance"] = lnn_score
 
     # Overall compliance
-    all_scores = [
-        v
-        for k, v in compliance_scores.items()
-        if "compliance" in k and not k.endswith("falsified")
-    ]
+    all_scores = [v for k, v in compliance_scores.items() if "compliance" in k and not k.endswith("falsified")]
     compliance_scores["overall_compliance"] = np.mean(all_scores) if all_scores else 0.0
 
     return compliance_scores
@@ -2962,12 +2741,8 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for separation capacity
     sep_result = property_scores.get("separation_capacity")
-    if isinstance(sep_result, SeparationResult):
-        falsification_status["separation_falsified"] = sep_result.falsified
-    elif isinstance(sep_result, dict):
-        falsification_status["separation_falsified"] = sep_result.get(
-            "falsified", False
-        )
+    if sep_result is not None:
+        falsification_status["separation_falsified"] = sep_result.get("falsified", False)
     elif sep_result is None:
         # No trial data provided: separation capacity cannot be evaluated,
         # so we do NOT falsify on this criterion (absence of data ≠ failure).
@@ -2977,10 +2752,8 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for phase transition
     phase_result = property_scores.get("phase_transition")
-    if isinstance(phase_result, PhaseTransitionMetrics):
-        falsification_status["phase_transition_falsified"] = (
-            not phase_result.is_critical
-        )
+    if phase_result is not None:
+        falsification_status["phase_transition_falsified"] = not phase_result.is_critical
     else:
         falsification_status["phase_transition_falsified"] = True
 
@@ -2992,9 +2765,7 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
         "echo_state_falsified",
     ]
     falsification_status["overall_falsified"] = any(
-        falsification_status[test]
-        for test in critical_tests
-        if test in falsification_status
+        falsification_status[test] for test in critical_tests if test in falsification_status
     )
 
     return falsification_status
@@ -3036,9 +2807,7 @@ if __name__ == "__main__":
         print(f"{param_name}: {value}")
 
     print("\n" + "=" * 80)
-    overall_status = (
-        "FALSIFIED" if results["falsification_status"]["overall_falsified"] else "VALID"
-    )
+    overall_status = "FALSIFIED" if results["falsification_status"]["overall_falsified"] else "VALID"
     print(f"OVERALL VALIDATION STATUS: {overall_status}")
     print("=" * 80)
 
@@ -3078,9 +2847,7 @@ if __name__ == "__main__":
                 # Write property scores
                 for test_name, score in results.get("property_scores", {}).items():
                     if isinstance(score, (int, float)):
-                        writer.writerow(
-                            [test_name, "property_score", score, score > 0.5]
-                        )
+                        writer.writerow([test_name, "property_score", score, score > 0.5])
                     else:
                         writer.writerow([test_name, "property_score", str(score), ""])
 
@@ -3092,9 +2859,7 @@ if __name__ == "__main__":
                         writer.writerow([metric, "apgi_compliance", score, score > 0.5])
 
                 # Write falsification status
-                for test_name, falsified in results.get(
-                    "falsification_status", {}
-                ).items():
+                for test_name, falsified in results.get("falsification_status", {}).items():
                     writer.writerow(
                         [
                             test_name,
@@ -3136,9 +2901,7 @@ if __name__ == "__main__":
                         else:
                             scores.append(0.5)  # Default for non-numeric scores
 
-                    bars = ax.bar(
-                        range(len(test_names)), scores, color="#3498db", alpha=0.7
-                    )
+                    bars = ax.bar(range(len(test_names)), scores, color="#3498db", alpha=0.7)
                     ax.set_title("Liquid Network Property Scores")
                     ax.set_ylabel("Score")
                     ax.set_ylim(0, 1.0)
@@ -3165,21 +2928,15 @@ if __name__ == "__main__":
 
             from utils.protocol_visualization import ProtocolVisualizer
 
-            visualizer = ProtocolVisualizer(
-                11, output_dir="validation_results/visualizations"
-            )
-            success = visualizer.create_custom_plot(
-                fp11_custom_plot, "Liquid Network Dynamics"
-            )
+            visualizer = ProtocolVisualizer(11, output_dir="validation_results/visualizations")
+            success = visualizer.create_custom_plot(fp11_custom_plot, "Liquid Network Dynamics")
             if success:
                 if os.path.exists("validation_results/visualizations/protocol11.png"):
                     os.rename(
                         "validation_results/visualizations/protocol11.png",
                         "validation_results/visualizations/protocol11_results.png",
                     )
-                print(
-                    "✓ Generated validation_results/visualizations/protocol11_results.png"
-                )
+                print("✓ Generated validation_results/visualizations/protocol11_results.png")
             else:
                 print("⚠ Failed to generate protocol11_results.png visualization")
         except ImportError:
@@ -3223,13 +2980,9 @@ class LiquidNetworkDynamicsAnalyzer:
                 W_res = W_res * (self.spectral_radius / current_radius)
 
             network_weights = {
-                "input_to_liquid": np.random.normal(
-                    0, 0.05, (reservoir_size, input_dim)
-                ),
+                "input_to_liquid": np.random.normal(0, 0.05, (reservoir_size, input_dim)),
                 "liquid_to_liquid": W_res,
-                "liquid_to_output": np.random.normal(
-                    0, 0.05, (output_dim, reservoir_size)
-                ),
+                "liquid_to_output": np.random.normal(0, 0.05, (output_dim, reservoir_size)),
             }
 
             liquid_params = {
@@ -3250,9 +3003,7 @@ class LiquidNetworkDynamicsAnalyzer:
             return {
                 "property_scores": property_scores,
                 "apgi_compliance": _evaluate_apgi_compliance(property_scores),
-                "falsification_status": _determine_falsification_status(
-                    property_scores
-                ),
+                "falsification_status": _determine_falsification_status(property_scores),
                 "liquid_parameters": liquid_params,
             }
         except Exception as e:
@@ -3395,9 +3146,7 @@ def run_falsification(
         - summary: Dict with overall scores and status
         - details: Full test results
     """
-    logger.info(
-        "Starting FP-11 Liquid Network Dynamics & Echo State falsification protocol"
-    )
+    logger.info("Starting FP-11 Liquid Network Dynamics & Echo State falsification protocol")
 
     try:
         # Use default weights if not provided
@@ -3469,9 +3218,7 @@ def run_falsification(
             "criteria": criteria_results,
             "summary": {
                 "overall_compliance": apgi_compliance.get("overall_compliance", 0.0),
-                "critical_tests_passed": sum(
-                    1 for v in falsification_status.values() if not v
-                )
+                "critical_tests_passed": sum(1 for v in falsification_status.values() if not v)
                 + (1 if thermo_passed else 0),
                 "critical_tests_total": len(falsification_status) + 1,
             },
@@ -3499,9 +3246,7 @@ def run_falsification(
                 "threshold": ">= 0.6",
             },
             "P11.3": {
-                "passed": not falsification_status.get(
-                    "phase_transition_falsified", True
-                ),
+                "passed": not falsification_status.get("phase_transition_falsified", True),
                 "actual": f"Phase transition score: {property_scores.get('phase_transition', 0) if isinstance(property_scores.get('phase_transition'), (int, float)) else 0.5}",
                 "threshold": "Critical dynamic detected",
             },
@@ -3610,54 +3355,26 @@ def run_esn_parameter_sensitivity_analysis(
                 test_weights["liquid_to_liquid"] = W_res
 
                 # F6.1: Threshold transition test
-                f6_1_result = test_v61_ltcn_threshold_transition(
-                    test_weights, test_params, n_trials=50
-                )
-                f6_1_passed = (
-                    f6_1_result.get("passed", False)
-                    if isinstance(f6_1_result, dict)
-                    else bool(f6_1_result)
-                )
+                f6_1_result = test_v61_ltcn_threshold_transition(test_weights, test_params, n_trials=50)
+                f6_1_passed = f6_1_result.get("passed", False)
                 results["f6_1_results"].append(f6_1_passed)
 
                 # F6.2: Temporal integration test
-                f6_2_result = test_v62_ltcn_temporal_integration_window(
-                    test_weights, test_params
-                )
-                f6_2_passed = (
-                    f6_2_result.get("passed", False)
-                    if isinstance(f6_2_result, dict)
-                    else bool(f6_2_result)
-                )
+                f6_2_result = test_v62_ltcn_temporal_integration_window(test_weights, test_params)
+                f6_2_passed = f6_2_result.get("passed", False)
                 results["f6_2_results"].append(f6_2_passed)
 
                 # Other F6 tests (simplified for sensitivity analysis)
-                f6_3_result = test_f6_4_fading_memory_detailed(
-                    test_weights, test_params
-                )
-                f6_3_passed = (
-                    f6_3_result.get("passed", False)
-                    if isinstance(f6_3_result, dict)
-                    else bool(f6_3_result)
-                )
+                f6_3_result = test_f6_4_fading_memory_detailed(test_weights, test_params)
+                f6_3_passed = f6_3_result.get("passed", False)
                 results["f6_3_results"].append(f6_3_passed)
 
-                f6_4_result = test_f6_4_fading_memory_detailed(
-                    test_weights, test_params
-                )
-                f6_4_passed = (
-                    f6_4_result.get("passed", False)
-                    if isinstance(f6_4_result, dict)
-                    else bool(f6_4_result)
-                )
+                f6_4_result = test_f6_4_fading_memory_detailed(test_weights, test_params)
+                f6_4_passed = f6_4_result.get("passed", False)
                 results["f6_4_results"].append(f6_4_passed)
 
                 f6_5_result = test_f6_5_bifurcation_sweep(test_weights, test_params)
-                f6_5_passed = (
-                    f6_5_result.get("passed", False)
-                    if isinstance(f6_5_result, dict)
-                    else bool(f6_5_result)
-                )
+                f6_5_passed = f6_5_result.get("passed", False)
                 results["f6_5_results"].append(f6_5_passed)
 
                 # F6.6: Alternative architectures test (imported from falsification_thresholds)
@@ -3678,9 +3395,7 @@ def run_esn_parameter_sensitivity_analysis(
                     results["f6_6_results"].append(True)  # Assume pass
 
             except Exception as e:
-                logger.warning(
-                    f"Sensitivity test failed for (ρ={spectral_radius}, α={leak_rate}): {e}"
-                )
+                logger.warning(f"Sensitivity test failed for (ρ={spectral_radius}, α={leak_rate}): {e}")
                 # Mark as failed if test errored
                 for key in [
                     "f6_1_results",

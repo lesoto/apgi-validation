@@ -51,9 +51,7 @@ def test_threshold_dynamics_with_liquid_network():
         # Load APGI_Liquid_Network_Implementation from Theory directory
         spec = importlib.util.spec_from_file_location(
             "APGI_Liquid_Network_Implementation",
-            Path(__file__).parent.parent
-            / "Theory"
-            / "APGI_Liquid_Network_Implementation.py",
+            Path(__file__).parent.parent / "Theory" / "APGI_Liquid_Network_Implementation.py",
         )
         APGI_Liquid_Network_Implementation = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(APGI_Liquid_Network_Implementation)

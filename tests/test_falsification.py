@@ -164,9 +164,7 @@ def test_falsification_protocol_5_evolvable_agent():
 
         spec = importlib.util.spec_from_file_location(
             "falsification5",
-            Path(__file__).parent.parent
-            / "Falsification"
-            / "FP_05_EvolutionaryPlausibility.py",
+            Path(__file__).parent.parent / "Falsification" / "FP_05_EvolutionaryPlausibility.py",
         )
         if spec is None or spec.loader is None:
             pytest.skip("FP_05_EvolutionaryPlausibility.py not found")
@@ -235,9 +233,7 @@ def test_falsification_protocol_6_network_comparison():
 
         spec = importlib.util.spec_from_file_location(
             "falsification6",
-            Path(__file__).parent.parent
-            / "Falsification"
-            / "FP_05_EvolutionaryPlausibility.py",
+            Path(__file__).parent.parent / "Falsification" / "FP_05_EvolutionaryPlausibility.py",
         )
         if spec is None or spec.loader is None:
             pytest.skip("FP_05_EvolutionaryPlausibility.py not found")
@@ -262,11 +258,7 @@ def test_falsification_protocol_6_network_comparison():
 def test_falsification_protocol_7_mathematical_consistency():
     """Test mathematical consistency checks from FP_07_MathematicalConsistency.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent
-        / "Falsification"
-        / "FP_07_MathematicalConsistency.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_07_MathematicalConsistency.py"
     if not protocol_path.exists():
         pytest.skip("FP_07_MathematicalConsistency.py not yet implemented")
 
@@ -289,11 +281,7 @@ def test_falsification_protocol_7_mathematical_consistency():
 def test_falsification_protocol_8_parameter_sensitivity():
     """Test parameter sensitivity analysis from FP_08_ParameterSensitivity_Identifiability.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent
-        / "Falsification"
-        / "FP_08_ParameterSensitivity_Identifiability.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_08_ParameterSensitivity_Identifiability.py"
     if not protocol_path.exists():
         pytest.skip("FP_08_ParameterSensitivity_Identifiability.py not yet implemented")
 
@@ -316,11 +304,7 @@ def test_falsification_protocol_8_parameter_sensitivity():
 def test_falsification_protocol_9_neural_signatures():
     """Test neural signatures validation from FP_09_NeuralSignatures_P3b_HEP.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent
-        / "Falsification"
-        / "FP_09_NeuralSignatures_P3b_HEP.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_09_NeuralSignatures_P3b_HEP.py"
     if not protocol_path.exists():
         pytest.skip("FP_09_NeuralSignatures_P3b_HEP.py not yet implemented")
 
@@ -343,9 +327,7 @@ def test_falsification_protocol_9_neural_signatures():
 def test_falsification_protocol_10_cross_species_scaling():
     """Test cross-species scaling from FP_12_CrossSpeciesScaling.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent / "Falsification" / "FP_12_CrossSpeciesScaling.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_12_CrossSpeciesScaling.py"
     if not protocol_path.exists():
         pytest.skip("FP_12_CrossSpeciesScaling.py not yet implemented")
 
@@ -368,11 +350,7 @@ def test_falsification_protocol_10_cross_species_scaling():
 def test_falsification_protocol_11_bayesian_estimation():
     """Test Bayesian estimation from FP_10_BayesianEstimation_MCMC.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent
-        / "Falsification"
-        / "FP_10_BayesianEstimation_MCMC.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_10_BayesianEstimation_MCMC.py"
     if not protocol_path.exists():
         pytest.skip("FP_10_BayesianEstimation_MCMC.py not yet implemented")
 
@@ -395,11 +373,7 @@ def test_falsification_protocol_11_bayesian_estimation():
 def test_falsification_protocol_12_liquid_network():
     """Test liquid network validation from FP_11_LiquidNetworkDynamics_EchoState.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = (
-        Path(__file__).parent.parent
-        / "Falsification"
-        / "FP_11_LiquidNetworkDynamics_EchoState.py"
-    )
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_11_LiquidNetworkDynamics_EchoState.py"
     if not protocol_path.exists():
         pytest.skip("FP_11_LiquidNetworkDynamics_EchoState.py not yet implemented")
 

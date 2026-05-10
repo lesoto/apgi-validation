@@ -19,10 +19,7 @@ import numpy as np
 import pytest
 
 # Import the protocol to test
-from Falsification.FP_05_EvolutionaryPlausibility import (
-    EvolutionaryAPGIEmergence,
-    EvolvableAgent,
-)
+from Falsification.FP_05_EvolutionaryPlausibility import EvolutionaryAPGIEmergence, EvolvableAgent
 
 
 class TestEvolutionaryPlausibilityProtocol5:
@@ -54,9 +51,7 @@ class TestEvolutionaryPlausibilityProtocol5:
         framework.validate_protocol = MagicMock(return_value=True)
         return framework
 
-    def test_evolvable_agent_creation(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_evolvable_agent_creation(self, sample_protocol_data, mock_validation_framework):
         """Test basic evolvable agent creation."""
         # Use correct genome structure with required keys
         genome = {
@@ -75,9 +70,7 @@ class TestEvolutionaryPlausibilityProtocol5:
         assert hasattr(agent, "genome")
         assert isinstance(agent.genome, dict)
 
-    def test_evolutionary_emergence_initialization(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_evolutionary_emergence_initialization(self, sample_protocol_data, mock_validation_framework):
         """Test evolutionary emergence framework initialization."""
         evo = EvolutionaryAPGIEmergence(
             population_size=sample_protocol_data["parameters"]["population_size"],
@@ -116,11 +109,7 @@ class TestEvolutionaryPlausibilityProtocol5:
         # Test analysis runs without errors
         analysis = evo.analyze_emergence(history)
         assert isinstance(analysis, dict)
-        assert (
-            "final_frequencies" in analysis
-            or "emergence_detected" in analysis
-            or "apgi_emerged" in analysis
-        )
+        assert "final_frequencies" in analysis or "emergence_detected" in analysis or "apgi_emerged" in analysis
 
     def test_edge_cases(self, sample_protocol_data, mock_validation_framework):
         """Test edge cases and error handling."""
@@ -134,9 +123,7 @@ class TestEvolutionaryPlausibilityProtocol5:
             # Missing required keys like has_threshold, has_intero_weighting, etc.
             EvolvableAgent(genome={"invalid_key": 0.5})
 
-    def test_performance_benchmarks(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_performance_benchmarks(self, sample_protocol_data, mock_validation_framework):
         """Test performance benchmarks and timing."""
         evo = EvolutionaryAPGIEmergence(
             population_size=10,  # Small population for speed
@@ -164,9 +151,7 @@ class TestEvolutionaryPlausibilityProtocol5:
         # Analysis should complete quickly
         assert isinstance(analysis, dict)
 
-    def test_integration_compatibility(
-        self, sample_protocol_data, mock_validation_framework
-    ):
+    def test_integration_compatibility(self, sample_protocol_data, mock_validation_framework):
         """Test integration compatibility with other protocols."""
         evo = EvolutionaryAPGIEmergence(
             population_size=sample_protocol_data["parameters"]["population_size"],

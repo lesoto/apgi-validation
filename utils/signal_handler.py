@@ -6,6 +6,7 @@ Signal Handler Utility
 Provides signal handling functionality for graceful shutdown and cleanup.
 """
 
+import logging
 import signal
 import threading
 from contextlib import contextmanager
@@ -65,8 +66,10 @@ class SignalHandler:
         if self.shutdown_callback:
             try:
                 self.shutdown_callback()
-            except Exception:
-                pass  # Ignore errors in shutdown callback
+            except Exception as e:
+                # Log errors in shutdown callback but don't crash signal handling
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error in shutdown callback: {e}")
 
         # Restore original handlers and re-raise signal
         self._restore_handlers()

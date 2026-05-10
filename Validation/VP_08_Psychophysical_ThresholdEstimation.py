@@ -46,12 +46,7 @@ logger = logging.getLogger(__name__)
 
 # Import falsification thresholds
 try:
-    from utils.statistical_tests import (
-        compute_eta_squared,
-        safe_mannwhitneyu,
-        safe_pearsonr,
-        safe_ttest_1samp,
-    )
+    from utils.statistical_tests import compute_eta_squared, safe_mannwhitneyu, safe_pearsonr, safe_ttest_1samp
 except ImportError:
     compute_eta_squared = None  # type: ignore[assignment]
     safe_mannwhitneyu = None  # type: ignore[assignment]
@@ -71,9 +66,7 @@ except ImportError:
     DEFAULT_ALPHA = 0.05
     GENERIC_MIN_R2 = 0.70
     GENERIC_MIN_CORR = 0.30
-    GENERIC_MIN_COHENS_D = (
-        0.71  # Slightly different from registry value to avoid false positive
-    )
+    GENERIC_MIN_COHENS_D = 0.71  # Slightly different from registry value to avoid false positive
     V9_1_MIN_CORRELATION = 0.60
 
 # Set random seeds for reproducibility
@@ -123,15 +116,9 @@ class ParticipantData:
     beta_blocker_condition: str  # 'placebo', 'beta_blocker'
     cardiac_feedback_condition: str  # 'normal', 'perturbed' (separate Πⁱ manipulation)
     psychometric_threshold_blockade: float  # Threshold under β-blockade
-    psychometric_threshold_cardiac: (
-        float  # Threshold under cardiac feedback perturbation
-    )
-    beta_blockade_effect: (
-        float  # Measured Π_i reduction under β-blockade (V8.β: 25-40%)
-    )
-    cardiac_feedback_effect: (
-        float  # Measured Π_i reduction under cardiac perturbation (V8.CF: 15-25%)
-    )
+    psychometric_threshold_cardiac: float  # Threshold under cardiac feedback perturbation
+    beta_blockade_effect: float  # Measured Π_i reduction under β-blockade (V8.β: 25-40%)
+    cardiac_feedback_effect: float  # Measured Π_i reduction under cardiac perturbation (V8.CF: 15-25%)
     pi_i_blockade: float  # Π_i estimated under β-blockade (disambiguated)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -149,18 +136,12 @@ class ParticipantData:
                 "heart_rate_rest": float(self.heart_rate_rest),
                 "heart_rate_exercise": float(self.heart_rate_exercise),
                 "arousal_condition": str(self.arousal_condition),
-                "psychometric_threshold_arousal": float(
-                    self.psychometric_threshold_arousal
-                ),
+                "psychometric_threshold_arousal": float(self.psychometric_threshold_arousal),
                 "ia_group": str(self.ia_group),
                 "beta_blocker_condition": str(self.beta_blocker_condition),
                 "cardiac_feedback_condition": str(self.cardiac_feedback_condition),
-                "psychometric_threshold_blockade": float(
-                    self.psychometric_threshold_blockade
-                ),
-                "psychometric_threshold_cardiac": float(
-                    self.psychometric_threshold_cardiac
-                ),
+                "psychometric_threshold_blockade": float(self.psychometric_threshold_blockade),
+                "psychometric_threshold_cardiac": float(self.psychometric_threshold_cardiac),
                 "beta_blockade_effect": float(self.beta_blockade_effect),
                 "cardiac_feedback_effect": float(self.cardiac_feedback_effect),
                 "pi_i_blockade": float(self.pi_i_blockade),
@@ -190,9 +171,7 @@ class PsiMethod:
         threshold_float = float(threshold) if np.isscalar(threshold) else float(threshold)  # type: ignore[arg-type]
         slope_float = float(slope) if np.isscalar(slope) else float(slope)  # type: ignore[arg-type]
 
-        return lapse + (1 - 2 * lapse) / (
-            1 + np.exp(-slope_float * (stimulus - threshold_float))
-        )
+        return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope_float * (stimulus - threshold_float)))
 
     def update_posterior(
         self,
@@ -238,30 +217,21 @@ class PsiMethod:
             else [threshold_samples[i] for i in indices]
         )
         slope_result = (
-            slope_samples[indices]
-            if isinstance(slope_samples, np.ndarray)
-            else [slope_samples[i] for i in indices]
+            slope_samples[indices] if isinstance(slope_samples, np.ndarray) else [slope_samples[i] for i in indices]
         )
 
         return threshold_result, slope_result
 
-    def estimate_parameters(
-        self, stimulus_levels: List[float], responses: List[int]
-    ) -> Tuple[float, float]:
+    def estimate_parameters(self, stimulus_levels: List[float], responses: List[int]) -> Tuple[float, float]:
         """Estimate psychometric parameters from trial data"""
 
         # Simple maximum likelihood estimation
         def neg_log_likelihood(params):
             threshold, slope = params
-            predicted = self.psychometric_function(
-                np.array(stimulus_levels), threshold, slope
-            )
+            predicted = self.psychometric_function(np.array(stimulus_levels), threshold, slope)
             # Avoid log(0)
             predicted = np.clip(predicted, 1e-10, 1 - 1e-10)
-            return -np.sum(
-                np.array(responses) * np.log(predicted)
-                + (1 - np.array(responses)) * np.log(1 - predicted)
-            )
+            return -np.sum(np.array(responses) * np.log(predicted) + (1 - np.array(responses)) * np.log(1 - predicted))
 
         # Optimize parameters
         result = optimize.minimize(
@@ -320,9 +290,7 @@ class APGIPsychophysicalEstimator:
                 import statsmodels.formula.api as smf
 
                 # Fit mixed effects model: P_detect ~ HEP_amplitude + (1|subject)
-                model = smf.mixedlm(
-                    "P_detect ~ HEP_amplitude", vp02_data, groups=vp02_data["subject"]
-                )
+                model = smf.mixedlm("P_detect ~ HEP_amplitude", vp02_data, groups=vp02_data["subject"])
                 result = model.fit()
                 coupling_weight = result.params["HEP_amplitude"]
                 return float(coupling_weight)
@@ -385,17 +353,12 @@ class APGIPsychophysicalEstimator:
         # accuracy = GARFINKEL2015_INTERO_SENSITIVITY * pi_i + N(0, empirical_noise_sd)
         GARFINKEL2015_INTERO_SENSITIVITY = 0.42  # From Garfinkel et al. (2015)
         empirical_noise_sd = 0.18  # Empirical noise level from Garfinkel et al.
-        heartbeat_detection = (
-            GARFINKEL2015_INTERO_SENSITIVITY * pi_i
-            + np.random.normal(0, empirical_noise_sd)
-        )
+        heartbeat_detection = GARFINKEL2015_INTERO_SENSITIVITY * pi_i + np.random.normal(0, empirical_noise_sd)
         heartbeat_detection = np.clip(heartbeat_detection, 0.0, 1.0)
 
         # Generate psychophysical measures based on APGI parameters
         # Threshold maps to theta_0 with positive correlation to heartbeat_detection
-        psychometric_threshold = (
-            theta_0 + 0.35 * heartbeat_detection + np.random.normal(0, 0.02)
-        )
+        psychometric_threshold = theta_0 + 0.35 * heartbeat_detection + np.random.normal(0, 0.02)
         psychometric_threshold = np.clip(psychometric_threshold, 0.1, 0.9)
 
         # Slope maps to alpha with transformation
@@ -444,9 +407,7 @@ class APGIPsychophysicalEstimator:
         # F3.5 — Arousal × Πⁱ Interaction: arousal benefit is modulated by precision
         # High precision individuals should show greater arousal-driven threshold reduction
         psychometric_threshold_arousal = (
-            psychometric_threshold
-            - arousal_benefit * (1.0 + 0.5 * (pi_i - 1.0))
-            + np.random.normal(0, 0.02)
+            psychometric_threshold - arousal_benefit * (1.0 + 0.5 * (pi_i - 1.0)) + np.random.normal(0, 0.02)
         )
 
         # Garfinkel et al. (2015) SD-split criterion
@@ -456,12 +417,8 @@ class APGIPsychophysicalEstimator:
 
         # Pharmacological β-blockade with two-pathway model
         # Two-pathway model: β-blockade (somatic pathway) vs. cardiac feedback perturbation (interoceptive pathway)
-        beta_blocker_condition = (
-            "placebo" if np.random.random() < 0.5 else "beta_blocker"
-        )
-        cardiac_feedback_condition = (
-            "normal" if np.random.random() < 0.5 else "perturbed"
-        )
+        beta_blocker_condition = "placebo" if np.random.random() < 0.5 else "beta_blocker"
+        cardiac_feedback_condition = "normal" if np.random.random() < 0.5 else "perturbed"
 
         # V8.β — β-blockade: reduces interoceptive precision Π_i by 25-40%.
         if beta_blocker_condition == "beta_blocker":
@@ -471,9 +428,7 @@ class APGIPsychophysicalEstimator:
             pi_i_blockade = np.clip(pi_i * (1.0 - pi_i_reduction_beta), 0.1, 2.5)
             # Threshold rises as Π_i falls, but somatic pathway is hypothesized to be weaker
             psychometric_threshold_blockade = (
-                psychometric_threshold
-                + 0.20 * pi_i * pi_i_reduction_beta
-                + np.random.normal(0, 0.02)
+                psychometric_threshold + 0.20 * pi_i * pi_i_reduction_beta + np.random.normal(0, 0.02)
             )
         else:
             beta_blockade_effect = 0.0
@@ -487,9 +442,7 @@ class APGIPsychophysicalEstimator:
             cardiac_feedback_effect = pi_i_reduction_cf
             # Threshold rises strongly as Π_i falls (Precision effect is dominant)
             psychometric_threshold_cardiac = (
-                psychometric_threshold
-                + 0.50 * pi_i * pi_i_reduction_cf
-                + np.random.normal(0, 0.02)
+                psychometric_threshold + 0.50 * pi_i * pi_i_reduction_cf + np.random.normal(0, 0.02)
             )
         else:
             cardiac_feedback_effect = 0.0
@@ -519,9 +472,7 @@ class APGIPsychophysicalEstimator:
             pi_i_blockade=pi_i_blockade,
         )
 
-    def run_psychophysical_experiment(
-        self, participant: ParticipantData
-    ) -> Tuple[float, float]:
+    def run_psychophysical_experiment(self, participant: ParticipantData) -> Tuple[float, float]:
         """Simulate adaptive psychophysical experiment for a participant"""
         psi = PsiMethod(stimulus_range=(0.0, 1.0), n_trials=200)
 
@@ -540,9 +491,7 @@ class APGIPsychophysicalEstimator:
 
             # Generate response based on true psychometric function
             stimulus_array = np.array([current_stimulus])
-            p_response = psi.psychometric_function(
-                stimulus_array, true_threshold, true_slope
-            )
+            p_response = psi.psychometric_function(stimulus_array, true_threshold, true_slope)
             response = 1 if np.random.random() < p_response else 0
             responses.append(response)
 
@@ -559,9 +508,7 @@ class APGIPsychophysicalEstimator:
                         current_stimulus = min(0.9, current_stimulus + 0.05)
 
         # Estimate parameters from trial data
-        estimated_threshold, estimated_slope = psi.estimate_parameters(
-            stimulus_levels, responses
-        )
+        estimated_threshold, estimated_slope = psi.estimate_parameters(stimulus_levels, responses)
 
         return estimated_threshold, estimated_slope
 
@@ -581,16 +528,12 @@ class APGIPsychophysicalEstimator:
         pi_i = np.clip(pi_i, 0.5, 2.5)
 
         # Beta from relationship between pi_i and threshold modulation
-        beta = (
-            1.5 - 1.2 * (theta_0 - 0.5) + 0.3 * (pi_i - 1.0) + np.random.normal(0, 0.05)
-        )
+        beta = 1.5 - 1.2 * (theta_0 - 0.5) + 0.3 * (pi_i - 1.0) + np.random.normal(0, 0.05)
         beta = np.clip(beta, 0.5, 1.8)
 
         return APGIParameters(theta_0, pi_i, beta, alpha)
 
-    def compute_power_analysis(
-        self, effect_size: float = 0.40, n: int = 200, alpha: float = 0.008
-    ) -> Dict[str, Any]:
+    def compute_power_analysis(self, effect_size: float = 0.40, n: int = 200, alpha: float = 0.008) -> Dict[str, Any]:
         """
         Compute post-hoc statistical power for the expected effect size.
 
@@ -623,9 +566,7 @@ class APGIPsychophysicalEstimator:
                 "target_power": 0.80,
             }
         except ImportError:
-            logger.warning(
-                "statsmodels not available, using approximate power calculation"
-            )
+            logger.warning("statsmodels not available, using approximate power calculation")
             # Approximate power using normal approximation
             from scipy import stats
 
@@ -715,45 +656,30 @@ class APGIPsychophysicalEstimator:
                 # Leave-one-out cross-validation
                 for held_out_idx in range(len(stimulus_levels)):
                     # Fit on all except held-out trial
-                    train_stimuli = [
-                        s for i, s in enumerate(stimulus_levels) if i != held_out_idx
-                    ]
-                    train_responses = [
-                        r for i, r in enumerate(responses) if i != held_out_idx
-                    ]
+                    train_stimuli = [s for i, s in enumerate(stimulus_levels) if i != held_out_idx]
+                    train_responses = [r for i, r in enumerate(responses) if i != held_out_idx]
 
                     if len(train_stimuli) > 2:
                         # Estimate parameters from training data
-                        est_threshold, est_slope = psi.estimate_parameters(
-                            train_stimuli, train_responses
-                        )
+                        est_threshold, est_slope = psi.estimate_parameters(train_stimuli, train_responses)
 
                         # Compute error
-                        error_threshold = abs(
-                            est_threshold - participant.psychometric_threshold
-                        )
+                        error_threshold = abs(est_threshold - participant.psychometric_threshold)
                         error_slope = abs(est_slope - participant.psychometric_slope)
 
                         cv_results["cv_rmse_threshold"].append(error_threshold)
                         cv_results["cv_rmse_slope"].append(error_slope)
 
-                logger.debug(
-                    f"Participant {participant_idx + 1}/{n_participants} CV complete"
-                )
+                logger.debug(f"Participant {participant_idx + 1}/{n_participants} CV complete")
 
             # Compute mean CV-RMSE
             if cv_results["cv_rmse_threshold"]:
-                cv_results["mean_cv_rmse_threshold"] = float(
-                    np.mean(cv_results["cv_rmse_threshold"])
-                )
-                cv_results["mean_cv_rmse_slope"] = float(
-                    np.mean(cv_results["cv_rmse_slope"])
-                )
+                cv_results["mean_cv_rmse_threshold"] = float(np.mean(cv_results["cv_rmse_threshold"]))
+                cv_results["mean_cv_rmse_slope"] = float(np.mean(cv_results["cv_rmse_slope"]))
 
                 # Validation passes if CV-RMSE is reasonable (< 0.1 for threshold, < 1.0 for slope)
                 cv_results["validation_passed"] = (
-                    cv_results["mean_cv_rmse_threshold"] < 0.1
-                    and cv_results["mean_cv_rmse_slope"] < 1.0
+                    cv_results["mean_cv_rmse_threshold"] < 0.1 and cv_results["mean_cv_rmse_slope"] < 1.0
                 )
 
                 logger.info(
@@ -772,15 +698,11 @@ class APGIPsychophysicalEstimator:
 
     def run_protocol(self) -> Dict[str, Any]:
         """Run complete Protocol 8"""
-        print(
-            "Starting APGI Protocol 8: Psychophysical Threshold Estimation & Individual Differences"
-        )
+        print("Starting APGI Protocol 8: Psychophysical Threshold Estimation & Individual Differences")
         print(f"Simulating {self.n_participants} participants...")
 
         # Compute power analysis for the smallest expected effect (P1.1: d=0.40)
-        power_analysis = self.compute_power_analysis(
-            effect_size=0.40, n=self.n_participants, alpha=0.008
-        )
+        power_analysis = self.compute_power_analysis(effect_size=0.40, n=self.n_participants, alpha=0.008)
 
         # Add warning if underpowered
         if not power_analysis["adequate_power"]:
@@ -852,15 +774,9 @@ class APGIPsychophysicalEstimator:
 
         # Calculate correlations with enhanced error handling
         if safe_pearsonr is not None:
-            r_hep, p_hep, _ = safe_pearsonr(
-                list(pi_i), list(hep_amp), alpha=0.008, min_n=10
-            )
-            r_hb, p_hb, _ = safe_pearsonr(
-                list(pi_i), list(hb_detection), alpha=0.008, min_n=10
-            )
-            r_hrv, p_hrv, _ = safe_pearsonr(
-                list(pi_i), list(hrv), alpha=0.008, min_n=10
-            )
+            r_hep, p_hep, _ = safe_pearsonr(list(pi_i), list(hep_amp), alpha=0.008, min_n=10)
+            r_hb, p_hb, _ = safe_pearsonr(list(pi_i), list(hb_detection), alpha=0.008, min_n=10)
+            r_hrv, p_hrv, _ = safe_pearsonr(list(pi_i), list(hrv), alpha=0.008, min_n=10)
         else:
             # Fallback to direct stats call if safe_pearsonr unavailable
             r_hep, p_hep = stats.pearsonr(pi_i, hep_amp)
@@ -884,9 +800,7 @@ class APGIPsychophysicalEstimator:
         beta = df["beta"].values
 
         if safe_pearsonr is not None:
-            r_theta_beta, p_theta_beta, _ = safe_pearsonr(
-                list(theta_0), list(beta), alpha=0.008, min_n=10
-            )
+            r_theta_beta, p_theta_beta, _ = safe_pearsonr(list(theta_0), list(beta), alpha=0.008, min_n=10)
         else:
             r_theta_beta, p_theta_beta = stats.pearsonr(theta_0, beta)
         results["correlations"]["theta_0_beta"] = {"r": r_theta_beta, "p": p_theta_beta}
@@ -900,9 +814,7 @@ class APGIPsychophysicalEstimator:
 
         # Garfinkel et al. (2015) SD-split criterion
         # Compute per-participant threshold modulation terms used by all P1 analyses
-        df.loc[:, "arousal_benefit"] = (
-            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
-        )
+        df.loc[:, "arousal_benefit"] = df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
         df.loc[:, "beta_blockade_delta_threshold"] = (
             df["psychometric_threshold_blockade"] - df["psychometric_threshold"]
         )
@@ -910,9 +822,7 @@ class APGIPsychophysicalEstimator:
             df["psychometric_threshold_cardiac"] - df["psychometric_threshold"]
         )
         # Fix: Amplify benefit for precision estimate to ensure diagnostic regression passes
-        df.loc[:, "arousal_pi_i_estimate"] = np.clip(
-            df["pi_i"] + 3.0 * df["arousal_benefit"], 0.5, 2.5
-        )
+        df.loc[:, "arousal_pi_i_estimate"] = np.clip(df["pi_i"] + 3.0 * df["arousal_benefit"], 0.5, 2.5)
 
         # TODO 1 — arousal_analysis: regress Πⁱ estimates on low/high arousal condition
         n_participants = len(df)
@@ -924,14 +834,10 @@ class APGIPsychophysicalEstimator:
                 "participant_id": np.repeat(participant_ids, 2),
                 "arousal_code": np.tile(np.array([0.0, 1.0]), n_participants),
                 "arousal_label": np.tile(np.array(["LOW", "HIGH"]), n_participants),
-                "pi_i_estimate": np.column_stack(
-                    [pi_i_vals, arousal_pi_i_vals]
-                ).ravel(),
+                "pi_i_estimate": np.column_stack([pi_i_vals, arousal_pi_i_vals]).ravel(),
             }
         )
-        arousal_regression = stats.linregress(
-            arousal_long["arousal_code"].values, arousal_long["pi_i_estimate"].values
-        )
+        arousal_regression = stats.linregress(arousal_long["arousal_code"].values, arousal_long["pi_i_estimate"].values)
 
         # COMPLETED: arousal × Πⁱ interaction using Πⁱ median split
         median_pi_i = df["pi_i"].median()
@@ -942,9 +848,7 @@ class APGIPsychophysicalEstimator:
 
         # Fix: Check for valid groups before running statistical test
         if len(high_pi_benefit) > 1 and len(low_pi_benefit) > 1:
-            f_pi_interaction, p_pi_interaction = f_oneway(
-                high_pi_benefit, low_pi_benefit
-            )
+            f_pi_interaction, p_pi_interaction = f_oneway(high_pi_benefit, low_pi_benefit)
         else:
             f_pi_interaction = np.nan
             p_pi_interaction = np.nan
@@ -966,11 +870,7 @@ class APGIPsychophysicalEstimator:
                 / (len(high_pi_benefit) + len(low_pi_benefit) - 2)
             )
             cohens_d_pi_interaction = (
-                float(
-                    (np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi
-                )
-                if pooled_sd_pi > 0
-                else 0.0
+                float((np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi) if pooled_sd_pi > 0 else 0.0
             )
         else:
             pooled_sd_pi = 0.0
@@ -981,39 +881,23 @@ class APGIPsychophysicalEstimator:
         hb_median = df["heartbeat_detection"].median()
         hb_mean = df["heartbeat_detection"].mean()
         hb_sd = df["heartbeat_detection"].std()
-        df.loc[:, "ia_group_computed"] = np.where(
-            df["heartbeat_detection"] >= hb_median, "high_IA", "low_IA"
-        )
+        df.loc[:, "ia_group_computed"] = np.where(df["heartbeat_detection"] >= hb_median, "high_IA", "low_IA")
 
         # Calculate arousal benefit for each IA group
         high_ia_group = df[df["ia_group_computed"] == "high_IA"]
         low_ia_group = df[df["ia_group_computed"] == "low_IA"]
-        high_ia_arousal = (
-            np.asarray(high_ia_group["arousal_benefit"])
-            if len(high_ia_group) > 0
-            else np.array([])
-        )
-        low_ia_arousal = (
-            np.asarray(low_ia_group["arousal_benefit"])
-            if len(low_ia_group) > 0
-            else np.array([])
-        )
+        high_ia_arousal = np.asarray(high_ia_group["arousal_benefit"]) if len(high_ia_group) > 0 else np.array([])
+        low_ia_arousal = np.asarray(low_ia_group["arousal_benefit"]) if len(low_ia_group) > 0 else np.array([])
 
         # IA × Arousal interaction test
         if len(high_ia_arousal) > 0 and len(low_ia_arousal) > 0:
-            u_stat, ia_arousal_p = stats.mannwhitneyu(
-                high_ia_arousal, low_ia_arousal, alternative="two-sided"
-            )
+            u_stat, ia_arousal_p = stats.mannwhitneyu(high_ia_arousal, low_ia_arousal, alternative="two-sided")
             # Use the p-value for validation
             results["arousal_analysis"]["ia_arousal_p_value"] = float(ia_arousal_p)
 
             # Effect size for IA × Arousal interaction
-            pooled_sd_ia_arousal = np.sqrt(
-                (np.var(high_ia_arousal, ddof=1) + np.var(low_ia_arousal, ddof=1)) / 2
-            )
-            cohens_d_ia_arousal = (
-                np.mean(high_ia_arousal) - np.mean(low_ia_arousal)
-            ) / pooled_sd_ia_arousal
+            pooled_sd_ia_arousal = np.sqrt((np.var(high_ia_arousal, ddof=1) + np.var(low_ia_arousal, ddof=1)) / 2)
+            cohens_d_ia_arousal = (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia_arousal
         else:
             u_stat = float("nan")
             ia_arousal_p = float("nan")
@@ -1079,14 +963,11 @@ class APGIPsychophysicalEstimator:
                 "r_value": float(arousal_regression.rvalue),
                 "p_value": float(arousal_regression.pvalue),
                 "stderr": float(arousal_regression.stderr),
-                "passed": arousal_regression.slope > 0
-                and arousal_regression.pvalue < 0.05,
+                "passed": arousal_regression.slope > 0 and arousal_regression.pvalue < 0.05,
             },
             "high_pi_arousal_benefit": float(np.mean(high_pi_benefit)),  # type: ignore[arg-type]
             "low_pi_arousal_benefit": float(np.mean(low_pi_benefit)),  # type: ignore[arg-type]
-            "cohens_d_interaction": results.get("arousal_analysis", {}).get(
-                "cohens_d_interaction", 0.0
-            ),
+            "cohens_d_interaction": results.get("arousal_analysis", {}).get("cohens_d_interaction", 0.0),
             "p_interaction": float(p_pi_interaction),
             "pi_group_interaction": {
                 "f_statistic": float(f_pi_interaction),
@@ -1104,27 +985,17 @@ class APGIPsychophysicalEstimator:
             f_ia_arousal, p_ia = stats.f_oneway(high_ia_arousal, low_ia_arousal)
             df_within_ia = len(high_ia_arousal) + len(low_ia_arousal) - 2
             eta_sq_ia = (
-                float(compute_eta_squared(f_ia_arousal, 1, df_within_ia))
-                if compute_eta_squared
-                else float("nan")
+                float(compute_eta_squared(f_ia_arousal, 1, df_within_ia)) if compute_eta_squared else float("nan")
             )
-            cohens_d_ia_arousal = (
-                np.mean(high_ia_arousal) - np.mean(low_ia_arousal)
-            ) / (
-                np.sqrt(
-                    (np.var(high_ia_arousal, ddof=1) + np.var(low_ia_arousal, ddof=1))
-                    / 2
-                )
-                + 1e-10
+            cohens_d_ia_arousal = (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / (
+                np.sqrt((np.var(high_ia_arousal, ddof=1) + np.var(low_ia_arousal, ddof=1)) / 2) + 1e-10
             )
         else:
             p_ia = 1.0
             eta_sq_ia = 0.0
             cohens_d_ia_arousal = 0.0
 
-        results["arousal_analysis"]["P1_3_passed"] = bool(
-            not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05
-        )
+        results["arousal_analysis"]["P1_3_passed"] = bool(not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05)
         results["arousal_analysis"]["cohens_d_ia_arousal"] = float(cohens_d_ia_arousal)
         results["arousal_analysis"]["p_ia"] = float(p_ia)
         results["arousal_analysis"]["eta_sq_ia"] = float(eta_sq_ia)
@@ -1132,16 +1003,8 @@ class APGIPsychophysicalEstimator:
         # TODO 3 — IA × Arousal interaction using Garfinkel heartbeat groups
         high_ia_group = df[df["ia_group_computed"] == "high_IA"]
         low_ia_group = df[df["ia_group_computed"] == "low_IA"]
-        high_ia_arousal = (
-            np.asarray(high_ia_group["arousal_benefit"])
-            if len(high_ia_group) > 0
-            else np.array([])
-        )
-        low_ia_arousal = (
-            np.asarray(low_ia_group["arousal_benefit"])
-            if len(low_ia_group) > 0
-            else np.array([])
-        )
+        high_ia_arousal = np.asarray(high_ia_group["arousal_benefit"]) if len(high_ia_group) > 0 else np.array([])
+        low_ia_arousal = np.asarray(low_ia_group["arousal_benefit"]) if len(low_ia_group) > 0 else np.array([])
 
         if len(high_ia_arousal) > 0 and len(low_ia_arousal) > 0:
             f_ia_interaction, p_ia = f_oneway(high_ia_arousal, low_ia_arousal)
@@ -1159,9 +1022,7 @@ class APGIPsychophysicalEstimator:
                 / max(len(high_ia_arousal) + len(low_ia_arousal) - 2, 1)
             )
             cohens_d_ia = (
-                float(
-                    (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia  # type: ignore[arg-type]
-                )
+                float((np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia)  # type: ignore[arg-type]
                 if pooled_sd_ia > 0
                 else 0.0
             )
@@ -1182,20 +1043,16 @@ class APGIPsychophysicalEstimator:
 
         # COMPLETED: beta disambiguation validation
         placebo_normal = df[
-            (df["beta_blocker_condition"] == "placebo")
-            & (df["cardiac_feedback_condition"] == "normal")
+            (df["beta_blocker_condition"] == "placebo") & (df["cardiac_feedback_condition"] == "normal")
         ]
         placebo_perturbed = df[
-            (df["beta_blocker_condition"] == "placebo")
-            & (df["cardiac_feedback_condition"] == "perturbed")
+            (df["beta_blocker_condition"] == "placebo") & (df["cardiac_feedback_condition"] == "perturbed")
         ]
         blocker_normal = df[
-            (df["beta_blocker_condition"] == "beta_blocker")
-            & (df["cardiac_feedback_condition"] == "normal")
+            (df["beta_blocker_condition"] == "beta_blocker") & (df["cardiac_feedback_condition"] == "normal")
         ]
         blocker_perturbed = df[
-            (df["beta_blocker_condition"] == "beta_blocker")
-            & (df["cardiac_feedback_condition"] == "perturbed")
+            (df["beta_blocker_condition"] == "beta_blocker") & (df["cardiac_feedback_condition"] == "perturbed")
         ]
 
         # Verify we have data in all conditions
@@ -1209,18 +1066,10 @@ class APGIPsychophysicalEstimator:
         )
 
         if conditions_met:
-            threshold_blockade_effect = float(
-                blocker_normal["beta_blockade_delta_threshold"].mean()
-            )
-            threshold_cardiac_effect = float(
-                placebo_perturbed["cardiac_feedback_delta_threshold"].mean()
-            )
-            t_blockade, p_blockade = stats.ttest_1samp(
-                blocker_normal["beta_blockade_delta_threshold"].values, 0.0
-            )
-            t_cardiac, p_cardiac = stats.ttest_1samp(
-                placebo_perturbed["cardiac_feedback_delta_threshold"].values, 0.0
-            )
+            threshold_blockade_effect = float(blocker_normal["beta_blockade_delta_threshold"].mean())
+            threshold_cardiac_effect = float(placebo_perturbed["cardiac_feedback_delta_threshold"].mean())
+            t_blockade, p_blockade = stats.ttest_1samp(blocker_normal["beta_blockade_delta_threshold"].values, 0.0)
+            t_cardiac, p_cardiac = stats.ttest_1samp(placebo_perturbed["cardiac_feedback_delta_threshold"].values, 0.0)
             interaction_effect = threshold_blockade_effect - threshold_cardiac_effect
 
             # Test if pi_i_blockade correlates with pi_i (should be high under β-blockade)
@@ -1247,41 +1096,29 @@ class APGIPsychophysicalEstimator:
             mean_pi_i_reduction_pct = float(np.mean(beta_effects))
 
             if safe_ttest_1samp is not None:
-                t_beta_paired, p_beta_paired, _ = safe_ttest_1samp(
-                    beta_effects, 0, alpha=0.008, min_n=5
-                )
+                t_beta_paired, p_beta_paired, _ = safe_ttest_1samp(beta_effects, 0, alpha=0.008, min_n=5)
             else:
                 t_beta_paired, p_beta_paired = stats.ttest_1samp(beta_effects, 0)
             beta_pi_i_in_range = 0.25 <= mean_pi_i_reduction_pct <= 0.40
 
             # Verify cardiac feedback Π_i reduction is in expected range (15-25%)
-            mean_cardiac_feedback_effect = float(
-                placebo_perturbed["cardiac_feedback_effect"].mean()
-            )
+            mean_cardiac_feedback_effect = float(placebo_perturbed["cardiac_feedback_effect"].mean())
             cardiac_effect_in_range = 0.15 <= mean_cardiac_feedback_effect <= 0.25
 
             # Store beta disambiguation results
             # V8.CF — Paired t-test: Π_i under cardiac perturbation vs baseline
             cf_participants = df[df["cardiac_feedback_condition"] == "perturbed"]
             cf_pi_i_baseline = np.asarray(cf_participants["pi_i"])
-            cf_pi_i_post = cf_pi_i_baseline * (
-                1.0 - np.asarray(cf_participants["cardiac_feedback_effect"])
-            )
+            cf_pi_i_post = cf_pi_i_baseline * (1.0 - np.asarray(cf_participants["cardiac_feedback_effect"]))
             t_cf_paired, p_cf_paired = stats.ttest_rel(cf_pi_i_baseline, cf_pi_i_post)
-            mean_pi_i_reduction_cf_pct = float(
-                np.mean((cf_pi_i_baseline - cf_pi_i_post) / cf_pi_i_baseline)
-            )
+            mean_pi_i_reduction_cf_pct = float(np.mean((cf_pi_i_baseline - cf_pi_i_post) / cf_pi_i_baseline))
             cf_pi_i_in_range = 0.15 <= mean_pi_i_reduction_cf_pct <= 0.25
 
             # Verify β-blockade Π_i reduction is in literature range (25-40%)
-            mean_beta_blockade_effect = float(
-                blocker_participants["beta_blockade_effect"].mean()
-            )
+            mean_beta_blockade_effect = float(blocker_participants["beta_blockade_effect"].mean())
             beta_effect_in_range = 0.25 <= mean_beta_blockade_effect <= 0.40
 
-            disambiguation_passes = abs(threshold_blockade_effect) < abs(
-                threshold_cardiac_effect
-            )
+            disambiguation_passes = abs(threshold_blockade_effect) < abs(threshold_cardiac_effect)
             ALPHA_BONF = 0.008
 
             # Store beta disambiguation results
@@ -1341,9 +1178,7 @@ class APGIPsychophysicalEstimator:
             original: np.ndarray = df[param].to_numpy()
             # 20% noise level: challenging enough to be non-trivial, realistic for
             # two psychophysical sessions separated by ~1 week
-            retest: np.ndarray = original + rng_reliability.normal(
-                0, 0.20 * float(np.std(original)), len(original)
-            )
+            retest: np.ndarray = original + rng_reliability.normal(0, 0.20 * float(np.std(original)), len(original))
 
             # Pearson r (as specified by V8.2)
             pearson_r, pearson_p = stats.pearsonr(original, retest)
@@ -1354,14 +1189,10 @@ class APGIPsychophysicalEstimator:
                 k = 2
                 data_matrix = np.column_stack([original, retest])
                 grand_mean = np.mean(data_matrix)
-                ms_between = (
-                    k
-                    * np.sum((np.mean(data_matrix, axis=1) - grand_mean) ** 2)
-                    / (len(original) - 1)
+                ms_between = k * np.sum((np.mean(data_matrix, axis=1) - grand_mean) ** 2) / (len(original) - 1)
+                ms_within = np.sum((data_matrix - np.mean(data_matrix, axis=1, keepdims=True)) ** 2) / (
+                    len(original) * (k - 1)
                 )
-                ms_within = np.sum(
-                    (data_matrix - np.mean(data_matrix, axis=1, keepdims=True)) ** 2
-                ) / (len(original) * (k - 1))
 
                 if ms_within > 0:
                     icc = (ms_between - ms_within) / (ms_between + (k - 1) * ms_within)
@@ -1378,12 +1209,8 @@ class APGIPsychophysicalEstimator:
 
         # Update ICC pass criterion to handle NaN values properly
         MIN_RELIABILITY = 0.70
-        all_pearson_pass = all(
-            v["r"] >= MIN_RELIABILITY for v in test_retest_pearson.values()
-        )
-        all_icc_pass = all(
-            v >= MIN_RELIABILITY and not np.isnan(v) for v in test_retest_iccs.values()
-        )
+        all_pearson_pass = all(v["r"] >= MIN_RELIABILITY for v in test_retest_pearson.values())
+        all_icc_pass = all(v >= MIN_RELIABILITY and not np.isnan(v) for v in test_retest_iccs.values())
         results["falsification_tests"]["V8_2_test_retest"] = {
             "passed": all_pearson_pass and all_icc_pass,
             "pearson_r_per_param": {k: v["r"] for k, v in test_retest_pearson.items()},
@@ -1397,9 +1224,7 @@ class APGIPsychophysicalEstimator:
         results["falsification_tests"]["F3_3"] = {
             "passed": all_icc_pass,
             "iccs": test_retest_iccs,
-            "thresholds_met": {
-                p: v >= MIN_RELIABILITY for p, v in test_retest_iccs.items()
-            },
+            "thresholds_met": {p: v >= MIN_RELIABILITY for p, v in test_retest_iccs.items()},
         }
 
         # Test P3d: Parameter Independence
@@ -1414,9 +1239,7 @@ class APGIPsychophysicalEstimator:
 
         # Check if parameters are sufficiently independent
         if param_correlations:
-            max_correlation = max(
-                abs(corrs["r"]) for corrs in param_correlations.values()
-            )
+            max_correlation = max(abs(corrs["r"]) for corrs in param_correlations.values())
         else:
             max_correlation = 0.0
         results["falsification_tests"]["F3_4"] = {
@@ -1470,9 +1293,7 @@ class APGIPsychophysicalEstimator:
             param_std = np.std(param_matrix, axis=0)
             param_std[param_std == 0] = 1.0  # avoid div/0
             param_matrix_std = (param_matrix - param_matrix.mean(axis=0)) / param_std
-            total_variance = param_matrix_std.shape[
-                1
-            ]  # = n_variables after standardisation
+            total_variance = param_matrix_std.shape[1]  # = n_variables after standardisation
             communalities = 1.0 - np.clip(fa4.noise_variance_, 0.0, 1.0)
             explained_variance_pct = float(np.sum(communalities)) / total_variance
 
@@ -1483,9 +1304,7 @@ class APGIPsychophysicalEstimator:
             results["factor_analysis"]["loadings"] = loadings.tolist()
             results["factor_analysis"]["communalities"] = communalities.tolist()
             results["factor_analysis"]["per_factor_variance"] = per_factor_var.tolist()
-            results["factor_analysis"][
-                "total_explained_variance_pct"
-            ] = explained_variance_pct
+            results["factor_analysis"]["total_explained_variance_pct"] = explained_variance_pct
             results["factor_analysis"]["eigenvalues"] = eigenvalues.tolist()
         except (ValueError, np.linalg.LinAlgError):
             # Fallback if factor analysis fails
@@ -1560,12 +1379,8 @@ class APGIPsychophysicalEstimator:
         results["falsification_tests"]["P1_beta_disambiguation"] = {
             "passed": results["beta_disambiguation"]["passed"],
             "description": "β/Πⁱ pharmacological disambiguation: two-pathway dissociation",
-            "threshold_increase": results["beta_disambiguation"].get(
-                "threshold_blockade_increase", 0
-            ),
-            "pi_i_blockade_correlation": results["beta_disambiguation"].get(
-                "pi_i_blockade_correlation", 0
-            ),
+            "threshold_increase": results["beta_disambiguation"].get("threshold_blockade_increase", 0),
+            "pi_i_blockade_correlation": results["beta_disambiguation"].get("pi_i_blockade_correlation", 0),
         }
 
         # ── V8.1 — Interoceptive–Exteroceptive Precision Bias ≥10% ────────────
@@ -1576,41 +1391,32 @@ class APGIPsychophysicalEstimator:
         # Generate synthetic somatic signal data for F3.4 and interaction models
         rng_somatic = np.random.RandomState(RANDOM_SEED + 2)
         n_participants = len(df)
-        somatic_signal = 0.6 * np.asarray(df["pi_i"].values) + rng_somatic.normal(
-            0, 0.2, n_participants
-        )
+        somatic_signal = 0.6 * np.asarray(df["pi_i"].values) + rng_somatic.normal(0, 0.2, n_participants)
         somatic_signal = np.clip(somatic_signal, 0.1, 1.0)
 
         # F3.4 — Somatic signal interacts with Πⁱ to determine accuracy (d')
         baseline_d_prime = (
             1.2 * df["pi_i"].to_numpy() / max_pi_i
-            + 2.5
-            * (somatic_signal * df["pi_i"].to_numpy())  # Increased interaction term
+            + 2.5 * (somatic_signal * df["pi_i"].to_numpy())  # Increased interaction term
             + 0.4
             + rng_somatic.normal(0, 0.05, n_participants)
         )
         # Interoceptive accuracy scales more strongly with pi_i
         intero_acc = np.clip(
-            0.45 * df["pi_i"].to_numpy() / max_pi_i
-            + 0.45
-            + rng_bias.normal(0, 0.03, len(df)),
+            0.45 * df["pi_i"].to_numpy() / max_pi_i + 0.45 + rng_bias.normal(0, 0.03, len(df)),
             0.0,
             1.0,
         )
         # Exteroceptive accuracy has weaker pi_i relationship
         extero_acc = np.clip(
-            0.30 * df["pi_i"].to_numpy() / max_pi_i
-            + 0.35
-            + rng_bias.normal(0, 0.04, len(df)),
+            0.30 * df["pi_i"].to_numpy() / max_pi_i + 0.35 + rng_bias.normal(0, 0.04, len(df)),
             0.0,
             1.0,
         )
         acc_diff = intero_acc - extero_acc
         mean_diff = float(np.mean(acc_diff))
         t_v81, p_v81 = stats.ttest_rel(intero_acc, extero_acc)
-        pooled_std_v81 = np.sqrt(
-            (np.var(intero_acc, ddof=1) + np.var(extero_acc, ddof=1)) / 2
-        )
+        pooled_std_v81 = np.sqrt((np.var(intero_acc, ddof=1) + np.var(extero_acc, ddof=1)) / 2)
         cohens_d_v81 = float(mean_diff / pooled_std_v81) if pooled_std_v81 > 0 else 0.0
         ALPHA_BONF = 0.008
         results["falsification_tests"]["V8_1_intero_extero_bias"] = {
@@ -1641,12 +1447,8 @@ class APGIPsychophysicalEstimator:
         # ── V8.β and V8.CF — promote to top-level falsification tests ─────────
         results["falsification_tests"]["V8_beta_blockade"] = {
             "passed": results["beta_disambiguation"].get("v8_beta_passed", False),
-            "pi_i_reduction_pct": results["beta_disambiguation"].get(
-                "v8_beta_pi_i_reduction_pct", 0
-            ),
-            "in_range_25_40_pct": results["beta_disambiguation"].get(
-                "v8_beta_pi_i_in_range_25_40", False
-            ),
+            "pi_i_reduction_pct": results["beta_disambiguation"].get("v8_beta_pi_i_reduction_pct", 0),
+            "in_range_25_40_pct": results["beta_disambiguation"].get("v8_beta_pi_i_in_range_25_40", False),
             "t_paired": results["beta_disambiguation"].get("v8_beta_t_paired", 0),
             "p_paired_bonf": results["beta_disambiguation"].get("v8_beta_p_paired", 1),
             "bonferroni_alpha": 0.008,
@@ -1654,12 +1456,8 @@ class APGIPsychophysicalEstimator:
         }
         results["falsification_tests"]["V8_CF_cardiac_feedback"] = {
             "passed": results["beta_disambiguation"].get("v8_cf_passed", False),
-            "pi_i_reduction_pct": results["beta_disambiguation"].get(
-                "v8_cf_pi_i_reduction_pct", 0
-            ),
-            "in_range_15_25_pct": results["beta_disambiguation"].get(
-                "v8_cf_pi_i_in_range_15_25", False
-            ),
+            "pi_i_reduction_pct": results["beta_disambiguation"].get("v8_cf_pi_i_reduction_pct", 0),
+            "in_range_15_25_pct": results["beta_disambiguation"].get("v8_cf_pi_i_in_range_15_25", False),
             "t_paired": results["beta_disambiguation"].get("v8_cf_t_paired", 0),
             "p_paired_bonf": results["beta_disambiguation"].get("v8_cf_p_paired", 1),
             "bonferroni_alpha": 0.008,
@@ -1685,9 +1483,7 @@ class APGIPsychophysicalEstimator:
         somatic_signal_array = np.asarray(somatic_signal)
         baseline_d_prime_array = np.asarray(baseline_d_prime)
 
-        beta_coeffs = fit_somatic_model(
-            somatic_signal_array, pi_i_array, baseline_d_prime_array
-        )
+        beta_coeffs = fit_somatic_model(somatic_signal_array, pi_i_array, baseline_d_prime_array)
         beta_som = beta_coeffs[1]  # Coefficient for somatic_signal * pi_i interaction
 
         # Bootstrap test for H0: beta_som = 0
@@ -1709,9 +1505,7 @@ class APGIPsychophysicalEstimator:
 
         # Calculate p-value from bootstrap distribution (fraction of samples crossing zero)
         p_value_bootstrap = float(
-            np.mean(beta_som_bootstrap_arr <= 0)
-            if beta_som > 0
-            else np.mean(beta_som_bootstrap_arr >= 0)
+            np.mean(beta_som_bootstrap_arr <= 0) if beta_som > 0 else np.mean(beta_som_bootstrap_arr >= 0)
         )
 
         # 95% confidence interval
@@ -1729,9 +1523,7 @@ class APGIPsychophysicalEstimator:
             "ci_upper": float(beta_ci[1]),
             "significant": beta_significant,
             "bootstrap_n": n_bootstrap,
-            "effect_size": float(
-                beta_som
-            ),  # In this context, beta_som is the effect size
+            "effect_size": float(beta_som),  # In this context, beta_som is the effect size
             "somatic_signal_correlation": float(
                 np.corrcoef(somatic_signal, np.asarray(df["pi_i"].values, dtype=float))[0, 1]  # type: ignore[arg-type]
                 if len(set(somatic_signal)) > 1 and len(set(df["pi_i"].values)) > 1
@@ -1763,9 +1555,7 @@ class APGIPsychophysicalEstimator:
                 df["psychometric_threshold_arousal"].values,
             ]
         )
-        arousal_codes_long = np.concatenate(
-            [np.zeros(n_participants), np.ones(n_participants)]
-        )
+        arousal_codes_long = np.concatenate([np.zeros(n_participants), np.ones(n_participants)])
         pi_i_long = np.concatenate([df["pi_i"].values, df["pi_i"].values])
 
         glm_data = pd.DataFrame(
@@ -1785,8 +1575,7 @@ class APGIPsychophysicalEstimator:
                     np.ones(len(data)),  # intercept
                     data["pi_i"].values,  # pi_i main effect
                     data["arousal_code"].values,  # arousal main effect
-                    data["pi_i"].values
-                    * data["arousal_code"].values,  # interaction term
+                    data["pi_i"].values * data["arousal_code"].values,  # interaction term
                 ]
             )
 
@@ -1827,9 +1616,7 @@ class APGIPsychophysicalEstimator:
             return beta, se_beta, t_stats, p_values, X @ beta, residuals
 
         # Fit GLM to all data
-        beta_glm, se_glm, t_glm, p_glm, y_pred_glm, residuals_glm = fit_glm_interaction(
-            glm_data
-        )
+        beta_glm, se_glm, t_glm, p_glm, y_pred_glm, residuals_glm = fit_glm_interaction(glm_data)
 
         # Extract interaction coefficient and significance
         interaction_coef = beta_glm[3]  # pi_i * arousal_code interaction
@@ -1841,9 +1628,7 @@ class APGIPsychophysicalEstimator:
         interaction_significant = interaction_p < 0.05
 
         # Calculate effect size for interaction
-        interaction_effect_size = (
-            abs(interaction_coef) / interaction_se if interaction_se > 0 else 0.0
-        )
+        interaction_effect_size = abs(interaction_coef) / interaction_se if interaction_se > 0 else 0.0
 
         # Store GLM results
         results["arousal_interactions_glm"] = {
@@ -1893,14 +1678,10 @@ class APGIPsychophysicalEstimator:
         }
 
         # Update overall falsification status after all tests are added
-        all_tests_passed = all(
-            test["passed"] for test in results["falsification_tests"].values()
-        )
+        all_tests_passed = all(test["passed"] for test in results["falsification_tests"].values())
         results["overall_falsification"] = {
             "framework_supported": all_tests_passed,
-            "tests_passed": sum(
-                test["passed"] for test in results["falsification_tests"].values()
-            ),
+            "tests_passed": sum(test["passed"] for test in results["falsification_tests"].values()),
             "total_tests": len(results["falsification_tests"]),
         }
 
@@ -1949,9 +1730,7 @@ class APGIPsychophysicalEstimator:
         df = pd.DataFrame(data)
 
         # Calculate arousal benefit for visualization
-        df.loc[:, "arousal_benefit"] = (
-            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
-        )
+        df.loc[:, "arousal_benefit"] = df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
 
         # Create larger figure with additional subplots for TODO items
         fig, axes = plt.subplots(4, 4, figsize=(24, 18))
@@ -1964,9 +1743,7 @@ class APGIPsychophysicalEstimator:
         # 1. Parameter distributions
         param_names = ["theta_0", "pi_i", "beta", "alpha"]
         for i, param in enumerate(param_names):
-            axes[0, i].hist(
-                df[param], bins=20, alpha=GENERIC_MIN_COHENS_D, edgecolor="black"
-            )
+            axes[0, i].hist(df[param], bins=20, alpha=GENERIC_MIN_COHENS_D, edgecolor="black")
             axes[0, i].set_title(f"{param} Distribution")
             axes[0, i].set_xlabel(param)
             axes[0, i].set_ylabel("Frequency")
@@ -1989,9 +1766,7 @@ class APGIPsychophysicalEstimator:
         axes[1, 2].set_ylabel("β")
 
         # Khalsa et al. (2018) meta-analytic benchmark
-        axes[1, 3].scatter(
-            df["heartbeat_detection"], df["psychometric_threshold"], alpha=0.6
-        )
+        axes[1, 3].scatter(df["heartbeat_detection"], df["psychometric_threshold"], alpha=0.6)
         axes[1, 3].set_title("Khalsa Benchmark: HB Detection vs Threshold")
         axes[1, 3].set_xlabel("Heartbeat Detection")
         axes[1, 3].set_ylabel("Psychometric Threshold")
@@ -2008,9 +1783,7 @@ class APGIPsychophysicalEstimator:
         axes[2, 1].set_ylabel("Exercise HR (bpm)")
         axes[2, 0].set_ylabel("Frequency")
         axes[2, 0].axvline(
-            (
-                df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
-            ).mean(),
+            (df["psychometric_threshold"] - df["psychometric_threshold_arousal"]).mean(),
             color="red",
             linestyle="--",
             label=f"Mean: {(df['psychometric_threshold'] - df['psychometric_threshold_arousal']).mean():.3f}",
@@ -2033,9 +1806,7 @@ class APGIPsychophysicalEstimator:
 
         # P1.2 and P1.3 Arousal interaction tests
         median_pi_i = df["pi_i"].median()
-        df.loc[:, "pi_i_group"] = df["pi_i"].apply(
-            lambda x: "High Π_i" if x > median_pi_i else "Low Π_i"
-        )
+        df.loc[:, "pi_i_group"] = df["pi_i"].apply(lambda x: "High Π_i" if x > median_pi_i else "Low Π_i")
         high_pi = df[df["pi_i_group"] == "High Π_i"]
         low_pi = df[df["pi_i_group"] == "Low Π_i"]
 
@@ -2061,10 +1832,7 @@ class APGIPsychophysicalEstimator:
         # Garfinkel SD-split criterion
         df.loc[:, "ia_group_computed"] = df["heartbeat_detection"].apply(
             lambda x: (
-                "High IA"
-                if x
-                > df["heartbeat_detection"].mean() + df["heartbeat_detection"].std()
-                else "Low IA"
+                "High IA" if x > df["heartbeat_detection"].mean() + df["heartbeat_detection"].std() else "Low IA"
             )
         )
         high_ia = df[df["ia_group_computed"] == "High IA"]
@@ -2089,16 +1857,8 @@ class APGIPsychophysicalEstimator:
         axes[3, 0].bar(
             ["Placebo", "β-blocker"],
             [
-                (
-                    placebo["psychometric_threshold_blockade"].mean()
-                    if len(placebo) > 0
-                    else 0
-                ),
-                (
-                    beta_blocker["psychometric_threshold_blockade"].mean()
-                    if len(beta_blocker) > 0
-                    else 0
-                ),
+                (placebo["psychometric_threshold_blockade"].mean() if len(placebo) > 0 else 0),
+                (beta_blocker["psychometric_threshold_blockade"].mean() if len(beta_blocker) > 0 else 0),
             ],
             color=["lightblue", "salmon"],
             edgecolor="black",
@@ -2124,9 +1884,7 @@ class APGIPsychophysicalEstimator:
 
         # Correlation heatmap
         correlation_matrix = df[param_names].corr()
-        axes[3, 2].imshow(
-            correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1
-        )
+        axes[3, 2].imshow(correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1)
         axes[3, 2].set_xticks(range(len(param_names)))
         axes[3, 2].set_yticks(range(len(param_names)))
         axes[3, 2].set_xticklabels(param_names, rotation=45)
@@ -2166,9 +1924,7 @@ class APGIPsychophysicalEstimator:
         axes[3, 3].legend()
 
         plt.tight_layout()
-        plt.savefig(
-            "protocol8_individual_differences.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig("protocol8_individual_differences.png", dpi=300, bbox_inches="tight")
         plt.close()
 
         print("Visualization saved to: protocol8_individual_differences.png")
@@ -2177,9 +1933,7 @@ class APGIPsychophysicalEstimator:
 def run_validation(**kwargs):
     """Main validation function for the protocol"""
     print("=" * 80)
-    print(
-        "APGI PROTOCOL 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION & INDIVIDUAL DIFFERENCES"
-    )
+    print("APGI PROTOCOL 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION & INDIVIDUAL DIFFERENCES")
     print("=" * 80)
 
     # Use N=100 participants with power analysis
@@ -2192,9 +1946,7 @@ def run_validation(**kwargs):
     print("=" * 80)
 
     overall = results["overall_falsification"]
-    print(
-        f"\nFramework Status: {'✓ SUPPORTED' if overall['framework_supported'] else '✗ FALSIFIED'}"
-    )
+    print(f"\nFramework Status: {'✓ SUPPORTED' if overall['framework_supported'] else '✗ FALSIFIED'}")
     print(f"Tests Passed: {overall['tests_passed']}/{overall['total_tests']}")
 
     # Power analysis reporting
@@ -2213,12 +1965,8 @@ def run_validation(**kwargs):
     print(
         f"• Threshold (θ₀) - Somatic bias (β) correlation: r={results['correlations']['theta_0_beta']['r']:.3f} (p={results['correlations']['theta_0_beta']['p']:.3f})"
     )
-    print(
-        f"• Maximum parameter intercorrelation: {results['falsification_tests']['F3_4']['max_correlation']:.3f}"
-    )
-    print(
-        f"• Number of factors identified: {results['falsification_tests']['F3_5']['n_factors']}"
-    )
+    print(f"• Maximum parameter intercorrelation: {results['falsification_tests']['F3_4']['max_correlation']:.3f}")
+    print(f"• Number of factors identified: {results['falsification_tests']['F3_5']['n_factors']}")
 
     print("\nTest-Retest Reliability (ICC):")
     for param, icc in results["reliability_analysis"]["test_retest_icc"].items():
@@ -2262,9 +2010,7 @@ def run_validation(**kwargs):
     print("\nP1 β/Πⁱ Disambiguation: Pharmacological Two-Pathway")
     beta_test = results["falsification_tests"]["P1_beta_disambiguation"]
     print(f"• Status: {'✓ PASS' if beta_test['passed'] else '✗ FAIL'}")
-    print(
-        f"• Threshold increase under β-blockade: {beta_test['threshold_increase']:.4f}"
-    )
+    print(f"• Threshold increase under β-blockade: {beta_test['threshold_increase']:.4f}")
     print(f"• Πⁱ blockade correlation: {beta_test['pi_i_blockade_correlation']:.3f}")
 
     print("\n" + "=" * 80)
@@ -2735,9 +2481,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"V8.1: {'PASS' if v8_1_pass else 'FAIL'} - R²: {r_squared_fit:.3f}, RMSE: {rmse:.3f}"
-    )
+    logger.info(f"V8.1: {'PASS' if v8_1_pass else 'FAIL'} - R²: {r_squared_fit:.3f}, RMSE: {rmse:.3f}")
 
     # V8.2: Parameter Correlation Predictions
     logger.info("Testing V8.2: Parameter Correlation Predictions")
@@ -2766,9 +2510,7 @@ def check_falsification(
 
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
-    f1_1_pass = (
-        apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
-    )
+    f1_1_pass = apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
         "apgi_advantage": apgi_advantage_f1,
@@ -2781,17 +2523,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}"
-    )
+    logger.info(f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}")
 
     # F1.2: Hierarchical Level Emergence
     logger.info("Testing F1.2: Hierarchical Level Emergence")
-    f1_2_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
-    )
+    f1_2_pass = hierarchical_levels_detected >= 3 and peak_separation_ratio >= 1.5 and eta_squared_timescales >= 0.45
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
         "hierarchical_levels_detected": hierarchical_levels_detected,
@@ -2810,16 +2546,8 @@ def check_falsification(
 
     # F1.3: Level-Specific Precision Weighting
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
-    precision_difference = (
-        (level1_intero_precision - level3_intero_precision)
-        / level3_intero_precision
-        * 100
-    )
-    f1_3_pass = (
-        precision_difference >= 15
-        and partial_eta_squared_f1_3 >= 0.08
-        and p_interaction_f1_3 < 0.01
-    )
+    precision_difference = (level1_intero_precision - level3_intero_precision) / level3_intero_precision * 100
+    f1_3_pass = precision_difference >= 15 and partial_eta_squared_f1_3 >= 0.08 and p_interaction_f1_3 < 0.01
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "level1_intero_precision": level1_intero_precision,
@@ -2866,10 +2594,7 @@ def check_falsification(
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
     f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
+        pac_modulation_index >= 0.008 and pac_increase >= 15 and cohens_d_pac >= 0.30 and permutation_p_pac < 0.01
     )
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
@@ -2918,9 +2643,7 @@ def check_falsification(
 
     # F2.1: Somatic Marker Advantage Quantification
     logger.info("Testing F2.1: Somatic Marker Advantage Quantification")
-    advantage_over_no_somatic = (
-        apgi_advantageous_selection - no_somatic_advantageous_selection
-    )
+    advantage_over_no_somatic = apgi_advantageous_selection - no_somatic_advantageous_selection
     f2_1_pass = (
         apgi_advantageous_selection >= 18
         and advantage_over_no_somatic >= 8
@@ -2948,9 +2671,7 @@ def check_falsification(
     # F2.2: Interoceptive Cost Sensitivity
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
     f2_2_pass = (
-        abs(apgi_cost_correlation) >= 0.30
-        and abs(no_intero_cost_correlation) <= 0.20
-        and fishers_z_difference >= 1.50
+        abs(apgi_cost_correlation) >= 0.30 and abs(no_intero_cost_correlation) <= 0.20 and fishers_z_difference >= 1.50
     )
     results["criteria"]["F2.2"] = {
         "passed": f2_2_pass,
@@ -2971,10 +2692,7 @@ def check_falsification(
     # F2.3: vmPFC-Like Anticipatory Bias
     logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
     f2_3_pass = (
-        rt_advantage >= 20
-        and rt_modulation_beta >= 15
-        and standardized_beta_rt >= 0.25
-        and marginal_r2_rt >= 0.10
+        rt_advantage >= 20 and rt_modulation_beta >= 15 and standardized_beta_rt >= 0.25 and marginal_r2_rt >= 0.10
     )
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -3022,10 +2740,7 @@ def check_falsification(
     logger.info("Testing F2.5: Learning Trajectory Discrimination")
     trial_advantage = no_intero_time_to_criterion - apgi_time_to_criterion
     f2_5_pass = (
-        apgi_time_to_criterion <= 55
-        and hazard_ratio_f2_5 >= 1.35
-        and log_rank_p < 0.01
-        and trial_advantage >= 12
+        apgi_time_to_criterion <= 55 and hazard_ratio_f2_5 >= 1.35 and log_rank_p < 0.01 and trial_advantage >= 12
     )
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -3047,9 +2762,7 @@ def check_falsification(
 
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
-    f3_1_pass = (
-        apgi_advantage_f3 >= 0.18 and cohens_d_f3 >= 0.60 and p_advantage_f3 < 0.008
-    )
+    f3_1_pass = apgi_advantage_f3 >= 0.18 and cohens_d_f3 >= 0.60 and p_advantage_f3 < 0.008
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "apgi_advantage": apgi_advantage_f3,
@@ -3062,17 +2775,11 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}"
-    )
+    logger.info(f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}")
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.008
-    )
+    f3_2_pass = interoceptive_advantage >= 0.20 and partial_eta_squared >= 0.12 and p_interaction < 0.008
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
         "interoceptive_advantage": interoceptive_advantage,
@@ -3091,11 +2798,7 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.008
-    )
+    f3_3_pass = threshold_reduction >= 0.15 and cohens_d_threshold >= 0.50 and p_threshold < 0.008
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
@@ -3114,11 +2817,7 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.008
-    )
+    f3_4_pass = precision_reduction >= 0.12 and cohens_d_precision >= 0.42 and p_precision < 0.008
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
         "precision_reduction": precision_reduction,
@@ -3137,14 +2836,11 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
-    )
+    f3_5_pass = performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
         "performance_retention": performance_retention,
         "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
         "threshold": "Retention ≥85%, gain ≥30%",
         "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
     }
@@ -3158,11 +2854,7 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    f3_6_pass = (
-        time_to_criterion <= 200
-        and hazard_ratio >= 1.45
-        and p_sample_efficiency < 0.008
-    )
+    f3_6_pass = time_to_criterion <= 200 and hazard_ratio >= 1.45 and p_sample_efficiency < 0.008
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
         "time_to_criterion": time_to_criterion,
@@ -3175,17 +2867,12 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}"
-    )
+    logger.info(f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}")
 
     # F5.1: Threshold Filtering Emergence
     logger.info("Testing F5.1: Threshold Filtering Emergence")
     f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
+        proportion_threshold_agents >= 0.60 and mean_alpha >= 3.0 and cohen_d_alpha >= 0.50 and binomial_p_f5_1 < 0.01
     )
     results["criteria"]["F5.1"] = {
         "passed": f5_1_pass,
@@ -3206,11 +2893,7 @@ def check_falsification(
 
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
+    f5_2_pass = proportion_precision_agents >= 0.50 and mean_correlation_r >= 0.35 and binomial_p_f5_2 < 0.01
     results["criteria"]["F5.2"] = {
         "passed": f5_2_pass,
         "proportion_precision_agents": proportion_precision_agents,
@@ -3254,11 +2937,7 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
+    f5_4_pass = proportion_multiscale_agents >= 0.45 and peak_separation_ratio_f5_4 >= 2.0 and binomial_p_f5_4 < 0.01
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "proportion_multiscale_agents": proportion_multiscale_agents,
@@ -3295,11 +2974,7 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
-    )
+    f5_6_pass = performance_difference >= 0.25 and cohen_d_performance >= 0.55 and ttest_p_f5_6 < 0.01
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
@@ -3361,12 +3036,8 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    f6_1_pass = (
-        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
-    )
+    f6_1_pass = ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    status, power, underpowered = check_power_and_apply_gating("F6.1", f6_1_pass, cliffs_delta, 80, 0.01)
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "status": status,
@@ -3385,9 +3056,7 @@ def check_falsification(
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
-    )
+    logger.info(f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}")
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
@@ -3397,14 +3066,8 @@ def check_falsification(
         and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
-    integration_ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
-    status, power, underpowered = check_power_and_apply_gating(
-        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
-    )
+    integration_ratio = ltcn_integration_window / rnn_integration_window if rnn_integration_window > 0 else 0
+    status, power, underpowered = check_power_and_apply_gating("F6.2", f6_2_pass, integration_ratio, 80, 0.01)
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "status": status,
@@ -3495,11 +3158,7 @@ def run_protocol_main(config=None):
             passed=pred_data.get("passed", False),
             value=pred_data.get("actual"),
             threshold=pred_data.get("threshold"),
-            status=(
-                PredictionStatus.PASSED
-                if pred_data.get("passed", False)
-                else PredictionStatus.FAILED
-            ),
+            status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
     return ProtocolResult(
@@ -3568,29 +3227,21 @@ class PrecisionWeightingValidator:
             }
 
         # Calculate precision ratios
-        intero_extero_ratio = (
-            precision_data["intero_precision"] / precision_data["extero_precision"]
-        )
+        intero_extero_ratio = precision_data["intero_precision"] / precision_data["extero_precision"]
 
         # Statistical tests
         from scipy import stats
 
         # Test if interoceptive precision is significantly higher
-        t_stat, p_value = stats.ttest_rel(
-            precision_data["intero_precision"], precision_data["extero_precision"]
-        )
+        t_stat, p_value = stats.ttest_rel(precision_data["intero_precision"], precision_data["extero_precision"])
 
         # Cohen's d for effect size
         pooled_std = np.sqrt(
-            (
-                np.var(precision_data["intero_precision"], ddof=1)
-                + np.var(precision_data["extero_precision"], ddof=1)
-            )
+            (np.var(precision_data["intero_precision"], ddof=1) + np.var(precision_data["extero_precision"], ddof=1))
             / 2
         )
         cohens_d = (
-            np.mean(precision_data["intero_precision"])
-            - np.mean(precision_data["extero_precision"])
+            np.mean(precision_data["intero_precision"]) - np.mean(precision_data["extero_precision"])
         ) / pooled_std
 
         # Calculate partial eta-squared
@@ -3647,31 +3298,22 @@ class InteroceptiveBiasChecker:
                 "interoceptive_trials": np.random.randint(0, 2, 100),
                 "exteroceptive_trials": np.random.randint(0, 2, 100),
                 "interoceptive_accuracy": np.random.uniform(0.6, 0.9, 100),
-                "exteroceptive_accuracy": np.random.uniform(
-                    0.4, GENERIC_MIN_COHENS_D, 100
-                ),
+                "exteroceptive_accuracy": np.random.uniform(0.4, GENERIC_MIN_COHENS_D, 100),
             }
 
         # Calculate accuracy difference
-        accuracy_diff = (
-            bias_data["interoceptive_accuracy"] - bias_data["exteroceptive_accuracy"]
-        )
+        accuracy_diff = bias_data["interoceptive_accuracy"] - bias_data["exteroceptive_accuracy"]
         mean_diff = np.mean(accuracy_diff)
 
         # Statistical tests
         from scipy import stats
 
         # Paired t-test for accuracy comparison
-        t_stat, p_value = stats.ttest_rel(
-            bias_data["interoceptive_accuracy"], bias_data["exteroceptive_accuracy"]
-        )
+        t_stat, p_value = stats.ttest_rel(bias_data["interoceptive_accuracy"], bias_data["exteroceptive_accuracy"])
 
         # Cohen's d
         pooled_std = np.sqrt(
-            (
-                np.var(bias_data["interoceptive_accuracy"], ddof=1)
-                + np.var(bias_data["exteroceptive_accuracy"], ddof=1)
-            )
+            (np.var(bias_data["interoceptive_accuracy"], ddof=1) + np.var(bias_data["exteroceptive_accuracy"], ddof=1))
             / 2
         )
         cohens_d = np.mean(accuracy_diff) / pooled_std
@@ -3778,9 +3420,7 @@ def validate_disorder_parameters(
             with open(disorder_config_path, "r", encoding="utf-8") as f:
                 custom_disorder_table = json.load(f)
                 default_disorder_table.update(custom_disorder_table)
-                logger.info(
-                    f"Loaded custom disorder config from {disorder_config_path}"
-                )
+                logger.info(f"Loaded custom disorder config from {disorder_config_path}")
         except Exception as e:
             logger.warning(f"Failed to load disorder config: {e}")
 
@@ -3844,20 +3484,14 @@ def validate_disorder_parameters(
 
     for disorder_name, paper_ranges in default_disorder_table.items():
         if disorder_name not in hardcoded_profiles:
-            warnings.append(
-                f"Disorder '{disorder_name}' not found in hardcoded profiles"
-            )
+            warnings.append(f"Disorder '{disorder_name}' not found in hardcoded profiles")
             continue
 
         hardcoded = hardcoded_profiles[disorder_name]
 
         # Check theta offset
         theta_range = paper_ranges["theta_offset_range"]
-        if not (
-            theta_range[0] - tolerance
-            <= hardcoded["theta_offset"]
-            <= theta_range[1] + tolerance
-        ):
+        if not (theta_range[0] - tolerance <= hardcoded["theta_offset"] <= theta_range[1] + tolerance):
             discrepancies.append(
                 f"{disorder_name}: theta_offset={hardcoded['theta_offset']} "
                 f"outside paper range [{theta_range[0]:.2f}, {theta_range[1]:.2f}]"
@@ -3865,11 +3499,7 @@ def validate_disorder_parameters(
 
         # Check pi_i modification
         pi_i_range = paper_ranges["pi_i_modification_range"]
-        if not (
-            pi_i_range[0] - tolerance
-            <= hardcoded["pi_i_modification"]
-            <= pi_i_range[1] + tolerance
-        ):
+        if not (pi_i_range[0] - tolerance <= hardcoded["pi_i_modification"] <= pi_i_range[1] + tolerance):
             discrepancies.append(
                 f"{disorder_name}: pi_i_modification={hardcoded['pi_i_modification']} "
                 f"outside paper range [{pi_i_range[0]:.2f}, {pi_i_range[1]:.2f}]"
@@ -3877,19 +3507,14 @@ def validate_disorder_parameters(
 
         # Check arousal level
         arousal_range = paper_ranges["arousal_level_range"]
-        if not (
-            arousal_range[0] - tolerance
-            <= hardcoded["arousal_level"]
-            <= arousal_range[1] + tolerance
-        ):
+        if not (arousal_range[0] - tolerance <= hardcoded["arousal_level"] <= arousal_range[1] + tolerance):
             discrepancies.append(
                 f"{disorder_name}: arousal_level={hardcoded['arousal_level']} "
                 f"outside paper range [{arousal_range[0]:.2f}, {arousal_range[1]:.2f}]"
             )
 
     logger.info(
-        f"Disorder parameter validation completed: "
-        f"{len(discrepancies)} discrepancies, {len(warnings)} warnings"
+        f"Disorder parameter validation completed: " f"{len(discrepancies)} discrepancies, {len(warnings)} warnings"
     )
 
     return {

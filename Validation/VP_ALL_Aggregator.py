@@ -303,8 +303,7 @@ def aggregate_prediction_results(
     """
     # Initialize tallies with proper structure
     tallies: Dict[str, Dict[str, Any]] = {
-        k: {"passed": False, "evidence": [], "protocol_source": None}
-        for k in NAMED_PREDICTIONS
+        k: {"passed": False, "evidence": [], "protocol_source": None} for k in NAMED_PREDICTIONS
     }
 
     # Handle dict of results, list of paths, or list of dicts
@@ -362,9 +361,7 @@ def aggregate_prediction_results(
             if pred_id in tallies:
                 # Check for VP-07/VP-10 boundary (legacy P2.a-P2.c naming)
                 is_p2_prediction = pred_id in ["P2.a", "P2.b", "P2.c"]
-                is_vp07 = "VP_07" in str(protocol_source) or "VP-07" in str(
-                    protocol_source
-                )
+                is_vp07 = "VP_07" in str(protocol_source) or "VP-07" in str(protocol_source)
                 is_vp10 = (
                     "VP_10" in str(protocol_source)
                     or "VP-10" in str(protocol_source)
@@ -394,9 +391,7 @@ def aggregate_prediction_results(
                             tallies[pred_id]["vp10_supplementary_passed"] = passed
                         else:
                             tallies[pred_id]["passed"] = passed
-                            tallies[pred_id][
-                                "protocol_source"
-                            ] = "VP-10 (supplementary)"
+                            tallies[pred_id]["protocol_source"] = "VP-10 (supplementary)"
                             tallies[pred_id]["source_type"] = "supplementary"
                     else:
                         # Other protocol - treat normally
@@ -434,31 +429,15 @@ def compute_validation_summary(
     passing = sum(1 for r in predictions.values() if r.get("passed"))
 
     # Count by protocol tier
-    primary_preds = [
-        p
-        for p in PREDICTION_TO_PROTOCOL
-        if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"
-    ]
+    primary_preds = [p for p in PREDICTION_TO_PROTOCOL if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"]
     secondary_preds = [
-        p
-        for p in PREDICTION_TO_PROTOCOL
-        if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "secondary"
+        p for p in PREDICTION_TO_PROTOCOL if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "secondary"
     ]
-    tertiary_preds = [
-        p
-        for p in PREDICTION_TO_PROTOCOL
-        if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "tertiary"
-    ]
+    tertiary_preds = [p for p in PREDICTION_TO_PROTOCOL if PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "tertiary"]
 
-    primary_passed = sum(
-        1 for p in primary_preds if predictions.get(p, {}).get("passed")
-    )
-    secondary_passed = sum(
-        1 for p in secondary_preds if predictions.get(p, {}).get("passed")
-    )
-    tertiary_passed = sum(
-        1 for p in tertiary_preds if predictions.get(p, {}).get("passed")
-    )
+    primary_passed = sum(1 for p in primary_preds if predictions.get(p, {}).get("passed"))
+    secondary_passed = sum(1 for p in secondary_preds if predictions.get(p, {}).get("passed"))
+    tertiary_passed = sum(1 for p in tertiary_preds if predictions.get(p, {}).get("passed"))
 
     return {
         "total_predictions": total,
@@ -472,9 +451,7 @@ def compute_validation_summary(
         "secondary": {
             "total": len(secondary_preds),
             "passed": secondary_passed,
-            "pass_rate": (
-                secondary_passed / len(secondary_preds) if secondary_preds else 0
-            ),
+            "pass_rate": (secondary_passed / len(secondary_preds) if secondary_preds else 0),
         },
         "tertiary": {
             "total": len(tertiary_preds),
@@ -536,9 +513,7 @@ def run_framework_validation(
     summary = compute_validation_summary(predictions)
 
     # Check validation criteria
-    validation_status = check_framework_validated(
-        predictions, min_primary_rate, min_overall_rate
-    )
+    validation_status = check_framework_validated(predictions, min_primary_rate, min_overall_rate)
 
     return {
         "validation_complete": True,
@@ -570,9 +545,7 @@ class ValidationAggregator:
         self.prediction_to_protocol = PREDICTION_TO_PROTOCOL
         self._prediction_statuses: Dict[str, Dict[str, Any]] = {}
 
-    def set_prediction(
-        self, prediction_id: str, status: str, evidence: Optional[str] = None
-    ) -> None:
+    def set_prediction(self, prediction_id: str, status: str, evidence: Optional[str] = None) -> None:
         """Set the status of a named prediction manually.
 
         Used for marking predictions as PENDING_DATA when protocols
@@ -590,9 +563,7 @@ class ValidationAggregator:
         if evidence:
             self._prediction_statuses[prediction_id]["evidence"] = evidence
 
-    def aggregate_results(
-        self, results_input: Union[Dict, List]
-    ) -> Dict[str, Dict[str, Any]]:
+    def aggregate_results(self, results_input: Union[Dict, List]) -> Dict[str, Dict[str, Any]]:
         """Aggregate prediction results from all protocols.
 
         Handles VP-15 STUB status by marking predictions as PENDING_DATA.
@@ -618,9 +589,7 @@ class ValidationAggregator:
                         if pred_id in results:
                             results[pred_id]["passed"] = None
                             results[pred_id]["status"] = "PENDING_DATA"
-                            results[pred_id][
-                                "evidence"
-                            ] = "Awaiting empirical fMRI data"
+                            results[pred_id]["evidence"] = "Awaiting empirical fMRI data"
 
         return results
 
@@ -651,9 +620,7 @@ class ValidationAggregator:
         Returns:
             dict: Validation status and criteria check results
         """
-        return check_framework_validated(
-            predictions, min_primary_rate, min_overall_rate
-        )
+        return check_framework_validated(predictions, min_primary_rate, min_overall_rate)
 
     def run_full_analysis(
         self,
@@ -671,9 +638,7 @@ class ValidationAggregator:
         Returns:
             dict: Complete validation report
         """
-        return run_framework_validation(
-            results_input, min_primary_rate, min_overall_rate
-        )
+        return run_framework_validation(results_input, min_primary_rate, min_overall_rate)
 
     def get_protocol_predictions(self, protocol_name: str) -> List[str]:
         """Get all prediction IDs associated with a specific protocol.
@@ -684,11 +649,7 @@ class ValidationAggregator:
         Returns:
             List of prediction IDs for that protocol
         """
-        return [
-            p
-            for p, proto in self.prediction_to_protocol.items()
-            if proto == protocol_name
-        ]
+        return [p for p, proto in self.prediction_to_protocol.items() if proto == protocol_name]
 
     def get_tier_predictions(self, tier: str) -> List[str]:
         """Get all prediction IDs for a specific tier.
@@ -700,9 +661,7 @@ class ValidationAggregator:
             List of prediction IDs for that tier
         """
         protocols = [p for p, t in self.protocol_tiers.items() if t == tier]
-        return [
-            p for p, proto in self.prediction_to_protocol.items() if proto in protocols
-        ]
+        return [p for p, proto in self.prediction_to_protocol.items() if proto in protocols]
 
 
 def load_protocol_results_from_directory(
@@ -778,7 +737,7 @@ def extract_bic_comparison(
             try:
                 with open(item) as f:
                     data = json.load(f)
-            except Exception:
+            except Exception:  # nosec - Intentionally continue on file load failure
                 continue
         elif isinstance(item, dict):
             data = item
@@ -834,8 +793,7 @@ def extract_bic_comparison(
         else:
             # Theoretical fallback warning
             bic_results["warnings"].append(
-                "Using theoretical BIC estimates. Empirical data recommended for "
-                "publication-ready validation."
+                "Using theoretical BIC estimates. Empirical data recommended for " "publication-ready validation."
             )
 
     return bic_results
@@ -909,9 +867,7 @@ def run_end_to_end_validation_pipeline(
 
                 # Save to output directory if specified
                 if output_dir:
-                    out_path = (
-                        Path(output_dir) / f"{module_path.split('.')[-1]}_result.json"
-                    )
+                    out_path = Path(output_dir) / f"{module_path.split('.')[-1]}_result.json"
                     Path(output_dir).mkdir(parents=True, exist_ok=True)
                     if hasattr(result, "to_dict"):
                         with open(out_path, "w") as f:
@@ -924,9 +880,7 @@ def run_end_to_end_validation_pipeline(
                     {"module": module_path, "reason": "No run_protocol_main function"}
                 )
         except Exception as e:
-            pipeline_results["protocols_failed"].append(
-                {"module": module_path, "reason": str(e)}
-            )
+            pipeline_results["protocols_failed"].append({"module": module_path, "reason": str(e)})
 
     # Phase 2: Aggregate results
     if protocol_outputs:
@@ -939,9 +893,7 @@ def run_end_to_end_validation_pipeline(
 
             # Phase 3: Run validation
             summary = compute_validation_summary(predictions)
-            validation = check_framework_validated(
-                predictions, min_primary_rate, min_overall_rate
-            )
+            validation = check_framework_validated(predictions, min_primary_rate, min_overall_rate)
             pipeline_results["validation_status"] = {
                 "summary": summary,
                 "validation": validation,
@@ -951,8 +903,8 @@ def run_end_to_end_validation_pipeline(
             pipeline_results["bic_analysis"] = extract_bic_comparison(protocol_outputs)
 
             # Phase 5: Consistency checks
-            pipeline_results["consistency_checks"] = (
-                run_cross_protocol_consistency_checks(protocol_outputs, predictions)
+            pipeline_results["consistency_checks"] = run_cross_protocol_consistency_checks(
+                protocol_outputs, predictions
             )
 
         except Exception as e:
@@ -998,8 +950,7 @@ def run_cross_protocol_consistency_checks(
                 vp10_passed = predictions[pred].get("passed")
                 if vp07_passed != vp10_passed:
                     consistency_report["warnings"].append(
-                        f"VP-07 ({canonical_pred}) and VP-10 ({pred}) disagree: "
-                        f"{vp07_passed} vs {vp10_passed}"
+                        f"VP-07 ({canonical_pred}) and VP-10 ({pred}) disagree: " f"{vp07_passed} vs {vp10_passed}"
                     )
 
     consistency_report["checks_performed"].append("vp07_vp10_boundary")
@@ -1027,8 +978,7 @@ def run_cross_protocol_consistency_checks(
         [
             p
             for p in predictions
-            if p in PREDICTION_TO_PROTOCOL
-            and PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"
+            if p in PREDICTION_TO_PROTOCOL and PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"
         ]
     )
 
@@ -1059,9 +1009,7 @@ def run_cross_protocol_consistency_checks(
     consistency_report["data_source_breakdown"] = {
         "empirical_protocols": empirical_protocols,
         "theoretical_protocols": theoretical_protocols,
-        "empirical_ratio": (
-            len(empirical_protocols) / len(protocol_outputs) if protocol_outputs else 0
-        ),
+        "empirical_ratio": (len(empirical_protocols) / len(protocol_outputs) if protocol_outputs else 0),
     }
 
     if len(empirical_protocols) < 3:
@@ -1070,9 +1018,7 @@ def run_cross_protocol_consistency_checks(
             "recommend increasing empirical validation for publication readiness"
         )
 
-    consistency_report["overall_consistent"] = (
-        len(consistency_report["inconsistencies_found"]) == 0
-    )
+    consistency_report["overall_consistent"] = len(consistency_report["inconsistencies_found"]) == 0
 
     return consistency_report
 
@@ -1087,9 +1033,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
         print(f"\nFound {len(json_files)} result files in {results_dir}")
         if json_files:
             results = aggregator.aggregate_results([str(f) for f in json_files])
-            print(
-                "\nAggregation complete. Use aggregator.run_full_analysis() for full report."
-            )
+            print("\nAggregation complete. Use aggregator.run_full_analysis() for full report.")
             return results
     else:
         print(f"\nNo results directory found at {results_dir}")
@@ -1123,9 +1067,7 @@ if __name__ == "__main__":
         print(f"\nFound {len(json_files)} result files in {results_dir}")
         if json_files:
             results = aggregator.aggregate_results([str(f) for f in json_files])
-            print(
-                "\nAggregation complete. Use aggregator.run_full_analysis() for full report."
-            )
+            print("\nAggregation complete. Use aggregator.run_full_analysis() for full report.")
     else:
         print(f"\nNo results directory found at {results_dir}")
         print("Run individual validation protocols first to generate JSON results.")

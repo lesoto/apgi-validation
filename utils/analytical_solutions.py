@@ -45,9 +45,7 @@ class AnalyticalAPGISolutions:
         Compute time to ignition (analytical solution):
         t* = τ_S ln((S* - S_0) / (S* - θ))
         """
-        S_star = AnalyticalAPGISolutions.steady_state_surprise(
-            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-        )
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
 
         if theta >= S_star:
             return float("inf")
@@ -65,9 +63,7 @@ class AnalyticalAPGISolutions:
         tau_S: float,
     ) -> float:
         """Compute critical threshold for ignition (analytical)"""
-        return AnalyticalAPGISolutions.steady_state_surprise(
-            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-        )
+        return AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
 
     @staticmethod
     def phase_boundary(
@@ -79,9 +75,7 @@ class AnalyticalAPGISolutions:
         eps_i: float,
     ) -> dict:
         """Compute phase boundary parameters (analytical)"""
-        S_star = AnalyticalAPGISolutions.steady_state_surprise(
-            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-        )
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
         return {
             "steady_state_surprise": S_star,
             "threshold": theta,
@@ -138,7 +132,8 @@ def compute_steady_state(params: dict) -> dict:
     Compute steady-state values for APGI model parameters.
 
     Args:
-        params: Dictionary containing model parameters (tau_S, tau_theta, alpha)
+        params: Dictionary containing model parameters
+                (tau_S, tau_theta, alpha)
 
     Returns:
         Dictionary with steady-state values including S_steady and theta_steady
@@ -153,9 +148,7 @@ def compute_steady_state(params: dict) -> dict:
     Pi_i_eff = 1.0
     eps_i = 1.0
 
-    S_steady = AnalyticalAPGISolutions.steady_state_surprise(
-        Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
-    )
+    S_steady = AnalyticalAPGISolutions.steady_state_surprise(Pi_e, eps_e, Pi_i_eff, eps_i, tau_S)
 
     # Compute steady-state threshold
     theta_steady = S_steady * 0.8  # Threshold at 80% of steady-state surprise

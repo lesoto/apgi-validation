@@ -34,9 +34,7 @@ class SignalFallback:
     def welch(x, fs, nperseg=None, window="hann"):
         """Fallback Welch method implementation."""
         if nperseg is None:
-            nperseg = min(
-                1024, len(x) // 2
-            )  # Use larger nperseg for better frequency resolution
+            nperseg = min(1024, len(x) // 2)  # Use larger nperseg for better frequency resolution
 
         # Simple FFT-based PSD
         nfft = nperseg
@@ -64,9 +62,7 @@ try:
     from scipy import signal
 except (ImportError, TypeError, AttributeError) as e:
     signal = SignalFallback()
-    print(
-        f"Warning: Using fallback signal implementation due to scipy compatibility issues: {e}"
-    )
+    print(f"Warning: Using fallback signal implementation due to scipy compatibility issues: {e}")
 
 # Import centralized spectral band constants
 try:
@@ -331,8 +327,7 @@ class AlphaGammaRatioPrior:
         calibration_valid = alpha_power > 0 and gamma_power > 0
 
         logger.info(
-            f"AG Ratio: {ag_ratio:.3f} (z={ag_ratio_z:.2f}) -> "
-            f"Πi={pi_i_phys:.3f} (confidence={confidence:.2f})"
+            f"AG Ratio: {ag_ratio:.3f} (z={ag_ratio_z:.2f}) -> " f"Πi={pi_i_phys:.3f} (confidence={confidence:.2f})"
         )
 
         return PhysiologicalPriorResult(
@@ -365,9 +360,7 @@ class AlphaGammaRatioPrior:
         # Signal band
         signal_mask = (f >= freq_range[0]) & (f <= freq_range[1])
         # Noise band (neighboring frequencies)
-        noise_mask = ((f >= freq_range[0] - 5) & (f < freq_range[0])) | (
-            (f > freq_range[1]) & (f <= freq_range[1] + 5)
-        )
+        noise_mask = ((f >= freq_range[0] - 5) & (f < freq_range[0])) | ((f > freq_range[1]) & (f <= freq_range[1] + 5))
 
         signal_power = np.mean(psd[signal_mask]) if np.any(signal_mask) else 1e-10
         noise_power = np.mean(psd[noise_mask]) if np.any(noise_mask) else 1e-10
@@ -560,9 +553,7 @@ class HEPCalibrationPhase:
 
         # Check minimum duration
         if duration_sec < self.min_duration:
-            warnings.append(
-                f"Short calibration: {duration_sec:.1f}s < {self.min_duration}s recommended"
-            )
+            warnings.append(f"Short calibration: {duration_sec:.1f}s < {self.min_duration}s recommended")
 
         # Detect R-peaks
         r_peaks = self.detect_r_peaks(ecg_data, fs)
@@ -707,8 +698,7 @@ class CollinearityBreaker:
             self.is_calibrated = True
 
             logger.info(
-                f"AG Ratio Calibration: Πi={self.pi_i_baseline:.3f} "
-                f"(confidence={result.pi_i_confidence:.2f})"
+                f"AG Ratio Calibration: Πi={self.pi_i_baseline:.3f} " f"(confidence={result.pi_i_confidence:.2f})"
             )
             return True
         else:
@@ -742,10 +732,7 @@ class CollinearityBreaker:
             self.pi_i_source = "hep_calibration"
             self.is_calibrated = True
 
-            logger.info(
-                f"HEP Calibration: Πi={self.pi_i_baseline:.3f} "
-                f"(uncertainty={result.pi_i_uncertainty:.3f})"
-            )
+            logger.info(f"HEP Calibration: Πi={self.pi_i_baseline:.3f} " f"(uncertainty={result.pi_i_uncertainty:.3f})")
             return True
         else:
             logger.warning("HEP Calibration failed")

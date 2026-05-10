@@ -166,21 +166,15 @@ class LogAnalyzer:
             _log_error(f"Error parsing log file {path}: {e}")
             return []
 
-    def _parse_log_line(
-        self, line: str, line_num: int, log_file_path: Path
-    ) -> Optional[LogEntry]:
+    def _parse_log_line(self, line: str, line_num: int, log_file_path: Path) -> Optional[LogEntry]:
         """Parse a single log line and extract structured data."""
         line = line.strip()
         if not line:
             return None
 
         # Extract timestamp
-        timestamp_match = re.search(
-            r"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.,]?\d*)", line
-        )
-        timestamp = (
-            timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
-        )
+        timestamp_match = re.search(r"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.,]?\d*)", line)
+        timestamp = timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
@@ -200,9 +194,7 @@ class LogAnalyzer:
 
         # Extract file path (if present) - not currently used but extracted for future use
         file_match = re.search(r"\b(at|in|on)\s+([^]]+)\b", line)
-        _ = (
-            file_match.group(1) if file_match else None
-        )  # Suppress unused variable warning
+        _ = file_match.group(1) if file_match else None  # Suppress unused variable warning
 
         # Calculate hash for integrity verification
         content_to_hash = line + str(line_num)
@@ -272,18 +264,11 @@ class LogAnalyzer:
 
         # Detect performance issues
         if "timeout" in entry.message.lower():
-            entry.anomalies.append(
-                {"type": "performance", "description": "Timeout detected in operation"}
-            )
+            entry.anomalies.append({"type": "performance", "description": "Timeout detected in operation"})
 
         # Detect security issues
-        if any(
-            pattern in entry.message.lower()
-            for pattern in self.log_patterns["security_patterns"]
-        ):
-            entry.anomalies.append(
-                {"type": "security", "description": "Security pattern detected"}
-            )
+        if any(pattern in entry.message.lower() for pattern in self.log_patterns["security_patterns"]):
+            entry.anomalies.append({"type": "security", "description": "Security pattern detected"})
 
     def detect_anomalies(self) -> List[Dict]:
         """Detect anomalies in the current entries."""
@@ -329,9 +314,7 @@ class LogAnalyzer:
         target_level = level.upper()
         return [e for e in self.entries if e.level.upper() == target_level]
 
-    def filter_by_time_range(
-        self, start_time: datetime, end_time: datetime
-    ) -> List[LogEntry]:
+    def filter_by_time_range(self, start_time: datetime, end_time: datetime) -> List[LogEntry]:
         """Filter entries within a time range."""
         filtered = []
         for entry in self.entries:
@@ -350,18 +333,14 @@ class LogAnalyzer:
         pattern_lower = pattern.lower()
         return [e for e in self.entries if pattern_lower in e.message.lower()]
 
-    def _group_entries_by_level(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_level(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by log level."""
         grouped = defaultdict(list)
         for entry in entries:
             grouped[entry.level].append(entry)
         return dict(grouped)
 
-    def _group_entries_by_module(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_module(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by module."""
         grouped = defaultdict(list)
         for entry in entries:
@@ -369,9 +348,7 @@ class LogAnalyzer:
                 grouped[entry.module].append(entry)
         return dict(grouped)
 
-    def _group_entries_by_function(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_function(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by function."""
         grouped = defaultdict(list)
         for entry in entries:
@@ -422,15 +399,11 @@ class LogAnalyzer:
             summary_parts.append(f"Anomalies: {dict(anomaly_types)}")
 
         # Performance issues
-        performance_issues = [
-            ano for ano in analysis.anomalies if ano["type"] == "performance"
-        ]
+        performance_issues = [ano for ano in analysis.anomalies if ano["type"] == "performance"]
         summary_parts.append(f"Performance Issues: {len(performance_issues)}")
 
         # Security issues
-        security_issues = [
-            ano for ano in analysis.anomalies if ano["type"] == "security"
-        ]
+        security_issues = [ano for ano in analysis.anomalies if ano["type"] == "security"]
         summary_parts.append(f"Security Issues: {len(security_issues)}")
 
         # File integrity
@@ -455,9 +428,7 @@ class ChainIntegrityVerifier:
         Args:
             integrity_file: Path to store integrity metadata (chain hashes, etc.)
         """
-        self.integrity_file = (
-            Path(integrity_file) if integrity_file else Path(".log_integrity")
-        )
+        self.integrity_file = Path(integrity_file) if integrity_file else Path(".log_integrity")
         self.chain_hashes: Dict[str, str] = {}
         self.entry_counters: Dict[str, int] = {}
         self._load_integrity_data()
@@ -605,9 +576,7 @@ class ChainIntegrityVerifier:
 
         return results
 
-    def _parse_line_to_entry(
-        self, line: str, line_num: int, log_file: Path
-    ) -> Optional[LogEntry]:
+    def _parse_line_to_entry(self, line: str, line_num: int, log_file: Path) -> Optional[LogEntry]:
         """Parse a log line into a LogEntry."""
         line = line.strip()
         if not line:
@@ -615,9 +584,7 @@ class ChainIntegrityVerifier:
 
         # Try to extract timestamp
         timestamp_match = re.search(r"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})", line)
-        timestamp = (
-            timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
-        )
+        timestamp = timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
@@ -694,16 +661,12 @@ class ChainIntegrityVerifier:
             "generated_at": datetime.now().isoformat(),
             "file_size": log_file.stat().st_size if log_file.exists() else 0,
             "file_modified": (
-                datetime.fromtimestamp(log_file.stat().st_mtime).isoformat()
-                if log_file.exists()
-                else None
+                datetime.fromtimestamp(log_file.stat().st_mtime).isoformat() if log_file.exists() else None
             ),
             "total_entries": verification.get("total_entries", 0),
             "chain_hash": self.chain_hashes.get(file_key, "0"),
             "entry_count": self.entry_counters.get(file_key, 0),
-            "verification_status": (
-                "VERIFIED" if verification["verified"] else "TAMPERED"
-            ),
+            "verification_status": ("VERIFIED" if verification["verified"] else "TAMPERED"),
             "chain_valid": verification.get("chain_valid", False),
             "tampered_entries": len(verification.get("tampered_entries", [])),
             "missing_entries": len(verification.get("missing_entries", [])),
@@ -712,9 +675,7 @@ class ChainIntegrityVerifier:
 
         # Calculate certificate hash
         cert_content = f"{certificate['file']}:{certificate['chain_hash']}:{certificate['total_entries']}"
-        certificate["certificate_hash"] = hashlib.sha256(
-            cert_content.encode()
-        ).hexdigest()[:32]
+        certificate["certificate_hash"] = hashlib.sha256(cert_content.encode()).hexdigest()[:32]
 
         return certificate
 
@@ -740,9 +701,7 @@ class IntegrityVerifier:
             _log_error(f"Error computing hash for {path}: {e}")
             return ""
 
-    def verify_file_integrity(
-        self, file_path: Union[str, Path], expected_hash: str
-    ) -> bool:
+    def verify_file_integrity(self, file_path: Union[str, Path], expected_hash: str) -> bool:
         """Verify file integrity by comparing computed hash with expected hash."""
         computed_hash = self.compute_file_hash(file_path)
         return computed_hash == expected_hash and computed_hash != ""
@@ -777,9 +736,7 @@ class LogAggregator:
         self.log_sources[name] = path
         self.sources[name] = path
 
-    def aggregate_logs(
-        self, time_range: Optional[Tuple[datetime, datetime]] = None
-    ) -> LogAnalysis:
+    def aggregate_logs(self, time_range: Optional[Tuple[datetime, datetime]] = None) -> LogAnalysis:
         """Aggregate logs from multiple sources within time range."""
         if not self.log_sources:
             return LogAnalysis(
@@ -796,15 +753,9 @@ class LogAggregator:
 
         all_entries = []
         start_time = (
-            time_range[0]
-            if time_range and isinstance(time_range[0], datetime)
-            else datetime.now() - timedelta(days=7)
+            time_range[0] if time_range and isinstance(time_range[0], datetime) else datetime.now() - timedelta(days=7)
         )
-        end_time = (
-            time_range[1]
-            if time_range and isinstance(time_range[1], datetime)
-            else datetime.now()
-        )
+        end_time = time_range[1] if time_range and isinstance(time_range[1], datetime) else datetime.now()
 
         # Collect entries from all sources within time range
         for source_name, source_path in self.log_sources.items():
@@ -819,9 +770,7 @@ class LogAggregator:
                 with open(source_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()[-1000:]  # Read last 1000 lines
                     for line in lines:
-                        entry = self._parse_log_line(
-                            line, len(recent_entries), source_path
-                        )
+                        entry = self._parse_log_line(line, len(recent_entries), source_path)
                         if (
                             entry
                             and datetime.fromisoformat(entry.timestamp) >= start_time
@@ -857,27 +806,19 @@ class LogAggregator:
         )
 
         # Cache the analysis
-        self.analysis_cache[f"{start_time.isoformat()}_{end_time.isoformat()}"] = (
-            analysis
-        )
+        self.analysis_cache[f"{start_time.isoformat()}_{end_time.isoformat()}"] = analysis
 
         return analysis
 
-    def _parse_log_line(
-        self, line: str, line_num: int, log_file_path: str
-    ) -> Optional[LogEntry]:
+    def _parse_log_line(self, line: str, line_num: int, log_file_path: str) -> Optional[LogEntry]:
         """Parse a single log line and extract structured data."""
         line = line.strip()
         if not line:
             return None
 
         # Extract timestamp
-        timestamp_match = re.search(
-            r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6})", line
-        )
-        timestamp = (
-            timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
-        )
+        timestamp_match = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6})", line)
+        timestamp = timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
@@ -911,18 +852,14 @@ class LogAggregator:
             raw_data=line,
         )
 
-    def _group_entries_by_level(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_level(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by log level."""
         grouped = defaultdict(list)
         for entry in entries:
             grouped[entry.level].append(entry)
         return dict(grouped)
 
-    def _group_entries_by_module(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_module(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by module."""
         grouped = defaultdict(list)
         for entry in entries:
@@ -930,9 +867,7 @@ class LogAggregator:
                 grouped[entry.module].append(entry)
         return dict(grouped)
 
-    def _group_entries_by_function(
-        self, entries: List[LogEntry]
-    ) -> Dict[str, List[LogEntry]]:
+    def _group_entries_by_function(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
         """Group entries by function."""
         grouped = defaultdict(list)
         for entry in entries:
@@ -975,9 +910,7 @@ class AnomalyDetector:
         """Initialize anomaly detector."""
         self.anomalies: List[Dict[str, Any]] = []
 
-    def detect_burst_errors(
-        self, entries: List[LogEntry], threshold: int = 5
-    ) -> List[Dict[str, Any]]:
+    def detect_burst_errors(self, entries: List[LogEntry], threshold: int = 5) -> List[Dict[str, Any]]:
         """
         Detect burst error patterns in log entries.
 
@@ -1108,13 +1041,9 @@ class ReportGenerator:
         ]
 
         # Add security issues
-        security_issues = [
-            ano for ano in analysis.anomalies if ano.get("type") == "security"
-        ]
+        security_issues = [ano for ano in analysis.anomalies if ano.get("type") == "security"]
         for issue in security_issues:
-            report_lines.append(
-                f"  {issue['description']} (File: {issue.get('file_path', 'Unknown')})"
-            )
+            report_lines.append(f"  {issue['description']} (File: {issue.get('file_path', 'Unknown')})")
 
         return "\n".join(report_lines)
 
@@ -1170,9 +1099,7 @@ class ReportGenerator:
 
         # Add file integrity summary
         integrity_valid = all(is_valid for is_valid in analysis.file_integrity.values())
-        valid_count = sum(
-            1 for is_valid in analysis.file_integrity.values() if is_valid
-        )
+        valid_count = sum(1 for is_valid in analysis.file_integrity.values() if is_valid)
         report_lines.append(
             f"File Integrity: {'✅ VERIFIED' if integrity_valid else '❌ FAILED'} ({valid_count}/{len(analysis.file_integrity)})"
         )
@@ -1221,21 +1148,15 @@ class ReportGenerator:
         total_entries = analysis.total_entries
         error_count = len(analysis.entries_by_level.get("error", []))
         warning_count = len(analysis.entries_by_level.get("warning", []))
-        _ = len(
-            analysis.entries_by_level.get("info", [])
-        )  # info count not currently used
+        _ = len(analysis.entries_by_level.get("info", []))  # info count not currently used
 
         error_rate = (error_count / total_entries * 100) if total_entries > 0 else 0
         warning_rate = (warning_count / total_entries * 100) if total_entries > 0 else 0
 
         # Security and performance metrics
         security_issues = [a for a in analysis.anomalies if a.get("type") == "security"]
-        performance_issues = [
-            a for a in analysis.anomalies if a.get("type") == "performance"
-        ]
-        integrity_issues = [
-            a for a in analysis.anomalies if a.get("type") == "integrity"
-        ]
+        performance_issues = [a for a in analysis.anomalies if a.get("type") == "performance"]
+        integrity_issues = [a for a in analysis.anomalies if a.get("type") == "integrity"]
 
         # System health score (0-100)
         health_score: float = 100.0
@@ -1278,24 +1199,16 @@ class ReportGenerator:
             )
 
         if integrity_issues:
-            critical_findings.append(
-                f"🔐 INTEGRITY: {len(integrity_issues)} log integrity violations detected"
-            )
+            critical_findings.append(f"🔐 INTEGRITY: {len(integrity_issues)} log integrity violations detected")
 
         if error_rate > 5:
-            critical_findings.append(
-                f"❌ ERRORS: High error rate of {error_rate:.1f}% indicates system instability"
-            )
+            critical_findings.append(f"❌ ERRORS: High error rate of {error_rate:.1f}% indicates system instability")
 
         if performance_issues:
-            critical_findings.append(
-                f"⚡ PERFORMANCE: {len(performance_issues)} performance anomalies detected"
-            )
+            critical_findings.append(f"⚡ PERFORMANCE: {len(performance_issues)} performance anomalies detected")
 
         if not critical_findings:
-            report_lines.append(
-                "No critical findings. System operating within normal parameters."
-            )
+            report_lines.append("No critical findings. System operating within normal parameters.")
         else:
             for finding in critical_findings:
                 report_lines.append(finding)
@@ -1310,13 +1223,8 @@ class ReportGenerator:
                     "-" * 40,
                 ]
             )
-            module_counts = {
-                module: len(entries)
-                for module, entries in analysis.entries_by_module.items()
-            }
-            sorted_modules = sorted(
-                module_counts.items(), key=lambda x: x[1], reverse=True
-            )[:5]
+            module_counts = {module: len(entries) for module, entries in analysis.entries_by_module.items()}
+            sorted_modules = sorted(module_counts.items(), key=lambda x: x[1], reverse=True)[:5]
             for module, count in sorted_modules:
                 report_lines.append(f"  {module}: {count:,} entries")
             report_lines.append("")
@@ -1333,9 +1241,7 @@ class ReportGenerator:
             recommendations = []
 
             if health_score < 70:
-                recommendations.append(
-                    "🚨 PRIORITY: System health is CRITICAL. Initiate incident response procedures."
-                )
+                recommendations.append("🚨 PRIORITY: System health is CRITICAL. Initiate incident response procedures.")
 
             if security_issues:
                 recommendations.append(
@@ -1358,9 +1264,7 @@ class ReportGenerator:
                 )
 
             if not recommendations:
-                recommendations.append(
-                    "✅ System is healthy. Continue standard monitoring and maintenance procedures."
-                )
+                recommendations.append("✅ System is healthy. Continue standard monitoring and maintenance procedures.")
 
             for rec in recommendations:
                 report_lines.append(rec)
@@ -1414,12 +1318,8 @@ class ReportGenerator:
         current_warnings = len(current_analysis.entries_by_level.get("warning", []))
         current_info = len(current_analysis.entries_by_level.get("info", []))
 
-        current_error_rate = (
-            (current_errors / current_total * 100) if current_total > 0 else 0
-        )
-        current_warning_rate = (
-            (current_warnings / current_total * 100) if current_total > 0 else 0
-        )
+        current_error_rate = (current_errors / current_total * 100) if current_total > 0 else 0
+        current_warning_rate = (current_warnings / current_total * 100) if current_total > 0 else 0
 
         report_lines.extend(
             [
@@ -1435,16 +1335,10 @@ class ReportGenerator:
         if baseline_analysis:
             baseline_total = baseline_analysis.total_entries
             baseline_errors = len(baseline_analysis.entries_by_level.get("error", []))
-            baseline_warnings = len(
-                baseline_analysis.entries_by_level.get("warning", [])
-            )
+            baseline_warnings = len(baseline_analysis.entries_by_level.get("warning", []))
 
-            baseline_error_rate = (
-                (baseline_errors / baseline_total * 100) if baseline_total > 0 else 0
-            )
-            baseline_warning_rate = (
-                (baseline_warnings / baseline_total * 100) if baseline_total > 0 else 0
-            )
+            baseline_error_rate = (baseline_errors / baseline_total * 100) if baseline_total > 0 else 0
+            baseline_warning_rate = (baseline_warnings / baseline_total * 100) if baseline_total > 0 else 0
 
             report_lines.extend(
                 [
@@ -1462,11 +1356,7 @@ class ReportGenerator:
             # Calculate percent changes
             error_change = current_error_rate - baseline_error_rate
             warning_change = current_warning_rate - baseline_warning_rate
-            volume_change = (
-                ((current_total - baseline_total) / baseline_total * 100)
-                if baseline_total > 0
-                else 0
-            )
+            volume_change = ((current_total - baseline_total) / baseline_total * 100) if baseline_total > 0 else 0
 
             # Simple z-test for proportions approximation
             def calculate_z_score(p1, p2, n1, n2):
@@ -1482,11 +1372,7 @@ class ReportGenerator:
                 return (p1 - p2) / se
 
             # Critical z-value for given confidence level
-            z_critical = (
-                1.96
-                if confidence_level == 0.95
-                else 2.576 if confidence_level == 0.99 else 1.645
-            )
+            z_critical = 1.96 if confidence_level == 0.95 else 2.576 if confidence_level == 0.99 else 1.645
 
             # Test error rate change
             error_z = calculate_z_score(
@@ -1533,30 +1419,18 @@ class ReportGenerator:
             )
 
             if error_significant and error_change > 0:
-                report_lines.append(
-                    "🔴 ERROR TREND: Significant increase in error rate detected"
-                )
+                report_lines.append("🔴 ERROR TREND: Significant increase in error rate detected")
             elif error_significant and error_change < 0:
-                report_lines.append(
-                    "🟢 ERROR TREND: Significant decrease in error rate (improvement)"
-                )
+                report_lines.append("🟢 ERROR TREND: Significant decrease in error rate (improvement)")
             else:
-                report_lines.append(
-                    "⚪ ERROR TREND: No significant change in error rate"
-                )
+                report_lines.append("⚪ ERROR TREND: No significant change in error rate")
 
             if warning_significant and warning_change > 0:
-                report_lines.append(
-                    "🟡 WARNING TREND: Significant increase in warning rate"
-                )
+                report_lines.append("🟡 WARNING TREND: Significant increase in warning rate")
             elif warning_significant and warning_change < 0:
-                report_lines.append(
-                    "🟢 WARNING TREND: Significant decrease in warning rate"
-                )
+                report_lines.append("🟢 WARNING TREND: Significant decrease in warning rate")
             else:
-                report_lines.append(
-                    "⚪ WARNING TREND: No significant change in warning rate"
-                )
+                report_lines.append("⚪ WARNING TREND: No significant change in warning rate")
 
             report_lines.append("")
 
@@ -1643,26 +1517,18 @@ class ReportGenerator:
             for protocol_name, analysis in protocol_results.items():
                 error_count = len(analysis.entries_by_level.get("error", []))
                 total = analysis.total_entries
-                protocol_error_rates[protocol_name] = (
-                    (error_count / total * 100) if total > 0 else 0
-                )
+                protocol_error_rates[protocol_name] = (error_count / total * 100) if total > 0 else 0
 
             # Find protocols with similar error patterns
-            high_error_protocols = [
-                name for name, rate in protocol_error_rates.items() if rate > 5.0
-            ]
-            low_error_protocols = [
-                name for name, rate in protocol_error_rates.items() if rate < 1.0
-            ]
+            high_error_protocols = [name for name, rate in protocol_error_rates.items() if rate > 5.0]
+            low_error_protocols = [name for name, rate in protocol_error_rates.items() if rate < 1.0]
 
             if len(high_error_protocols) > 1:
                 report_lines.append(
                     f"🚨 HIGH ERROR CORRELATION: {len(high_error_protocols)} protocols show elevated error rates (>5%):"
                 )
                 for protocol in high_error_protocols:
-                    report_lines.append(
-                        f"   - {protocol}: {protocol_error_rates[protocol]:.2f}%"
-                    )
+                    report_lines.append(f"   - {protocol}: {protocol_error_rates[protocol]:.2f}%")
                 report_lines.append("")
 
             if len(low_error_protocols) > 1:
@@ -1670,9 +1536,7 @@ class ReportGenerator:
                     f"✅ STABLE PROTOCOLS: {len(low_error_protocols)} protocols show low error rates (<1%):"
                 )
                 for protocol in low_error_protocols[:5]:  # Show top 5
-                    report_lines.append(
-                        f"   - {protocol}: {protocol_error_rates[protocol]:.2f}%"
-                    )
+                    report_lines.append(f"   - {protocol}: {protocol_error_rates[protocol]:.2f}%")
                 report_lines.append("")
 
             # Anomaly pattern correlation
@@ -1693,26 +1557,16 @@ class ReportGenerator:
                     all_anomaly_types[anomaly_type].append(protocol_name)
 
             # Find common anomaly patterns
-            common_patterns = {
-                atype: protocols
-                for atype, protocols in all_anomaly_types.items()
-                if len(protocols) > 1
-            }
+            common_patterns = {atype: protocols for atype, protocols in all_anomaly_types.items() if len(protocols) > 1}
 
             if common_patterns:
-                report_lines.append(
-                    f"Found {len(common_patterns)} anomaly patterns affecting multiple protocols:"
-                )
-                for atype, protocols in sorted(
-                    common_patterns.items(), key=lambda x: -len(x[1])
-                ):
+                report_lines.append(f"Found {len(common_patterns)} anomaly patterns affecting multiple protocols:")
+                for atype, protocols in sorted(common_patterns.items(), key=lambda x: -len(x[1])):
                     report_lines.append(
                         f"   - {atype}: affects {len(protocols)} protocols ({', '.join(protocols[:3])}{'...' if len(protocols) > 3 else ''})"
                     )
             else:
-                report_lines.append(
-                    "No common anomaly patterns detected across protocols."
-                )
+                report_lines.append("No common anomaly patterns detected across protocols.")
 
             report_lines.append("")
 
@@ -1728,9 +1582,7 @@ class ReportGenerator:
 
             # Check for widespread issues
             protocols_with_errors = sum(
-                1
-                for analysis in protocol_results.values()
-                if len(analysis.entries_by_level.get("error", [])) > 0
+                1 for analysis in protocol_results.values() if len(analysis.entries_by_level.get("error", [])) > 0
             )
 
             if protocols_with_errors > len(protocol_results) * 0.5:
@@ -1764,9 +1616,7 @@ class ReportGenerator:
                 for issue in systemic_issues:
                     report_lines.append(issue)
             else:
-                report_lines.append(
-                    "✅ No systemic issues detected. Problems appear isolated to individual protocols."
-                )
+                report_lines.append("✅ No systemic issues detected. Problems appear isolated to individual protocols.")
 
             report_lines.append("")
 
@@ -1782,9 +1632,7 @@ class ReportGenerator:
 
         # Check for correlated failures
         high_error_count = sum(
-            1
-            for analysis in protocol_results.values()
-            if len(analysis.entries_by_level.get("error", [])) > 10
+            1 for analysis in protocol_results.values() if len(analysis.entries_by_level.get("error", [])) > 10
         )
 
         if high_error_count > len(protocol_results) * 0.3:
@@ -1793,14 +1641,8 @@ class ReportGenerator:
             )
 
         if len(protocol_results) > 3:
-            avg_entries = sum(a.total_entries for a in protocol_results.values()) / len(
-                protocol_results
-            )
-            low_volume = [
-                name
-                for name, a in protocol_results.items()
-                if a.total_entries < avg_entries * 0.1
-            ]
+            avg_entries = sum(a.total_entries for a in protocol_results.values()) / len(protocol_results)
+            low_volume = [name for name, a in protocol_results.items() if a.total_entries < avg_entries * 0.1]
             if low_volume:
                 recommendations.append(
                     f"📊 VOLUME: {len(low_volume)} protocols have significantly lower activity than average"
@@ -1827,17 +1669,13 @@ class ReportGenerator:
 
 
 # Convenience functions for common operations
-def analyze_log_files(
-    log_files: Dict[str, str], time_range: Optional[Tuple[datetime, datetime]] = None
-) -> LogAnalysis:
+def analyze_log_files(log_files: Dict[str, str], time_range: Optional[Tuple[datetime, datetime]] = None) -> LogAnalysis:
     """Convenience function to analyze multiple log files."""
     aggregator = LogAggregator(log_files)
     return aggregator.aggregate_logs(time_range)
 
 
-def verify_log_integrity(
-    log_files: Dict[str, str], expected_hashes: Dict[str, str] = None
-) -> Dict[str, bool]:
+def verify_log_integrity(log_files: Dict[str, str], expected_hashes: Dict[str, str] = None) -> Dict[str, bool]:
     """Convenience function to verify log file integrity."""
     aggregator = LogAggregator(log_files)
     analysis = aggregator.aggregate_logs()
@@ -1979,10 +1817,7 @@ class AutomatedLogAnalyzer:
             analysis = self.aggregator.aggregate_logs()
             results["analysis"] = {
                 "total_entries": analysis.total_entries,
-                "entries_by_level": {
-                    level: len(entries)
-                    for level, entries in analysis.entries_by_level.items()
-                },
+                "entries_by_level": {level: len(entries) for level, entries in analysis.entries_by_level.items()},
                 "anomaly_count": len(analysis.anomalies),
             }
 
@@ -1994,9 +1829,7 @@ class AutomatedLogAnalyzer:
             for source_name, source_path in self.log_sources.items():
                 source_file = Path(source_path)
                 if source_file.exists():
-                    integrity_result = self.integrity_verifier.verify_log_chain(
-                        source_file
-                    )
+                    integrity_result = self.integrity_verifier.verify_log_chain(source_file)
                     results["integrity_checks"][source_name] = integrity_result
 
                     # Alert if tampered entries found
@@ -2079,9 +1912,7 @@ class AutomatedLogAnalyzer:
             self._record_alert(alert)
 
         # Check performance issues
-        performance_issues = [
-            a for a in analysis.anomalies if a.get("type") == "performance"
-        ]
+        performance_issues = [a for a in analysis.anomalies if a.get("type") == "performance"]
         if len(performance_issues) >= self.alert_thresholds["performance_issues"]:
             alert = {
                 "type": "performance_alert",
@@ -2155,9 +1986,7 @@ class AutomatedLogAnalyzer:
             # Wait for next interval
             time.sleep(self.analysis_interval)
 
-    def get_alert_summary(
-        self, hours: int = 24, severity_filter: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    def get_alert_summary(self, hours: int = 24, severity_filter: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Get summary of alerts from recent time period.
 
@@ -2246,9 +2075,7 @@ if __name__ == "__main__":
     }
 
     # Check if log files exist, use empty dict if not
-    existing_log_files = {
-        name: path for name, path in log_files.items() if Path(path).exists()
-    }
+    existing_log_files = {name: path for name, path in log_files.items() if Path(path).exists()}
 
     if not existing_log_files:
         print("No log files found. Using empty analysis for demonstration.")
@@ -2256,9 +2083,7 @@ if __name__ == "__main__":
 
     try:
         # Generate comprehensive report
-        report = generate_comprehensive_report(
-            log_files=existing_log_files, output_dir="./reports"
-        )
+        report = generate_comprehensive_report(log_files=existing_log_files, output_dir="./reports")
         print("Report generated successfully")
         print(report)
     except Exception as e:
