@@ -474,9 +474,9 @@ class CausalManipulationsValidator:
             )
             # Extract interaction effect
             interaction_row = mixed_anova_result[mixed_anova_result["Source"] == "condition * IA_group"]
-            f_interaction = float(interaction_row["F"].values[0]) if len(interaction_row) > 0 else 0
+            f_interaction = float(interaction_row["F"].values[0]) if len(interaction_row) > 0 else 0.0
             p_interaction = float(interaction_row["p-unc"].values[0]) if len(interaction_row) > 0 else 1.0
-            partial_eta_squared = float(interaction_row["np2"].values[0]) if len(interaction_row) > 0 else 0
+            partial_eta_squared = float(interaction_row["np2"].values[0]) if len(interaction_row) > 0 else 0.0
         except ImportError:
             logger.warning("pingouin not available - using fallback simplified F-test")
             # Fallback to simplified calculation
@@ -617,8 +617,8 @@ class CausalManipulationsValidator:
 
         if len(ignition_clean) > 1 and len(control_clean) > 1:
             _, p_value = stats.ttest_ind(ignition_clean, control_clean)
-            ignition_mean = np.mean(ignition_clean)
-            control_mean = np.mean(control_clean)
+            ignition_mean = float(np.mean(ignition_clean))
+            control_mean = float(np.mean(control_clean))
 
             # Fix 4: Add effect size check (Cohen's d >= V10_MIN_COHENS_D)
             V10_MIN_COHENS_D = 0.5  # Minimum effect size for TMS disruption
@@ -631,10 +631,9 @@ class CausalManipulationsValidator:
                 raise ValueError(f"TMS disruption effect size {abs(cohens_d):.3f} < minimum {V10_MIN_COHENS_D}")
         else:
             p_value = np.nan
-            ignition_mean = np.nan
-            control_mean = np.nan
-            cohens_d = np.nan
-            effect_size_passed = False
+            ignition_mean = float(np.nan)
+            control_mean = float(np.nan)
+            cohens_d = float(np.nan)
 
         # Check sample size against power analysis
         n_trials_used = len(ignition_clean) + len(control_clean)
@@ -727,7 +726,7 @@ class CausalManipulationsValidator:
             baseline_theta = baseline_state["theta_t"]
             drug_theta = drug_state["theta_t"]
             # Log units: log10(drug_theta / baseline_theta)
-            threshold_shift_log_units = (
+            threshold_shift_log_units = float(
                 np.log10(drug_theta / baseline_theta) if baseline_theta > 0 and drug_theta > 0 else 0.0
             )  # Log units for P2.a
 

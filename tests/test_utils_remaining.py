@@ -187,8 +187,8 @@ class TestGenomeDataExtractor:
             features = extract_genome_data_from_vp5(temp_path)
             assert isinstance(features, dict)
             assert "evolved_alpha_values" in features
-            assert "timescale_correlations" in features
-            assert "intero_gain_ratios" in features
+            assert "timescale_correlations" in features  # nosec B101
+            assert "intero_gain_ratios" in features  # nosec B101
         finally:
             Path(temp_path).unlink()
 
@@ -200,7 +200,7 @@ class TestHRFUtils:
         """Test hrf_utils module import"""
         from utils import hrf_utils
 
-        assert hrf_utils is not None
+        assert hrf_utils is not None  # nosec B101
 
     def test_create_hrf_kernel(self):
         """Test HRF kernel creation"""
@@ -210,9 +210,9 @@ class TestHRFUtils:
 
         t = np.arange(0, 25, 0.1)
         hrf = double_gamma_hrf(t)
-        assert isinstance(hrf, np.ndarray)
-        assert len(hrf) > 0
-        assert hrf.max() <= 1.0  # Normalized
+        assert isinstance(hrf, np.ndarray)  # nosec B101
+        assert len(hrf) > 0  # nosec B101
+        assert hrf.max() <= 1.0  # Normalized  # nosec B101
 
 
 class TestMetaFalsification:
@@ -222,16 +222,16 @@ class TestMetaFalsification:
         """Test meta_falsification module import"""
         from utils import meta_falsification
 
-        assert meta_falsification is not None
+        assert meta_falsification is not None  # nosec B101
 
     def test_meta_falsification_class(self):
         """Test FrameworkFalsificationGate class"""
         from utils.meta_falsification import FrameworkFalsificationGate
 
         gate = FrameworkFalsificationGate()
-        assert hasattr(gate, "protocol_results")
-        assert hasattr(gate, "min_criteria")
-        assert hasattr(gate, "fail_threshold")
+        assert hasattr(gate, "protocol_results")  # nosec B101
+        assert hasattr(gate, "min_criteria")  # nosec B101
+        assert hasattr(gate, "fail_threshold")  # nosec B101
 
 
 class TestProgressEstimator:
@@ -241,7 +241,7 @@ class TestProgressEstimator:
         """Test progress_estimator module import"""
         from utils import progress_estimator
 
-        assert progress_estimator is not None
+        assert progress_estimator is not None  # nosec B101
 
     def test_estimate_completion_time(self):
         """Test completion time estimation"""
@@ -258,8 +258,8 @@ class TestProgressEstimator:
 
         # Get estimated time remaining
         remaining = estimator.estimate_time_remaining("test_op")
-        assert remaining is not None
-        assert remaining >= 0
+        assert remaining is not None  # nosec B101
+        assert remaining >= 0  # nosec B101
 
 
 class TestSignalHandler:
@@ -269,7 +269,7 @@ class TestSignalHandler:
         """Test signal_handler module import"""
         from utils import signal_handler
 
-        assert signal_handler is not None
+        assert signal_handler is not None  # nosec B101
 
     def test_setup_signal_handlers(self):
         """Test signal handler setup"""
@@ -277,9 +277,9 @@ class TestSignalHandler:
 
         # Test that SignalHandler can be instantiated
         handler = SignalHandler()
-        assert hasattr(handler, "shutdown_callback")
-        assert hasattr(handler, "_install_handlers")
-        assert hasattr(handler, "_restore_handlers")
+        assert hasattr(handler, "shutdown_callback")  # nosec B101
+        assert hasattr(handler, "_install_handlers")  # nosec B101
+        assert hasattr(handler, "_restore_handlers")  # nosec B101
 
 
 class TestUpdateProtocolMetadata:
@@ -289,7 +289,7 @@ class TestUpdateProtocolMetadata:
         """Test update_protocol_metadata module import"""
         from utils import update_protocol_metadata
 
-        assert update_protocol_metadata is not None
+        assert update_protocol_metadata is not None  # nosec B101
 
     def test_update_metadata(self, tmp_path):
         """Test metadata check function"""
@@ -300,8 +300,8 @@ class TestUpdateProtocolMetadata:
         protocol_file.write_text("def run_protocol_main(): pass\n")
 
         has_std, msg = check_protocol_metadata(str(protocol_file), metadata={})
-        assert isinstance(has_std, bool)
-        assert isinstance(msg, list)
+        assert isinstance(has_std, bool)  # nosec B101
+        assert isinstance(msg, list)  # nosec B101
 
 
 class TestVerifyFrameworkStatus:
@@ -311,7 +311,7 @@ class TestVerifyFrameworkStatus:
         """Test verify_framework_status module import"""
         from utils import verify_framework_status
 
-        assert verify_framework_status is not None
+        assert verify_framework_status is not None  # nosec B101
 
     def test_verify_framework(self):
         """Test framework verification"""
@@ -324,7 +324,7 @@ class TestVerifyFrameworkStatus:
             timeout_secs=5,
             quick_mode=True,
         )
-        assert "status" in result
+        assert "status" in result  # nosec B101
 
 
 class TestUtilsErrorHandling:
@@ -339,7 +339,7 @@ class TestUtilsErrorHandling:
             _ = empirical_data_generators  # Reference to avoid F401
 
             # Should not raise even if optional deps missing
-            assert True
+            assert True  # nosec B101
         except ImportError:
             # Some utils may fail to import without deps - that's OK
             pass

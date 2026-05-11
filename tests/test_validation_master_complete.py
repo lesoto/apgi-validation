@@ -25,48 +25,48 @@ class TestAPGIMasterValidator:
 
     def test_validator_creation(self, validator):
         """Test validator initialization"""
-        assert isinstance(validator.protocol_results, dict)
-        assert isinstance(validator.PROTOCOL_TIERS, dict)
-        assert isinstance(validator.falsification_status, dict)
-        assert validator.timeout_seconds == 3600
+        assert isinstance(validator.protocol_results, dict)  # nosec B101
+        assert isinstance(validator.PROTOCOL_TIERS, dict)  # nosec B101
+        assert isinstance(validator.falsification_status, dict)  # nosec B101
+        assert validator.timeout_seconds == 3600  # nosec B101
 
     def test_protocol_tiers_structure(self, validator):
         """Test protocol tiers structure"""
-        assert 1 in validator.PROTOCOL_TIERS
-        assert 2 in validator.PROTOCOL_TIERS
-        assert validator.PROTOCOL_TIERS[1] == "primary"
-        assert validator.PROTOCOL_TIERS[2] == "primary"
+        assert 1 in validator.PROTOCOL_TIERS  # nosec B101
+        assert 2 in validator.PROTOCOL_TIERS  # nosec B101
+        assert validator.PROTOCOL_TIERS[1] == "primary"  # nosec B101
+        assert validator.PROTOCOL_TIERS[2] == "primary"  # nosec B101
 
     def test_primary_protocols(self, validator):
         """Test primary protocol assignments"""
         primary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "primary"]
-        assert 1 in primary_protocols
-        assert 2 in primary_protocols
+        assert 1 in primary_protocols  # nosec B101
+        assert 2 in primary_protocols  # nosec B101
 
     def test_secondary_protocols(self, validator):
         """Test secondary protocol assignments"""
         secondary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "secondary"]
-        assert 3 in secondary_protocols
-        assert 4 in secondary_protocols
-        assert 8 in secondary_protocols
-        assert 11 in secondary_protocols
-        assert 12 in secondary_protocols
+        assert 3 in secondary_protocols  # nosec B101
+        assert 4 in secondary_protocols  # nosec B101
+        assert 8 in secondary_protocols  # nosec B101
+        assert 11 in secondary_protocols  # nosec B101
+        assert 12 in secondary_protocols  # nosec B101
 
     def test_tertiary_protocols(self, validator):
         """Test tertiary protocol assignments"""
         tertiary_protocols = [k for k, v in validator.PROTOCOL_TIERS.items() if v == "tertiary"]
-        assert 5 in tertiary_protocols
-        assert 6 in tertiary_protocols
-        assert 7 in tertiary_protocols
-        assert 9 in tertiary_protocols
-        assert 10 in tertiary_protocols
+        assert 5 in tertiary_protocols  # nosec B101
+        assert 6 in tertiary_protocols  # nosec B101
+        assert 7 in tertiary_protocols  # nosec B101
+        assert 9 in tertiary_protocols  # nosec B101
+        assert 10 in tertiary_protocols  # nosec B101
 
     def test_falsification_status_structure(self, validator):
         """Test falsification status dictionary structure"""
-        assert "primary" in validator.falsification_status
-        assert "secondary" in validator.falsification_status
-        assert "tertiary" in validator.falsification_status
-        assert isinstance(validator.falsification_status["primary"], list)
+        assert "primary" in validator.falsification_status  # nosec B101
+        assert "secondary" in validator.falsification_status  # nosec B101
+        assert "tertiary" in validator.falsification_status  # nosec B101
+        assert isinstance(validator.falsification_status["primary"], list)  # nosec B101
 
     def test_is_protocol_passed_with_metadata(self, validator):
         """Test protocol pass check with metadata"""
@@ -75,7 +75,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is True
+        assert result is True  # nosec B101
 
     def test_is_protocol_passed_with_named_predictions_all_pass(self, validator):
         """Test protocol pass check when all named predictions pass"""
@@ -90,7 +90,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {"pred1": pred1, "pred2": pred2}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is True
+        assert result is True  # nosec B101
 
     def test_is_protocol_passed_with_named_predictions_some_fail(self, validator):
         """Test protocol pass check when some named predictions fail"""
@@ -105,7 +105,7 @@ class TestAPGIMasterValidator:
         mock_result.named_predictions = {"pred1": pred1, "pred2": pred2}
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        assert result is False  # nosec B101
 
     def test_is_protocol_passed_empty_predictions(self, validator):
         """Test protocol pass check with empty predictions"""
@@ -116,7 +116,7 @@ class TestAPGIMasterValidator:
         del mock_result.passed
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        assert result is False  # nosec B101
 
     def test_is_protocol_passed_no_metadata_or_predictions(self, validator):
         """Test protocol pass check with neither metadata nor predictions"""
@@ -127,7 +127,7 @@ class TestAPGIMasterValidator:
         del mock_result.passed
 
         result = validator._is_protocol_passed(mock_result)
-        assert result is False
+        assert result is False  # nosec B101
 
 
 class TestProtocolTiers:
@@ -137,19 +137,19 @@ class TestProtocolTiers:
         """Test that all protocols 1-12 have tier assignments"""
         validator = APGIMasterValidator()
         for i in range(1, 13):
-            assert i in validator.PROTOCOL_TIERS, f"Protocol {i} missing tier assignment"
+            assert i in validator.PROTOCOL_TIERS, f"Protocol {i} missing tier assignment"  # nosec B101
 
     def test_no_duplicate_tier_conflicts(self):
         """Test that each protocol has exactly one tier"""
         validator = APGIMasterValidator()
-        assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))
+        assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
     def test_valid_tier_values(self):
         """Test that all tier values are valid"""
         validator = APGIMasterValidator()
         valid_tiers = {"primary", "secondary", "tertiary"}
         for tier in validator.PROTOCOL_TIERS.values():
-            assert tier in valid_tiers, f"Invalid tier value: {tier}"
+            assert tier in valid_tiers, f"Invalid tier value: {tier}"  # nosec B101
 
 
 class TestEdgeCases:
@@ -162,7 +162,7 @@ class TestEdgeCases:
         try:
             result = validator._is_protocol_passed(None)
             # If it doesn't raise, it should return False
-            assert result is False
+            assert result is False  # nosec B101  # nosec B101
         except AttributeError:
             # Expected behavior - None doesn't have metadata attribute
             pass
@@ -177,7 +177,7 @@ class TestEdgeCases:
         mock_result = MockResult()
         try:
             result = validator._is_protocol_passed(mock_result)
-            assert result is False
+            assert result is False  # nosec B101  # nosec B101
         except AttributeError:
             # Expected behavior
             pass
@@ -190,14 +190,14 @@ class TestImports:
         """Test that APGIMasterValidator can be imported"""
         from Validation.Master_Validation import APGIMasterValidator
 
-        assert APGIMasterValidator is not None
+        assert APGIMasterValidator is not None  # nosec B101
 
     def test_import_logger(self):
         """Test that logger is available"""
         try:
             from Validation.Master_Validation import logger
 
-            assert logger is not None
+            assert logger is not None  # nosec B101
         except ImportError:
             # Logger might not be directly importable
             pass

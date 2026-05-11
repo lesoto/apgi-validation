@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 from utils.constants import VISUAL_CONSTANTS
 
 # Configure logging

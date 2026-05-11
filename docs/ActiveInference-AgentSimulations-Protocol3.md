@@ -638,7 +638,7 @@ The APGI framework organizes protocols into tiers:
 python APGI_Validation_GUI.py
 
 # Launch Falsification Protocols GUI
-python APGI_Falsification_Protocols_GUI.py
+python APGI_Falsification_GUI.py
 
 # Launch Theory/Equations GUI
 python APGI_Theory_GUI.py

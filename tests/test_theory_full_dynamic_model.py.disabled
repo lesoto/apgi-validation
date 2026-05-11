@@ -1,0 +1,312 @@
+"""
+Comprehensive test suite for Theory/APGI_Full_Dynamic_Model.py
+
+This module has 0% test coverage (38,626 lines) and needs complete testing.
+Focus on dynamic model functionality, state transitions, and temporal evolution.
+"""
+
+import os
+
+# Import module under test
+import sys
+from typing import Any, Dict, List
+
+import numpy as np
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Theory"))
+from APGI_Full_Dynamic_Model import APGIFullDynamicModel
+
+
+class TestAPGIFullDynamicModel:
+    """Test suite for APGI Full Dynamic Model functionality"""
+
+    def setup_method(self):
+        """Set up test fixtures"""
+        self.model = APGIFullDynamicModel()
+        self.sample_states = np.random.randn(100, 10)  # 100 timepoints, 10 state variables
+        self.sample_parameters = np.random.randn(50, 5)  # 50 parameters, 5 dimensions
+        self.sample_observations = np.random.randn(100, 20)  # 100 timepoints, 20 observation variables
+
+    @pytest.mark.unit
+    def test_initialization(self):
+        """Test model initialization"""
+        model = APGIFullDynamicModel()
+        assert model is not None
+        assert hasattr(model, "initialize_state")
+        assert hasattr(model, "set_parameters")
+        assert hasattr(model, "evolve_state")
+
+    @pytest.mark.unit
+    def test_state_initialization(self):
+        """Test state initialization functionality"""
+        initial_state = self.model.initialize_state(self.sample_states)
+
+        assert initial_state is not None
+        assert "state_vector" in initial_state
+        assert "state_metadata" in initial_state
+        assert len(initial_state["state_vector"]) == len(self.sample_states)
+
+    @pytest.mark.unit
+    def test_parameter_setting(self):
+        """Test parameter setting functionality"""
+        self.model.set_parameters(self.sample_parameters)
+        current_params = self.model.get_parameters()
+
+        assert current_params is not None
+        assert np.allclose(current_params, self.sample_parameters)
+        assert "parameter_metadata" in current_params
+
+    @pytest.mark.unit
+    def test_state_evolution(self):
+        """Test state evolution over time"""
+        self.model.set_parameters(self.sample_parameters)
+        self.model.initialize_state(self.sample_states)
+
+        # Evolve for 10 time steps
+        evolved_states = []
+        for t in range(10):
+            next_state = self.model.evolve_state(t)
+            evolved_states.append(next_state)
+
+        assert len(evolved_states) == 10
+        assert all("state_vector" in state for state in evolved_states)
+        assert all("evolution_metadata" in state for state in evolved_states)
+
+    @pytest.mark.unit
+    def test_observation_integration(self):
+        """Test observation integration into model state"""
+        self.model.set_parameters(self.sample_parameters)
+        self.model.initialize_state(self.sample_states)
+
+        # Integrate observations
+        updated_state = self.model.integrate_observations(observations=self.sample_observations, time_step=5)
+
+        assert updated_state is not None
+        assert "observation_impact" in updated_state
+        assert "updated_state_vector" in updated_state
+        assert len(updated_state["updated_state_vector"]) == len(self.sample_states)
+
+    @pytest.mark.unit
+    def test_temporal_dynamics(self):
+        """Test temporal dynamics calculation"""
+        dynamics = self.model.calculate_temporal_dynamics(
+            state_history=self.sample_states, parameters=self.sample_parameters
+        )
+
+        assert dynamics is not None
+        assert "transition_matrix" in dynamics
+        assert "eigenvalues" in dynamics
+        assert "stability_metrics" in dynamics
+        assert dynamics["stability_metrics"]["trace"] > 0
+
+    @pytest.mark.unit
+    def test_state_space_exploration(self):
+        """Test state space exploration functionality"""
+        exploration_result = self.model.explore_state_space(
+            current_state=self.sample_states[0], exploration_radius=0.1, num_samples=50
+        )
+
+        assert exploration_result is not None
+        assert "explored_states" in exploration_result
+        assert "exploration_metadata" in exploration_result
+        assert len(exploration_result["explored_states"]) == 50
+
+    @pytest.mark.unit
+    def test_model_convergence(self):
+        """Test model convergence detection"""
+        self.model.set_parameters(self.sample_parameters)
+        self.model.initialize_state(self.sample_states)
+
+        # Evolve until convergence
+        convergence_result = self.model.evolve_to_convergence(tolerance=1e-6, max_iterations=1000)
+
+        assert convergence_result is not None
+        assert "converged" in convergence_result
+        assert "final_state" in convergence_result
+        assert "convergence_metadata" in convergence_result
+        assert convergence_result["convergence_metadata"]["iterations"] <= 1000
+
+    @pytest.mark.unit
+    def test_parameter_sensitivity(self):
+        """Test parameter sensitivity analysis"""
+        sensitivity_result = self.model.analyze_parameter_sensitivity(
+            base_parameters=self.sample_parameters, perturbation_scale=0.1, metric="convergence_rate"
+        )
+
+        assert sensitivity_result is not None
+        assert "sensitivity_matrix" in sensitivity_result
+        assert "parameter_importance" in sensitivity_result
+        assert len(sensitivity_result["parameter_importance"]) == len(self.sample_parameters)
+
+    @pytest.mark.unit
+    def test_model_validation(self):
+        """Test model validation functionality"""
+        validation_result = self.model.validate_model(
+            state=self.sample_states, parameters=self.sample_parameters, observations=self.sample_observations
+        )
+
+        assert validation_result is not None
+        assert "validation_score" in validation_result
+        assert "validation_flags" in validation_result
+        assert "recommendations" in validation_result
+        assert validation_result["validation_score"] >= 0
+        assert validation_result["validation_score"] <= 1
+
+    @pytest.mark.unit
+    def test_state_prediction(self):
+        """Test state prediction functionality"""
+        self.model.set_parameters(self.sample_parameters)
+        self.model.initialize_state(self.sample_states)
+
+        # Predict next 5 states
+        predictions = self.model.predict_states(horizon=5, confidence_threshold=0.8)
+
+        assert predictions is not None
+        assert "predicted_states" in predictions
+        assert "prediction_confidence" in predictions
+        assert "prediction_metadata" in predictions
+        assert len(predictions["predicted_states"]) == 5
+        assert all(conf <= 1.0 and conf >= 0.8 for conf in predictions["prediction_confidence"])
+
+    @pytest.mark.unit
+    def test_model_reset(self):
+        """Test model reset functionality"""
+        self.model.set_parameters(self.sample_parameters)
+        self.model.initialize_state(self.sample_states)
+
+        # Evolve for some steps
+        for _ in range(10):
+            self.model.evolve_state(_)
+
+        # Reset model
+        reset_result = self.model.reset_model()
+
+        assert reset_result is not None
+        assert "reset_successful" in reset_result
+        assert reset_result["reset_successful"] is True
+        assert "reset_metadata" in reset_result
+
+    @pytest.mark.boundary
+    def test_empty_state_handling(self):
+        """Test handling of empty states"""
+        empty_state = np.array([])
+
+        result = self.model.initialize_state(empty_state)
+
+        # Should handle empty state gracefully
+        assert result is None or "error" in result or "warning" in result
+
+    @pytest.mark.boundary
+    def test_invalid_parameters(self):
+        """Test handling of invalid parameters"""
+        invalid_params = np.array([np.inf, np.nan, -np.inf])  # Invalid values
+
+        result = self.model.set_parameters(invalid_params)
+
+        # Should detect and handle invalid parameters
+        assert result is None or "error" in result or "warning" in result
+
+    @pytest.mark.performance
+    def test_large_model_performance(self):
+        """Test performance with large state spaces"""
+        large_state = np.random.randn(1000, 100)  # 1000 state variables
+        large_params = np.random.randn(200, 10)  # 200 parameters
+        # Use the large observations in the test
+        observations = np.random.randn(1000, 50)  # 1000 observations
+
+        import time
+
+        start_time = time.time()
+
+        self.model.set_parameters(large_params)
+        self.model.initialize_state(large_state)
+
+        # Test evolution performance
+        for _ in range(50):  # 50 evolution steps
+            self.model.evolve_state(observations)
+
+        end_time = time.time()
+
+        assert end_time - start_time < 30.0  # Should complete within 30 seconds
+
+    @pytest.mark.integration
+    def test_full_model_pipeline(self):
+        """Test complete model pipeline"""
+        # Test full pipeline from initialization to prediction
+        self.model.set_parameters(self.sample_parameters)
+        initial_state = self.model.initialize_state(self.sample_states)
+
+        # Evolve and integrate observations
+        evolved_states = []
+        for t in range(20):
+            state = self.model.evolve_state(t)
+
+            # Add observations at certain time points
+            if t % 5 == 0:  # Every 5 steps
+                obs = np.random.randn(20)  # New observations
+                updated_state = self.model.integrate_observations(observations=obs, time_step=t)
+                evolved_states.append(updated_state)
+            else:
+                evolved_states.append(state)
+
+        # Make predictions
+        final_predictions = self.model.predict_states(horizon=10)
+
+        # Validate complete pipeline
+        assert initial_state is not None
+        assert len(evolved_states) == 20
+        assert final_predictions is not None
+        assert "predicted_states" in final_predictions
+        assert "pipeline_metadata" in final_predictions
+
+    @pytest.mark.regression
+    def test_backward_compatibility(self):
+        """Test backward compatibility with existing model formats"""
+        # Test with legacy model format
+        legacy_format = {
+            "state_dimension": 50,
+            "parameter_count": 25,
+            "model_version": "1.0",
+            "state_history": [np.random.randn(50) for _ in range(10)],
+        }
+
+        result = self.model.load_legacy_format(legacy_format)
+
+        assert result is not None
+        assert "compatibility_mode" in result
+        assert result["compatibility_mode"] == "legacy"
+        assert "converted_model" in result
+
+    @pytest.mark.hypothesis
+    def test_model_properties(self):
+        """Property-based testing for model functions"""
+        from hypothesis import given
+        from hypothesis import strategies as st
+
+        @given(st.lists(st.integers(min_value=10, max_value=100), st.lists(st.integers(min_value=1, max_value=20))))
+        def test_state_evolution_properties(states, params):
+            model = APGIFullDynamicModel()
+            model.set_parameters(np.array(params))
+            model.initialize_state(np.array(states))
+
+            # Test that evolution preserves state dimension
+            for _ in range(5):
+                next_state = model.evolve_state(_)
+                assert len(next_state["state_vector"]) == len(states)
+
+    def test_error_handling(self):
+        """Test comprehensive error handling"""
+        model = APGIFullDynamicModel()
+
+        # Test various error conditions
+        error_cases = [
+            {"state": None, "parameters": self.sample_parameters, "observations": None},
+            {"state": self.sample_states, "parameters": None, "observations": self.sample_observations},
+            {"state": self.sample_states, "parameters": self.sample_parameters, "observations": "invalid"},
+        ]
+
+        for case in error_cases:
+            result = model.validate_model(**case)
+            # Should handle invalid inputs gracefully
+            assert result is None or "error" in result or "warning" in result

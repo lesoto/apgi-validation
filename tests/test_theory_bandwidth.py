@@ -10,7 +10,8 @@ import json
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 
@@ -170,7 +171,7 @@ class TestPrecisionWeightingAnalyzer:
 
     def test_precision_weighting_init(self):
         """Test PrecisionWeightingAnalyzer initialization."""
-        from Theory.APGI_Information_Theoretic_Bandwidth import PrecisionWeightingAnalyzer, BandwidthDerivation
+        from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthDerivation, PrecisionWeightingAnalyzer
 
         bandwidth_module = BandwidthDerivation()
         analyzer = PrecisionWeightingAnalyzer(bandwidth_module)
@@ -179,7 +180,7 @@ class TestPrecisionWeightingAnalyzer:
 
     def test_precision_weighting_compare(self):
         """Test precision weighting comparison."""
-        from Theory.APGI_Information_Theoretic_Bandwidth import PrecisionWeightingAnalyzer, BandwidthDerivation
+        from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthDerivation, PrecisionWeightingAnalyzer
 
         bandwidth_module = BandwidthDerivation()
         analyzer = PrecisionWeightingAnalyzer(bandwidth_module)
@@ -235,7 +236,7 @@ class TestClinicalBandwidthMapper:
 
     def test_clinical_mapper_init(self):
         """Test ClinicalBandwidthMapper initialization."""
-        from Theory.APGI_Information_Theoretic_Bandwidth import ClinicalBandwidthMapper, BandwidthDerivation
+        from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthDerivation, ClinicalBandwidthMapper
 
         bandwidth_module = BandwidthDerivation()
         mapper = ClinicalBandwidthMapper(bandwidth_module)
@@ -245,9 +246,9 @@ class TestClinicalBandwidthMapper:
     def test_clinical_mapper_compute(self):
         """Test clinical bandwidth computation."""
         from Theory.APGI_Information_Theoretic_Bandwidth import (
+            BandwidthDerivation,
             ClinicalBandwidthMapper,
             ClinicalProfile,
-            BandwidthDerivation,
         )
 
         bandwidth_module = BandwidthDerivation()
@@ -352,7 +353,7 @@ class TestRunBandwidthAnalysis:
 
     def test_run_bandwidth_analysis_custom(self):
         """Test run_bandwidth_analysis with custom config."""
-        from Theory.APGI_Information_Theoretic_Bandwidth import run_bandwidth_analysis, BandwidthConfig
+        from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthConfig, run_bandwidth_analysis
 
         custom_config = BandwidthConfig(n_trials=50, n_stimulus_bins=20)
 

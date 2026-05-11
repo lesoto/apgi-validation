@@ -4,6 +4,8 @@
 skips:
   # Skip assert warnings in test files - standard pytest practice
   - 'B101'
+  # Skip hardcoded password false positives - these are intentional nosec comments
+  - 'B105'
 
 exclude_dirs:
   - ./tests

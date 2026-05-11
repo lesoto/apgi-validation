@@ -1,7 +1,7 @@
 # Falsification Protocols GUI - Comprehensive Test Checklist
 
 > **Note**: This checklist is based on the Falsification GUI implementation.
-> **Source Reference**: `@/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification_Protocols_GUI.py`
+> **Source Reference**: `@/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification_GUI.py`
 >
 > **Related Checklists**:
 >

@@ -212,7 +212,7 @@ Launch graphical interfaces for interactive exploration:
 ```bash
 python Theory_GUI.py         # Theory module GUI
 python Validation_GUI.py     # Validation protocols GUI
-python Falsification_Protocols_GUI.py  # Falsification tests GUI
+python Falsification_GUI.py  # Falsification tests GUI
 python Tests_GUI.py          # Test runner GUI
 python Utils_GUI.py          # Utilities GUI
 ```

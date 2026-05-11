@@ -72,7 +72,7 @@ class ErrorCode(str, Enum):
     CFG_INVALID_VALUE = "CFG_002"
     CFG_LOAD_FAILED = "CFG_003"
 
-    # Security
+    # Security error codes (non-sensitive identifiers)
     SEC_UNAUTHORIZED = "SEC_001"
     SEC_FORBIDDEN = "SEC_002"
     SEC_TOKEN_EXPIRED = "SEC_003"  # nosec B105

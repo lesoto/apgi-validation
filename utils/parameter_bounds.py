@@ -18,12 +18,10 @@ Source: APGI Framework Specification, Falsification Protocol 07
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
-import numpy as np
-
 
 @dataclass
 class ParameterBounds:
-    """Validated parameter bounds for FP-07 protocol."""
+    """Validated parameter bounds"""
 
     # Time constants (seconds)
     tau_S_min: float = 0.1

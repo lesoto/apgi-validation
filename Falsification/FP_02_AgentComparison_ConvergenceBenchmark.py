@@ -81,8 +81,8 @@ try:
 except ImportError:
     # Fallback if VISUAL_CONSTANTS not available
     class MockVISUAL_CONSTANTS:
-        STATUS_PASS = "VISUAL_CONSTANTS.IGNITION_GREEN"  # nosec B105 - Green color hex code
-        STATUS_FAIL = "VISUAL_CONSTANTS.THETA_RED"  # Red color hex code
+        STATUS_PASS = "#00FF00"  # Green color hex code
+        STATUS_FAIL = "#FF0000"  # Red color hex code
 
     VISUAL_CONSTANTS = MockVISUAL_CONSTANTS()  # type: ignore
 

@@ -89,7 +89,7 @@ apgi-validation/
 ├── main.py                      # Unified CLI interface (entry point)
 ├── APGI_Validation_GUI.py       # Main Validation Runner GUI
 ├── APGI_Theory_GUI.py           # Theory Script Discovery GUI
-├── APGI_Falsification_Protocols_GUI.py # Falsification Runner GUI
+├── APGI_Falsification_GUI.py # Falsification Runner GUI
 ├── requirements.txt             # Dependencies list
 ├── setup.py                     # Automated setup script
 ├── Theory/                      # Core mathematical and logic modules

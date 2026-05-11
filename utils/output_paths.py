@@ -218,7 +218,7 @@ def get_metadata_path(protocol_num: int, protocol_type: str = "validation") -> P
     return output_dir / "metadata.json"
 
 
-def migrate_legacy_outputs() -> dict:
+def migrate_legacy_outputs_v1() -> dict:
     """
     Migrate legacy output files from old locations to apgi_outputs/.
 
@@ -243,7 +243,6 @@ def migrate_legacy_outputs() -> dict:
             continue
 
         target_dir = get_output_dir(target_subdir)
-
         try:
             # Move all files from legacy directory to target
             for file_path in legacy_dir.rglob("*"):
@@ -262,7 +261,17 @@ def migrate_legacy_outputs() -> dict:
     return stats
 
 
-def get_protocol_png_path(protocol_num: int, suffix: Optional[str] = None) -> Path:
+def migrate_legacy_outputs_v2() -> dict:
+    """
+    Migrate legacy output files from root to validation_results/.
+
+    Returns:
+        Dictionary mapping old paths to new paths
+    """
+    return migrate_legacy_outputs_v1()
+
+
+def get_protocol_visualization_path(protocol_num: int, suffix: Optional[str] = None) -> Path:
     """
     Get standardized PNG output path for a protocol (saved in validation_results/visualizations/).
 

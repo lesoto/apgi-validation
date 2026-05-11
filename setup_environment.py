@@ -132,7 +132,7 @@ FRAMEWORK_MODULES = {
     "GUI_Apps": [
         "Theory_GUI.py",
         "Validation_GUI.py",
-        "Falsification_Protocols_GUI.py",
+        "Falsification_GUI.py",
         "Tests_GUI.py",
         "Utils_GUI.py",
     ],
@@ -528,7 +528,7 @@ def main() -> bool:
     print("   python main.py --help                    # CLI interface")
     print("   python Theory_GUI.py                   # Theory module GUI")
     print("   python Validation_GUI.py               # Validation protocols GUI")
-    print("   python Falsification_Protocols_GUI.py  # Falsification tests GUI")
+    print("   python Falsification_GUI.py  # Falsification tests GUI")
     print("   python Tests_GUI.py                    # Test runner GUI")
 
     print(f"\n{base_step + 2}. Run validation protocols:")

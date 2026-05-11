@@ -54,9 +54,9 @@ def test_falsification_files_exist():
         except UnicodeDecodeError as e:
             assert False, f"Falsification file {file_name} has encoding error: {e}"
 
-    # Check Falsification_Protocols_GUI.py at root level
-    gui_path = Path(__file__).parent.parent / "Falsification_Protocols_GUI.py"
-    assert gui_path.exists(), "Falsification_Protocols_GUI.py not found at root level"
+    # Check Falsification_GUI.py at root level
+    gui_path = Path(__file__).parent.parent / "Falsification_GUI.py"
+    assert gui_path.exists(), "Falsification_GUI.py not found at root level"
 
 
 def test_falsification_protocol_1_hierarchical_model():

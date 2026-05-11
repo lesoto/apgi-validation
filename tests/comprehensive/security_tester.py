@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from utils.constants import VISUAL_CONSTANTS
 
 
 @dataclass

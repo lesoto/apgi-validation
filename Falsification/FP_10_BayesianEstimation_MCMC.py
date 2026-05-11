@@ -2083,7 +2083,6 @@ def run_complete_mcmc_analysis(
         evidence_dict: Dict[str, float] = {}
         alternative_results: Dict[str, Any] = {}
 
-
         try:
             alternative_results = run_alternative_models(
                 stimulus_data, response_data, n_samples // 2, n_chains, burn_in

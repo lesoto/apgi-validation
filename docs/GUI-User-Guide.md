@@ -29,7 +29,7 @@ The APGI Framework provides several graphical user interfaces (GUIs) for differe
 ### 5. Falsification Protocol Runner (FP)
 
 **Purpose:** Specialized runner for the 12 Falsification Protocols.
-**Launch Command:** `python APGI_Falsification_Protocols_GUI.py`
+**Launch Command:** `python APGI_Falsification_GUI.py`
 
 ---
 

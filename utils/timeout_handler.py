@@ -10,7 +10,7 @@ import subprocess  # nosec B404
 import threading
 import time
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, IO, List, Optional, Union
 
 
 class TimeoutState(Enum):
@@ -117,7 +117,7 @@ class TimeoutHandler:
             timeout_info = self.timeouts[operation_id]
             elapsed = time.time() - timeout_info.start_time
             remaining = timeout_info.timeout_seconds - elapsed
-            return max(0, remaining)
+            return max(0.0, remaining)
 
     def _monitor_timeouts(self):
         """Monitor timeouts and trigger callbacks."""
@@ -233,8 +233,8 @@ def run_subprocess_with_timeout(
     timeout_seconds: float = 300.0,
     cwd: Optional[str] = None,
     env: Optional[Dict[str, str]] = None,
-    stdout: Optional[int] = subprocess.PIPE,
-    stderr: Optional[int] = subprocess.PIPE,
+    stdout: Optional[Union[int, IO[Any]]] = subprocess.PIPE,
+    stderr: Optional[Union[int, IO[Any]]] = subprocess.PIPE,
     encoding: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
     """Run a subprocess with a timeout.
@@ -262,8 +262,10 @@ def run_subprocess_with_timeout(
             encoding=encoding,
         )  # nosec B603
 
-        stdout, stderr = process.communicate(timeout=timeout_seconds)
-        return subprocess.CompletedProcess(args=command, returncode=process.returncode, stdout=stdout, stderr=stderr)
+        stdout_str, stderr_str = process.communicate(timeout=timeout_seconds)
+        return subprocess.CompletedProcess(
+            args=command, returncode=process.returncode, stdout=stdout_str, stderr=stderr_str
+        )
 
     except subprocess.TimeoutExpired:
         process.kill()

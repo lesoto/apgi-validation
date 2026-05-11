@@ -88,7 +88,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 32 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 33 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs [NEW] | Active |
-| 34 | APGI_Falsification_Protocols_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 34 | APGI_Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 35 | **init**.py | Falsification | — | Python package marker | — |
 
 ## 1. File Inventory — All 35 Source Files (Falsification/ + Validation/)
@@ -140,7 +140,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 13 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 14 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs | Active |
-| 15 | APGI_Falsification_Protocols_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 15 | APGI_Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 16 | **init**.py | Falsification | — | Python package marker | — |
 
 ---

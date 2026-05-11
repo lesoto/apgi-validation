@@ -202,7 +202,8 @@ class HistoricalDashboard:
                         tests_passed INTEGER,
                         tests_failed INTEGER,
                         success_rate REAL,
-                        error_message TEXT
+                        error_message TEXT,
+                        metadata TEXT
                     )
                 """)
 

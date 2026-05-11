@@ -47,7 +47,7 @@ lint:
 	$(MAKE) threshold-lint
 
 threshold-lint:
-	python3 scripts/threshold_lint.py
+	python3 utils/threshold_lint.py
 
 install: venv
 	.venv/bin/pip install .

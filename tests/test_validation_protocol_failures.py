@@ -115,7 +115,7 @@ class TestValidationProtocolMidRunExceptions:
                 "passed": False,
             }
             result = mock_run({"file": "test.py", "function": "run_validation"})
-            assert result["passed"] is False, "Result should be marked as failed"  # nosec B101
+            assert result["passed"] is False, "Result should be marked as failed"  # nosec B101  # nosec B101
             assert (
                 "not found" in result.get("message", "").lower()
             ), "Error message should mention 'not found'"  # nosec B101
@@ -129,7 +129,7 @@ class TestValidationProtocolMidRunExceptions:
         }
 
         assert result["status"] == "error", "Result status should be 'error'"  # nosec B101
-        assert result["passed"] is False, "Result should be marked as failed"
+        assert result["passed"] is False, "Result should be marked as failed"  # nosec B101
 
 
 class TestValidationProtocolPartialRecovery:

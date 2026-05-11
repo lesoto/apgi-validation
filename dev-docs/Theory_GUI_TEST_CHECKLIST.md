@@ -218,7 +218,7 @@
 | Tabs | 2 (Protocols, Parameters) | 2 (Protocols, Parameters) | 5 (Validation, Exploration, Settings, Export, Alerts) |
 | Design System | APGI Lab System | Standard tkinter | Standard tkinter |
 | Parameters | Dynamic inference | Static definition | Static definition |
-| Source File | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Theory_GUI.py` | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification_Protocols_GUI.py` | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py` |
+| Source File | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Theory_GUI.py` | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification_GUI.py` | `@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py` |
 
 ---
 

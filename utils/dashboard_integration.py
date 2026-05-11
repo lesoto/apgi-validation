@@ -261,8 +261,8 @@ class DashboardManager:
                             """
                             INSERT INTO validation_results 
                             (protocol_number, protocol_name, status, execution_time,
-                             tests_passed, tests_failed, success_rate, error_message)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                             tests_passed, tests_failed, success_rate, error_message, metadata)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 protocol_number,
@@ -273,6 +273,7 @@ class DashboardManager:
                                 tests_failed,
                                 success_rate,
                                 error_message,
+                                json.dumps(metadata) if metadata else None,
                             ),
                         )
                 except Exception as db_error:
@@ -594,14 +595,14 @@ class DashboardManager:
                 return {
                     "period_days": days,
                     "total_runs": 0,
-                    "pass_rate": 0.0,
+                    "pass_rate": 0.0,  # nosec B105
                     "avg_execution_time": 0,
                     "protocol_breakdown": {},
                 }
 
             total_runs = len(data)
             passed_runs = sum(1 for d in data if d.get("status") == "pass")
-            pass_rate = passed_runs / total_runs if total_runs > 0 else 0
+            pass_rate = passed_runs / total_runs if total_runs > 0 else 0.0  # nosec B105  # nosec B105
 
             exec_times = [d.get("execution_time", 0) for d in data]
             avg_execution_time = sum(exec_times) / len(exec_times) if exec_times else 0

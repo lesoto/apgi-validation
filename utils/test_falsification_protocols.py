@@ -5,13 +5,13 @@ LEVEL DESIGNATION: Level 2 (information-theoretic)
 Bridge to Level 1
 """
 
-import sys
 import importlib.util
+import sys
 from pathlib import Path
 from typing import Tuple
 
 # Add project root to path
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Color codes for output

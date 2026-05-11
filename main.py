@@ -5121,8 +5121,8 @@ def dashboard(output_dir, dashboard_type, open_browser):
         import webbrowser
         from pathlib import Path
 
-        from utils.static_dashboard_generator import generate_dashboards
         from utils.output_paths import get_dashboard_output_dir
+        from utils.static_dashboard_generator import generate_dashboards
 
         # Set default values
         if not output_dir:

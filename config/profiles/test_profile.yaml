@@ -3,7 +3,7 @@ category: test_category
 compatibility:
   max_version: '2.0'
   min_version: '1.0'
-created_at: '2026-05-10T00:50:16.583580'
+created_at: '2026-05-10T19:51:46.033303'
 data_source: synthetic
 dependencies: []
 description: Test profile
@@ -48,7 +48,7 @@ parameters:
     enable_performance_logging: true
     enable_structured_logging: true
     level: INFO
-    log_directory: logs/
+    log_directory: apgi_outputs/logs/
     log_retention: 30 days
     log_rotation: 10 MB
   model:

@@ -8,8 +8,10 @@ functional tests for protocols 5-12 beyond simple import checks.
 
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
+from Validation.Master_Validation import APGIMasterValidator
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -262,6 +264,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 5 not available")
@@ -272,9 +275,11 @@ class TestValidationProtocols5To12:
             vp6 = load_validation_protocol(6)
 
             validator = vp6.APGIValidationProtocol6()
+            validator.logger = MagicMock()
+            validator.logger.info = MagicMock()
 
             # Test that validator has required methods
-            assert hasattr(validator, "validate")  # nosec B101
+            assert isinstance(validator, APGIMasterValidator)  # nosec B101
             # Note: Protocol 6 uses validate() instead of run_validation()
             assert callable(validator.validate)  # nosec B101
 
@@ -293,6 +298,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 7 not available")
@@ -309,6 +315,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 8 not available")
@@ -325,6 +332,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 9 not available")
@@ -341,6 +349,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 10 not available")
@@ -357,6 +366,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 11 not available")
@@ -373,6 +383,7 @@ class TestValidationProtocols5To12:
             assert hasattr(validator, "check_criteria")  # nosec B101
             assert callable(validator.run_validation)  # nosec B101
             assert callable(validator.check_criteria)  # nosec B101
+            assert len(validator.PROTOCOL_TIERS) == len(set(validator.PROTOCOL_TIERS.keys()))  # nosec B101
 
         except (ImportError, FileNotFoundError, AttributeError):
             pytest.skip("Protocol 12 not available")
@@ -416,6 +427,9 @@ class TestValidationProtocols5To12:
                     break
 
             assert has_method, f"Protocol {protocol_num} missing validation method"  # nosec B101
+            assert (
+                protocol_num in validator.PROTOCOL_TIERS
+            ), f"Protocol {protocol_num} missing tier assignment"  # nosec B101
 
         except (ImportError, FileNotFoundError):
             pytest.skip(f"Protocol {protocol_num} not available")
@@ -554,11 +568,11 @@ def test_validation_protocol_3_somatic_marker_network():
     predictions = network.forward(context)
     assert predictions.shape[0] == 4  # nosec B101  # One prediction per action
 
-    # Test predict (numpy interface)
+    # Test numpy interface
     context_np = np.random.randn(5)
     predictions_np = network.predict(context_np)
     assert isinstance(predictions_np, np.ndarray)  # nosec B101
-    assert predictions_np.shape[0] == 4  # nosec B101
+    assert predictions_np.shape[0] == 4  # nosec B101  # One prediction per action
 
     # Test update
     network.update(context_np, action=0, prediction_error=0.1)
@@ -920,12 +934,13 @@ def test_somatic_marker_network_edge_cases(context_dim, action_dim):
     # Test with appropriate context size
     context = torch.randn(context_dim)
     predictions = network.forward(context)
-    assert predictions.shape[0] == action_dim
+    assert predictions.shape[0] == action_dim  # nosec B101
 
     # Test numpy interface
     context_np = np.random.randn(context_dim)
     predictions_np = network.predict(context_np)
-    assert predictions_np.shape[0] == action_dim
+    assert isinstance(predictions_np, np.ndarray)  # nosec B101
+    assert predictions_np.shape[0] == action_dim  # nosec B101
 
 
 @pytest.mark.parametrize(
@@ -959,14 +974,14 @@ def test_policy_network_edge_cases(state_dim, action_dim):
     # Test forward pass
     state = torch.randn(state_dim)
     probs = network.forward(state)
-    assert probs.shape[0] == action_dim  # Forward returns all action probabilities  # nosec B101
+    assert probs.shape[0] == action_dim  # nosec B101
     assert torch.allclose(probs.sum(), torch.tensor(1.0), atol=1e-6)  # Should sum to 1  # nosec B101
 
     # Test action selection with appropriate state size
     state_np = np.random.randn(state_dim)
     action, action_probs = network.select_action(state_np)
     assert isinstance(action, int)  # nosec B101
-    assert 0 <= action < min(action_dim, 4)  # Clamped to 4 or action_dim if smaller
+    assert 0 <= action < min(action_dim, 4)  # nosec B101  # Clamped to 4 or action_dim if smaller
 
 
 @pytest.mark.parametrize(
@@ -1018,9 +1033,9 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
     assert isinstance(B_trajectory, np.ndarray)  # nosec B101
     assert isinstance(ignition_occurred, bool)  # nosec B101
     assert isinstance(theta_trajectory, np.ndarray)  # nosec B101
-    assert len(S_trajectory) > 0
-    assert len(B_trajectory) > 0
-    assert len(theta_trajectory) > 0
+    assert len(S_trajectory) > 0  # nosec B101
+    assert len(B_trajectory) > 0  # nosec B101
+    assert len(theta_trajectory) > 0  # nosec B101
 
 
 @pytest.mark.parametrize(
@@ -1051,7 +1066,6 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
 def test_generate_master_report_decision_logic(passed_count, total_count, expected_decision):
     """Test generate_master_report decision logic with different pass rates"""
     from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
-    from Validation.Master_Validation import APGIMasterValidator
 
     validator = APGIMasterValidator()
 
@@ -1091,7 +1105,6 @@ def test_generate_master_report_decision_logic(passed_count, total_count, expect
 def test_generate_master_report_edge_cases():
     """Test generate_master_report with edge cases"""
     from utils.protocol_schema import ProtocolResult
-    from Validation.Master_Validation import APGIMasterValidator
 
     validator = APGIMasterValidator()
 
