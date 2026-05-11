@@ -567,6 +567,8 @@ class BackupManager:
     def list_backups(self) -> List[Dict[str, Any]]:
         """List all available backups from cached history."""
         # Use cached backup history for better performance (O(1) vs O(n) disk reads)
+        if self.backup_history is None:
+            return []
         backups = self.backup_history.copy()
 
         # Sort by timestamp (newest first)
@@ -1161,6 +1163,8 @@ def _add_data_backup_methods():
 
     def get_backup_history(self) -> List[Dict[str, Any]]:
         """Get backup history."""
+        if self.backup_history is None:
+            return []
         return self.backup_history.copy()
 
     # Add methods to BackupManager class
@@ -1185,8 +1189,11 @@ def create_backup_cli(components: str = "", description: str = "") -> str:
 def list_backups_cli() -> List[Dict[str, Any]]:
     """CLI command to list backups."""
     if backup_manager is None:
-        raise RuntimeError("Backup manager not initialized. Please check your configuration.")
-    return backup_manager.list_backups()
+        return []  # Return empty list instead of raising error
+    result = backup_manager.list_backups()
+    if result is None:
+        return []
+    return result
 
 
 def restore_backup_cli(backup_id: str, target_dir: str = "") -> bool:

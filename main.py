@@ -3259,7 +3259,8 @@ def neural_signatures(
     try:
         # Import neural signatures validator
         spec = importlib.util.spec_from_file_location(
-            "Validation/VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            "neural_signatures",
+            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)
@@ -5307,9 +5308,9 @@ def backups(limit: int) -> None:
     console.print(Panel.fit("📋 Available Backups", style="bold cyan"))
 
     try:
-        backups = list_backups_cli()
+        backups_list = list_backups_cli()
 
-        if not backups:
+        if not backups_list:
             console.print("[yellow]No backups available[/yellow]")
             return
 
@@ -5321,13 +5322,17 @@ def backups(limit: int) -> None:
         backups_table.add_column("Size (MB)", style="yellow")
         backups_table.add_column("Components", style="blue")
 
-        for backup in backups[:limit]:
+        for backup in backups_list[:limit]:
+            if backup is None:
+                continue
+            description = backup.get("description") or "No description"
+            timestamp = backup.get("timestamp") or "N/A"
             backups_table.add_row(
-                backup["backup_id"],
-                backup.get("description", "No description")[:30],
-                backup["timestamp"][:19],
-                f"{backup['total_size_mb']:.2f}",
-                ", ".join(backup["components"]),
+                backup.get("backup_id", "N/A"),
+                description[:30] if description else "No description",
+                timestamp[:19] if timestamp else "N/A",
+                f"{backup.get('total_size_mb', 0):.2f}",
+                ", ".join(backup.get("components", [])),
             )
 
         console.print(backups_table)
