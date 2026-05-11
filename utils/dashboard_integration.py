@@ -170,7 +170,10 @@ class DashboardManager:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                         data_json TEXT,
-                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                        validation_type TEXT,
+                        protocol_name TEXT,
+                        status TEXT,
+                        details TEXT
                     )
                 """)
                 conn.commit()

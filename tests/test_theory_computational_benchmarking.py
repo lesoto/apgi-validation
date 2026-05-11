@@ -6,14 +6,14 @@ Focus on computational performance benchmarking, algorithm comparison, and effic
 """
 
 import os
+
+# Import module under test
+import sys
 import time
 from unittest.mock import patch
 
 import numpy as np
 import pytest
-
-# Import module under test
-import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Theory"))
 from APGI_Computational_Benchmarking import ComputationalBenchmarker

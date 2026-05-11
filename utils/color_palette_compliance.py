@@ -84,7 +84,7 @@ class ColorPaletteComplianceChecker:
                     {
                         "type": "missing_import",
                         "message": "File uses colors but missing VISUAL_CONSTANTS import",
-                        "suggestion": "Add: from utils.constants import VISUAL_CONSTANTS",
+                        "suggestion": "Add: from utils.constants import VisualConstants",
                     }
                 )
 
@@ -98,15 +98,17 @@ class ColorPaletteComplianceChecker:
         }
 
     def _uses_visual_constants(self, content: str, color: str) -> bool:
-        """Check if file uses VISUAL_CONSTANTS for this color."""
+        """Check if file uses VISUAL_CONSTANTS or VisualConstants for this color."""
         constant_name = APGI_COLORS.get(color, "")
         if constant_name:
-            return f"VISUAL_CONSTANTS.{constant_name}" in content
+            return (f"VISUAL_CONSTANTS.{constant_name}" in content) or (f"VisualConstants.{constant_name}" in content)
         return False
 
     def _has_visual_constants_import(self, content: str) -> bool:
-        """Check if VISUAL_CONSTANTS is imported."""
-        return "VISUAL_CONSTANTS" in content and ("import" in content or "from" in content)
+        """Check if VisualConstants is imported."""
+        return ("VisualConstants" in content and ("import" in content or "from" in content)) or (
+            "VISUAL_CONSTANTS" in content and ("import" in content or "from" in content)
+        )
 
     def _find_line_number(self, content: str, color: str) -> int:
         """Find the line number where a color appears."""

@@ -75,6 +75,6 @@ def make_directory(dir_path: Union[str, Path], base_path: Union[str, Path], mode
     """Create a directory securely."""
     # Allow target path to not exist yet for directory creation
     valid_path = validate_file_path(dir_path, base_path)
-    success = _ops.safe_mkdir(str(valid_path), mode)
+    success = _ops.safe_mkdir(str(valid_path))
     if not success:
         raise IOError(f"Could not create directory safely: {dir_path}")

@@ -49,7 +49,7 @@ class LevelDesignationComplianceChecker:
                 content = f.read()
 
             # Check for LEVEL DESIGNATION in raw content first (more reliable)
-            if "LEVEL DESIGNATION:" not in content:
+            if "LEVEL DESIGNATION:" not in content and "LEVEL DESIGNATION:" not in content:
                 violations.append(
                     {
                         "type": "missing_level_designation",

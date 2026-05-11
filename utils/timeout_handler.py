@@ -10,7 +10,7 @@ import subprocess  # nosec B404
 import threading
 import time
 from enum import Enum
-from typing import Any, Callable, Dict, IO, List, Optional, Union
+from typing import IO, Any, Callable, Dict, List, Optional, Union
 
 
 class TimeoutState(Enum):

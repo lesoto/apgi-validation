@@ -2394,12 +2394,11 @@ def plot_model_comparison_results(comparison_df: pd.DataFrame, save_path: str = 
 
     # Highlight best model
     if len(comparison_df) > 0:
-        best_model_idx = int(comparison_df["loo"].argmin() + 1)
+        best_model_idx = int(comparison_df["loo"].argmin())
         for i in range(4):
             table[(best_model_idx, i)].set_facecolor("#FFE082")
 
     ax6.set_title("Model Comparison Summary", fontsize=12, fontweight="bold", pad=20)
-
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
     plt.show()

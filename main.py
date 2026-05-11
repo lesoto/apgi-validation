@@ -6,12 +6,9 @@ Bridge to Level 2
 Bridge to Level 1
 """
 
-# CRITICAL: Import NumPy bootstrap FIRST before any other imports
-# This applies Python 3.14+ compatibility patches for numpy.prod/sum
 import sys
 from pathlib import Path
 
-# Apply bootstrap BEFORE any other imports
 _bootstrap_path = Path(__file__).parent / "utils" / "_numpy_bootstrap.py"
 if _bootstrap_path.exists():
     import importlib.util
