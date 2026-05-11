@@ -595,6 +595,7 @@ class AggregatorConfig:
     metabolic_ATP_max_scale: float = 2.0
 
     # Module 4 — Cross-species scaling
+    brain_mass_kg: float = 1.4  # Human brain mass (~1400 g)
     apgi_predicted_exponent: float = 0.75
 
     # Output

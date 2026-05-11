@@ -2880,7 +2880,7 @@ def _generate_fp02_visualization(
             ax4.bar(
                 ["Add-ons Needed", "Performance Gap (%)"],
                 [add_ons, gap],
-                color=["VISUAL_CONSTANTS.ALLOSTATIC_PURPLE", "#16a085"],
+                color=["#762A83", "#16a085"],
             )
             ax4.set_title("Agent Complexity Metrics (F6.6)")
             ax4.set_ylabel("Count / Percentage")

@@ -2924,7 +2924,7 @@ if __name__ == "__main__":
                         else:
                             scores.append(0.5)  # Default for non-numeric scores
 
-                    bars = ax.bar(range(len(test_names)), scores, color="VISUAL_CONSTANTS.ST_BLUE", alpha=0.7)
+                    bars = ax.bar(range(len(test_names)), scores, color="#2166AC", alpha=0.7)
                     ax.set_title("Liquid Network Property Scores")
                     ax.set_ylabel("Score")
                     ax.set_ylim(0, 1.0)

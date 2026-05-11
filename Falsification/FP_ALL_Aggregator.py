@@ -1455,7 +1455,7 @@ def _generate_fp_all_visualization(results: dict, output_path: str = "FP_ALL_res
             colors = [
                 VISUAL_CONSTANTS.STATUS_PASS,
                 VISUAL_CONSTANTS.STATUS_FAIL,
-                "VISUAL_CONSTANTS.ST_BLUE",
+                "#2166AC",
             ]
             ax4.bar(names, values, color=colors)
             ax4.set_title("Overall Summary")

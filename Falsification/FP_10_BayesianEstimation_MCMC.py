@@ -3481,7 +3481,7 @@ class FP10bParameterRecovery:
             if param_summary:
                 params = list(param_summary.keys())
                 errors = [param_summary[p].get("mean_relative_error", 0) for p in params]
-                ax1.bar(params, errors, color="VISUAL_CONSTANTS.ST_BLUE")
+                ax1.bar(params, errors, color="#2166AC")
                 ax1.axhline(
                     self.relative_error_threshold,
                     color=VISUAL_CONSTANTS.STATUS_FAIL,
@@ -3493,7 +3493,7 @@ class FP10bParameterRecovery:
             ax2 = axes[0, 1]
             if param_summary:
                 scores = [param_summary[p].get("mean_identifiability_score", 0) for p in params]
-                ax2.bar(params, scores, color="VISUAL_CONSTANTS.ALLOSTATIC_PURPLE")
+                ax2.bar(params, scores, color="#762A83")
                 ax2.axhline(
                     self.identifiability_threshold,
                     color=VISUAL_CONSTANTS.STATUS_FAIL,
@@ -3519,7 +3519,7 @@ class FP10bParameterRecovery:
                 ax3.bar(
                     metric_names,
                     metric_values,
-                    color=["VISUAL_CONSTANTS.INTERO_AMBER", "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE", "#16a085"],
+                    color=["#F4A582", "#762A83", "#16a085"],
                 )
                 ax3.set_title("Overall Recovery Metrics")
                 ax3.tick_params(axis="x", rotation=15)

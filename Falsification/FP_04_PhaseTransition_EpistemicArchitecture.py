@@ -2671,7 +2671,7 @@ def run_falsification():
                     values,
                     yerr=stds,
                     capsize=5,
-                    color=["VISUAL_CONSTANTS.ST_BLUE", VISUAL_CONSTANTS.STATUS_FAIL],
+                    color=["#2166AC", VISUAL_CONSTANTS.STATUS_FAIL],
                     alpha=0.7,
                 )
                 ax.set_title("Phase Transition: Information-Theoretic Metrics")
