@@ -81,13 +81,13 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 
 # Color Palette (Lab System)
 COLORS = {
-    "primary": "VISUAL_CONSTANTS.ST_BLUE",
-    "success": "VISUAL_CONSTANTS.IGNITION_GREEN",
-    "alert": "VISUAL_CONSTANTS.THETA_RED",
-    "background": "VISUAL_CONSTANTS.HC_GREY",
+    "primary": "#2166AC",
+    "success": "#41AB5D",
+    "alert": "#D6604D",
+    "background": "#f8f9fa",
     "surface": "#ffffff",
     "border": "#dee2e6",
-    "text_primary": "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE",
+    "text_primary": "#212529",
     "text_secondary": "#6c757d",
     "text_muted": "#adb5bd",
     "soft_gray": "#e9ecef",
@@ -455,7 +455,8 @@ class ScriptRunnerGUI:
                 module_level_runners = []
                 has_main_block = False
 
-                for node in ast.walk(tree):
+                # Only iterate top-level nodes to avoid picking up class methods
+                for node in tree.body:
                     if isinstance(node, ast.ClassDef):
                         class_name = node.name
                         methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
@@ -478,6 +479,7 @@ class ScriptRunnerGUI:
                             runnable_classes.append({"name": class_name, "methods": methods})
 
                     elif isinstance(node, ast.FunctionDef) and node.name in [
+                        "run_analysis",
                         "run_validation",
                         "run_falsification",
                         "validate_cross_species_model",
@@ -517,7 +519,6 @@ class ScriptRunnerGUI:
                                 "validate_open_science_compliance",
                                 "validate_measurement",
                                 "validate_implementation",
-                                "run_analysis",
                                 "stop_analysis",
                             ]
                             if node.name not in skip_functions:
@@ -575,7 +576,7 @@ class ScriptRunnerGUI:
         """Determine how to execute a protocol based on its structure."""
 
         # Priority: module-level runners
-        for func in ["run_falsification", "run_validation", "main"]:
+        for func in ["run_falsification", "run_validation", "run_analysis", "main"]:
             if func in module_level_runners:
                 return {"type": "module_function", "function": func}
 

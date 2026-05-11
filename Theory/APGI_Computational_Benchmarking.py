@@ -489,8 +489,8 @@ class ComputationalBenchmarker:
                 # Evaluate fit
                 fit_metrics = self._evaluate_fit(
                     simulation=simulation_data,
-                    target_outputs=inputs.get("target_outputs"),
-                    paradigm=inputs.get("paradigm", {}),
+                    target_outputs=target_outputs,
+                    paradigm=paradigm,
                 )
 
                 result = BenchmarkResult(

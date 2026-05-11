@@ -2004,7 +2004,7 @@ def run_falsification():
                 bars = ax.bar(
                     metrics,
                     values,
-                    color=[VISUAL_CONSTANTS.STATUS_PASS, "VISUAL_CONSTANTS.ST_BLUE"],
+                    color=[VISUAL_CONSTANTS.STATUS_PASS, "#2166AC"],
                     alpha=0.7,
                 )
                 ax.set_ylim(0, 100.0)
