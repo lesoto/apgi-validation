@@ -34,12 +34,13 @@ from apgi_core.full_model import APGIFullDynamicModel, APGIParameters, APGIState
 # model.py exports
 # ---------------------------------------------------------------------------
 from apgi_core.model import (
-    CONFIG,
+    APGIConfig,
     APGIModel,
     GenerativeModel,
     HierarchicalLevel,
     HierarchicalProcessor,
     RunningStatsEMA,
+    _get_config,
     clip,
     compute_information_value,
     compute_precision,
@@ -54,9 +55,24 @@ from apgi_core.model import (
     update_threshold,
 )
 
+
+def __getattr__(name: str):
+    """Lazy/deprecated attribute access for backward compatibility."""
+    if name == "CONFIG":
+        import warnings
+
+        warnings.warn(
+            "apgi_core.CONFIG is deprecated — use APGIConfig.from_settings() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _get_config()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     # --- model ---
-    "CONFIG",
+    "APGIConfig",
     "GenerativeModel",
     "RunningStatsEMA",
     "compute_precision",

@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 """
 ===============================================================================
-COMPLETE APGI SYSTEM
+APGI SYSTEM
 ===============================================================================
 
 Implementation of the APGI framework including:
@@ -46,7 +46,7 @@ beta_spec : Spectral exponent of aperiodic neural activity (1/f^beta_spec)
 
 
 """
-COMPLETE PARAMETER REFERENCE
+PARAMETER REFERENCE
 =============================
 
 SOMATIC/INTEROCEPTIVE PARAMETERS:
@@ -91,13 +91,6 @@ Always specify subscript (beta_som, beta_spec, beta_M, beta_cross) in formulas t
 
 """
 
-import json
-import warnings
-from collections import defaultdict
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
 
 import matplotlib
 
@@ -535,7 +528,7 @@ class DynamicalSystemEquations:
         else:
             interoceptive = 0.0
 
-        A_target = A_circ + 0.3 * g_stim + 0.2 * interoceptive  # type: ignore[operator]
+        A_target = float(A_circ) + 0.3 * g_stim + 0.2 * interoceptive
         return np.clip(A_target, 0.0, 1.0)
 
     @staticmethod

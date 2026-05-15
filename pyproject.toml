@@ -20,7 +20,11 @@ dependencies = [
 apgi-cli = "main:cli"
 
 [tool.setuptools.packages.find]
-include = ["utils*", "Validation*", "Falsification*", "Theory*"]
+include = ["apgi_core*", "gui*", "utils*", "Validation*", "Falsification*", "Theory*"]
+
+# After updating this file run: pip install -e .
+# Once installed, the sys.path.insert(0, ...) calls in the GUI entry points
+# can be removed — the package will be on PYTHONPATH via the editable install.
 
 [tool.mutmut]
 paths_to_mutate = "Validation/"

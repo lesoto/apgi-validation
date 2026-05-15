@@ -269,6 +269,16 @@ class TestDTO:
     def test_master_validation_report_dto(self):
         """Test MasterValidationReportDTO."""
         from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
+        from pydantic import BaseModel
+
+        # Define ProtocolResult to resolve forward reference
+        class ProtocolResult(BaseModel):
+            protocol_name: str
+            status: str
+            timestamp: str
+
+        # Rebuild the model to resolve the forward reference
+        MasterValidationReportDTO.model_rebuild()
 
         tier_summary = {"tier1": ValidationTierSummaryDTO(passed=5, total=10)}
         dto = MasterValidationReportDTO(
@@ -560,7 +570,7 @@ class TestSecretPolicyEnforcer:
         "os.environ",
         {
             "APGI_MASTER_KEY": "test_key_1234567890123456",
-            "APGI_JWT_SECRET": "test_fallback_secret_not_for_prod",  # nosec B105
+            "APGI_JWT_SECRET": "secret",  # nosec B105 - forbidden value
         },
     )
     @patch("utils.secret_policy_enforcer.get_secure_key_manager")

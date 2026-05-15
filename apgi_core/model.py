@@ -3,65 +3,110 @@ LEVEL DESIGNATION: Level 1 (thermodynamic)
 
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 
 
+@dataclass
 class APGIConfig:
-    """Configuration for APGI model."""
+    """Model-level configuration for APGI simulation.
 
-    dt: float
-    tau_theta: float
-    theta0: float
-    alpha: float
-    tau_S: float
-    tau_M: float
-    beta: float
-    beta_M: float
-    M_0: float
-    gamma_M: float
-    lambda_S: float
-    sigma_S: float
-    sigma_theta: float
-    sigma_M: float
-    rho: float
-    alpha_mu: float
-    alpha_sigma: float
-    c1: float
-    c2: float
-    hierarchical: Dict[str, Any]
+    Fields that overlap with APGISettings (utils/apgi_settings.py) are
+    populated from that source at runtime so both systems stay consistent.
+    Model-only fields (tau_M, beta_M, rho, …) retain their own defaults.
+    """
+
+    dt: float = 0.01
+    tau_theta: float = 20.0
+    theta0: float = 0.5
+    alpha: float = 5.0
+    tau_S: float = 0.35
+    tau_M: float = 1.5
+    beta: float = 1.5
+    beta_M: float = 1.0
+    M_0: float = 0.0
+    gamma_M: float = -0.3
+    lambda_S: float = 0.1
+    sigma_S: float = 0.05
+    sigma_theta: float = 0.02
+    sigma_M: float = 0.03
+    rho: float = 0.7
+    alpha_mu: float = 0.01
+    alpha_sigma: float = 0.005
+    c1: float = 0.1
+    c2: float = 0.02
+    hierarchical: Dict[str, Any] = field(
+        default_factory=lambda: {"enabled": False, "num_levels": 5, "tau_max": 10.0, "tau_min": 0.1}
+    )
+
+    @classmethod
+    def from_settings(cls) -> "APGIConfig":
+        """Build an APGIConfig, overlaying shared fields from APGISettings."""
+        cfg = cls()
+        try:
+            from utils.apgi_settings import APGISettings
+
+            s = APGISettings()
+            # Overlay only the fields that exist in both systems
+            cfg.tau_S = s.tau_S
+            cfg.tau_theta = s.tau_theta
+            cfg.theta0 = s.theta0
+        except Exception:
+            pass  # APGISettings unavailable — keep dataclass defaults
+        return cfg
 
 
-CONFIG: Dict[str, Any] = {
-    "dt": 0.01,
-    "tau_theta": 20.0,
-    "theta0": 0.5,
-    "alpha": 5.0,
-    "tau_S": 0.35,
-    "tau_M": 1.5,
-    "beta": 1.5,
-    "beta_M": 1.0,
-    "M_0": 0.0,
-    "gamma_M": -0.3,
-    "lambda_S": 0.1,
-    "sigma_S": 0.05,
-    "sigma_theta": 0.02,
-    "sigma_M": 0.03,
-    "rho": 0.7,
-    "alpha_mu": 0.01,
-    "alpha_sigma": 0.005,
-    "c1": 0.1,  # Dynamic cost coefficient (signaling-related)
-    "c2": 0.02,  # Static cost coefficient (maintenance-related)
-    # Additional keys for hierarchical processing
-    "hierarchical": {
-        "enabled": False,
-        "num_levels": 5,
-        "tau_max": 10.0,
-        "tau_min": 0.1,
-    },
-}
+def _build_config() -> Dict[str, Any]:
+    """Return the CONFIG dict, preferring APGISettings values for shared fields."""
+    cfg = APGIConfig.from_settings()
+    return {
+        "dt": cfg.dt,
+        "tau_theta": cfg.tau_theta,
+        "theta0": cfg.theta0,
+        "alpha": cfg.alpha,
+        "tau_S": cfg.tau_S,
+        "tau_M": cfg.tau_M,
+        "beta": cfg.beta,
+        "beta_M": cfg.beta_M,
+        "M_0": cfg.M_0,
+        "gamma_M": cfg.gamma_M,
+        "lambda_S": cfg.lambda_S,
+        "sigma_S": cfg.sigma_S,
+        "sigma_theta": cfg.sigma_theta,
+        "sigma_M": cfg.sigma_M,
+        "rho": cfg.rho,
+        "alpha_mu": cfg.alpha_mu,
+        "alpha_sigma": cfg.alpha_sigma,
+        "c1": cfg.c1,
+        "c2": cfg.c2,
+        "hierarchical": cfg.hierarchical,
+    }
+
+
+def _get_config() -> Dict[str, Any]:
+    """Return a fresh config dict sourced entirely from APGIConfig/APGISettings.
+
+    Prefer calling this over the module-level CONFIG constant to avoid stale
+    values when APGISettings change after import.
+    """
+    return _build_config()
+
+
+import warnings as _warnings  # noqa: E402
+
+
+def __getattr__(name: str):  # noqa: N807 — module-level __getattr__
+    if name == "CONFIG":
+        _warnings.warn(
+            "apgi_core.model.CONFIG is deprecated — use APGIConfig.from_settings() or _get_config() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _build_config()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # =============================================================================
 # CORE: GENERATIVE MODEL (LEARNING)
@@ -371,7 +416,7 @@ class HierarchicalProcessor:
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        self.cfg: Dict[str, Any] = config or CONFIG
+        self.cfg: Dict[str, Any] = config if config is not None else _get_config()
         beta_cross_value = self.cfg.get("beta_cross", 0.2)
         self.beta_cross: float = float(str(beta_cross_value)) if beta_cross_value is not None else 0.2
 
@@ -544,12 +589,12 @@ class APGIModel:
         # Preserve caller-provided config exactly as passed in (tests rely on
         # strict equality), but still compute a merged config for internal use.
         if config is None:
-            self.config = CONFIG.copy()
+            self.config = _get_config()
             self._merged_config = self.config
         else:
             self.config = config
             # Deep merge for nested dictionaries (internal defaults + overrides)
-            merged: Dict[str, Any] = CONFIG.copy()
+            merged: Dict[str, Any] = _get_config()
             for key, value in config.items():
                 if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
                     # Type: ignore for dynamic key assignment to TypedDict

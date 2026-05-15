@@ -6,13 +6,14 @@ Bridge to Level 1
 
 import functools
 import json
-import pickle  # nosec B403
 import time
 import traceback
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
+
+import msgpack
 
 try:
     from utils.logging_config import apgi_logger
@@ -526,44 +527,52 @@ def attempt_recovery(error: Exception, strategies: List[Any]) -> Optional[Dict[s
     return None
 
 
+def _make_msgpack_safe(obj: Any) -> Any:
+    """Recursively convert non-msgpack-serialisable objects to safe equivalents."""
+    if isinstance(obj, dict):
+        return {str(k): _make_msgpack_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_msgpack_safe(v) for v in obj]
+    # numpy scalars / arrays → Python builtins
+    try:
+        import numpy as np
+
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+    except ImportError:
+        pass
+    if isinstance(obj, (int, float, str, bool, bytes, type(None))):
+        return obj
+    # Fall back to string representation for unknown types
+    return str(obj)
+
+
 def create_checkpoint(state: Dict[str, Any], filepath: Path) -> Path:
-    """Create a checkpoint file."""
+    """Create a checkpoint file using msgpack (replaces unsafe pickle)."""
+    safe_state = _make_msgpack_safe(state)
     with open(filepath, "wb") as f:
-        pickle.dump(state, f)
+        msgpack.pack(safe_state, f)
     return filepath
 
 
 def restore_from_checkpoint(filepath: Path) -> Dict[str, Any]:
-    """Restore state from checkpoint file."""
+    """Restore state from a msgpack checkpoint file."""
     try:
+        if filepath.stat().st_size > 1024 * 1024:  # 1 MB limit
+            raise ValueError("Checkpoint file too large for safety")
         with open(filepath, "rb") as f:
-            # Use safer pickle loading with validation
-            if filepath.stat().st_size > 1024 * 1024:  # 1MB limit
-                raise ValueError("Checkpoint file too large for safety")
-
-            # Use safer deserialization with size and type validation
-            try:
-                data = pickle.load(f)  # nosec B301
-                if not isinstance(data, (dict, list, tuple, set, frozenset)):
-                    raise ValueError(f"Invalid pickle data type: {type(data)}")
-            except (pickle.PickleError, EOFError) as e:
-                # Handle pickle-specific errors
-                raise ValueError(f"Pickle loading failed: {e}")
-
-            # Basic validation of loaded data
-            if isinstance(data, dict):
-                # Additional safety checks
-                if len(str(data)) > 1000000:  # Reasonable size limit
-                    raise ValueError("Checkpoint data too large")
-                return data
-            else:
-                raise ValueError("Invalid checkpoint data format")
-    except (pickle.PickleError, EOFError, AttributeError) as e:
-        # Handle pickle-specific errors
-        raise ValueError(f"Failed to load checkpoint: {e}")
+            data = msgpack.unpack(f, raw=False)
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid checkpoint data format: expected dict, got {type(data)}")
+        return data
+    except (msgpack.UnpackException, msgpack.UnpackValueError) as e:
+        raise ValueError(f"Checkpoint deserialization failed: {e}") from e
     except Exception as e:
-        # Handle other I/O errors
-        raise ValueError(f"Error reading checkpoint file: {e}")
+        raise ValueError(f"Error reading checkpoint file: {e}") from e
 
 
 if __name__ == "__main__":

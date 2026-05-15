@@ -134,7 +134,6 @@ from utils.statistical_tests import safe_ttest_1samp
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
-from utils.statistical_tests import safe_ttest_1samp
 
 try:
     import torch

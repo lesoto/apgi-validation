@@ -3,8 +3,11 @@ LEVEL DESIGNATION: Level 1 (thermodynamic)
 
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 try:
     import nolds
@@ -367,8 +370,8 @@ class APGIFullDynamicModel:
             # Allow H > 1.0 for super-persistent correlations
             # H > 1.0 indicates strong deterministic trends (structured stimuli)
             return float(H)
-        except Exception:
-            # Fallback to simple R/S analysis if DFA fails
+        except Exception as e:
+            logger.debug(f"DFA failed, falling back to R/S analysis: {e}")
             return self._hurst_rs_fallback(time_series)
 
     def _hurst_rs_fallback(self, time_series: np.ndarray) -> float:
@@ -386,8 +389,8 @@ class APGIFullDynamicModel:
                 raise ImportError("nolds package not available")
             H = nolds.hurst_rs(time_series)
             return float(np.clip(H, 0.0, 1.0))
-        except Exception:
-            # Final fallback - return random walk value
+        except Exception as e:
+            logger.debug(f"R/S analysis failed, returning random walk default: {e}")
             return 0.5
 
     def compute_fractional_dimension_biomarker(

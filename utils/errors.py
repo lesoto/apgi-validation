@@ -77,8 +77,9 @@ class ErrorCode(str, Enum):
     SEC_FORBIDDEN = "SEC_002"
     SEC_TOKEN_EXPIRED = "SEC_003"  # nosec B105
 
-    # Security constants should be loaded from environment in production
-    # TODO: Move these to environment variables for deployment
+    # Security error code identifiers above are non-sensitive string labels.
+    # Any deployment-specific values (e.g. auth endpoints, token secrets) must
+    # be sourced from environment variables — never hardcoded in this enum.
 
 
 class APGIException(Exception):

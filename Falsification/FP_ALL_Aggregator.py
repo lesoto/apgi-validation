@@ -1859,7 +1859,6 @@ class FalsificationAggregator:
             results: Aggregated results from run_framework_falsification()
             output_dir: Directory to save output files (default: current directory)
         """
-        import csv
 
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)

@@ -24,6 +24,7 @@ import csv  # noqa: F401
 import json  # noqa: F401
 import logging
 import sys
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
@@ -243,7 +244,7 @@ try:
     from mne.time_frequency import psd_welch, tfr_morlet
 
     MNE_AVAILABLE = True
-except Exception:
+except ImportError:
     MNE_AVAILABLE = False
     mne = None
 
@@ -3175,7 +3176,16 @@ def run_neural_signature_validation():
 
 
 def validate_consciousness_markers(signature_scores: Dict[str, Any], thresholds: Dict[str, float]) -> Dict[str, bool]:
-    """Validate consciousness markers against thresholds - DEPRECATED, use comprehensive_validation_framework"""
+    """Validate consciousness markers against thresholds.
+
+    .. deprecated::
+        Use ``comprehensive_validation_framework`` instead.
+    """
+    warnings.warn(
+        "validate_consciousness_markers() is deprecated; use comprehensive_validation_framework() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     validation_results = {}
 
@@ -3210,10 +3220,16 @@ def detect_neural_signatures(
     fs: float = 1000.0,
     stimulus_time: float = 0.0,
 ) -> Dict[str, Any]:
+    """Detect neural signatures in EEG data using real signal processing.
+
+    .. deprecated::
+        Use ``comprehensive_validation_framework`` instead (per Step 1.6).
     """
-    Detect neural signatures in EEG data using real signal processing.
-    Per Step 1.6 - DEPRECATED, use comprehensive_validation_framework instead.
-    """
+    warnings.warn(
+        "detect_neural_signatures() is deprecated; use comprehensive_validation_framework() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     signature_scores = {}
 
     for marker in markers:

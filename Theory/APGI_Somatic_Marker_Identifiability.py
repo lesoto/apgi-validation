@@ -70,7 +70,7 @@ try:
     from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
-except Exception:
+except ImportError:
     HAS_SCHEMA = False
     PredictionResult = None  # type: ignore[assignment,misc]
     PredictionStatus = None  # type: ignore[assignment,misc]
@@ -80,12 +80,12 @@ try:
     from utils.falsification_thresholds import ALPHA_SIGMOID
 
     DEFAULT_ALPHA_SIGMOID = ALPHA_SIGMOID
-except Exception:
+except ImportError:
     DEFAULT_ALPHA_SIGMOID = 5.0
 
 try:
     from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
-except Exception:
+except ImportError:
     logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------

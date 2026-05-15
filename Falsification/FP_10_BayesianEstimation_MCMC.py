@@ -56,6 +56,7 @@ import logging
 import os
 import sys
 import tempfile
+import threading
 import types
 import warnings
 from dataclasses import dataclass
@@ -68,6 +69,25 @@ from utils.constants import VISUAL_CONSTANTS
 
 # Logger
 logger = logging.getLogger(__name__)
+
+
+def _mcmc_safe_cores(n_chains: int) -> int:
+    """Return a safe core count for pm.sample.
+
+    Fork-based multiprocessing hangs when called from a daemon thread (GUI
+    context).  Returning 1 falls back to sequential sampling in that case.
+    In non-daemon contexts (CLI, headless, test runner) the full chain count
+    is used so sampling runs in parallel.
+
+    With PyMC 4+, the hang can also be avoided by passing mp_ctx="spawn".
+    If you upgrade and want parallel sampling from the GUI, replace this
+    function with one that returns n_chains and adds mp_ctx="spawn" to the
+    pm.sample() call.
+    """
+    if threading.current_thread().daemon:
+        return 1
+    return n_chains
+
 
 # Ensure ArviZ uses a writable cache location (prevents import-time failures).
 if "ARVIZ_HOME" not in os.environ:
@@ -82,13 +102,13 @@ try:
     import pymc3 as pm  # type: ignore
 
     HAS_PYMC3 = True
-except Exception:
+except ImportError:
     try:
         import pymc as pm  # type: ignore
 
         HAS_PYMC3 = True
         logger.info("Using PyMC v4 instead of PyMC3")
-    except Exception as e:
+    except ImportError as e:
         pm = None
         HAS_PYMC3 = False
         logger.warning(f"PyMC unavailable/failed to import: {e}")
@@ -1219,7 +1239,7 @@ def run_mcmc_bayesian_estimation(
                 draws=n_samples,
                 tune=burn_in,
                 chains=n_chains,
-                cores=1,  # BUG-042: Force sequential to prevent multiprocessing hang in daemon threads
+                cores=_mcmc_safe_cores(n_chains),
                 target_accept=target_accept,
                 max_tree_depth=max_tree_depth,  # VP-11 Fix 5: Added max_tree_depth
                 return_inferencedata=True,
@@ -1904,7 +1924,7 @@ def run_alternative_models(
                 draws=n_samples,
                 tune=burn_in,
                 chains=n_chains,
-                cores=1,  # BUG-042: Force sequential to prevent multiprocessing hang in daemon threads
+                cores=_mcmc_safe_cores(n_chains),
                 target_accept=0.9,
                 return_inferencedata=True,
                 progressbar=False,
@@ -1949,7 +1969,7 @@ def run_alternative_models(
                 draws=n_samples,
                 tune=burn_in,
                 chains=n_chains,
-                cores=1,  # BUG-042: Force sequential to prevent multiprocessing hang in daemon threads
+                cores=_mcmc_safe_cores(n_chains),
                 target_accept=0.9,
                 return_inferencedata=True,
                 progressbar=False,

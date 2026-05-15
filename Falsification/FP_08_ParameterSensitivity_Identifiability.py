@@ -436,13 +436,18 @@ def simulate_model_performance_with_agent(
 
 
 def simulate_model_performance_placeholder(params: Dict[str, float]) -> Optional[float]:
-    """
-    DEPRECATED: This function has been removed in v2.0.
+    """Removed in v2.0.
 
-    Fix 2: Delete placeholder and raise error if called
-    Per FP-8 specification, F8.SA (Sobol analysis) must use actual APGIAgent.
-    Using this placeholder will cause F8.SA to return {"passed": False}.
+    .. deprecated::
+        Use ``simulate_model_performance_with_agent()`` instead.
+        Per FP-8 specification, F8.SA (Sobol analysis) requires actual APGIAgent.
     """
+    warnings.warn(
+        "simulate_model_performance_placeholder() has been removed in v2.0; "
+        "use simulate_model_performance_with_agent() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     raise AttributeError(
         "simulate_model_performance_placeholder() has been removed in v2.0. "
         "Use simulate_model_performance_with_agent() instead. "

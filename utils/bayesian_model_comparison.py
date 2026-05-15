@@ -1025,11 +1025,13 @@ def compute_fisher_information_matrix(trace, data: ConsciousnessDataset) -> Dict
         well_conditioned = condition_number_np < 100
 
         # 2. Minimum relative precision (should not be too low)
-        min_relative_precision = min(relative_precision.values())
+        _prec_vals = list(relative_precision.values())
+        min_relative_precision = min(_prec_vals) if _prec_vals else 0.0
         identifiable_precision = min_relative_precision > 0.01
 
         # 3. Maximum correlation (should not be too high)
-        max_correlation = max([abs(c) for c in param_correlations.values()])
+        _corr_vals = [abs(c) for c in param_correlations.values()]
+        max_correlation = max(_corr_vals) if _corr_vals else 0.0
         identifiable_correlation = max_correlation < 0.9
 
         # Overall identifiability

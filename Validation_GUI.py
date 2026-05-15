@@ -21,8 +21,33 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Any, Dict, List, Optional
-from unittest.mock import Mock
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from gui.headless_runner import HeadlessRunner
+    from gui.script_runner_gui import ScriptRunnerGUI
+
+
+class _VarStub:
+    """Minimal stub for tk variables in headless/test contexts."""
+
+    def __init__(self, value=None):
+        self._value = value
+
+    def get(self):
+        return self._value
+
+    def set(self, value):
+        self._value = value
+
+
+try:
+    from utils.errors import SecurityError as _SecurityError
+    from utils.protocol_manifest import verify_protocol_file as _verify_protocol
+except ImportError:
+    _verify_protocol = None  # type: ignore[assignment]
+    _SecurityError = RuntimeError  # type: ignore[assignment,misc]
+
 
 import matplotlib
 
@@ -79,17 +104,21 @@ if APGI_Master_Validation:
 else:
     APGIMasterValidator = None
 
-# Try to import ScriptRunnerGUI
 try:
-    from .ScriptRunner_GUI import ScriptRunnerGUI
-except ImportError:
-    ScriptRunnerGUI = None
+    from gui.script_runner_gui import ScriptRunnerGUI
+except (ImportError, Exception):
+    try:
+        from Theory_GUI import ScriptRunnerGUI  # type: ignore[no-redef]
+    except (ImportError, Exception):
+        ScriptRunnerGUI = None  # type: ignore
 
-# Try to import HeadlessRunner
 try:
-    from .HeadlessRunner import HeadlessRunner
-except ImportError:
-    HeadlessRunner = None
+    from gui.headless_runner import HeadlessRunner
+except (ImportError, Exception):
+    try:
+        from Theory_GUI import HeadlessRunner  # type: ignore[no-redef]
+    except (ImportError, Exception):
+        HeadlessRunner = None  # type: ignore
 
 # Protocol files for metadata
 protocol_files = [
@@ -159,18 +188,10 @@ class APGIValidationGUI:
                 "alpha": tk.DoubleVar(value=5.0),
             }
         else:
-            # For tests, use mock variables
+            # For tests / headless mode, use lightweight stubs
+            _defaults = {"tau_S": 0.5, "tau_theta": 30.0, "theta_0": 0.5, "alpha": 5.0}
             for param in ["tau_S", "tau_theta", "theta_0", "alpha"]:
-                mock_var = Mock()
-                mock_var.get = Mock(
-                    return_value=(
-                        0.5
-                        if param == "tau_S"
-                        else (30.0 if param == "tau_theta" else 0.5 if param == "theta_0" else 5.0)
-                    )
-                )
-                mock_var.set = Mock()
-                self.param_vars[param] = mock_var
+                self.param_vars[param] = _VarStub(_defaults[param])  # type: ignore[assignment]
 
         self.param_labels: Dict[str, ttk.Label] = {}
         self.param_sliders: Dict[str, tk.Scale] = {}
@@ -310,6 +331,12 @@ class APGIValidationGUI:
                     elif update_type == "results":
                         self.results_text.insert(tk.END, data)
                         self.results_text.see(tk.END)
+                        # Cap output to prevent unbounded memory growth
+                        _max_lines = 1000
+                        _lines = self.results_text.get("1.0", tk.END).splitlines()
+                        if len(_lines) > _max_lines:
+                            self.results_text.delete("1.0", tk.END)
+                            self.results_text.insert(tk.END, "\n".join(_lines[-_max_lines:]) + "\n")
                     elif update_type == "summary":
                         self.summary_label.config(text=data)
 
@@ -1996,6 +2023,10 @@ Interpretation:
                 if spec is None or spec.loader is None:
                     raise ImportError(f"Could not create spec for protocol {protocol_num}")
 
+                _vp = Path(protocol_path)
+                if _verify_protocol is not None and not _verify_protocol(_vp, "Validation"):
+                    raise _SecurityError(f"Protocol {_vp.name} failed manifest integrity check")
+
                 protocol_module = importlib.util.module_from_spec(spec)
                 # Register module in sys.modules BEFORE execution for cross-import compatibility
                 sys.modules[cache_key] = protocol_module
@@ -2535,8 +2566,8 @@ Interpretation:
                 import matplotlib
 
                 matplotlib.use("Agg", force=True)
-            except Exception:
-                pass
+            except Exception as e:
+                logging.debug(f"Could not switch matplotlib backend to Agg in worker thread: {e}")
 
             # Primary entry points: prefer run_validation (orchestrator-standard) or main (CLI-standard)
             entry_point_name = None
@@ -2900,9 +2931,11 @@ def main() -> None:
             if args.token:
                 # Validate token and check GUI access permissions
                 gateway.require_roles(args.token, [Role.RESEARCHER, Role.ADMIN])
+            elif os.environ.get("APGI_ENFORCE_AUTH", "0") == "1":
+                raise SystemExit("APGI_ENFORCE_AUTH=1 is set: a --token is required to start the GUI.")
             else:
-                # GUI scripts automatically run in development mode
-                # Generate a token automatically without requiring APGI_DEV_MODE
+                # Development mode: auto-generate a token so the GUI works without CLI args.
+                # Set APGI_ENFORCE_AUTH=1 in production / multi-user deployments to disable this.
                 try:
                     from utils.auth_adapter import get_auth_manager
 

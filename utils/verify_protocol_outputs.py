@@ -250,7 +250,7 @@ def main():
 
 # Stubs for test compatibility
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 
 @dataclass

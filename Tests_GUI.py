@@ -7,15 +7,44 @@ A simple GUI for running and displaying test results.
 """
 
 import os
+import queue
 import subprocess
 import sys
+import threading
 
 # Add current directory to path
 sys.path.insert(0, os.getcwd())
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import scrolledtext, ttk
 from typing import Any, Dict
+
+try:
+    from utils.constants import VisualConstants
+
+    _VC = VisualConstants()
+    _HC_GREY = _VC.HC_GREY
+    _ALLOSTATIC_PURPLE = _VC.ALLOSTATIC_PURPLE
+    _IGNITION_GREEN = _VC.IGNITION_GREEN
+    _THETA_RED = _VC.THETA_RED
+    _ST_BLUE = _VC.ST_BLUE
+except Exception:
+    # Fallback hex values matching VisualConstants defaults
+    _HC_GREY = "#999999"
+    _ALLOSTATIC_PURPLE = "#762A83"
+    _IGNITION_GREEN = "#41AB5D"
+    _THETA_RED = "#D6604D"
+    _ST_BLUE = "#2166AC"
+
+
+def _pick_font(candidates: list, size: int = 10) -> str:
+    """Return the first available font family from candidates."""
+    available = set(tkfont.families())
+    for name in candidates:
+        if name in available:
+            return name
+    return "TkDefaultFont"
 
 
 def apply_apgi_theme(root):
@@ -23,14 +52,13 @@ def apply_apgi_theme(root):
     style = ttk.Style()
     style.theme_use("clam")
 
-    # Core Palette
-    bg_color = "VISUAL_CONSTANTS.HC_GREY"
-    fg_color = "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE"
+    body_font = _pick_font(["Noto Sans", "Segoe UI", "Helvetica", "Arial"])
+    mono_font = _pick_font(["Noto Sans Mono", "Consolas", "Courier New", "Courier"])
 
     # Configure Global Elements
-    style.configure("TFrame", background=bg_color)
-    style.configure("TLabel", background=bg_color, foreground=fg_color, font=("Noto Sans", 10))
-    style.configure("Header.TLabel", font=("Noto Sans", 12, "bold"))
+    style.configure("TFrame", background=_HC_GREY)
+    style.configure("TLabel", background=_HC_GREY, foreground=_ALLOSTATIC_PURPLE, font=(body_font, 10))
+    style.configure("Header.TLabel", font=(body_font, 12, "bold"))
 
     # Custom Card Style
     style.configure("Card.TFrame", background="#ffffff", borderwidth=1, relief="solid")
@@ -46,9 +74,9 @@ def apply_apgi_theme(root):
     # Primary Button Styling
     style.configure(
         "Primary.TButton",
-        background="VISUAL_CONSTANTS.IGNITION_GREEN",
+        background=_IGNITION_GREEN,
         foreground="white",
-        font=("Noto Sans", 10, "bold"),
+        font=(body_font, 10, "bold"),
         padding=8,
     )
     style.map(
@@ -60,9 +88,9 @@ def apply_apgi_theme(root):
     # Danger Button Styling
     style.configure(
         "Danger.TButton",
-        background="VISUAL_CONSTANTS.THETA_RED",
+        background=_THETA_RED,
         foreground="white",
-        font=("Noto Sans", 10, "bold"),
+        font=(body_font, 10, "bold"),
         padding=8,
     )
     style.map(
@@ -74,9 +102,9 @@ def apply_apgi_theme(root):
     # Secondary Button Styling
     style.configure(
         "Secondary.TButton",
-        background="VISUAL_CONSTANTS.ST_BLUE",
+        background=_ST_BLUE,
         foreground="white",
-        font=("Noto Sans", 10),
+        font=(body_font, 10),
         padding=6,
     )
     style.map(
@@ -89,13 +117,13 @@ def apply_apgi_theme(root):
     style.configure("Card.TCheckbutton", background="#ffffff")
 
     # Status styling
-    style.configure("Success.TLabel", foreground="VISUAL_CONSTANTS.IGNITION_GREEN", font=("Noto Sans", 10, "bold"))
-    style.configure("Error.TLabel", foreground="VISUAL_CONSTANTS.THETA_RED", font=("Noto Sans", 10, "bold"))
+    style.configure("Success.TLabel", foreground=_IGNITION_GREEN, font=(body_font, 10, "bold"))
+    style.configure("Error.TLabel", foreground=_THETA_RED, font=(body_font, 10, "bold"))
 
     # Configure root window
-    root.configure(background=bg_color)
+    root.configure(background=_HC_GREY)
 
-    return style
+    return style, mono_font
 
 
 class APGIButtons:
@@ -152,7 +180,9 @@ class TestsGUI:
         self.root = root or tk.Tk()
         self.root.title("APGI Tests GUI")
         self.root.geometry("900x700")
-        apply_apgi_theme(self.root)
+        _, self._mono_font = apply_apgi_theme(self.root)
+        self._output_queue: queue.Queue = queue.Queue()
+        self._test_thread: threading.Thread = None
 
         self.setup_ui()
 
@@ -213,9 +243,9 @@ class TestsGUI:
 
         self.output_text = scrolledtext.ScrolledText(
             workspace.container,
-            bg="VISUAL_CONSTANTS.ALLOSTATIC_PURPLE",
-            fg="VISUAL_CONSTANTS.HC_GREY",
-            font=("Noto Sans Mono", 10),
+            bg=_ALLOSTATIC_PURPLE,
+            fg=_HC_GREY,
+            font=(self._mono_font, 10),
             borderwidth=0,
             highlightthickness=0,
         )
@@ -231,17 +261,44 @@ class TestsGUI:
             self.status_label.config(text=f"ℹ {message}", style="TLabel")
 
     def run_tests_gui(self):
-        """Run tests from GUI."""
+        """Run tests from GUI — spawns a background thread to avoid freezing the event loop."""
+        if self._test_thread and self._test_thread.is_alive():
+            self.show_status("info", "Tests already running...")
+            return
+
         self.show_status("info", "Running tests...")
-        self.root.update()
+        self.output_text.delete(1.0, tk.END)
 
         config = {
             "test_type": self.test_type_var.get(),
             "coverage": self.coverage_var.get(),
         }
 
+        self._test_thread = threading.Thread(
+            target=self._run_tests_background,
+            args=(config,),
+            daemon=True,
+        )
+        self._test_thread.start()
+        self.root.after(100, self._poll_output_queue)
+
+    def _run_tests_background(self, config: Dict[str, Any]) -> None:
+        """Background worker: runs pytest and feeds output into the queue."""
         results = self.run_tests(config)
-        self.display_results(results)
+        self._output_queue.put(("DONE", results))
+
+    def _poll_output_queue(self) -> None:
+        """Called via after() to drain the output queue on the main thread."""
+        try:
+            while True:
+                item = self._output_queue.get_nowait()
+                tag, data = item
+                if tag == "DONE":
+                    self.display_results(data)
+                    return
+        except queue.Empty:
+            pass
+        self.root.after(100, self._poll_output_queue)
 
     def clear_output(self):
         """Clear the output display."""

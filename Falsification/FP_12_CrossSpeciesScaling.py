@@ -849,8 +849,6 @@ if __name__ == "__main__":
 
 def _save_fp12_outputs(results: Dict[str, Any]) -> None:
     """Save FP-12 results to JSON, CSV, and PNG formats."""
-    import csv
-    import json
 
     # Save JSON
     json_path = "protocol12_results.json"

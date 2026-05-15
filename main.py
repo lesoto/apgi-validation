@@ -2112,7 +2112,7 @@ def analyze_logs(
 
         for log_path in log_files:
             try:
-                with open(log_path, "r") as f:
+                with open(log_path, "r", encoding="utf-8") as f:
                     for line in f:
                         total_lines += 1
 
@@ -2224,7 +2224,7 @@ def process_data(
 
         # Load configuration
         if config_file:
-            with open(config_file, "r") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 config_dict = yaml.safe_load(f)
             config = PreprocessingConfig(**config_dict)
         else:
@@ -3939,7 +3939,7 @@ def comprehensive_validation(
         # Log full traceback to file, show sanitized message to console
         error_log_path = PROJECT_ROOT / "logs" / "error.log"
         error_log_path.parent.mkdir(exist_ok=True)
-        with open(error_log_path, "a") as f:
+        with open(error_log_path, "a", encoding="utf-8") as f:
             f.write(f"\n[{datetime.now().isoformat()}] Error in comprehensive validation:\n")
             f.write(f"{traceback.format_exc()}\n")
         console.print("[red]An error occurred. See logs/error.log for details.[/red]")
@@ -3994,7 +3994,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
             error_log_path = PROJECT_ROOT / "logs" / "error.log"
             error_log_path.parent.mkdir(exist_ok=True)
-            with open(error_log_path, "a") as f:
+            with open(error_log_path, "a", encoding="utf-8") as f:
                 f.write(f"\n[{datetime.now().isoformat()}] Error launching {gui_name} GUI:\n")
                 f.write(f"{traceback.format_exc()}\n")
             console.print("[red]See logs/error.log for details.[/red]")
@@ -4881,7 +4881,7 @@ def export_data(ctx, input_file, output_file, format, compress):
             try:
                 # Use a temporary name for the partial write
                 temp_compressed = f"{compressed_file}.tmp"
-                with open(output_file, "rb", encoding="utf-8") as f_in:
+                with open(output_file, "rb") as f_in:
                     with gzip.open(temp_compressed, "wb", compresslevel=6) as f_out:
                         shutil.copyfileobj(f_in, f_out)
 
@@ -5499,7 +5499,7 @@ def config_diff() -> None:
 
         if version_file.exists():
             _check_file_size(version_file)
-            with open(version_file, "r") as f:
+            with open(version_file, "r", encoding="utf-8") as f:
                 version_data = json.load(f)
                 version_config = version_data.get("config", {})
 

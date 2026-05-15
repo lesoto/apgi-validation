@@ -150,7 +150,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 import scipy.stats as stats
@@ -1580,7 +1580,7 @@ if __name__ == "__main__":
 
 import numpy as np
 
-from utils.constants import APGI_GLOBAL_SEED, VISUAL_CONSTANTS
+from utils.constants import APGI_GLOBAL_SEED
 
 np.random.seed(APGI_GLOBAL_SEED)
 

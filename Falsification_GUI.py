@@ -13,6 +13,13 @@ import tkinter as tk
 import warnings
 from pathlib import Path
 from tkinter import TclError, messagebox, scrolledtext, ttk
+
+try:
+    from utils.errors import SecurityError as _SecurityError
+    from utils.protocol_manifest import verify_protocol_file as _verify_protocol
+except ImportError:
+    _verify_protocol = None  # type: ignore[assignment]
+    _SecurityError = RuntimeError  # type: ignore[assignment,misc]
 from typing import Any, Callable, List
 
 # Pre-import torch to prevent circular import issues with dynamically loaded protocols
@@ -64,8 +71,10 @@ class ProtocolRunnerGUI:
             self.root.geometry("800x600")
             self.root.minsize(640, 480)  # Prevent resizing below usable size
 
-        # Add project root directory to Python path
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # Ensure project root is importable (redundant after `pip install -e .`)
+        _proj_root = os.path.dirname(os.path.abspath(__file__))
+        if _proj_root not in sys.path:
+            sys.path.insert(0, _proj_root)
 
         # Protocol definitions with parameters
         self.protocols = {
@@ -1023,6 +1032,9 @@ class ProtocolRunnerGUI:
             # Load the protocol module
             file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
 
+            _fp_f = Path(file_path)
+            if _verify_protocol is not None and not _verify_protocol(_fp_f, "Falsification"):
+                raise _SecurityError(f"Protocol {_fp_f.name} failed manifest integrity check")
             spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
@@ -1081,7 +1093,8 @@ class ProtocolRunnerGUI:
                     self.log_message("  Running instance.run_full_experiment()...")
                     try:
                         instance = cls(**configured_params)
-                    except Exception:
+                    except Exception as e:
+                        logging.debug(f"Could not instantiate {cls.__name__} with params, retrying with no args: {e}")
                         instance = cls()
                     result = instance.run_full_experiment()
                     self.log_message("  Experiment completed")
@@ -1313,6 +1326,9 @@ class ProtocolRunnerGUI:
                 except ValueError:
                     raise ValueError(f"Invalid protocol path: {protocol_info['file']} (outside project directory)")
 
+                _fp_f2 = Path(file_path)
+                if _verify_protocol is not None and not _verify_protocol(_fp_f2, "Falsification"):
+                    raise _SecurityError(f"Protocol {_fp_f2.name} failed manifest integrity check")
                 spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)

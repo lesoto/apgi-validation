@@ -90,14 +90,22 @@ The theoretical foundation of APGI is implemented in the `Theory/` directory:
 - **`APGI_Computational_Benchmarking.py`** - Performance profiling and scaling analysis
 - **`APGI_Cross_Species_Scaling.py`** - Cross-species neural dynamics comparison
 - **`APGI_Cultural_Neuroscience.py`** - Cultural variation in predictive processing
-- **`APGI_DynamicalSystems_Formalization.py`** - Dynamical systems analysis of ignition thresholds
-- **`APGI_Ignition_Dynamics_Simulator.py`** - Core ignition dynamics simulation engine
-- **`APGI_Mathematical_Formalization.py`** - Mathematical formalization of APGI equations
-- **`APGI_Neural_Mass_Models.py`** - Neural mass model implementations
-- **`APGI_Physics_Integration.py`** - Physics-informed neural dynamics
-- **`APGI_Precision_Dynamics.py`** - Precision-weighting mechanisms
-- **`APGI_Rational_Pathway_Model.py`** - Rational pathway modeling
-- **`APGI_Urgency_Gating.py`** - Urgency-signal gating mechanisms
+- **`APGI_Entropy_Implementation.py`** - Information-theoretic entropy measures for APGI signals
+- **`APGI_Falsification_Framework.py`** - Falsification protocol infrastructure
+- **`APGI_Fractal_Threshold_Dynamics.py`** - Fractal and DFA-based threshold dynamics analysis
+- **`APGI_Hierarchical_Temporal_Tiling.py`** - Hierarchical temporal tiling for multi-scale integration
+- **`APGI_Information_Theoretic_Bandwidth.py`** - Information-theoretic bandwidth and capacity analysis
+- **`APGI_LNN_Bifurcation_Analysis.py`** - Liquid neural network bifurcation analysis
+- **`APGI_Liquid_Network_Implementation.py`** - Liquid-state network dynamics implementation
+- **`APGI_Multimodal_Classifier.py`** - Multimodal signal classification
+- **`APGI_Multimodal_Integration.py`** - Cross-modal integration protocols
+- **`APGI_Neuromodulatory_Control_System.py`** - Neuromodulatory gain-control mechanisms
+- **`APGI_Open_Science_Framework.py`** - Open science reproducibility utilities
+- **`APGI_Parameter_Estimation.py`** - Maximum likelihood and Bayesian parameter estimation
+- **`APGI_Psychological_States.py`** - Psychological state inference from APGI signals
+- **`APGI_Somatic_Marker_Identifiability.py`** - Somatic marker identifiability analysis
+- **`APGI_Thermodynamic_Program_Aggregator.py`** - Thermodynamic program aggregation utilities
+- **`APGI_Turing_Machine.py`** - Turing-complete APGI computation model
 
 All theory modules can be run independently or through the unified CLI in `main.py`.
 
