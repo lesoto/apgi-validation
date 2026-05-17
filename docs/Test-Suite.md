@@ -25,58 +25,58 @@ pip install mutmut
 ### Run All Tests
 
 ```bash
-python -m tests.comprehensive.runner --all
+python3 -m tests.comprehensive.runner --all
 ```
 
 ### Run Specific Test Categories
 
 ```bash
 # Unit tests only
-python -m tests.comprehensive.runner --category unit
+python3 -m tests.comprehensive.runner --category unit
 
 # Security tests
-python -m tests.comprehensive.runner --category security
+python3 -m tests.comprehensive.runner --category security
 
 # Performance tests
-python -m tests.comprehensive.runner --category performance
+python3 -m tests.comprehensive.runner --category performance
 
 # Mutation testing
-python -m tests.comprehensive.runner --mutation
+python3 -m tests.comprehensive.runner --mutation
 ```
 
 ### Run Individual Test Modules
 
 ```bash
 # Mutation testing
-python -m tests.comprehensive.mutation_tester
+python3 -m tests.comprehensive.mutation_tester
 
 # Performance/stress testing
-python -m tests.comprehensive.stress_test
+python3 -m tests.comprehensive.stress_test
 
 # Security testing
-python -m tests.comprehensive.security_tester
+python3 -m tests.comprehensive.security_tester
 
 # Integration/E2E testing
-python -m tests.comprehensive.integration_e2e
+python3 -m tests.comprehensive.integration_e2e
 ```
 
 ### Advanced Options
 
 ```bash
 # Enforce coverage threshold (fails if below 95%)
-python -m tests.comprehensive.runner --all --coverage-threshold 95
+python3 -m tests.comprehensive.runner --all --coverage-threshold 95
 
 # Run with 8 parallel workers
-python -m tests.comprehensive.runner --all --parallel 8
+python3 -m tests.comprehensive.runner --all --parallel 8
 
 # Use custom random seed
-python -m tests.comprehensive.runner --all --seed 12345
+python3 -m tests.comprehensive.runner --all --seed 12345
 
 # Stop on first failure
-python -m tests.comprehensive.runner --all --fail-fast
+python3 -m tests.comprehensive.runner --all --fail-fast
 
 # Save reports to custom directory
-python -m tests.comprehensive.runner --all --output ./my-reports
+python3 -m tests.comprehensive.runner --all --output ./my-reports
 ```
 
 ### Quick Test Run
@@ -86,17 +86,17 @@ python -m tests.comprehensive.runner --all --output ./my-reports
 make test
 
 # Run specific test file
-python -m pytest tests/test_basic.py -v
+python3 -m pytest tests/test_basic.py -v
 
 # Run with coverage
-python -m pytest tests/ --cov=. --cov-report=term
+python3 -m pytest tests/ --cov=. --cov-report=term
 ```
 
 ### Full Test Suite
 
 ```bash
 # Run full test suite with all coverage reports
-python -m pytest tests/ \
+python3 -m pytest tests/ \
     --cov=. \
     --cov-report=html \
     --cov-report=xml \
@@ -106,16 +106,16 @@ python -m pytest tests/ \
 
 ```bash
 # Run only unit tests
-python -m pytest tests/ -m unit
+python3 -m pytest tests/ -m unit
 
 # Run only integration tests
-python -m pytest tests/ -m integration
+python3 -m pytest tests/ -m integration
 
 # Run only slow tests
-python -m pytest tests/ -m slow
+python3 -m pytest tests/ -m slow
 
 # Skip slow tests
-python -m pytest tests/ -m "not slow"
+python3 -m pytest tests/ -m "not slow"
 ```
 
 ## Test Categories

@@ -11,7 +11,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from apgi_core import (
-    CONFIG,
+    APGIConfig,
     APGIModel,
     GenerativeModel,
     HierarchicalLevel,
@@ -30,6 +30,9 @@ from apgi_core import (
     map_to_reaction_time,
     update_threshold,
 )
+
+# Use the new API instead of deprecated CONFIG
+CONFIG = APGIConfig.from_settings().__dict__
 
 
 class TestGenerativeModel:
@@ -428,7 +431,7 @@ class TestAPGIModel:
     def test_init_default(self):
         """Test initialization with default config."""
         model = APGIModel()
-        assert model.theta == 0.5
+        assert model.theta == 0.03  # Updated to match APGISettings.theta0
         assert model.S == 0.0
         assert model.M == 0.0
 

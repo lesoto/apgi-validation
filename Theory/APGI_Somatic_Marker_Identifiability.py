@@ -833,8 +833,8 @@ def run_module3(
         logger.info("  Recovery correlations (free-β):")
         for name, r in recovery_r_free.items():
             poor = abs(r) < PATHOLOGICAL_R_THRESHOLD
-            logger.info(f"    {name:20s}: r = {r:.3f}  " f"{'<-- POOR RECOVERY' if poor else ''}")
-        logger.info(f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): " f"{has_poor_recovery}")
+            logger.info(f"    {name:20s}: r = {r:.3f}  {'<-- POOR RECOVERY' if poor else ''}")
+        logger.info(f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): {has_poor_recovery}")
         logger.info(
             f"  Condition pathological (> {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): " f"{condition_pathological}"
         )
@@ -1150,8 +1150,8 @@ def run_validation(
                 completion_percentage=100,
                 status="success" if all_passed else "failed",
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to attach ProtocolResult schema for VP-SMI: %s", exc)
 
     return result
 

@@ -830,6 +830,8 @@ class LiquidTimeConstantChecker:
 
 
 class ClinicalConvergenceValidator:
+    PROTOCOL_TIERS: Dict[int, str] = {12: "primary"}
+
     def __init__(self):
         self.clinical_analyzer = ClinicalDataAnalyzer()
         self.psychiatric_analyzer = PsychiatricProfileAnalyzer()
@@ -853,6 +855,16 @@ class ClinicalConvergenceValidator:
         results["falsification_report"] = self._run_falsification_audit(results)
         results["overall_clinical_score"] = self._calculate_clinical_score(results)  # type: ignore[assignment]
         return results
+
+    def run_validation(self, data_path: Optional[str] = None, **kwargs) -> Dict:
+        """Standard validation entry point for protocol interface parity."""
+        _ = data_path
+        _ = kwargs
+        return self.validate_clinical_convergence()
+
+    def validate(self, data_path: Optional[str] = None, **kwargs) -> Dict:
+        """Alias for run_validation to align with validation interface."""
+        return self.run_validation(data_path=data_path, **kwargs)
 
     def _validate_disorders_of_consciousness(self) -> Dict:
         data = self.clinical_analyzer.simulate_propofol_effect(n_subjects=30)
@@ -1100,6 +1112,7 @@ class APGIValidationProtocol12:
     """
 
     PROTOCOL_TIER = "primary"
+    PROTOCOL_TIERS: Dict[int, str] = {12: "primary"}
     PROTOCOL_DESCRIPTION = (
         "Clinical Cross-Species Convergence — Disorders of consciousness, "
         "psychiatric profiles, cross-species homologies, IIT convergence, "

@@ -9,27 +9,27 @@ The APGI Framework provides several graphical user interfaces (GUIs) for differe
 ### 1. Validation Runner (VP)
 
 **Purpose:** Comprehensive runner for all 15 Validation Protocols with real-time progress.
-**Launch Command:** `python main.py gui --gui-type validation` or `python APGI_Validation_GUI.py`
+**Launch Command:** `python3 main.py gui --gui-type validation` or `python3 Validation_GUI.py`
 
 ### 2. Psychological States Modeler
 
 **Purpose:** Advanced dynamics modeling for psychiatric and cognitive profiles.
-**Launch Command:** `python main.py gui --gui-type psychological` or `python Theory/APGI_Psychological_States.py`
+**Launch Command:** `python3 main.py gui --gui-type psychological` or `python3 Theory/APGI_Psychological_States.py`
 
 ### 3. Entropy & Analysis Interface
 
 **Purpose:** Information-theoretic analysis and liquid network dynamics visualization.
-**Launch Command:** `python main.py gui --gui-type analysis` or `python Theory/APGI_Entropy_Implementation.py`
+**Launch Command:** `python3 main.py gui --gui-type analysis` or `python3 Theory/APGI_Entropy_Implementation.py`
 
 ### 4. Theory Script Discovery GUI
 
 **Purpose:** Automatically discover and execute any script within the `Theory/` directory.
-**Launch Command:** `python APGI_Theory_GUI.py`
+**Launch Command:** `python3 Theory_GUI.py`
 
 ### 5. Falsification Protocol Runner (FP)
 
 **Purpose:** Specialized runner for the 12 Falsification Protocols.
-**Launch Command:** `python APGI_Falsification_GUI.py`
+**Launch Command:** `python3 Falsification_GUI.py`
 
 ---
 
@@ -39,13 +39,13 @@ The APGI Framework provides several graphical user interfaces (GUIs) for differe
 
 ```bash
 # Basic launch
-python main.py gui validation
+python3 main.py gui validation
 
 # With debug mode
-python main.py gui validation --debug
+python3 main.py gui validation --debug
 
 # With custom configuration
-python main.py gui validation --config profiles/anxiety-disorder.yaml
+python3 main.py gui validation --config profiles/anxiety-disorder.yaml
 ```
 
 ### Main Interface
@@ -100,14 +100,14 @@ The Validation GUI consists of several key components:
 
 ```bash
 # Launch with research profile
-python main.py gui validation --config config/profiles/research-default.yaml
+python3 main.py gui validation --config config/profiles/research-default.yaml
 ```
 
 #### Clinical Analysis
 
 ```bash
 # Launch with anxiety disorder profile
-python main.py gui validation --config config/profiles/anxiety-disorder.yaml
+python3 main.py gui validation --config config/profiles/anxiety-disorder.yaml
 ```
 
 #### Parameter Sensitivity Analysis
@@ -130,13 +130,13 @@ python main.py gui validation --config config/profiles/anxiety-disorder.yaml
 
 ```bash
 # Basic launch
-python main.py gui psychological
+python3 main.py gui psychological
 
 # With debug mode
-python main.py gui psychological --debug
+python3 main.py gui psychological --debug
 
 # With specific disorder profile
-python main.py gui psychological --config config/profiles/adhd.yaml
+python3 main.py gui psychological --config config/profiles/adhd.yaml
 ```
 
 ### Psychological States GUI Interface
@@ -204,7 +204,7 @@ The Psychological States GUI provides tools for modeling and analyzing psycholog
 
 ```bash
 # Launch with ADHD profile
-python main.py gui psychological --config config/profiles/adhd.yaml
+python3 main.py gui psychological --config config/profiles/adhd.yaml
 ```
 
 - Analyze attention dynamics
@@ -217,7 +217,7 @@ python main.py gui psychological --config config/profiles/adhd.yaml
 
 ```bash
 # Launch with anxiety profile
-python main.py gui psychological --config config/profiles/anxiety-disorder.yaml
+python3 main.py gui psychological --config config/profiles/anxiety-disorder.yaml
 ```
 
 - Model anxiety state dynamics
@@ -230,7 +230,7 @@ python main.py gui psychological --config config/profiles/anxiety-disorder.yaml
 
 ```bash
 # Launch with default cognitive profile
-python main.py gui psychological
+python3 main.py gui psychological
 ```
 
 - Model working memory dynamics
@@ -247,13 +247,13 @@ python main.py gui psychological
 
 ```bash
 # Default launch (localhost:8080)
-python main.py gui analysis
+python3 main.py gui analysis
 
 # Custom host and port
-python main.py gui analysis --host 0.0.0.0 --port 9000
+python3 main.py gui analysis --host 0.0.0.0 --port 9000
 
 # With authentication
-python main.py gui analysis --auth --username admin --password secure123
+python3 main.py gui analysis --auth --username admin --password secure123
 ```
 
 ### Accessing the Interface
@@ -364,7 +364,7 @@ status = requests.get(f'http://localhost:8080/api/analysis/{results["id"]}/statu
 2. **Verify Python Path:** Make sure you're using the correct Python environment
 
    ```bash
-   which python
+   which python3
    ```
 
 3. **Check Display:** For GUI applications, ensure display is available

@@ -71,7 +71,7 @@
 **Verification Command:**
 
 ```bash
-APGI_TEST_MODE=1 python utils/verify_framework_status.py
+APGI_TEST_MODE=1 python3 utils/verify_framework_status.py
 # Result: Protocols OK: 27/27 (100%)
 ```
 
@@ -408,10 +408,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Framework Status Verification
         run: |
-          python utils/verify_framework_status.py --format=json --output=status.json
+          python3 utils/verify_framework_status.py --format=json --output=status.json
       - name: Update Status Tables
         run: |
-          python scripts/update_status_tables.py --input=status.json --output=docs/Status-Protocols.md
+          python3 scripts/update_status_tables.py --input=status.json --output=docs/Status-Protocols.md
       - name: Commit Updates
         run: |
           git add docs/Status-Protocols.md
@@ -423,10 +423,10 @@ jobs:
 
 ```bash
 # Run status verification manually
-python utils/verify_framework_status.py --verbose
+python3 utils/verify_framework_status.py --verbose
 
 # Update only specific protocol category
-python utils/verify_framework_status.py --category=VP --update-tables
+python3 utils/verify_framework_status.py --category=VP --update-tables
 ```
 
 #### Status Update Components

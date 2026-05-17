@@ -70,6 +70,8 @@ class ProtocolRunnerGUI:
             self.root.title("APGI Framework-Level Falsification Aggregator (FP-ALL)")
             self.root.geometry("800x600")
             self.root.minsize(640, 480)  # Prevent resizing below usable size
+            self._create_menu_bar()
+            self._bind_shortcuts()
 
         # Ensure project root is importable (redundant after `pip install -e .`)
         _proj_root = os.path.dirname(os.path.abspath(__file__))
@@ -603,13 +605,42 @@ class ProtocolRunnerGUI:
         # File menu
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Exit", command=self.root.quit)
+        file_menu.add_command(
+            label="Run Selected",
+            command=self.run_selected_protocol,
+            accelerator="Ctrl+R",
+        )
+        file_menu.add_command(label="Run All", command=self.run_all_protocols, accelerator="Ctrl+Shift+R")
+        file_menu.add_command(label="Stop", command=self.stop_protocol, accelerator="Ctrl+S")
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit", command=self._on_closing, accelerator="Ctrl+Q")
+
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Clear Console", command=self.clear_console, accelerator="Ctrl+L")
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self._show_about)
+
+    def _bind_shortcuts(self) -> None:
+        """Bind keyboard shortcuts for common actions."""
+        self.root.bind("<Control-q>", lambda e: self._on_closing())
+        self.root.bind("<Command-q>", lambda e: self._on_closing())
+        self.root.bind("<Control-r>", lambda e: self.run_selected_protocol())
+        self.root.bind("<Control-Shift-R>", lambda e: self.run_all_protocols())
+        self.root.bind("<Control-s>", lambda e: self.stop_protocol())
+        self.root.bind("<Control-l>", lambda e: self.clear_console())
+
+    def _show_about(self) -> None:
+        """Show about dialog."""
+        messagebox.showinfo(
+            "About",
+            "APGI Falsification GUI\nProtocol Runner Interface\nVersion 1.3.0",
+        )
 
     def setup_ui(self):
         """Setup the user interface."""
-
-        # Create menu bar
-        self._create_menu_bar()
 
         # Main container
         main_frame = ttk.Frame(self.root, padding="10")
@@ -700,7 +731,7 @@ class ProtocolRunnerGUI:
             btn = ttk.Button(
                 button_frame,
                 text=protocol_name.split(": ")[1],
-                command=lambda info=protocol_info, name=protocol_name: self.select_protocol(name, info),
+                command=lambda info=protocol_info, name=protocol_name: (self.select_protocol(name, info)),
             )
             btn.grid(row=row, column=col, padx=5, pady=5, sticky=(tk.W, tk.E))
 
@@ -1746,9 +1777,11 @@ def main():
             if args.token:
                 # Validate token and check GUI access permissions
                 gateway.require_roles(args.token, [Role.RESEARCHER, Role.ADMIN])
+            elif os.environ.get("APGI_ENFORCE_AUTH", "0") == "1":
+                raise SystemExit("APGI_ENFORCE_AUTH=1 is set: a --token is required to start the GUI.")
             else:
-                # GUI scripts automatically run in development mode
-                # Generate a token automatically without requiring APGI_DEV_MODE
+                # Development mode: auto-generate a token so the GUI works without CLI args.
+                # Set APGI_ENFORCE_AUTH=1 in production / multi-user deployments to disable this.
                 try:
                     from utils.auth_adapter import get_auth_manager
 

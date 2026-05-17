@@ -1790,6 +1790,8 @@ def check_falsification(
 class APGIValidationProtocol10:
     """Validation Protocol 10: Feature Clustering Validation"""
 
+    PROTOCOL_TIERS: Dict[int, str] = {10: "tertiary"}
+
     def __init__(self) -> None:
         """Initialize the validation protocol."""
         self.results: Dict[str, Any] = {}

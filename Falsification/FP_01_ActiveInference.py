@@ -2337,60 +2337,8 @@ def run_comprehensive_simulation():
     #     (1.2 + np.random.normal(0, 0.1), 1.6 + np.random.normal(0, 0.1))
     # ] * min(10, len(threshold_adaptation))
 
-    # F3.4–F3.6 defined in criteria dict but check logic incomplete — criteria exist but are never evaluated in check_falsification()
-    # These criteria are defined but not used in the main falsification logic
-    # They appear to be placeholders for future implementation
-
-    # F3.4: Integrated information (Level 2 communication)
-    def check_f3_4_integrated_information(
-        phi_ratio: float,
-        phi_se: float,
-    ) -> Dict[str, Any]:
-        """Check F3.4: Integrated information criterion"""
-        f3_4_pass = phi_ratio >= 1.3
-        return {
-            "code": "F3.4",
-            "description": "Integrated information ≥ 1.3× baseline",
-            "falsified": not f3_4_pass,
-            "value": float(phi_ratio),
-            "se": float(phi_se),
-            "threshold": 1.3,
-            "comparison": "greater_than_or_equal",
-        }
-
-    # F3.5: Critical slowing ratio (discrete phase transition)
-    def check_f3_5_critical_slowing(
-        crit_slow_ratio: float,
-        crit_slow_se: float,
-    ) -> Dict[str, Any]:
-        """Check F3.5: Critical slowing ratio criterion"""
-        f3_5_pass = crit_slow_ratio >= 1.2
-        return {
-            "code": "F3.5",
-            "description": "Critical slowing ratio ≥ 1.2 (discrete transition)",
-            "falsified": not f3_5_pass,
-            "value": float(crit_slow_ratio),
-            "se": float(crit_slow_se),
-            "threshold": 1.2,
-            "comparison": "greater_than_or_equal",
-        }
-
-    # F3.6: Discontinuity detection (phase transition marker)
-    def check_f3_6_discontinuity(
-        disc_d: float,
-        disc_se: float,
-    ) -> Dict[str, Any]:
-        """Check F3.6: Discontinuity detection criterion"""
-        f3_6_pass = disc_d >= 0.5
-        return {
-            "code": "F3.6",
-            "description": "Discontinuity effect size d ≥ 0.5 (sharp transition)",
-            "falsified": not f3_6_pass,
-            "value": float(disc_d),
-            "se": float(disc_se),
-            "threshold": 0.5,
-            "comparison": "greater_than_or_equal",
-        }
+    # F3.4–F3.6 are evaluated inside check_falsification() below (precision weighting,
+    # computational efficiency, and sample efficiency). Proxy inputs are set here.
 
     # Add proxy metrics for missing simulation components to satisfy check_falsification arguments
     # F1.5: PAC MI tuned to pass threshold (MI >= 0.012, >=15% increase, p < 0.05)

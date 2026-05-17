@@ -1,7 +1,10 @@
 """APGI Design System — shared theme constants, styles, and UI components."""
 
+import logging
 import tkinter as tk
 from tkinter import ttk
+
+logger = logging.getLogger(__name__)
 
 # ── Color Palette (Lab System) ────────────────────────────────────────────────
 COLORS = {
@@ -32,8 +35,8 @@ def _resolve_font(candidates: list, fallback: str) -> str:
         for name in candidates:
             if name in available:
                 return name
-    except Exception:
-        pass
+    except (tk.TclError, RuntimeError, ImportError) as exc:
+        logger.debug("Font resolution failed: %s", exc)
     return fallback
 
 
@@ -196,7 +199,13 @@ class APGIButtons:
 
     @staticmethod
     def secondary(parent, text, command):
-        return ttk.Button(parent, text=text, command=command, style="Secondary.TButton", cursor="hand2")
+        return ttk.Button(
+            parent,
+            text=text,
+            command=command,
+            style="Secondary.TButton",
+            cursor="hand2",
+        )
 
     @staticmethod
     def standard(parent, text, command):

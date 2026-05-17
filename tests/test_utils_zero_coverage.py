@@ -268,14 +268,18 @@ class TestDTO:
 
     def test_master_validation_report_dto(self):
         """Test MasterValidationReportDTO."""
-        from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
         from pydantic import BaseModel
+
+        from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
 
         # Define ProtocolResult to resolve forward reference
         class ProtocolResult(BaseModel):
             protocol_name: str
             status: str
             timestamp: str
+
+            def __init__(self, protocol_name: str, status: str, timestamp: str) -> None:
+                super().__init__(protocol_name=protocol_name, status=status, timestamp=timestamp)
 
         # Rebuild the model to resolve the forward reference
         MasterValidationReportDTO.model_rebuild()

@@ -24,9 +24,7 @@ class TestConfigManagerMissingCoverage:
     def test_fallback_yaml_load_safe(self):
         """Test _load_yaml_safe fallback function."""
         # Test when yaml is not available
-        import utils.config_manager
-
-        with patch.object(utils.config_manager, "yaml", None):
+        with patch("utils.config_manager.yaml", None):
             from utils.config_manager import _load_yaml_safe
 
             # Create test YAML file
@@ -49,7 +47,7 @@ class TestConfigManagerMissingCoverage:
             def safe_load(content):
                 raise ValueError("Mock YAML parsing error")
 
-        with patch.object(utils.config_manager, "yaml", MockYAML()):
+        with patch("utils.config_manager.yaml", MockYAML()):
             from utils.config_manager import _load_yaml_safe
 
             # Create test YAML file

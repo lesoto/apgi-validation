@@ -285,7 +285,7 @@ def main() -> int:
     # Check 3: Registry completeness
     print("[3/3] Checking THRESHOLD_REGISTRY completeness...")
     try:
-        from falsification_thresholds import THRESHOLD_REGISTRY
+        from utils.falsification_thresholds import THRESHOLD_REGISTRY
 
         registry_keys = set(THRESHOLD_REGISTRY.keys())
         expected_keys = {

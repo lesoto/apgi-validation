@@ -28,7 +28,7 @@ This playbook provides standardized procedures for responding to incidents affec
 
 ```bash
 # Check system health
-python -c "from utils.monitoring_system import get_status; print(get_status())"
+python3 -c "from utils.monitoring_system import get_status; print(get_status())"
 
 # Review logs
 tail -n 100 logs/apgi_framework.log

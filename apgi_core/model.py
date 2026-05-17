@@ -3,10 +3,13 @@ LEVEL DESIGNATION: Level 1 (thermodynamic)
 
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -38,7 +41,12 @@ class APGIConfig:
     c1: float = 0.1
     c2: float = 0.02
     hierarchical: Dict[str, Any] = field(
-        default_factory=lambda: {"enabled": False, "num_levels": 5, "tau_max": 10.0, "tau_min": 0.1}
+        default_factory=lambda: {
+            "enabled": False,
+            "num_levels": 5,
+            "tau_max": 10.0,
+            "tau_min": 0.1,
+        }
     )
 
     @classmethod
@@ -53,8 +61,8 @@ class APGIConfig:
             cfg.tau_S = s.tau_S
             cfg.tau_theta = s.tau_theta
             cfg.theta0 = s.theta0
-        except Exception:
-            pass  # APGISettings unavailable — keep dataclass defaults
+        except (ImportError, AttributeError) as exc:
+            logger.debug("APGISettings unavailable; using dataclass defaults (%s)", exc)
         return cfg
 
 

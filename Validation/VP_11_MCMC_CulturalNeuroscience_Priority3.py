@@ -1615,6 +1615,7 @@ class APGIValidationProtocol11:
     """
 
     PROTOCOL_TIER = "secondary"
+    PROTOCOL_TIERS: Dict[int, str] = {11: "secondary"}
     PROTOCOL_DESCRIPTION = (
         "Bayesian Estimation & Individual Differences — NUTS MCMC parameter "
         "recovery, model comparison (BF>10), R̂≤1.01 convergence, "

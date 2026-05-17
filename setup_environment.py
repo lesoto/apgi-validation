@@ -13,16 +13,16 @@ systematic experimentation.
 
 Quick Start
 -----------
-1. Run this setup script: python setup_environment.py
+1. Run this setup script: python3 setup_environment.py
 2. Activate virtual environment: source activate.sh (or activate.bat on Windows)
 3. Set environment variables (see README.md)
-4. Launch GUI: python Theory_GUI.py
+4. Launch GUI: python3 Theory_GUI.py
 
 Security Setup Required
 -----------------------
 Before running the framework, set these environment variables:
-   export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")
-   export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")
+   export PICKLE_SECRET_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")
+   export APGI_BACKUP_HMAC_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")
 """
 
 import subprocess  # nosec B404
@@ -435,8 +435,8 @@ def display_env_var_instructions() -> None:
     print("SECURITY SETUP REQUIRED")
     print("=" * 80)
     print("\nBefore running the framework, set these environment variables:\n")
-    print('  export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
-    print('  export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
+    print('  export PICKLE_SECRET_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")')
+    print('  export APGI_BACKUP_HMAC_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")')
     print("\nOr add them to your .env file in the project root.")
     print()
 
@@ -515,8 +515,8 @@ def main() -> bool:
 
     if missing_env:
         print("\n2. Set required environment variables:")
-        print('   export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
-        print('   export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")')
+        print('   export PICKLE_SECRET_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")')
+        print('   export APGI_BACKUP_HMAC_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")')
         base_step = 3
     else:
         base_step = 2

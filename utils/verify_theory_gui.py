@@ -238,12 +238,15 @@ def verify_directory_structure():
         "docs",
         "tests",
         "utils",
-        "data",
         "apgi_core",
         "data_repository",
-        "apgi_output",
         "Falsification",
         "Validation",
+    ]
+
+    optional_dirs = [
+        "data",
+        "apgi_output",
     ]
 
     results = []
@@ -253,6 +256,13 @@ def verify_directory_structure():
         results.append((dir_path, exists))
         status = "[PASS]" if exists else "[FAIL]"
         logger.info(f"{status} {dir_path}/")
+
+    for dir_path in optional_dirs:
+        full_path = PROJECT_ROOT / dir_path
+        exists = full_path.exists() and full_path.is_dir()
+        results.append((dir_path, exists))
+        status = "[PASS]" if exists else "[SKIP]"
+        logger.info(f"{status} {dir_path}/ (optional)")
 
     return results
 

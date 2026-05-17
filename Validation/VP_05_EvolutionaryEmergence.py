@@ -3969,6 +3969,8 @@ def check_falsification(
 class APGIValidationProtocol5:
     """Validation Protocol 5: Evolutionary Emergence of APGI-like Architectures"""
 
+    PROTOCOL_TIERS: Dict[int, str] = {5: "tertiary"}
+
     def __init__(self) -> None:
         """Initialize the validation protocol."""
         self.results: Dict[str, Any] = {}

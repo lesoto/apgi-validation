@@ -434,6 +434,7 @@ class TestModelEdgeCases:
         # Threshold is clamped to minimum 0.1 due to biological constraints
         assert model.theta >= 0.1
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_infinite_values_input(self):
         """Test model with infinite values in input."""
         model = APGIModel()

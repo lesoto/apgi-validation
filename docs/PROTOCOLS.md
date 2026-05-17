@@ -70,7 +70,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Validation Files — Orchestrators & Infrastructure** | | | | | |
 | 16 | VP_ALL_Aggregator.py | Validation | — | Framework-level validation aggregator (V1.1–V14.x) | Active |
 | 17 | Master_Validation.py | Validation | — | Orchestrator (APGIMasterValidator) | Active |
-| 18 | APGI_Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 18 | Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 19 | **init**.py | Validation | — | Python package marker | — |
 | **Falsification Files — Protocol Scripts (FP_01–FP_12)** | | | | | |
 | 20 | FP_01_ActiveInference.py | Falsification | FP-1 | Active Inference & Hierarchical Dynamics | 82% |
@@ -88,7 +88,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 32 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 33 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs [NEW] | Active |
-| 34 | APGI_Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 34 | Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 35 | **init**.py | Falsification | — | Python package marker | — |
 
 ## 1. File Inventory — All 35 Source Files (Falsification/ + Validation/)
@@ -118,7 +118,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Validation Files — Orchestrators & Infrastructure** | | | | | |
 | 17 | VP_ALL_Aggregator.py | Validation | — | Framework-level validation aggregator (V1.1–V16.x) | Active |
 | 18 | Master_Validation.py | Validation | — | Orchestrator (APGIMasterValidator) | Active |
-| 19 | APGI_Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 19 | Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 20 | **init**.py | Validation | — | Python package marker | — |
 
 ### 1.2 Falsification Files — Protocol Scripts (FP_01–FP_12)
@@ -140,7 +140,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 13 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 14 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs | Active |
-| 15 | APGI_Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 15 | Falsification_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 16 | **init**.py | Falsification | — | Python package marker | — |
 
 ---

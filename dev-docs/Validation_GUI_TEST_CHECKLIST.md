@@ -11,7 +11,7 @@
 
 ## GUI Launch Verification
 
-- [x] GUI window opens without errors (run `python Validation_GUI.py`)
+- [x] GUI window opens without errors (run `python3 Validation_GUI.py`)
 - [x] Window title displays "APGI Validation Protocol Runner" (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:112`)
 - [x] Window size is 800x600 (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:113`)
 - [x] Window can be resized (minimum 800x600 enforced via minsize, `@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:114`)
@@ -24,6 +24,7 @@
 - [x] Ctrl+Q quits the application (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:117`)
 - [x] Cmd+Q quits the application (macOS, `@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:118`)
 - [x] Ctrl+R runs selected protocols (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:121-126`)
+- [x] Ctrl+Shift+R runs all protocols (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py`)
 - [x] Ctrl+S stops running validation (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:127`)
 - [x] Ctrl+E saves results (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:128`)
 - [x] Ctrl+L clears output (`@/Users/lesoto/Sites/PYTHON/apgi-validation/Validation_GUI.py:129`)

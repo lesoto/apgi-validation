@@ -635,35 +635,35 @@ The APGI framework organizes protocols into tiers:
 
 ```bash
 # Launch Validation GUI
-python APGI_Validation_GUI.py
+python3 Validation_GUI.py
 
 # Launch Falsification Protocols GUI
-python APGI_Falsification_GUI.py
+python3 Falsification_GUI.py
 
 # Launch Theory/Equations GUI
-python APGI_Theory_GUI.py
+python3 Theory_GUI.py
 
 # Launch Test Runner GUI
-python Tests_GUI.py
+python3 Tests_GUI.py
 
 # Launch Utilities GUI
-python Utils_GUI.py
+python3 Utils_GUI.py
 ```
 
 ### Command Line Interface
 
 ```bash
 # Run formal model simulation
-python main.py formal-model --simulation-steps 1000 --plot
+python3 main.py formal-model --simulation-steps 1000 --plot
 
 # Run validation protocols
-python main.py validation --protocol Protocol-3 --verbose
+python3 main.py validation --protocol Protocol-3 --verbose
 
 # Run with custom config
-python main.py --config-file config/profiles/research-default.yaml formal-model
+python3 main.py --config-file config/profiles/research-default.yaml formal-model
 
 # Check all available protocols
-python main.py list-protocols
+python3 main.py list-protocols
 ```
 
 ## Performance Benchmarks

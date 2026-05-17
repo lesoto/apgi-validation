@@ -49,9 +49,9 @@
       "VP_ALL_Aggregator.py": "3bc6d07f705011ebacddb333b09641ec8bd2e2cc5156b51d07ae629ffdb936b1"
     },
     "Falsification": {
-      "FP_01_ActiveInference.py": "c45fa75fa6453b454bf29e0e3b73894cc47e4f499f629d5619879d047762044a",
+      "FP_01_ActiveInference.py": "a3ce1f4e11cc8074f07a02115d08a3e2752928203c5ffd259da0bd8b3ffea0c4",
       "FP_02_AgentComparison_ConvergenceBenchmark.py": "00c72afd8c5cad9688accdd7fad640ecf2a5731283e6346913a4204b42d521f7",
-      "FP_03_FrameworkLevel_MultiProtocol.py": "9a8306784e803806be6884b1166a90fbe41118062d40056f4ecf9b2c6bc349e5",
+      "FP_03_FrameworkLevel_MultiProtocol.py": "4ca66b8ce2c8426d073b7fdc8a5245de03e565014daf8520ed0a4ce8fb869da1",
       "FP_04_PhaseTransition_EpistemicArchitecture.py": "b975c67a09ea665afd5270bed7364402ee021b8e438e1bd5e538c80368a441d0",
       "FP_05_EvolutionaryPlausibility.py": "29be7df9a5aa4c8e6a45d558b40649a157ab5845aebcbf67e41e88b9a59cd978",
       "FP_06_LiquidNetwork_EnergyBenchmark.py": "8946b40a1bc91a795a6d36e0409f34aa620db8cab39101e452acf79fd09113b2",

@@ -156,6 +156,8 @@ class APGIValidationGUI:
         self.root.geometry("800x600")
         self.root.minsize(800, 600)  # Prevent resizing below usable size
 
+        self._create_menu_bar()
+
         # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
         self.root.bind("<Control-q>", lambda e: self.quit_application())
         self.root.bind("<Command-q>", lambda e: self.quit_application())
@@ -165,6 +167,7 @@ class APGIValidationGUI:
             "<Control-r>",
             lambda e: (self.run_selected_script() if self.get_selected_script() else None),
         )
+        self.root.bind("<Control-Shift-R>", lambda e: self.run_all_scripts())
         self.root.bind("<Control-s>", lambda e: self.stop_selected_script())
         self.root.bind("<Control-e>", lambda e: self.save_results())
         self.root.bind("<Control-l>", lambda e: self.clear_output())
@@ -242,6 +245,36 @@ class APGIValidationGUI:
 
         # Window close handler
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def _create_menu_bar(self) -> None:
+        """Create a consistent menu bar across APGI GUIs."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Run Selected", command=self.run_selected_script, accelerator="Ctrl+R")
+        file_menu.add_command(label="Run All", command=self.run_all_scripts, accelerator="Ctrl+Shift+R")
+        file_menu.add_command(label="Stop", command=self.stop_selected_script, accelerator="Ctrl+S")
+        file_menu.add_separator()
+        file_menu.add_command(label="Save Results", command=self.save_results, accelerator="Ctrl+E")
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit", command=self.quit_application, accelerator="Ctrl+Q")
+
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Clear Output", command=self.clear_output, accelerator="Ctrl+L")
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self._show_about)
+
+    def _show_about(self) -> None:
+        """Show about dialog."""
+        messagebox.showinfo(
+            "About",
+            "APGI Validation GUI\nProtocol Runner Interface\nVersion 1.3.0",
+        )
 
     def _setup_logging(self) -> None:
         """Setup logging system with error handling."""
@@ -2790,6 +2823,19 @@ Interpretation:
                 self.run_validation()
             finally:
                 self.protocol_vars = original_vars
+
+    def run_all_scripts(self) -> None:
+        """Run all protocols without permanently changing selections."""
+        if not hasattr(self, "protocol_vars"):
+            return
+        original = {num: var.get() for num, var in self.protocol_vars.items()}
+        for var in self.protocol_vars.values():
+            var.set(True)
+        try:
+            self.run_validation()
+        finally:
+            for num, was_selected in original.items():
+                self.protocol_vars[num].set(was_selected)
 
     def stop_selected_script(self) -> None:
         """Stop the currently running script."""

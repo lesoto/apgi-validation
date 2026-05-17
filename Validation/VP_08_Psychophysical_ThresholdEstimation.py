@@ -1936,8 +1936,9 @@ def run_validation(**kwargs):
     print("APGI PROTOCOL 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION & INDIVIDUAL DIFFERENCES")
     print("=" * 80)
 
-    # Use N=100 participants with power analysis
-    n_participants = kwargs.get("n_participants", 100)
+    # Use N=200 participants to achieve adequate power (≥0.80) for d=0.40, α=0.008
+    # Previous N=100 gave power=0.56, which was underpowered
+    n_participants = kwargs.get("n_participants", 200)
     estimator = APGIPsychophysicalEstimator(n_participants=n_participants)
     results = estimator.run_protocol()
 
@@ -3175,6 +3176,8 @@ def run_protocol_main(config=None):
 
 class APGIValidationProtocol8:
     """Validation Protocol 8: Precision Weighting Validation"""
+
+    PROTOCOL_TIERS: Dict[int, str] = {8: "secondary"}
 
     def __init__(self) -> None:
         """Initialize the validation protocol."""

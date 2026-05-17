@@ -187,7 +187,7 @@ Approximate scaling:
 ### Basic Execution
 
 ```python
-python APGI_Protocol_4.py
+python3 Validation/VP_04_PhaseTransition_EpistemicLevel2.py
 ```text
 
 This runs the full pipeline:

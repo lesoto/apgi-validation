@@ -392,7 +392,7 @@ Total items to verify: 150+
 
 ### Testing Recommendations
 
-1. Start with headless mode: `python Falsification_GUI.py --headless`
+1. Start with headless mode: `python3 Falsification_GUI.py --headless`
 2. Test individual protocol execution before batch runs
 3. Verify parameter saving/loading functionality
 4. Check console output for errors and warnings

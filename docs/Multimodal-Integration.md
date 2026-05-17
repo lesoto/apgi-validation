@@ -124,7 +124,7 @@ print(f"Improvement: {((optimization_results['recommended_window_sec'] - 2.0) / 
 ### 3. Running the Full Demo
 
 ```bash
-python a-2.py
+python3 a-2.py
 ```
 
 This executes a comprehensive demonstration showcasing:

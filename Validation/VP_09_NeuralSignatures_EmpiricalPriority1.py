@@ -754,6 +754,8 @@ class APGIFMRIAnalyzer:
 class APGINeuralSignaturesValidator:
     """Complete validation of APGI neural signatures"""
 
+    PROTOCOL_TIERS: Dict[int, str] = {9: "primary"}
+
     def __init__(self):
         self.eeg_analyzer = APGIP3bAnalyzer()
         try:
@@ -1892,6 +1894,14 @@ class APGINeuralSignaturesValidator:
             "description": "Neyman-Pearson optimal threshold test",
             "alternative": "Falsified if empirical threshold deviates >2 SD from optimal",
         }
+
+    def run_validation(self, data_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+        """Run complete validation protocol."""
+        return self.validate_convergent_signatures()
+
+    def check_criteria(self) -> Dict[str, Any]:
+        """Check validation criteria against results."""
+        return {}
 
 
 def main():
@@ -3159,6 +3169,8 @@ def run_protocol_main(config=None):
 class APGIValidationProtocol9:
     """Validation Protocol 9: Convergent Neural Signatures"""
 
+    PROTOCOL_TIERS: Dict[int, str] = {9: "primary"}
+
     def __init__(self) -> None:
         """Initialize the validation protocol."""
         self.results: Dict[str, Any] = {}
@@ -3180,47 +3192,49 @@ class APGIValidationProtocol9:
 class MultiTimescaleValidator:
     """Multi-timescale validator for Protocol 9"""
 
+    PROTOCOL_TIERS: Dict[int, str] = {9: "primary"}
+
     def __init__(self) -> None:
         self.validation_results: Dict[str, Any] = {}
+        # Backward-compatible alias used by some callers/tests
+        self.results: Dict[str, Any] = self.validation_results
 
-    def run_validation_placeholder(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
-        """Run validation protocols."""
-        # This is a placeholder implementation
-        return {"status": "completed", "protocols": protocol_names or []}
-
-    def validate(self, timescale_data: Optional[Dict] = None) -> Dict[str, Any]:
+    def validate(self, timescale_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Alias for run_validation to maintain interface consistency."""
-        return self.run_validation()
+        return self.run_validation(timescale_data=timescale_data)
 
-    def run_full_validation(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
+    def run_full_validation(self, protocol_names: Optional[List[str]] = None, **kwargs: Any) -> Dict[str, Any]:
         """Alias for running full validation suite."""
-        # Convert protocol names to dict format for timescale_data
-        timescale_data = None
-        if protocol_names:
+        timescale_data = kwargs.get("timescale_data")
+        if timescale_data is None and protocol_names:
             timescale_data = {"protocols": protocol_names}
-        return self.run_validation(timescale_data=timescale_data)
+        return self.run_validation(protocol_names=protocol_names, timescale_data=timescale_data)
 
-    def run_all_protocols(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
+    def run_all_protocols(self, protocol_names: Optional[List[str]] = None, **kwargs: Any) -> Dict[str, Any]:
         """Alias for running all validation protocols."""
-        # Convert protocol names to dict format for timescale_data
-        timescale_data = None
-        if protocol_names:
+        timescale_data = kwargs.get("timescale_data")
+        if timescale_data is None and protocol_names:
             timescale_data = {"protocols": protocol_names}
-        return self.run_validation(timescale_data=timescale_data)
+        return self.run_validation(protocol_names=protocol_names, timescale_data=timescale_data)
 
     def check_criteria(self) -> Dict[str, Any]:
         """Check validation criteria against results."""
-        return self.results.get("criteria", {})
+        return self.validation_results.get("criteria", {})
 
     def get_results(self) -> Dict[str, Any]:
         """Get validation results."""
-        return self.results
+        return self.validation_results
 
     def get_available_protocols(self) -> List[str]:
         """Get available validation protocols."""
         return ["VP_09_NeuralSignatures_EmpiricalPriority1"]
 
-    def run_validation(self, timescale_data: Optional[Dict] = None) -> Dict[str, Any]:
+    def run_validation(
+        self,
+        protocol_names: Optional[List[str]] = None,
+        timescale_data: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """
         Validate multi-timescale dynamics.
 

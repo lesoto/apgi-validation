@@ -6,6 +6,7 @@ Tests GUI for APGI validation framework
 A simple GUI for running and displaying test results.
 """
 
+import logging
 import os
 import queue
 import subprocess
@@ -17,8 +18,10 @@ sys.path.insert(0, os.getcwd())
 import tkinter as tk
 import tkinter.font as tkfont
 from pathlib import Path
-from tkinter import scrolledtext, ttk
+from tkinter import messagebox, scrolledtext, ttk
 from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
 
 try:
     from utils.constants import VisualConstants
@@ -57,7 +60,12 @@ def apply_apgi_theme(root):
 
     # Configure Global Elements
     style.configure("TFrame", background=_HC_GREY)
-    style.configure("TLabel", background=_HC_GREY, foreground=_ALLOSTATIC_PURPLE, font=(body_font, 10))
+    style.configure(
+        "TLabel",
+        background=_HC_GREY,
+        foreground=_ALLOSTATIC_PURPLE,
+        font=(body_font, 10),
+    )
     style.configure("Header.TLabel", font=(body_font, 12, "bold"))
 
     # Custom Card Style
@@ -184,7 +192,35 @@ class TestsGUI:
         self._output_queue: queue.Queue = queue.Queue()
         self._test_thread: threading.Thread = None
 
+        self._create_menu_bar()
+        self._bind_shortcuts()
         self.setup_ui()
+
+    def _create_menu_bar(self) -> None:
+        """Create a consistent menu bar across APGI GUIs."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Run Tests", command=self.run_tests_gui, accelerator="Ctrl+R")
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit", command=self.quit_application, accelerator="Ctrl+Q")
+
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Clear Output", command=self.clear_output, accelerator="Ctrl+L")
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self._show_about)
+
+    def _bind_shortcuts(self) -> None:
+        """Bind keyboard shortcuts for common actions."""
+        self.root.bind("<Control-q>", lambda e: self.quit_application())
+        self.root.bind("<Command-q>", lambda e: self.quit_application())
+        self.root.bind("<Control-r>", lambda e: self.run_tests_gui())
+        self.root.bind("<Control-l>", lambda e: self.clear_output())
 
     def setup_ui(self):
         """Setup the user interface."""
@@ -303,6 +339,23 @@ class TestsGUI:
     def clear_output(self):
         """Clear the output display."""
         self.output_text.delete(1.0, tk.END)
+
+    def quit_application(self):
+        """Quit the application gracefully."""
+        try:
+            if self._test_thread and self._test_thread.is_alive():
+                self.show_status("info", "Stopping tests...")
+        except Exception as exc:
+            logger.debug("Failed to signal test thread shutdown: %s", exc)
+        self.root.quit()
+        self.root.destroy()
+
+    def _show_about(self) -> None:
+        """Show about dialog."""
+        messagebox.showinfo(
+            "About",
+            "APGI Tests GUI\nTest Runner Interface\nVersion 1.3.0",
+        )
         self.show_status("info", "Ready")
 
     def run_tests(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -402,7 +455,45 @@ class TestsGUI:
         self.root.mainloop()
 
 
-if __name__ == "__main__":
-    # Create and run the GUI
+def main():
+    """Launch the tests GUI with optional auth enforcement."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="APGI Tests GUI")
+    parser.add_argument(
+        "--token",
+        help="JWT authentication token for secured operations",
+    )
+    args = parser.parse_args()
+
+    try:
+        from utils.security_gateway import Role, SecurityGateway
+
+        gateway = SecurityGateway()
+
+        if args.token:
+            gateway.require_roles(args.token, [Role.RESEARCHER, Role.ADMIN])
+        elif os.environ.get("APGI_ENFORCE_AUTH", "0") == "1":
+            raise SystemExit("APGI_ENFORCE_AUTH=1 is set: a --token is required to start the GUI.")
+        else:
+            try:
+                from utils.auth_adapter import get_auth_manager
+
+                auth_manager = get_auth_manager()
+                dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)
+                print("Development mode: Generated token (valid 24 hours)")
+                args.token = dev_token
+            except Exception as exc:
+                print(f"Note: Running without authentication ({exc})")
+    except ImportError:
+        pass
+    except PermissionError as exc:
+        print(f"Authentication failed: {exc}")
+        sys.exit(1)
+
     gui = TestsGUI()
     gui.run()
+
+
+if __name__ == "__main__":
+    main()

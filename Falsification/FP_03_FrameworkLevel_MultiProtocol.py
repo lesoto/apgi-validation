@@ -3642,13 +3642,70 @@ class MultiProtocolRunner:
         return results
 
     def _execute_protocol(self, config: ProtocolConfig) -> _LocalProtocolResult:
-        """Execute a single protocol."""
-        # Stub implementation
+        """Execute a single protocol by dispatching to its module or validating params."""
+        import importlib
+        import logging
+
+        _exec_logger = logging.getLogger(__name__)
+        errors: List[str] = []
+        result_data: Dict[str, Any] = dict(config.params)
+
+        # Attempt to dynamically load and run the named protocol module
+        protocol_module_map: Dict[str, str] = {
+            "FP-01": "Falsification.FP_01_ActiveInference",
+            "FP-02": "Falsification.FP_02_AgentComparison_ConvergenceBenchmark",
+            "FP-04": "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+            "FP-05": "Falsification.FP_05_EvolutionaryPlausibility",
+            "FP-06": "Falsification.FP_06_LiquidNetwork_EnergyBenchmark",
+            "FP-07": "Falsification.FP_07_MathematicalConsistency",
+            "FP-08": "Falsification.FP_08_ParameterSensitivity_Identifiability",
+            "FP-09": "Falsification.FP_09_NeuralSignatures_P3b_HEP",
+            "FP-10": "Falsification.FP_10_BayesianEstimation_MCMC",
+            "FP-11": "Falsification.FP_11_LiquidNetworkDynamics_EchoState",
+            "FP-12": "Falsification.FP_12_CrossSpeciesScaling",
+        }
+
+        module_path = protocol_module_map.get(config.name)
+        if module_path:
+            try:
+                mod = importlib.import_module(module_path)
+                run_fn = getattr(mod, "run_protocol", None) or getattr(mod, "run_validation", None)
+                if callable(run_fn):
+                    raw = run_fn(**config.params) if config.params else run_fn()
+                    if isinstance(raw, dict):
+                        result_data.update(raw)
+                        success = raw.get("passed", raw.get("status") == "success")
+                    else:
+                        success = True
+                    return _LocalProtocolResult(
+                        protocol_name=config.name,
+                        success=bool(success),
+                        data=result_data,
+                        errors=errors,
+                    )
+                else:
+                    errors.append(f"Module {module_path!r} has no run_protocol/run_validation callable")
+            except Exception as exc:
+                _exec_logger.warning(f"Protocol {config.name!r} execution failed: {exc}")
+                errors.append(str(exc))
+        else:
+            errors.append(f"No module mapping for protocol {config.name!r}")
+
+        # Validate required params are present when no module could run
+        required = config.params.get("required_params", [])
+        missing = [p for p in required if p not in config.params]
+        if missing:
+            errors.append(f"Missing required params: {missing}")
+
+        success = len(errors) == 0
+        result_data["validation_note"] = (
+            "Parameter-only validation (module not executed)" if success else "Execution failed"
+        )
         return _LocalProtocolResult(
             protocol_name=config.name,
-            success=True,
-            data=config.params,
-            errors=[],
+            success=success,
+            data=result_data,
+            errors=errors,
         )
 
 

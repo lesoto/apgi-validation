@@ -312,20 +312,20 @@ class HeadlessGUITester:
 
                 image = Image.open(io.BytesIO(screenshot_bytes))
                 return np.array(image)
-            except Exception:
-                # Fallback: try basic conversion using numpy frombuffer
-                # This is a simpler approach that avoids PIL issues
+            except Exception as pil_err:
+                # Fallback: return a placeholder array with a standard shape so
+                # callers receive a valid ndarray. PNG bytes cannot be reshaped
+                # directly into pixel dimensions without decoding.
+                import warnings
+
                 import numpy as np
 
-                # Convert to 2D array (height, width, channels) for image
-                arr = np.frombuffer(screenshot_bytes, dtype=np.uint8)
-                # Reshape to proper image dimensions (remove extra dimension)
-                if len(arr.shape) == 3:
-                    # If RGB, reshape to (height, width, 3)
-                    return arr.reshape(arr.shape[1], arr.shape[2], 3)
-                else:
-                    # If grayscale, reshape to (height, width)
-                    return arr.reshape(arr.shape[0], arr.shape[1])
+                warnings.warn(
+                    f"Screenshot decode failed ({pil_err}); returning placeholder array.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                return np.zeros((1, 1, 3), dtype=np.uint8)
 
     async def click_element(self, selector: str) -> None:
         """Click element by selector."""

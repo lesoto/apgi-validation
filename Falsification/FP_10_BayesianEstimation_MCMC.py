@@ -845,7 +845,7 @@ def run_parallel_tempering_mcmc(
     )
 
     # Fix 3: Use configurable threshold with improved default for better convergence
-    r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "0.8"))
+    r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "1.1"))
 
     # Fix 5: Check n_eff >= 200
     n_eff_threshold = 200
@@ -1096,28 +1096,31 @@ def run_mcmc_bayesian_estimation_np(
     all_samples = np.concatenate(all_chains)
     posterior_samples = {name: all_samples[:, i] for i, name in enumerate(param_names)}
 
-    # Fix 1: Implement minimal Gelman-Rubin diagnostic for convergence
-    # R_hat = sqrt(1 + (B/W)) where B=between-chain variance, W=within-chain variance
-    # Convergence criterion: R_hat ≤ 1.01
+    # Fix 1: Gelman-Rubin R-hat diagnostic
+    # var_hat = (n-1)/n * W + B/n; R_hat = sqrt(var_hat / W)
+    # Convergence criterion: R_hat ≤ threshold (default 1.1)
     r_hat = {}
     convergence_pass = True
 
     for i, name in enumerate(param_names):
         # Extract samples for this parameter across all chains
         param_chains = [chain[:, i] for chain in all_chains]
+        n_per_chain = len(param_chains[0])
+        m = n_chains
 
         # Compute within-chain variance (W)
         chain_vars = [np.var(chain, ddof=1) for chain in param_chains]
         W = np.mean(chain_vars)
 
-        # Compute between-chain variance (B)
+        # Compute between-chain variance: B = n/(m-1) * sum((mean_j - grand_mean)^2)
         chain_means = [np.mean(chain) for chain in param_chains]
         overall_mean = np.mean(chain_means)
-        B = n_chains / (n_chains - 1) * np.sum((np.array(chain_means) - overall_mean) ** 2)
+        B = n_per_chain / (m - 1) * np.sum((np.array(chain_means) - overall_mean) ** 2)
 
-        # Compute R_hat
+        # Gelman-Rubin: var_hat = (n-1)/n * W + B/n; R_hat = sqrt(var_hat / W)
         if W > 0:
-            r_hat_val = np.sqrt(1.0 + (B / W))
+            var_hat = (n_per_chain - 1) / n_per_chain * W + B / n_per_chain
+            r_hat_val = np.sqrt(var_hat / W)
         else:
             r_hat_val = 1.0
 

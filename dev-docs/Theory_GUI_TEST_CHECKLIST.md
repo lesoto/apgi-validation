@@ -11,7 +11,7 @@
 
 ## GUI Launch Verification
 
-- [x] GUI window opens without errors (run `python Theory_GUI.py`)
+- [x] GUI window opens without errors (run `python3 Theory_GUI.py`)
 - [x] Window title displays "APGI Theory Framework - Scientific Instrument Interface" `@/Users/lesoto/Sites/PYTHON/apgi-validation/Theory_GUI.py:395`
 - [x] Window size is 1200x850 (default) `@/Users/lesoto/Sites/PYTHON/apgi-validation/Theory_GUI.py:396`
 - [x] Window can be resized (minimum 900x650 enforced via minsize) `@/Users/lesoto/Sites/PYTHON/apgi-validation/Theory_GUI.py:397`

@@ -328,7 +328,7 @@ coverage:
 quality_checks:
   - pytest --cov=. --cov-fail-under=8  # Current actual coverage (~8%)
   - pytest -m "not slow" --no-cov  # Run without coverage to see actual test results
-  - python tests/comprehensive/security_tester.py
+  - python3 tests/comprehensive/security_tester.py
   - flake8 --max-line-length=100
   - mypy --strict
   - bandit -r .  # Security scan

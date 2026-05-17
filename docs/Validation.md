@@ -48,10 +48,10 @@ python main.py falsify --protocol 1
 python main.py cross-species --species human
 
 # Launch GUI
-python main.py gui --gui-type validation
+python3 main.py gui --gui-type validation
 
 # View framework information
-python main.py info
+python3 main.py info
 ```
 
 ## CLI Commands Reference
@@ -60,83 +60,83 @@ python main.py info
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py formal_model` | Run formal model simulations | WORKING |
-| `python main.py multimodal` | Execute multimodal integration | WORKING |
-| `python main.py estimate-params` | Perform parameter estimation | WORKING |
-| `python main.py validate` | Run validation protocols | WORKING |
-| `python main.py falsify` | Execute falsification tests | WORKING |
+| `python3 main.py formal_model` | Run formal model simulations | WORKING |
+| `python3 main.py multimodal` | Execute multimodal integration | WORKING |
+| `python3 main.py estimate-params` | Perform parameter estimation | WORKING |
+| `python3 main.py validate` | Run validation protocols | WORKING |
+| `python3 main.py falsify` | Execute falsification tests | WORKING |
 
 ### Protocol Commands
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py validate --protocol N` | Run specific validation protocol (1-15) | WORKING |
-| `python main.py validate --all-protocols` | Run all validation protocols | WORKING |
-| `python main.py falsify --protocol N` | Run specific falsification protocol (1-12) | WORKING |
-| `python main.py validate-neural-signatures` | Validate neural signature protocols | WORKING |
-| `python main.py validate-causal-manipulations` | Validate causal manipulation protocols | WORKING |
-| `python main.py validate-clinical-convergence` | Validate clinical convergence protocols | WORKING |
+| `python3 main.py validate --protocol N` | Run specific validation protocol (1-15) | WORKING |
+| `python3 main.py validate --all-protocols` | Run all validation protocols | WORKING |
+| `python3 main.py falsify --protocol N` | Run specific falsification protocol (1-12) | WORKING |
+| `python3 main.py validate-neural-signatures` | Validate neural signature protocols | WORKING |
+| `python3 main.py validate-causal-manipulations` | Validate causal manipulation protocols | WORKING |
+| `python3 main.py validate-clinical-convergence` | Validate clinical convergence protocols | WORKING |
 
 ### Utility Commands
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py info` | Show framework information | WORKING |
-| `python main.py config --show` | Show current configuration | WORKING |
-| `python main.py config --set key=value` | Set configuration value | WORKING |
-| `python main.py config --reset` | Reset configuration to defaults | WORKING |
-| `python main.py logs --tail 20` | View recent log entries | WORKING |
-| `python main.py logs --follow` | Follow logs in real-time | WORKING |
-| `python main.py logs --export logs.json` | Export logs to file | WORKING |
-| `python main.py analyze-logs --level ERROR` | Analyze log patterns | WORKING |
-| `python main.py performance` | Show performance metrics | WORKING |
-| `python main.py monitor-performance` | Monitor command performance | WORKING |
-| `python main.py visualize --input-file data.csv` | Generate visualizations | WORKING |
-| `python main.py process-data --input-file data.csv` | Process data files | WORKING |
+| `python3 main.py info` | Show framework information | WORKING |
+| `python3 main.py config --show` | Show current configuration | WORKING |
+| `python3 main.py config --set key=value` | Set configuration value | WORKING |
+| `python3 main.py config --reset` | Reset configuration to defaults | WORKING |
+| `python3 main.py logs --tail 20` | View recent log entries | WORKING |
+| `python3 main.py logs --follow` | Follow logs in real-time | WORKING |
+| `python3 main.py logs --export logs.json` | Export logs to file | WORKING |
+| `python3 main.py analyze-logs --level ERROR` | Analyze log patterns | WORKING |
+| `python3 main.py performance` | Show performance metrics | WORKING |
+| `python3 main.py monitor-performance` | Monitor command performance | WORKING |
+| `python3 main.py visualize --input-file data.csv` | Generate visualizations | WORKING |
+| `python3 main.py process-data --input-file data.csv` | Process data files | WORKING |
 
 ### Data & Cache Management
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py export-data --input-file X --output-file Y` | Export data | WORKING |
-| `python main.py import-data --input-file X --output-file Y` | Import data | WORKING |
-| `python main.py cache --action clear` | Clear cache | WORKING |
-| `python main.py dashboard` | Generate dashboards | WORKING |
+| `python3 main.py export-data --input-file X --output-file Y` | Export data | WORKING |
+| `python3 main.py import-data --input-file X --output-file Y` | Import data | WORKING |
+| `python3 main.py cache --action clear` | Clear cache | WORKING |
+| `python3 main.py dashboard` | Generate dashboards | WORKING |
 
 ### Backup & Restore
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py backup --components "config,logs"` | Create backup | WORKING |
-| `python main.py restore-backup --backup-id X` | Restore from backup | WORKING |
-| `python main.py list-backups --limit 10` | List backups | WORKING |
-| `python main.py delete-backup --backup-id X` | Delete backup | WORKING |
-| `python main.py cleanup-backups --keep 5` | Clean old backups | WORKING |
+| `python3 main.py backup --components "config,logs"` | Create backup | WORKING |
+| `python3 main.py restore-backup --backup-id X` | Restore from backup | WORKING |
+| `python3 main.py list-backups --limit 10` | List backups | WORKING |
+| `python3 main.py delete-backup --backup-id X` | Delete backup | WORKING |
+| `python3 main.py cleanup-backups --keep 5` | Clean old backups | WORKING |
 
 ### Advanced Validation Commands
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py validate-quantitative-fits` | Validate quantitative model fits | WORKING |
-| `python main.py validate-open-science` | Validate open science framework compliance | WORKING |
-| `python main.py bayesian-estimation --method mcmc` | Run Bayesian estimation | WORKING |
+| `python3 main.py validate-quantitative-fits` | Validate quantitative model fits | WORKING |
+| `python3 main.py validate-open-science` | Validate open science framework compliance | WORKING |
+| `python3 main.py bayesian-estimation --method mcmc` | Run Bayesian estimation | WORKING |
 
 ### Error Management
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py errors --category CONFIGURATION` | View error history | WORKING |
-| `python main.py test-errors --test-config` | Test error handling system | WORKING |
+| `python3 main.py errors --category CONFIGURATION` | View error history | WORKING |
+| `python3 main.py test-errors --test-config` | Test error handling system | WORKING |
 
 ### GUI
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python main.py gui --gui-type validation` | Launch validation GUI | WORKING |
-| `python main.py gui --gui-type falsification` | Launch falsification GUI | WORKING |
-| `python main.py gui --gui-type theory` | Launch theory GUI | WORKING |
-| `python main.py gui --gui-type utils` | Launch utilities GUI | WORKING |
-| `python main.py Tests_GUI.py` | Launch test GUI directly | WORKING |
+| `python3 main.py gui --gui-type validation` | Launch validation GUI | WORKING |
+| `python3 main.py gui --gui-type falsification` | Launch falsification GUI | WORKING |
+| `python3 main.py gui --gui-type theory` | Launch theory GUI | WORKING |
+| `python3 main.py gui --gui-type utils` | Launch utilities GUI | WORKING |
+| `python3 Tests_GUI.py` | Launch test GUI directly | WORKING |
 
 ## 🔬 Core Components
 
@@ -242,7 +242,7 @@ See `requirements.txt` for complete list. Key dependencies include:
 The unified CLI provides access to all framework components:
 
 ```bash
-python main.py [COMMAND] [OPTIONS]
+python3 main.py [COMMAND] [OPTIONS]
 
 Commands:
   formal-model              Run formal model simulations
@@ -304,32 +304,32 @@ Comprehensive logging system with:
 
 ```bash
 # Run all validation protocols
-python main.py validate --all-protocols
+python3 main.py validate --all-protocols
 
 # Run specific validation protocol (1-15)
-python main.py validate --protocol 3
+python3 main.py validate --protocol 3
 
 # Run validation with output directory
-python main.py validate --protocol 1 --output-dir results/
+python3 main.py validate --protocol 1 --output-dir results/
 
 # Run validation in parallel
-python main.py validate --all-protocols --parallel
+python3 main.py validate --all-protocols --parallel
 ```
 
 ### Falsification Testing
 
 ```bash
 # List available falsification protocols
-python main.py falsify
+python3 main.py falsify
 
 # Execute specific falsification protocol (1-12)
-python main.py falsify --protocol 1
+python3 main.py falsify --protocol 1
 
 # Run falsification with output file
-python main.py falsify --protocol 2 --output-file results.json
+python3 main.py falsify --protocol 2 --output-file results.json
 
 # Run comprehensive falsification
-python main.py falsify --comprehensive
+python3 main.py falsify --comprehensive
 ```
 
 ## 📊 Example Workflows

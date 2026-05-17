@@ -33,20 +33,20 @@ cd apgi-validation
 We recommend creating a virtual environment for this project:
 
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 Install the required Python packages:
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 For protocol-specific dependencies:
 
 ```bash
-pip install -r requirements-protocols.txt
+python3 -m pip install -r requirements-protocols.txt
 ```
 
 ### Required Environment Variables
@@ -54,8 +54,8 @@ pip install -r requirements-protocols.txt
 Set the minimum required security keys:
 
 ```bash
-export PICKLE_SECRET_KEY=$(python -c "import os; print(os.urandom(32).hex())")
-export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())")
+export PICKLE_SECRET_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")
+export APGI_BACKUP_HMAC_KEY=$(python3 -c "import os; print(os.urandom(32).hex())")
 ```
 
 ### Quick Start
@@ -63,19 +63,19 @@ export APGI_BACKUP_HMAC_KEY=$(python -c "import os; print(os.urandom(32).hex())"
 Run the CLI to see available commands:
 
 ```bash
-python main.py --help
+python3 main.py --help
 ```
 
 Run a formal model simulation with default parameters:
 
 ```bash
-python main.py formal-model --plot
+python3 main.py formal-model --plot
 ```
 
 Run with custom parameters:
 
 ```bash
-python main.py formal-model --simulation-steps 500 --dt 0.01 --output-file results.csv
+python3 main.py formal-model --simulation-steps 500 --dt 0.01 --output-file results.csv
 ```
 
 ---
@@ -124,7 +124,7 @@ Validates APGI predictions using machine learning classification of synthetic EE
 Run:
 
 ```bash
-python Validation/VP_01_SyntheticEEG_MLClassification.py
+python3 Validation/VP_01_SyntheticEEG_MLClassification.py
 ```
 
 ### Protocol 2: Behavioral Bayesian Comparison
@@ -154,7 +154,7 @@ Runs agent-based simulations to validate active inference predictions in control
 Run all validations:
 
 ```bash
-python Validation/Master_Validation.py
+python3 Validation/Master_Validation.py
 ```
 
 ---
@@ -181,7 +181,7 @@ Rigorous falsification tests are implemented in the `Falsification/` directory:
 Run the falsification aggregator:
 
 ```bash
-python Falsification/FP_12_Falsification_Aggregator.py
+python3 Falsification/FP_12_Falsification_Aggregator.py
 ```
 
 ---
@@ -192,23 +192,23 @@ Comprehensive test suite with property-based testing:
 
 ```bash
 # Run all tests
-pytest
+python3 -m pytest
 
 # Run specific test categories
-pytest tests/test_cli_integration_comprehensive.py      # CLI integration
-pytest tests/test_utility_modules_comprehensive.py      # Utility modules
-pytest tests/test_file_io_real.py                       # File I/O
-pytest tests/test_data_pipeline_end_to_end.py           # Data pipeline
-pytest tests/test_property_based_comprehensive.py       # Property-based tests
-pytest tests/test_validation_falsification_protocols_individual.py  # Protocols
-pytest tests/test_performance_regression.py             # Performance
-pytest tests/test_concurrent_config_access.py           # Concurrency
+python3 -m pytest tests/test_cli_integration_comprehensive.py      # CLI integration
+python3 -m pytest tests/test_utility_modules_comprehensive.py      # Utility modules
+python3 -m pytest tests/test_file_io_real.py                       # File I/O
+python3 -m pytest tests/test_data_pipeline_end_to_end.py           # Data pipeline
+python3 -m pytest tests/test_property_based_comprehensive.py       # Property-based tests
+python3 -m pytest tests/test_validation_falsification_protocols_individual.py  # Protocols
+python3 -m pytest tests/test_performance_regression.py             # Performance
+python3 -m pytest tests/test_concurrent_config_access.py           # Concurrency
 ```
 
 Run with coverage:
 
 ```bash
-pytest --cov=utils --cov=Theory --cov=Validation --cov=Falsification
+python3 -m pytest --cov=utils --cov=Theory --cov=Validation --cov=Falsification
 ```
 
 ---
@@ -218,11 +218,11 @@ pytest --cov=utils --cov=Theory --cov=Validation --cov=Falsification
 Launch graphical interfaces for interactive exploration:
 
 ```bash
-python Theory_GUI.py         # Theory module GUI
-python Validation_GUI.py     # Validation protocols GUI
-python Falsification_GUI.py  # Falsification tests GUI
-python Tests_GUI.py          # Test runner GUI
-python Utils_GUI.py          # Utilities GUI
+python3 Theory_GUI.py         # Theory module GUI
+python3 Validation_GUI.py     # Validation protocols GUI
+python3 Falsification_GUI.py  # Falsification tests GUI
+python3 Tests_GUI.py          # Test runner GUI
+python3 Utils_GUI.py          # Utilities GUI
 ```
 
 ---
@@ -239,7 +239,7 @@ Configuration files are in the `config/` directory:
 Load a specific profile:
 
 ```bash
-python main.py formal-model --params config/profiles/adhd.yaml
+python3 main.py formal-model --params config/profiles/adhd.yaml
 ```
 
 ---

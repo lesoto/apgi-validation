@@ -13,7 +13,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Test installation
-python main.py --help
+python3 main.py --help
 ```
 
 ## Troubleshooting
@@ -65,21 +65,21 @@ If you encounter compatibility issues, consider using Python 3.10 or 3.11.
 ### Basic Test (No Dependencies Required)
 
 ```bash
-python -m pytest tests/test_basic.py -v
+python3 -m pytest tests/test_basic.py -v
 ```
 
 ### Full Test (Dependencies Required)
 
 ```bash
-python -m pytest tests/ -v
+python3 -m pytest tests/ -v
 ```
 
 ### CLI Test
 
 ```bash
-python main.py --help
-python main.py info
-python main.py formal-model --simulation-steps 100
+python3 main.py --help
+python3 main.py info
+python3 main.py formal-model --simulation-steps 100
 ```
 
 ## Project Structure After Installation
@@ -87,9 +87,9 @@ python main.py formal-model --simulation-steps 100
 ```text
 apgi-validation/
 ├── main.py                      # Unified CLI interface (entry point)
-├── APGI_Validation_GUI.py       # Main Validation Runner GUI
-├── APGI_Theory_GUI.py           # Theory Script Discovery GUI
-├── APGI_Falsification_GUI.py # Falsification Runner GUI
+├── Validation_GUI.py            # Main Validation Runner GUI
+├── Theory_GUI.py                # Theory Script Discovery GUI
+├── Falsification_GUI.py         # Falsification Runner GUI
 ├── requirements.txt             # Dependencies list
 ├── setup.py                     # Automated setup script
 ├── Theory/                      # Core mathematical and logic modules
@@ -178,10 +178,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run tests to verify installation
-RUN python -m pytest tests/test_basic.py -v
+RUN python3 -m pytest tests/test_basic.py -v
 
 # Default command
-CMD ["python", "main.py", "--help"]
+CMD ["python3", "main.py", "--help"]
 ```
 
 ```yaml
@@ -197,7 +197,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - LOG_LEVEL=INFO
-    command: python main.py formal-model --simulation-steps 1000
+    command: python3 main.py formal-model --simulation-steps 1000
 ```
 
 ### Usage Instructions
@@ -215,24 +215,24 @@ docker run -it --rm \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/results:/app/results \
-  apgi-framework python main.py validate --all-protocols
+  apgi-framework python3 main.py validate --all-protocols
 ```
 
 ---
 
 ## Next Steps
 
-1. **Run the CLI**: `python main.py --help`
-2. **Test a simulation**: `python main.py formal-model --simulation-steps 1000`
-3. **View configuration**: `python main.py config --show`
-4. **Check logs**: `python main.py logs --tail 20`
+1. **Run the CLI**: `python3 main.py --help`
+2. **Test a simulation**: `python3 main.py formal-model --simulation-steps 1000`
+3. **View configuration**: `python3 main.py config --show`
+4. **Check logs**: `python3 main.py logs --tail 20`
 
 ## Support
 
 If you encounter issues:
 
 1. Check the logs directory for error messages
-2. Run `python minimal_test.py` to verify basic functionality
+2. Run `python3 minimal_test.py` to verify basic functionality
 3. Ensure all dependencies are installed correctly
 4. Verify Python version compatibility (3.8+)
 

@@ -53,6 +53,8 @@ class ScriptRunnerGUI:
         self.load_default_parameters()
         self.selected_protocol = None
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        self._create_menu_bar()
+        self._bind_shortcuts()
         self.setup_ui()
         self.log_message(f"Instrument initialized. Loaded {len(self.protocols)} theory scripts.")
 
@@ -152,7 +154,10 @@ class ScriptRunnerGUI:
                                         has_main_block = True
 
                 exec_info = self._determine_execution_strategy(
-                    protocol_name, runnable_classes, module_level_runners, has_main_block
+                    protocol_name,
+                    runnable_classes,
+                    module_level_runners,
+                    has_main_block,
                 )
 
                 if exec_info:
@@ -180,7 +185,11 @@ class ScriptRunnerGUI:
         return protocols
 
     def _determine_execution_strategy(
-        self, protocol_name, runnable_classes, module_level_runners, has_main_block=False
+        self,
+        protocol_name,
+        runnable_classes,
+        module_level_runners,
+        has_main_block=False,
     ):
         """Determine how to execute a protocol based on its structure."""
         for func in ["run_falsification", "run_validation", "run_analysis", "main"]:
@@ -189,9 +198,18 @@ class ScriptRunnerGUI:
         for func in module_level_runners:
             return {"type": "module_function", "function": func}
         for cls in runnable_classes:
-            for method in ["run_falsification", "run_validation", "run_full_experiment", "run_analysis"]:
+            for method in [
+                "run_falsification",
+                "run_validation",
+                "run_full_experiment",
+                "run_analysis",
+            ]:
                 if method in cls["methods"]:
-                    return {"type": "class_method", "class": cls["name"], "method": method}
+                    return {
+                        "type": "class_method",
+                        "class": cls["name"],
+                        "method": method,
+                    }
         return {"type": "exec_module", "has_main_block": has_main_block}
 
     def _format_display_name(self, protocol_name):
@@ -269,6 +287,46 @@ class ScriptRunnerGUI:
         self._create_console()
         self._setup_tab_order()
 
+    def _create_menu_bar(self) -> None:
+        """Create a consistent menu bar across APGI GUIs."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(
+            label="Run Selected",
+            command=self.run_selected_protocol,
+            accelerator="Ctrl+R",
+        )
+        file_menu.add_command(label="Run All", command=self.run_all_protocols, accelerator="Ctrl+Shift+R")
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit", command=self._on_closing, accelerator="Ctrl+Q")
+
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Clear Console", command=self.clear_console, accelerator="Ctrl+L")
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self._show_about)
+
+    def _bind_shortcuts(self) -> None:
+        """Bind keyboard shortcuts for common actions."""
+        self.root.bind("<Control-q>", lambda e: self._on_closing())
+        self.root.bind("<Command-q>", lambda e: self._on_closing())
+        self.root.bind("<Control-r>", lambda e: self.run_selected_protocol())
+        self.root.bind("<Control-Shift-R>", lambda e: self.run_all_protocols())
+        self.root.bind("<Control-s>", lambda e: self.stop_protocol())
+        self.root.bind("<Control-l>", lambda e: self.clear_console())
+
+    def _show_about(self) -> None:
+        """Show about dialog."""
+        messagebox.showinfo(
+            "About",
+            "APGI Theory Framework\nScientific Instrument Interface\nVersion 1.3.0",
+        )
+
     def _create_metric_bar(self):
         """Create top metric bar with system status indicators."""
         import platform
@@ -277,17 +335,33 @@ class ScriptRunnerGUI:
         metric_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
         metric_bar.configure(style="TFrame")
 
-        status_card = ttk.LabelFrame(metric_bar, text="SYSTEM STATUS", padding=(10, 5), style="Metric.TLabelframe")
+        status_card = ttk.LabelFrame(
+            metric_bar,
+            text="SYSTEM STATUS",
+            padding=(10, 5),
+            style="Metric.TLabelframe",
+        )
         status_card.pack(side=tk.LEFT, padx=(0, 15))
         self.system_status_label = ttk.Label(
-            status_card, text="[OK] Ready", font=(FONTS["monospace"], 11), foreground=COLORS["success"]
+            status_card,
+            text="[OK] Ready",
+            font=(FONTS["monospace"], 11),
+            foreground=COLORS["success"],
         )
         self.system_status_label.pack(side=tk.LEFT)
 
-        scripts_card = ttk.LabelFrame(metric_bar, text="ACTIVE SCRIPTS", padding=(10, 5), style="Metric.TLabelframe")
+        scripts_card = ttk.LabelFrame(
+            metric_bar,
+            text="ACTIVE SCRIPTS",
+            padding=(10, 5),
+            style="Metric.TLabelframe",
+        )
         scripts_card.pack(side=tk.LEFT, padx=(0, 15))
         self.scripts_count_label = ttk.Label(
-            scripts_card, text=str(len(self.protocols)), font=(FONTS["monospace"], 11), foreground=COLORS["primary"]
+            scripts_card,
+            text=str(len(self.protocols)),
+            font=(FONTS["monospace"], 11),
+            foreground=COLORS["primary"],
         )
         self.scripts_count_label.pack(side=tk.LEFT)
 
@@ -331,7 +405,7 @@ class ScriptRunnerGUI:
             btn = ttk.Button(
                 btn_frame,
                 text=protocol_name,
-                command=lambda info=protocol_info, name=protocol_name: self.select_protocol(name, info),
+                command=lambda info=protocol_info, name=protocol_name: (self.select_protocol(name, info)),
             )
             btn.pack(fill="x", padx=8, pady=8)
             self.script_buttons[protocol_name] = btn
@@ -362,7 +436,12 @@ class ScriptRunnerGUI:
         parent_frame.columnconfigure(0, weight=1)
         parent_frame.rowconfigure(1, weight=1)
 
-        selected_card = ttk.LabelFrame(parent_frame, text="SELECTED PROTOCOL", padding=15, style="Metric.TLabelframe")
+        selected_card = ttk.LabelFrame(
+            parent_frame,
+            text="SELECTED PROTOCOL",
+            padding=15,
+            style="Metric.TLabelframe",
+        )
         selected_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         self.selected_protocol_label = ttk.Label(
@@ -390,7 +469,12 @@ class ScriptRunnerGUI:
         self.run_all_button = APGIButtons.secondary(control_frame, "Run All Scripts", self.run_all_protocols)
         self.run_all_button.pack(side=tk.LEFT)
 
-        stats_frame = ttk.LabelFrame(parent_frame, text="QUICK STATISTICS", padding=15, style="Metric.TLabelframe")
+        stats_frame = ttk.LabelFrame(
+            parent_frame,
+            text="QUICK STATISTICS",
+            padding=15,
+            style="Metric.TLabelframe",
+        )
         stats_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         stats_frame.columnconfigure(0, weight=1)
         stats_frame.columnconfigure(1, weight=1)
@@ -411,20 +495,31 @@ class ScriptRunnerGUI:
         parent_frame.columnconfigure(0, weight=1)
         parent_frame.rowconfigure(1, weight=1)
 
-        selector_card = ttk.LabelFrame(parent_frame, text="SCRIPT SELECTION", padding=15, style="Metric.TLabelframe")
+        selector_card = ttk.LabelFrame(
+            parent_frame,
+            text="SCRIPT SELECTION",
+            padding=15,
+            style="Metric.TLabelframe",
+        )
         selector_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         selector_inner = ttk.Frame(selector_card)
         selector_inner.pack(fill="x")
         ttk.Label(selector_inner, text="Configure parameters for:").pack(side=tk.LEFT)
         self.protocol_selector = ttk.Combobox(
-            selector_inner, values=list(self.protocols.keys()), state="readonly", width=40
+            selector_inner,
+            values=list(self.protocols.keys()),
+            state="readonly",
+            width=40,
         )
         self.protocol_selector.pack(side=tk.LEFT, padx=(10, 0))
         self.protocol_selector.bind("<<ComboboxSelected>>", self.on_protocol_selected)
 
         params_card = ttk.LabelFrame(
-            parent_frame, text="PARAMETER CONFIGURATION", padding=15, style="Metric.TLabelframe"
+            parent_frame,
+            text="PARAMETER CONFIGURATION",
+            padding=15,
+            style="Metric.TLabelframe",
         )
         params_card.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
@@ -471,7 +566,10 @@ class ScriptRunnerGUI:
         toolbar.pack(fill="x", pady=(0, 5))
 
         self.console_status = ttk.Label(
-            toolbar, text="Idle", foreground=COLORS["text_secondary"], font=(FONTS["monospace"], 9)
+            toolbar,
+            text="Idle",
+            foreground=COLORS["text_secondary"],
+            font=(FONTS["monospace"], 9),
         )
         self.console_status.pack(side=tk.LEFT)
 
@@ -500,7 +598,11 @@ class ScriptRunnerGUI:
         ttk.Label(progress_frame, text="Progress:").pack(side=tk.LEFT)
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress_bar = ttk.Progressbar(
-            progress_frame, variable=self.progress_var, maximum=100.0, mode="determinate", length=400
+            progress_frame,
+            variable=self.progress_var,
+            maximum=100.0,
+            mode="determinate",
+            length=400,
         )
         self.progress_bar.pack(side=tk.LEFT, padx=(10, 0), fill="x", expand=True)
         self.progress_label = ttk.Label(progress_frame, text="0%", font=(FONTS["monospace"], 9))
@@ -552,9 +654,11 @@ class ScriptRunnerGUI:
 
         for param_name, param_config in protocol_info["parameters"].items():
             label_text = param_name.replace("_", " ").title()
-            ttk.Label(self.params_scrollable_frame, text=f"{label_text}:", font=(FONTS["monospace"], 10)).grid(
-                row=row, column=0, sticky=tk.W, padx=(0, 15), pady=5
-            )
+            ttk.Label(
+                self.params_scrollable_frame,
+                text=f"{label_text}:",
+                font=(FONTS["monospace"], 10),
+            ).grid(row=row, column=0, sticky=tk.W, padx=(0, 15), pady=5)
 
             if param_config["type"] == "float":
                 var = tk.DoubleVar(value=param_config["default"])
@@ -595,7 +699,10 @@ class ScriptRunnerGUI:
             else:
                 var = tk.StringVar(value=param_config["default"])
                 widget = ttk.Entry(
-                    self.params_scrollable_frame, textvariable=var, width=17, font=(FONTS["monospace"], 10)
+                    self.params_scrollable_frame,
+                    textvariable=var,
+                    width=17,
+                    font=(FONTS["monospace"], 10),
                 )
 
             widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5)
@@ -770,8 +877,14 @@ class ScriptRunnerGUI:
             self.set_status("Ready")
             self.root.after(0, lambda: self.run_all_button.config(state=tk.NORMAL))
             self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
-            self.root.after(0, lambda: self.console_status.config(text="Idle", foreground=COLORS["text_secondary"]))
-            self.root.after(0, lambda: self.system_status_label.config(text="[OK] Ready", foreground=COLORS["success"]))
+            self.root.after(
+                0,
+                lambda: self.console_status.config(text="Idle", foreground=COLORS["text_secondary"]),
+            )
+            self.root.after(
+                0,
+                lambda: self.system_status_label.config(text="[OK] Ready", foreground=COLORS["success"]),
+            )
             self.root.after(0, lambda: self.stat_ready_card.lbl_value.config(text="Ready"))
             self.root.after(0, lambda: self.progress_var.set(0))
             self.root.after(0, lambda: self.progress_label.config(text="0%"))
@@ -800,7 +913,10 @@ class ScriptRunnerGUI:
             _fp = Path(file_path)
             if _verify_protocol is not None and not _verify_protocol(_fp, "Theory"):
                 self.log_message(f"Security: {_fp.name} failed manifest check — not loaded.")
-                return {"status": "ERROR", "message": f"Protocol {_fp.name} not in manifest or hash mismatch"}
+                return {
+                    "status": "ERROR",
+                    "message": f"Protocol {_fp.name} not in manifest or hash mismatch",
+                }
             spec = importlib.util.spec_from_file_location(_mod_key, file_path)
             module = importlib.util.module_from_spec(spec)
             sys.modules[_mod_key] = module
@@ -824,19 +940,31 @@ class ScriptRunnerGUI:
                     except TypeError as e:
                         if "required positional argument" in str(e):
                             self.log_message(f"  Function {func_name} requires specific arguments - skipping")
-                            result = {"status": "SKIPPED", "message": f"Function {func_name} requires data arguments"}
+                            result = {
+                                "status": "SKIPPED",
+                                "message": f"Function {func_name} requires data arguments",
+                            }
                         else:
                             try:
                                 result = run_func()
                             except Exception as e2:
                                 self.log_message(f"  ERROR calling {func_name}: {str(e2)}")
-                                result = {"status": "ERROR", "message": f"Function {func_name} failed: {str(e2)}"}
+                                result = {
+                                    "status": "ERROR",
+                                    "message": f"Function {func_name} failed: {str(e2)}",
+                                }
                     except Exception as e:
                         self.log_message(f"  ERROR calling {func_name}: {str(e)}")
-                        result = {"status": "ERROR", "message": f"Function {func_name} failed: {str(e)}"}
+                        result = {
+                            "status": "ERROR",
+                            "message": f"Function {func_name} failed: {str(e)}",
+                        }
                 else:
                     self.log_message(f"  Function {func_name} not found")
-                    result = {"status": "ERROR", "message": f"Function {func_name} not found"}
+                    result = {
+                        "status": "ERROR",
+                        "message": f"Function {func_name} not found",
+                    }
 
             elif exec_type == "class_method":
                 class_name = exec_info.get("class")
@@ -856,7 +984,10 @@ class ScriptRunnerGUI:
 
             else:
                 self.log_message("  Executing module...")
-                result = {"status": "Executed", "module": protocol_info.get("module_name")}
+                result = {
+                    "status": "Executed",
+                    "module": protocol_info.get("module_name"),
+                }
 
             self.log_message("  Script completed successfully")
             return result
@@ -880,7 +1011,10 @@ class ScriptRunnerGUI:
                     value = widget_info["var"].get()
                     params[param_name] = value
                 except Exception as e:
-                    logger.warning(f"Could not read parameter widget '{param_name}': {e}", exc_info=True)
+                    logger.warning(
+                        f"Could not read parameter widget '{param_name}': {e}",
+                        exc_info=True,
+                    )
 
         protocol_info_with_params = protocol_info.copy()
         protocol_info_with_params["configured_params"] = params
@@ -976,7 +1110,10 @@ class ScriptRunnerGUI:
 
                 else:
                     self.log_message("Executing module-level code...")
-                    results = {"status": "Module executed", "module": protocol_info.get("module_name")}
+                    results = {
+                        "status": "Module executed",
+                        "module": protocol_info.get("module_name"),
+                    }
 
                 self._save_results(results, protocol_info["file"])
                 self.log_message("=== Script completed successfully ===")
@@ -989,7 +1126,8 @@ class ScriptRunnerGUI:
                 else:
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
                     self.root.after(
-                        0, lambda: self.console_status.config(text="Idle", foreground=COLORS["text_secondary"])
+                        0,
+                        lambda: self.console_status.config(text="Idle", foreground=COLORS["text_secondary"]),
                     )
                     self.root.after(0, lambda: self.stat_ready_card.lbl_value.config(text="Ready"))
 
@@ -1011,7 +1149,10 @@ class ScriptRunnerGUI:
                 else:
                     self.root.after(0, lambda: messagebox.showerror("Error", error_msg))
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
-                    self.root.after(0, lambda: self.console_status.config(text="[X] Error", foreground=COLORS["alert"]))
+                    self.root.after(
+                        0,
+                        lambda: self.console_status.config(text="[X] Error", foreground=COLORS["alert"]),
+                    )
                 self.set_status("Error")
             except Exception as e:
                 logger.error(f"Unexpected error in {protocol_info['file']}: {str(e)}")
@@ -1023,7 +1164,10 @@ class ScriptRunnerGUI:
                 else:
                     self.root.after(0, lambda: messagebox.showerror("Error", error_message))
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
-                    self.root.after(0, lambda: self.console_status.config(text="[X] Error", foreground=COLORS["alert"]))
+                    self.root.after(
+                        0,
+                        lambda: self.console_status.config(text="[X] Error", foreground=COLORS["alert"]),
+                    )
                 self.set_status("Error")
 
         if is_macos:
@@ -1039,7 +1183,10 @@ class ScriptRunnerGUI:
             thread.daemon = True
             self.running_thread = thread
             self.stop_btn.config(state=tk.NORMAL)
-            self.root.after(0, lambda: self.console_status.config(text="Running", foreground=COLORS["primary"]))
+            self.root.after(
+                0,
+                lambda: self.console_status.config(text="Running", foreground=COLORS["primary"]),
+            )
             self.root.after(0, lambda: self.stat_ready_card.lbl_value.config(text="Running"))
             thread.start()
 
@@ -1089,6 +1236,7 @@ class ScriptRunnerGUI:
         result = instance.run_full_experiment()
         self.log_message("Network Comparison Experiment completed")
         self.log_message(f"Results: {type(result)}")
+        return result
 
     def _handle_apgi_agent(self, cls, module, params):
         """Run the full falsification protocol for APGI agent with configured parameters."""
@@ -1097,6 +1245,7 @@ class ScriptRunnerGUI:
             if run_func:
                 result = run_func()
                 self.log_message(f"APGI Agent falsification completed: {result}")
+                return result
             else:
                 config = {
                     "lr_extero": params.get("lr_extero", 0.01),
@@ -1116,7 +1265,10 @@ class ScriptRunnerGUI:
                 _ = cls(config)
                 self.log_message("APGI Agent created successfully (fallback)")
                 self.log_message(f"Agent config: {config}")
-                return {"result": {"config": config}, "type": "APGIActiveInferenceAgent"}
+                return {
+                    "result": {"config": config},
+                    "type": "APGIActiveInferenceAgent",
+                }
         except Exception as e:
             self.log_message(f"Error in APGI agent protocol: {str(e)}")
             raise
@@ -1128,6 +1280,7 @@ class ScriptRunnerGUI:
             if run_func:
                 result = run_func()
                 self.log_message(f"Iowa Gambling Task falsification completed: {result}")
+                return result
             else:
                 n_trials = params.get("n_trials", 100)
                 env = cls(n_trials=n_trials)
@@ -1142,7 +1295,10 @@ class ScriptRunnerGUI:
                         f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}"
                     )
                 self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
-                return {"total_reward": total_reward, "type": "IowaGamblingTaskEnvironment"}
+                return {
+                    "total_reward": total_reward,
+                    "type": "IowaGamblingTaskEnvironment",
+                }
         except Exception as e:
             self.log_message(f"Error in Iowa Gambling protocol: {str(e)}")
             raise
@@ -1178,8 +1334,12 @@ class ScriptRunnerGUI:
             if hasattr(surprise_system, param_name):
                 try:
                     setattr(surprise_system, param_name, value)
-                except Exception:
-                    pass
+                except (AttributeError, TypeError, ValueError) as exc:
+                    logger.debug(
+                        "Failed to set %s on SurpriseIgnitionSystem: %s",
+                        param_name,
+                        exc,
+                    )
         instance = cls(surprise_system)
         result = instance.run_phase_transition_analysis()
         self.log_message(f"Phase transition analysis completed: {type(result)}")
@@ -1187,6 +1347,7 @@ class ScriptRunnerGUI:
 
     def _handle_evolution(self, cls, params):
         """Handle evolutionary protocols with configured parameters."""
+        result = None
         try:
             config = {
                 "population_size": params.get("population_size", 50),
@@ -1203,6 +1364,7 @@ class ScriptRunnerGUI:
         except (RuntimeError, ValueError, TypeError, AttributeError, KeyError) as e:
             self.log_message(f"Error in evolution: {str(e)}")
             self.log_message("EvolutionaryAPGIEmergence instance creation failed")
+        return result
 
     def _handle_default(self, cls, module, params):
         """Handle default protocol execution with configured parameters."""
@@ -1304,8 +1466,8 @@ class ScriptRunnerGUI:
                         foreground=COLORS["text_primary"],
                     ).pack()
                     widget.tooltip = tooltip
-                except Exception:
-                    pass
+                except tk.TclError as exc:
+                    logger.debug("Failed to show tooltip: %s", exc)
 
             self.root.after(0, show_tooltip)
 
@@ -1315,8 +1477,8 @@ class ScriptRunnerGUI:
                     try:
                         widget.tooltip.destroy()
                         del widget.tooltip
-                    except Exception:
-                        pass
+                    except tk.TclError as exc:
+                        logger.debug("Failed to hide tooltip: %s", exc)
 
             self.root.after(0, hide_tooltip)
 
@@ -1331,7 +1493,12 @@ class ScriptRunnerGUI:
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""
         self._tab_widgets: List[tk.Widget] = []
-        for attr in ("protocol_selector", "run_all_button", "stop_btn", "output_console"):
+        for attr in (
+            "protocol_selector",
+            "run_all_button",
+            "stop_btn",
+            "output_console",
+        ):
             widget = getattr(self, attr, None)
             if widget is not None:
                 self._tab_widgets.append(widget)
@@ -1352,7 +1519,10 @@ class ScriptRunnerGUI:
 
     def set_status(self, message):
         """Set status bar message (thread-safe)."""
-        self.root.after(0, lambda: self.system_status_label.config(text=message, foreground=COLORS["primary"]))
+        self.root.after(
+            0,
+            lambda: self.system_status_label.config(text=message, foreground=COLORS["primary"]),
+        )
 
     def log_message(self, message):
         """Add message to output console (thread-safe)."""

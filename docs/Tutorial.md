@@ -35,16 +35,16 @@ pip install -r requirements.txt
 
 ```bash
 # Show framework information
-python main.py info
+python3 main.py info
 
 # Run a simple simulation
-python main.py formal-model --simulation-steps 100
+python3 main.py formal-model --simulation-steps 100
 
 # Launch validation GUI
-python main.py gui --gui-type validation
+python3 main.py gui --gui-type validation
 
 # Launch theory GUI
-python main.py gui --gui-type theory
+python3 main.py gui --gui-type theory
 ```
 
 ## Basic Usage
@@ -52,31 +52,31 @@ python main.py gui --gui-type theory
 ### Commands Tested Successfully
 
 ```text
-✓ python main.py --help
-✓ python main.py info
-✓ python main.py formal-model --help
-✓ python main.py multimodal --help
-✓ python main.py config --help
-✓ python main.py validate --help
-✓ python main.py dashboard --help
-✓ python main.py visualize --help
-✓ python main.py logs --help
-✓ python main.py cache --help
-✓ python main.py export-data --help
-✓ python main.py falsify --help
-✓ python main.py estimate-params --help
-✓ python main.py import-data --help
-✓ python main.py performance --help
-✓ python main.py backup --help
-✓ python main.py list-backups --help
-✓ python main.py restore-backup --help
-✓ python main.py delete-backup --help
-✓ python main.py errors --help
-✓ python main.py test-errors --help
-✓ python main.py cross-species --help
-✓ python main.py analyze-logs --help
-✓ python main.py process-data --help
-✓ python main.py monitor-performance --help
+✓ python3 main.py --help
+✓ python3 main.py info
+✓ python3 main.py formal-model --help
+✓ python3 main.py multimodal --help
+✓ python3 main.py config --help
+✓ python3 main.py validate --help
+✓ python3 main.py dashboard --help
+✓ python3 main.py visualize --help
+✓ python3 main.py logs --help
+✓ python3 main.py cache --help
+✓ python3 main.py export-data --help
+✓ python3 main.py falsify --help
+✓ python3 main.py estimate-params --help
+✓ python3 main.py import-data --help
+✓ python3 main.py performance --help
+✓ python3 main.py backup --help
+✓ python3 main.py list-backups --help
+✓ python3 main.py restore-backup --help
+✓ python3 main.py delete-backup --help
+✓ python3 main.py errors --help
+✓ python3 main.py test-errors --help
+✓ python3 main.py cross-species --help
+✓ python3 main.py analyze-logs --help
+✓ python3 main.py process-data --help
+✓ python3 main.py monitor-performance --help
 ```
 
 ### Configuration Management
@@ -93,8 +93,8 @@ print(f"Configuration loaded from: {config_manager.config_file}")
 config_manager.set_parameter('simulation', 'default_steps', 1000)
 
 # CLI
-python main.py config --show
-python main.py config --set simulation.default_steps=1000
+python3 main.py config --show
+python3 main.py config --set simulation.default_steps=1000
 ```
 
 ### Logging
@@ -111,9 +111,9 @@ apgi_logger.logger.warning("Unexpected data format")
 apgi_logger.export_logs("analysis_logs.json", format_type="json")
 
 # CLI
-python main.py logs --tail 20 --level INFO
-python main.py logs --export logs.json
-python main.py analyze-logs --level ERROR --last-hours 24
+python3 main.py logs --tail 20 --level INFO
+python3 main.py logs --export logs.json
+python3 main.py analyze-logs --level ERROR --last-hours 24
 ```
 
 ## Common Misinterpretations
@@ -216,7 +216,7 @@ threshold = results['theta']
 ignition = results['B']
 
 # CLI
-python main.py formal-model --simulation-steps 1000 --plot --output-file results.csv
+python3 main.py formal-model --simulation-steps 1000 --plot --output-file results.csv
 ```
 
 ### Custom Parameters
@@ -238,7 +238,7 @@ custom_params = {
 system = SurpriseIgnitionSystem(params=custom_params)
 
 # CLI with custom parameters (JSON file)
-python main.py formal-model --simulation-steps 1000 --params custom_params.json
+python3 main.py formal-model --simulation-steps 1000 --params custom_params.json
 ```
 
 ### Real Data Input
@@ -330,7 +330,7 @@ print(f"Accumulated surprise: {result['S_t']}")
 print(f"Ignition probability: {result['P_ignition']}")
 
 # CLI
-python main.py multimodal --input-data multimodal_data.csv --output-file integration_results.csv
+python3 main.py multimodal --input-data multimodal_data.csv --output-file integration_results.csv
 ```
 
 ### Real Multimodal Data
@@ -400,7 +400,7 @@ processor = APGIBatchProcessor(normalizer, config)
 batch_results = processor.process_batch(large_dataset)
 
 # CLI
-python main.py multimodal --input-data large_dataset.csv --output-file batch_results.csv
+python3 main.py multimodal --input-data large_dataset.csv --output-file batch_results.csv
 ```
 
 ## Parameter Estimation
@@ -441,7 +441,7 @@ results = az.summary(trace, var_names=['Pi_e', 'Pi_i', 'theta', 'beta'])
 print(results)
 
 # CLI
-python main.py estimate-params --data-file neural_data.csv --method mcmc --iterations 1000
+python3 main.py estimate-params --data-file neural_data.csv --method mcmc --iterations 1000
 ```
 
 ### Real Data Parameter Estimation
@@ -504,8 +504,8 @@ results = protocol_module.run_validation()
 print(f"Validation results: {results}")
 
 # CLI
-python main.py validate --protocol 1 --output-dir validation_results/
-python main.py validate --all-protocols --parallel
+python3 main.py validate --protocol 1 --output-dir validation_results/
+python3 main.py validate --all-protocols --parallel
 ```
 
 ### Custom Validation Protocol
@@ -591,7 +591,7 @@ plt.tight_layout()
 plt.savefig('simulation_plots.png', dpi=300, bbox_inches='tight')
 
 # CLI
-python main.py visualize --input-file simulation_results.csv --plot-type time_series --output-file plots.png
+python3 main.py visualize --input-file simulation_results.csv --plot-type time_series --output-file plots.png
 ```
 
 ### Advanced Visualization
@@ -632,7 +632,7 @@ plt.tight_layout()
 plt.savefig('multimodal_analysis.png', dpi=300, bbox_inches='tight')
 
 # CLI
-python main.py visualize --input-file multimodal_results.csv --plot-type heatmap --output-file correlation.png
+python3 main.py visualize --input-file multimodal_results.csv --plot-type heatmap --output-file correlation.png
 ```
 
 ### Interactive Visualization
@@ -668,7 +668,7 @@ fig.update_layout(height=600, title_text="Interactive APGI Simulation")
 fig.write_html('interactive_simulation.html')
 
 # CLI
-python main.py visualize --input-file results.csv --interactive
+python3 main.py visualize --input-file results.csv --interactive
 ```
 
 ## Advanced Usage
@@ -786,7 +786,7 @@ def create_dashboard(data):
 
    ```bash
    # Check virtual environment
-   which python
+   which python3
    pip list | grep -i apgi
 
    # Reinstall if needed
@@ -797,10 +797,10 @@ def create_dashboard(data):
 
    ```python
    # Reset configuration
-   python main.py config --reset
+   python3 main.py config --reset
 
    # Check configuration
-   python main.py config --show
+   python3 main.py config --show
    ```
 
 3. __Memory Issues__
@@ -818,7 +818,7 @@ def create_dashboard(data):
 
    ```python
    # Enable parallel processing
-   python main.py validate --all-protocols --parallel
+   python3 main.py validate --all-protocols --parallel
 
    # Use progress tracking
    from rich.progress import Progress
@@ -832,20 +832,20 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Run with debug info
-python main.py --log-level DEBUG formal-model --simulation-steps 100
+python3 main.py --log-level DEBUG formal-model --simulation-steps 100
 ```
 
 ### Getting Help
 
 ```bash
 # Check logs
-python main.py logs --tail 50 --level ERROR
+python3 main.py logs --tail 50 --level ERROR
 
 # Run validation
-python main.py validate --all-protocols
+python3 main.py validate --all-protocols
 
 # Check system info
-python main.py info
+python3 main.py info
 ```
 
 ### Performance Monitoring

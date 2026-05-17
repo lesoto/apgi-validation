@@ -52,6 +52,9 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 os.environ["TMPDIR"] = tempfile.gettempdir()
 os.environ["MPLCONFIGDIR"] = os.path.join(tempfile.gettempdir(), "matplotlib_cache")
 
@@ -61,11 +64,8 @@ for _cache_dir in [
 ]:
     try:
         os.makedirs(_cache_dir, exist_ok=True)
-    except Exception:
-        pass
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+    except OSError as exc:
+        logger.debug("Failed to create cache directory %s: %s", _cache_dir, exc)
 
 from gui.headless_runner import HeadlessRunner  # noqa: E402
 from gui.script_runner_gui import ScriptRunnerGUI  # noqa: E402
@@ -95,8 +95,17 @@ def main():
     import platform
 
     parser = argparse.ArgumentParser(description="APGI Theory Framework GUI / Headless Runner")
-    parser.add_argument("--headless", action="store_true", help="Run all Theory scripts without launching the GUI")
-    parser.add_argument("--script", metavar="NAME", default=None, help="(headless) Run only matching scripts")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run all Theory scripts without launching the GUI",
+    )
+    parser.add_argument(
+        "--script",
+        metavar="NAME",
+        default=None,
+        help="(headless) Run only matching scripts",
+    )
     parser.add_argument("--token", help="JWT authentication token for secured operations")
     args = parser.parse_args()
 

@@ -24,7 +24,7 @@ source venv/bin/activate
 venv\Scripts\activate
 
 # Verify activation
-which python  # Should show venv path
+which python3  # Should show venv path
 ```
 
 **Problem:** Dependencies not installing
@@ -71,7 +71,7 @@ pip install click
 pip install -r requirements.txt
 
 # Verify installation
-python -c "import click; print(click.__version__)"
+python3 -c "import click; print(click.__version__)"
 ```
 
 **Problem:** Import errors for APGI modules
@@ -114,10 +114,10 @@ FileNotFoundError: [Errno 2] No such file or directory: 'config/default.yaml'
 mkdir -p config
 
 # Reset configuration
-python main.py config --reset
+python3 main.py config --reset
 
 # Check configuration
-python main.py config --show
+python3 main.py config --show
 ```
 
 **Problem:** Invalid configuration values
@@ -131,7 +131,7 @@ ValueError: Invalid value for simulation.default_steps: '500' is not of type 'in
 
 ```bash
 # Set correct type
-python main.py config --set simulation.default_steps=500
+python3 main.py config --set simulation.default_steps=500
 
 # Or edit config file directly
 nano config/default.yaml
@@ -260,7 +260,7 @@ for i in range(len(data)):
 results = process_vectorized(data)
 
 # Enable parallel processing
-python main.py validate --all-protocols --parallel
+python3 main.py validate --all-protocols --parallel
 
 # Use batch processing
 processor = APGIBatchProcessor(normalizer, config, batch_size=1000)
@@ -342,7 +342,7 @@ FileNotFoundError: [Errno 2] No such file or directory: 'data.csv'
 ls -la data.csv
 
 # Use absolute path
-python main.py multimodal --input-data /full/path/to/data.csv
+python3 main.py multimodal --input-data /full/path/to/data.csv
 
 # Check current directory
 pwd
@@ -433,7 +433,7 @@ tkinter.TclError: no display name and no $DISPLAY environment variable
 
 ```bash
 # For headless systems, use web interface
-python main.py gui --gui-type analysis --host 0.0.0.0 --port 8080
+python3 main.py gui --gui-type analysis --host 0.0.0.0 --port 8080
 
 # Install required GUI dependencies
 pip install tkinter  # Usually comes with Python
@@ -508,7 +508,7 @@ def main():
     print(results)
 
 # Verify protocol file
-python Validation/APGI_Protocol_1.py
+python3 Validation/APGI_Protocol_1.py
 ```
 
 **Problem:** Validation results inconsistent
@@ -628,13 +628,13 @@ ulimit -n 4096  # Temporary
 
 ```bash
 # Set debug log level
-python main.py --log-level DEBUG formal-model --simulation-steps 100
+python3 main.py --log-level DEBUG formal-model --simulation-steps 100
 
 # Check configuration
-python main.py config --show
+python3 main.py config --show
 
 # View recent logs
-python main.py logs --tail 50 --level DEBUG
+python3 main.py logs --tail 50 --level DEBUG
 ```
 
 ### Custom Debugging
@@ -668,10 +668,10 @@ import ipdb; ipdb.set_trace()
 
 ```python
 # Use cProfile
-python -m cProfile -o profile.stats main.py formal-model --simulation-steps 1000
+python3 -m cProfile -o profile.stats main.py formal-model --simulation-steps 1000
 
 # Analyze profile
-python -c "
+python3 -c "
 import pstats
 p = pstats.Stats('profile.stats')
 p.sort_stats('cumulative').print_stats(20)
@@ -775,7 +775,7 @@ ValueError: Invalid value for parameter
 FileNotFoundError: Configuration file not found
 ```
 
-**Solution:** Run `python main.py config --reset` to create default config
+**Solution:** Run `python3 main.py config --reset` to create default config
 
 ### Runtime Issues
 
@@ -827,8 +827,8 @@ Error: No such command 'formal_model'.
 
 **Solution:** CLI commands use hyphens, not underscores:
 
-- ✓ `python main.py formal-model` (correct)
-- ✗ `python main.py formal_model` (incorrect)
+- ✓ `python3 main.py formal-model` (correct)
+- ✗ `python3 main.py formal_model` (incorrect)
 
 Common command corrections:
 
@@ -852,8 +852,8 @@ Error: Invalid value for '--protocol': 15 is not in the valid range of 1 to 12.
 
 **Solution:** Check protocol numbers:
 
-- Validation protocols: 1-15 (`python main.py validate --protocol N`)
-- Falsification protocols: 1-12 (`python main.py falsify --protocol N`)
+- Validation protocols: 1-15 (`python3 main.py validate --protocol N`)
+- Falsification protocols: 1-12 (`python3 main.py falsify --protocol N`)
 
 ## Getting Additional Help
 
@@ -861,13 +861,13 @@ Error: Invalid value for '--protocol': 15 is not in the valid range of 1 to 12.
 
 ```bash
 # Check framework status
-python main.py info
+python3 main.py info
 
 # Run validation protocols
-python main.py validate --all-protocols
+python3 main.py validate --all-protocols
 
 # Check logs for errors
-python main.py logs --tail 50 --level ERROR
+python3 main.py logs --tail 50 --level ERROR
 ```
 
 ### Report Issues
@@ -877,7 +877,7 @@ When reporting issues, include:
 1. **System Information**
 
    ```bash
-   python --version
+   python3 --version
    pip list | grep -E "(numpy|scipy|pandas|pymc)"
    uname -a
    ```
@@ -890,13 +890,13 @@ When reporting issues, include:
 3. **Configuration**
 
    ```bash
-   python main.py config --show > config.txt
+   python3 main.py config --show > config.txt
    ```
 
 4. **Logs**
 
    ```bash
-   python main.py logs --export debug_logs.json
+   python3 main.py logs --export debug_logs.json
    ```
 
 ### Community Resources

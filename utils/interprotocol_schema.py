@@ -19,6 +19,8 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+_fp7_bounds_cache: Optional[Dict[str, Tuple[float, float]]] = None
+
 # =============================================================================
 # STANDARD SCHEMA FOR PROTOCOL OUTPUTS
 # =============================================================================
@@ -321,6 +323,11 @@ def load_fp7_validated_bounds(
     Raises:
         FileNotFoundError: If FP-07 output files don't exist
     """
+    global _fp7_bounds_cache
+    using_default_path = base_path is None
+    if using_default_path and _fp7_bounds_cache is not None:
+        return _fp7_bounds_cache.copy()
+
     if base_path is None:
         base_path = str(INTERPROTOCOL_DATA_SCHEMA["FP_07_MathematicalConsistency"]["export_path"])
 
@@ -332,13 +339,19 @@ def load_fp7_validated_bounds(
             "Using default VALIDATED_PARAMETER_BOUNDS. "
             "Run FP-07_MathematicalConsistency to generate validated bounds."
         )
-        return VALIDATED_PARAMETER_BOUNDS.copy()
+        result = VALIDATED_PARAMETER_BOUNDS.copy()
+        if using_default_path:
+            _fp7_bounds_cache = result
+        return result
 
     with open(bounds_path, "r", encoding="utf-8") as f:
         bounds_data = json.load(f)
 
     # Convert lists to tuples
-    return {k: tuple(v) if isinstance(v, list) else v for k, v in bounds_data.items()}
+    result = {k: tuple(v) if isinstance(v, list) else v for k, v in bounds_data.items()}
+    if using_default_path:
+        _fp7_bounds_cache = result
+    return result
 
 
 def requires_fp7_bounds(func):

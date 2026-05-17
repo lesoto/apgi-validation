@@ -220,28 +220,7 @@ except ImportError:
     apgi_logger.logger.warning("Module cache not available, imports will be slower")
     module_cache = None
 
-# Add missing global variables for tests
 VERBOSE = False
-QUIET = False
-
-# Add missing global variables for tests
-VERBOSE = False
-QUIET = False
-
-# Add missing global variables for tests
-VERBOSE = False
-QUIET = False
-
-# Add missing global variables for tests
-VERBOSE = False
-QUIET = False
-
-# Add missing global variables for tests
-VERBOSE = False
-QUIET = False
-
-# Add missing global variables for tests
-VERBOSE = True
 QUIET = False
 
 
@@ -1121,8 +1100,8 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
             for d in allowed_dirs:
                 try:
                     resolved_dirs.append((project_root / d).resolve())
-                except Exception:
-                    pass
+                except Exception as exc:
+                    apgi_logger.logger.debug("Failed to resolve allowed dir %s: %s", d, exc)
             _resolved_dir_cache[cache_key] = resolved_dirs
 
         cached_allowed_paths = _resolved_dir_cache[cache_key]
@@ -2433,7 +2412,6 @@ def monitor_performance(
                 _ = process.cpu_percent(interval=None)
 
                 try:
-
                     if command == "cross-species":
                         time.sleep(0.1)
                         spec = importlib.util.spec_from_file_location(

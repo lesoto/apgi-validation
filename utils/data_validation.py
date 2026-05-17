@@ -675,7 +675,8 @@ class DataPreprocessor(DataValidator):
         # Convert timestamp if present
         if "timestamp" in df.columns:
             df = df.copy()  # Ensure we're working with a copy to avoid SettingWithCopyWarning
-            df.loc[:, "timestamp"] = pd.to_datetime(df["timestamp"])
+            # Convert to datetime, handling both string and datetime inputs
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
 
         return df
 

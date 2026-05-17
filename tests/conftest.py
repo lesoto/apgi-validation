@@ -57,9 +57,10 @@ mock_tk.filedialog = MagicMock()  # type: ignore
 # Fix for Python 3.14 compatibility - make Vars return proper values
 
 
-def mock_var_factory():
+def mock_var_factory(*args, **kwargs):
+    default = kwargs.get("value", 0)
     mock_var = MagicMock()
-    mock_var.get.return_value = 0  # Default value for int() conversion
+    mock_var.get.return_value = default
     mock_var.set = MagicMock()
     return mock_var
 
@@ -449,9 +450,10 @@ def headless_gui_setup():
         mock_tk.filedialog = MagicMock()
 
         # Fix for Python 3.14 compatibility - make Vars return proper values
-        def mock_var_factory():
+        def mock_var_factory(*args, **kwargs):
+            default = kwargs.get("value", 0)
             mock_var = MagicMock()
-            mock_var.get.return_value = 0  # Default value for int() conversion
+            mock_var.get.return_value = default
             mock_var.set = MagicMock()
             return mock_var
 
