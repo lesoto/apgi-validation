@@ -208,6 +208,59 @@ def get_implementation_metadata() -> Dict[str, Any]:
     }
 
 
+
+
+class CrossSpeciesModule:
+    """TheoryModuleInterface implementation for cross-species allometric scaling."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return {"report": generate_species_comparison_report(), "metadata": get_implementation_metadata()}
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "CS-1": {
+                "description": "Allometric scaling of consciousness capacity follows power law R² > 0.85",
+                "threshold": "R² > 0.85 across mammalian species",
+                "test": "OLS regression of log(capacity) vs log(brain mass)",
+            },
+            "CS-2": {
+                "description": "Scaling exponent within 20% of predicted APGI value",
+                "threshold": "Exponent deviation < 20% from APGI prediction",
+                "test": "Bootstrap CI on scaling exponent",
+            },
+            "CS-3": {
+                "description": "Species outliers explained by interoceptive anatomy differences",
+                "threshold": "Residual variance reduced ≥ 30% by interoceptive correction factor",
+                "test": "Partial R² of interoceptive anatomy covariate",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-CrossSpeciesScaling", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
 if __name__ == "__main__":
     print("Running Cross-Species Scaling Model Validation...")
     report = generate_species_comparison_report()

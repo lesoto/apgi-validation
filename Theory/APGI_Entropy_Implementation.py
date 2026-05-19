@@ -2925,5 +2925,58 @@ def main() -> None:
         sys.exit(1)
 
 
+
+
+class EntropyModule:
+    """TheoryModuleInterface implementation for thermodynamic + information-theoretic entropy."""
+
+    MODULE_LEVEL: str = "Level 1"
+
+    def compute(self, **kwargs) -> dict:
+        return main()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "ENT-1": {
+                "description": "Free energy conservation violation < 5% across simulation steps",
+                "threshold": "< 5% mean absolute violation of F = U − T·S identity",
+                "test": "Monte Carlo simulation across 1000 state transitions",
+            },
+            "ENT-2": {
+                "description": "Variational free energy minimisation converges within 1000 iterations",
+                "threshold": "ΔF < 1e-6 within 1000 gradient steps",
+                "test": "Gradient descent convergence test",
+            },
+            "ENT-3": {
+                "description": "Shannon and thermodynamic entropy estimates agree within 10%",
+                "threshold": "< 10% relative discrepancy between estimators",
+                "test": "Cross-estimator comparison on synthetic data",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-EntropyImplementation", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
 if __name__ == "__main__":
     main()

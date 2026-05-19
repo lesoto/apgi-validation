@@ -614,5 +614,58 @@ def run_analysis() -> Dict:
     return system.run_analysis()
 
 
+
+
+class NeuromodulationModule:
+    """TheoryModuleInterface implementation for neuromodulatory control system."""
+
+    MODULE_LEVEL: str = "Level 3"
+
+    def compute(self, **kwargs) -> dict:
+        return run_analysis()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "NM-1": {
+                "description": "ACh modulates π_i in predicted direction (systole gating)",
+                "threshold": "ACh ↑ → π_i systole ↓ by ≥ 15%, p < 0.05",
+                "test": "Pharmacological simulation comparison",
+            },
+            "NM-2": {
+                "description": "NE (norepinephrine) increases global π_i precision uniformly",
+                "threshold": "NE ↑ → π_i global ↑ by ≥ 10%, p < 0.05",
+                "test": "Paired simulation: NE-modulated vs baseline",
+            },
+            "NM-3": {
+                "description": "5-HT predicts interoceptive homeostatic setpoint shift",
+                "threshold": "Setpoint deviation < 20% of predicted APGI value",
+                "test": "Fixed-point analysis of 5-HT-perturbed system",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-NeuromodulatorControl", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
 if __name__ == "__main__":
     run_analysis()

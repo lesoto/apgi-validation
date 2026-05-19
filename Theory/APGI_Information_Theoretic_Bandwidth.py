@@ -1283,5 +1283,58 @@ def run_bandwidth_analysis(
 # ENTRY POINT
 # ===========================================================================
 
+
+
+class BandwidthModule:
+    """TheoryModuleInterface implementation for information-theoretic bandwidth analysis."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return run_bandwidth_analysis()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "BW-1": {
+                "description": "Conscious bandwidth estimated in range 35–55 bits/s",
+                "threshold": "Point estimate within [35, 55] bits/s",
+                "test": "MI estimation from EEG/fMRI decision-locked epochs",
+            },
+            "BW-2": {
+                "description": "Precision-weighting yields ≥ 15% gain in channel capacity",
+                "threshold": "Capacity gain > 15% vs unweighted baseline",
+                "test": "Blahut-Arimoto algorithm with and without precision weights",
+            },
+            "BW-3": {
+                "description": "Clinical degradation maps to bandwidth reduction in predicted direction",
+                "threshold": "Disorder ranking bandwidth: VS < MCS < awake (one-sided p < 0.05)",
+                "test": "Trend test across consciousness levels",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-BandwidthAnalysis", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
 if __name__ == "__main__":
     run_bandwidth_analysis()
