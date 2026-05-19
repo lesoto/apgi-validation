@@ -19,6 +19,8 @@ then the APGI liquid network energy claim is falsified. This would indicate that
 APGI architectures are not energetically feasible.
 """
 
+from __future__ import annotations
+
 import csv
 import json
 import logging
@@ -144,7 +146,72 @@ try:
 except ImportError:
     HAS_TORCH = False
     torch = None  # type: ignore
-    nn = None  # type: ignore
+
+    class _NNStub:
+        """Minimal nn stub so class definitions don't fail at import time."""
+
+        class Module:
+            def __init__(self, *a, **k):
+                pass
+
+            def forward(self, *a, **k):
+                return None
+
+            def parameters(self):
+                return iter([])
+
+            def to(self, *a, **k):
+                return self
+
+        @staticmethod
+        def Sequential(*args):
+            return None
+
+        @staticmethod
+        def Linear(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def ReLU():
+            return None
+
+        @staticmethod
+        def Softplus():
+            return None
+
+        @staticmethod
+        def Sigmoid():
+            return None
+
+        @staticmethod
+        def Tanh():
+            return None
+
+        @staticmethod
+        def BatchNorm1d(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def LayerNorm(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def Dropout(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def LSTM(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def MultiheadAttention(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def Parameter(*args, **kwargs):
+            return None
+
+    nn = _NNStub()  # type: ignore
     F = None  # type: ignore
 
 try:

@@ -63,7 +63,11 @@ except ImportError:
     HAS_MATPLOTLIB = False
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):  # type: ignore[misc]
+        return iterable
 
 # Add parent directory to path
 _project_root = Path(__file__).parent.parent

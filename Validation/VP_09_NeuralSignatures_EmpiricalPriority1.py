@@ -27,13 +27,18 @@ then the APGI neural signature convergence claim is falsified. This would indica
 that APGI does not predict consistent neural signatures across paradigms.
 """
 
+from __future__ import annotations
+
 import logging
 import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-import nibabel as nib
+try:
+    import nibabel as nib
+except ImportError:
+    nib = None  # type: ignore
 import numpy as np
 
 # Matplotlib imports for PNG visualization

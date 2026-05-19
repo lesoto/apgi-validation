@@ -68,13 +68,11 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-tqdm: Any = None  # type: ignore[var-annotated]
 try:
-    from tqdm import tqdm as _tqdm
-
-    tqdm = _tqdm
+    from tqdm import tqdm
 except ImportError:
-    pass
+    def tqdm(iterable, **kwargs):  # type: ignore[misc]
+        return iterable
 
 # Bayesian t-tests (Rouder et al. JZS prior)
 try:

@@ -105,8 +105,33 @@ except (ImportError, AttributeError, Exception) as e:
             return None
 
     class PowerStub:
-        def tt_ind_solve_power(self, *args, **kwargs):
-            return None
+        def tt_ind_solve_power(self, effect_size=0.5, alpha=0.05, power=0.8, **kwargs):
+            # Normal-approximation fallback: n = 2*((z_alpha/2 + z_beta)/d)^2
+            import math
+            # z for alpha/2 (two-tailed) and z for power
+            def _norm_ppf(p):
+                # Beasley-Springer-Moro approximation
+                a = [0, -3.969683028665376e+01, 2.209460984245205e+02,
+                     -2.759285104469687e+02, 1.383577518672690e+02,
+                     -3.066479806614716e+01, 2.506628277459239e+00]
+                b = [0, -5.447609879822406e+01, 1.615858368580409e+02,
+                     -1.556989798598866e+02, 6.680131188771972e+01,
+                     -1.328068155288572e+01]
+                q = p - 0.5
+                if abs(q) <= 0.42:
+                    r = q * q
+                    return q * (((a[3]*r + a[2])*r + a[1])*r + a[0]) / \
+                           ((((b[4]*r + b[3])*r + b[2])*r + b[1])*r + 1.0)
+                r = p if q > 0 else 1.0 - p
+                r = math.sqrt(-math.log(r))
+                return math.copysign(
+                    (((a[6]*r + a[5])*r + a[4])*r + a[3]) /
+                    ((((b[5]*r + b[4])*r + b[3])*r + b[2])*r + b[1]),
+                    q,
+                )
+            z_a = _norm_ppf(1.0 - alpha / 2.0)
+            z_b = _norm_ppf(power)
+            return 2 * ((z_a + z_b) / effect_size) ** 2 if effect_size else float("inf")
 
     stats = StatsStub()
     minimize = OptimizeStub().minimize

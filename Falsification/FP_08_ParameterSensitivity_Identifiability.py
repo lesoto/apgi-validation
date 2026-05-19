@@ -33,6 +33,8 @@ APGI parameter identifiability claim is falsified. This would indicate that
 APGI parameters are not identifiable from behavioral data.
 """
 
+from __future__ import annotations
+
 import logging
 import sys
 import warnings
