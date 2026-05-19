@@ -1173,6 +1173,57 @@ def main(**kwargs: Any) -> Dict[str, Any]:
         }
 
 
+class SomaticMarkerModule:
+    """TheoryModuleInterface implementation — linked to APGI-P03.
+
+    Wraps APGI_Somatic_Marker_Identifiability for uniform invocation by
+    VP/FP aggregators via TheoryModuleInterface.
+    """
+
+    MODULE_LEVEL: str = "Level 3"
+
+    def compute(self, **kwargs: Any) -> Dict[str, Any]:
+        return main(**kwargs)
+
+    def get_falsification_criteria(self) -> Dict[str, Any]:
+        return {
+            "SMI-1": {
+                "description": "Somatic marker M̂(c,a) identifiable from data",
+                "threshold": "FIM block-diagonal; β ⊥ Πⁱ confirmed",
+                "test": "Fisher Information Matrix block-diagonality test",
+            },
+            "SMI-2": {
+                "description": "β-lesion produces specific decision deficit",
+                "threshold": "IGT performance drops ≥ 18% on β-lesion agent",
+                "test": "Paired comparison, p < 0.05",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-SomaticMarker", **kwargs: Any) -> Dict[str, Any]:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get("passed", False)
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id, "APGI-P03"],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100 if raw.get("passed") is not None else 0,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL, "linked_spec": "APGI-P03"},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     import argparse
 

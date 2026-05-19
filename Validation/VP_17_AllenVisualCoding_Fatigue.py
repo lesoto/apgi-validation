@@ -528,5 +528,35 @@ def validate():
     return run_validation()
 
 
+def run_protocol_main(config=None):
+    """Execute and return a standardized ProtocolResult."""
+    legacy = run_validation()
+    try:
+        from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        named = {}
+        for pred_id in ["V17.1", "V17.2", "V17.3"]:
+            v = legacy.get(pred_id, {})
+            passed = v.get("passed", False)
+            named[pred_id] = PredictionResult(
+                passed=passed,
+                value=v.get("effect_size") or v.get("value"),
+                threshold=v.get("threshold"),
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                name=v.get("test_name", pred_id),
+                sources=["VP_17_AllenVisualCoding_Fatigue"],
+            )
+        return ProtocolResult(
+            protocol_id="VP_17_AllenVisualCoding_Fatigue",
+            named_predictions=named,
+            completion_percentage=100,
+            data_sources=["Allen Brain Observatory Visual Coding"],
+            methodology="neural_fatigue_analysis",
+            errors=[],
+            metadata={"overall_score": legacy.get("overall_quantitative_score")},
+        ).to_dict()
+    except ImportError:
+        return legacy
+
+
 if __name__ == "__main__":
     main()

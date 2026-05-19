@@ -530,5 +530,35 @@ def main() -> None:
     print(f"  {results['measurement_gap_note']}")
 
 
+def run_protocol_main(config=None):
+    """Execute and return a standardized ProtocolResult."""
+    legacy = run_validation()
+    try:
+        from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        named = {}
+        for pred_id in ["V18.1", "V18.2", "V18.3"]:
+            v = legacy.get(pred_id, {})
+            passed = v.get("passed", False)
+            named[pred_id] = PredictionResult(
+                passed=passed,
+                value=v.get("effect_size") or v.get("value"),
+                threshold=v.get("threshold"),
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                name=v.get("test_name", pred_id),
+                sources=["VP_18_EEG_Microstate_GFP_P3b"],
+            )
+        return ProtocolResult(
+            protocol_id="VP_18_EEG_Microstate_GFP_P3b",
+            named_predictions=named,
+            completion_percentage=100,
+            data_sources=["EEG Microstate Simulation"],
+            methodology="eeg_microstate_gfp_p3b",
+            errors=[],
+            metadata={"overall_score": legacy.get("overall_score")},
+        ).to_dict()
+    except ImportError:
+        return legacy
+
+
 if __name__ == "__main__":
     main()

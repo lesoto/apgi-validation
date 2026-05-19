@@ -319,6 +319,36 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     return output
 
 
+def run_protocol_main(config=None):
+    """Execute and return a standardized ProtocolResult."""
+    import os
+    legacy = run_validation()
+    try:
+        from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        named = {}
+        for pred_id in ["V16.1", "V16.2", "V16.3"]:
+            v = legacy.get("named_predictions", {}).get(pred_id, {})
+            passed = v.get("passed", False)
+            named[pred_id] = PredictionResult(
+                passed=passed,
+                value=v.get("value"),
+                threshold=v.get("threshold"),
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                sources=["VP_16_Metabolic_ATP_GroundTruth"],
+            )
+        return ProtocolResult(
+            protocol_id="VP_16_Metabolic_ATP_GroundTruth",
+            named_predictions=named,
+            completion_percentage=100,
+            data_sources=["iATPSnFR2/P-fMRS Simulation"],
+            methodology="metabolic_ground_truth",
+            errors=[],
+            metadata=legacy.get("metrics", {}),
+        ).to_dict()
+    except ImportError:
+        return legacy
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     res = run_validation()
