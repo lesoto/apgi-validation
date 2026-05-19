@@ -321,8 +321,6 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 
 def run_protocol_main(config=None):
     """Execute and return a standardized ProtocolResult."""
-    import os
-
     legacy = run_validation()
     try:
         from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult

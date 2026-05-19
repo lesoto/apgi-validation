@@ -65,9 +65,9 @@ class TestConfigManagerMissingCoverage:
     def test_fallback_yaml_load_safe_with_yaml(self):
         """Test _load_yaml_safe when yaml is available."""
         # Skip this test if yaml module is not available
-        import utils.config_manager
-
-        if utils.config_manager.yaml is None:
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
             pytest.skip("yaml module not available")
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -85,9 +85,9 @@ class TestConfigManagerMissingCoverage:
     def test_fallback_yaml_load_safe_error(self):
         """Test _load_yaml_safe error handling."""
         # Skip this test if yaml module is not available
-        import utils.config_manager
-
-        if utils.config_manager.yaml is None:
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
             pytest.skip("yaml module not available")
 
         # Create a mock yaml module that raises an error

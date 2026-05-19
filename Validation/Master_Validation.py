@@ -59,6 +59,7 @@ class APGIMasterValidator(metaclass=ABCMeta):
         self._falsifier = APGIMasterFalsifier()
         self.timeout_seconds = timeout_seconds
         self._protocol_results_override = None
+        self._falsification_status_override = None
 
     # Expose the falsifier's attributes for test compatibility
     @property
@@ -77,7 +78,13 @@ class APGIMasterValidator(metaclass=ABCMeta):
 
     @property
     def falsification_status(self):
+        if self._falsification_status_override is not None:
+            return self._falsification_status_override
         return self._falsifier.falsification_status
+
+    @falsification_status.setter
+    def falsification_status(self, value):
+        self._falsification_status_override = value
 
     @property
     def available_protocols(self):

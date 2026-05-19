@@ -2133,21 +2133,52 @@ Interpretation:
 
         # 1. First priority: Check the structured protocol_result object
         passed = False
-        # Check for explicit success indicators in the returned dictionary
-        passed = (
-            protocol_result.get("passed") is True
-            or protocol_result.get("success") is True
-            or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
-        )
 
-        # If the protocol explicitly returned a non-success status, override
-        if protocol_result.get("status") in [
-            "FAILED",
-            "failed",
-            "error",
-            "falsified",
-        ]:
-            passed = False
+        # Handle both dict and ProtocolResult objects
+        if isinstance(protocol_result, dict):
+            # Dictionary format
+            passed = (
+                protocol_result.get("passed") is True
+                or protocol_result.get("success") is True
+                or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
+            )
+
+            # If the protocol explicitly returned a non-success status, override
+            if protocol_result.get("status") in [
+                "FAILED",
+                "failed",
+                "error",
+                "falsified",
+            ]:
+                passed = False
+        else:
+            # ProtocolResult object (from schema)
+            try:
+                from utils.protocol_schema import ProtocolResult
+
+                if isinstance(protocol_result, ProtocolResult):
+                    # Check status attribute
+                    passed = protocol_result.status in ["success", "PASSED", "success_validated"]
+
+                    # Check if any named predictions failed
+                    if protocol_result.named_predictions:
+                        passed = all(pred.passed for pred in protocol_result.named_predictions.values())
+
+                    # Check metadata for passed flag
+                    if protocol_result.metadata.get("passed") is False:
+                        passed = False
+            except ImportError:
+                # If schema not available, try to convert to dict
+                if hasattr(protocol_result, "to_dict"):
+                    protocol_result = protocol_result.to_dict()
+                    passed = (
+                        protocol_result.get("passed") is True
+                        or protocol_result.get("success") is True
+                        or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
+                    )
+                else:
+                    # Fallback: try attribute access
+                    passed = getattr(protocol_result, "passed", False) or getattr(protocol_result, "success", False)
 
             # (This is more primitive and error-prone, so used as fallback)
             # Look for success markers in output

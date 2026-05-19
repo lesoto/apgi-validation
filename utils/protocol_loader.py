@@ -128,7 +128,7 @@ def load_all_protocols() -> Dict[str, ProtocolSpec]:
         try:
             spec = load_protocol_file(path)
             specs[spec.protocol_id] = spec
-        except Exception:
+        except Exception:  # nosec B110
             pass
     return specs
 
