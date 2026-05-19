@@ -2925,8 +2925,6 @@ def main() -> None:
         sys.exit(1)
 
 
-
-
 class EntropyModule:
     """TheoryModuleInterface implementation for thermodynamic + information-theoretic entropy."""
 
@@ -2977,6 +2975,7 @@ class EntropyModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     main()

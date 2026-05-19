@@ -1305,7 +1305,6 @@ def print_validation_report():
 # =============================================================================
 
 
-
 class PsychStatesModule:
     """TheoryModuleInterface implementation for APGI psychological state library."""
 
@@ -1357,6 +1356,7 @@ class PsychStatesModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     print("\n" + "=" * 70)

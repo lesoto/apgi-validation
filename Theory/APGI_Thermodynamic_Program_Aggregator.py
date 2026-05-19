@@ -919,7 +919,6 @@ def run_aggregator(config: Optional[AggregatorConfig] = None) -> AggregatorRepor
 # ===========================================================================
 
 
-
 class ThermodynamicModule:
     """TheoryModuleInterface implementation for thermodynamic program aggregation."""
 
@@ -971,6 +970,7 @@ class ThermodynamicModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     run_aggregator()

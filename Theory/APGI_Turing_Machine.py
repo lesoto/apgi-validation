@@ -1215,7 +1215,6 @@ def run_anxiety_comparison(duration: float = 60.0):
 # =============================================================================
 
 
-
 class TuringMachineModule:
     """TheoryModuleInterface implementation for APGI Turing machine formalism."""
 
@@ -1271,6 +1270,7 @@ class TuringMachineModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     # Run baseline simulation

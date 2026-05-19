@@ -614,8 +614,6 @@ def run_analysis() -> Dict:
     return system.run_analysis()
 
 
-
-
 class NeuromodulationModule:
     """TheoryModuleInterface implementation for neuromodulatory control system."""
 
@@ -666,6 +664,7 @@ class NeuromodulationModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     run_analysis()

@@ -938,8 +938,6 @@ def main():
     print("\nSample preregistration saved to: sample_preregistration.json")
 
 
-
-
 class OpenScienceModule:
     """TheoryModuleInterface implementation for open science & replication framework."""
 
@@ -990,6 +988,7 @@ class OpenScienceModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     main()

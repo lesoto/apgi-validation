@@ -1124,8 +1124,6 @@ def run_benchmark_suite(config: Optional[Dict[str, Any]] = None) -> Dict[str, An
     return results
 
 
-
-
 class BenchmarkingModule:
     """TheoryModuleInterface implementation for computational benchmarking."""
 
@@ -1176,6 +1174,7 @@ class BenchmarkingModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     # Initialize enhanced benchmarker

@@ -1284,7 +1284,6 @@ def run_bandwidth_analysis(
 # ===========================================================================
 
 
-
 class BandwidthModule:
     """TheoryModuleInterface implementation for information-theoretic bandwidth analysis."""
 
@@ -1335,6 +1334,7 @@ class BandwidthModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     run_bandwidth_analysis()

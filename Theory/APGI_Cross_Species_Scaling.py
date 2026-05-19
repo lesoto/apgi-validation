@@ -208,8 +208,6 @@ def get_implementation_metadata() -> Dict[str, Any]:
     }
 
 
-
-
 class CrossSpeciesModule:
     """TheoryModuleInterface implementation for cross-species allometric scaling."""
 
@@ -260,6 +258,7 @@ class CrossSpeciesModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     print("Running Cross-Species Scaling Model Validation...")

@@ -1173,6 +1173,7 @@ def run_protocol_main(config=None):
     legacy = run_validation()
     try:
         from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+
         named = {}
         for pred_id in ["V21.1", "V21.2", "V21.3"]:
             v = legacy.get(pred_id, {})

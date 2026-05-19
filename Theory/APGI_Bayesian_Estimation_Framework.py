@@ -955,8 +955,6 @@ def main():
         print(f"  N Successful Recoveries: {recovery['n_successful_recoveries']}")
 
 
-
-
 class BayesianEstimationModule:
     """TheoryModuleInterface implementation for Bayesian estimation framework."""
 
@@ -1007,6 +1005,7 @@ class BayesianEstimationModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     main()

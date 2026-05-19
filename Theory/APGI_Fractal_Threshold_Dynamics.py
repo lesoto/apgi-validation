@@ -868,7 +868,6 @@ def run_validation() -> Dict:
 # ---------------------------------------------------------------------------
 
 
-
 class FractalThresholdModule:
     """TheoryModuleInterface implementation for fractal/1/f threshold dynamics."""
 
@@ -919,6 +918,7 @@ class FractalThresholdModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     run_validation()

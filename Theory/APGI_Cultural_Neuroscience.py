@@ -1258,8 +1258,6 @@ def get_implementation_metadata() -> Dict[str, Any]:
     }
 
 
-
-
 class CulturalNeuroscienceModule:
     """TheoryModuleInterface implementation for cultural neuroscience predictions."""
 
@@ -1310,6 +1308,7 @@ class CulturalNeuroscienceModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     print("Running APGI Cultural Neuroscience Validation...")

@@ -3966,8 +3966,6 @@ def confidence_intervals(trace, hdi_prob=0.95):
         return {}
 
 
-
-
 class ParameterEstimationModule:
     """TheoryModuleInterface implementation for APGI parameter estimation pipeline."""
 
@@ -4018,6 +4016,7 @@ class ParameterEstimationModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     results = main()

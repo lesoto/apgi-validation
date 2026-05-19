@@ -322,9 +322,11 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 def run_protocol_main(config=None):
     """Execute and return a standardized ProtocolResult."""
     import os
+
     legacy = run_validation()
     try:
         from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+
         named = {}
         for pred_id in ["V16.1", "V16.2", "V16.3"]:
             v = legacy.get("named_predictions", {}).get(pred_id, {})

@@ -3894,8 +3894,6 @@ def demonstrate_joint_biomarker_validation():
     return results
 
 
-
-
 class MultimodalIntegrationModule:
     """TheoryModuleInterface implementation for cardiac-phase multimodal integration."""
 
@@ -3948,6 +3946,7 @@ class MultimodalIntegrationModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
+
 
 if __name__ == "__main__":
     # Run cardiac phase detection demonstration

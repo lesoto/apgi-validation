@@ -573,4 +573,3 @@ class MultimodalClassifierModule:
             methodology=self.MODULE_LEVEL,
             metadata={"module_level": self.MODULE_LEVEL},
         ).to_dict()
-
