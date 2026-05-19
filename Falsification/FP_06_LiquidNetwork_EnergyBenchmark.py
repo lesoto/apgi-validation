@@ -211,6 +211,27 @@ except ImportError:
         def Parameter(*args, **kwargs):
             return None
 
+        @staticmethod
+        def GRUCell(*args, **kwargs):
+            return None
+
+        @staticmethod
+        def Softmax(*args, **kwargs):
+            return None
+
+        class functional:
+            @staticmethod
+            def relu(x, *a, **k):
+                return x
+
+            @staticmethod
+            def softmax(x, *a, **k):
+                return x
+
+            @staticmethod
+            def sigmoid(x, *a, **k):
+                return x
+
     nn = _NNStub()  # type: ignore
     F = None  # type: ignore
 
@@ -2029,6 +2050,10 @@ def run_falsification():
     """
     Main entry point for FP-06 Liquid Network Energy Benchmark.
     """
+    if not HAS_TORCH:
+        raise ImportError(
+            "Protocol FP-06 requires PyTorch. Install with: pip install torch"
+        )
     try:
         print("Running APGI Falsification Protocol 6: Network Comparison Experiment")
         config = {
