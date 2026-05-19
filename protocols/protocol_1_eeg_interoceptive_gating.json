@@ -1,0 +1,133 @@
+{
+  "protocol_id": "APGI-P01",
+  "title": "EEG Study of Interoceptive Precision Gating",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-18",
+  "description": "This protocol examines whether interoceptive precision (Πⁱ), indexed by the heartbeat-evoked potential (HEP), modulates conscious detection thresholds (θₜ). Stimuli are time-locked to cardiac phase to test the prediction that high Πⁱ lowers θₜ for near-threshold visual stimuli, with the HEP (250–400 ms window) serving as a trial-by-trial proxy for Πⁱ and the P3b (300–600 ms) serving as a proxy for ignition (Bₜ). The study tests three sub-predictions: that HEP amplitude predicts P3b latency and amplitude (P1a), that cardiac-phase-locked detection advantage exists at diastole (P1b), and that the HEP–P3b relationship survives covariate control for autonomic arousal (P1c).",
+  "prediction_cluster": "P1a–P1c",
+  "prediction_cluster_label": "Interoceptive Precision Modulates Detection Threshold",
+  "sub_predictions": [
+    {
+      "id": "P1a",
+      "claim": "High Πⁱ lowers θₜ for salient stimuli",
+      "key_measurement_equation": "HEP₂₅₀₋₄₀₀ = a₀ + a₁·Πⁱ + ε_HEP",
+      "confirming_evidence": "HEP amplitude predicts P3b latency and amplitude across conditions",
+      "falsifying_evidence": "No HEP–P3b correlation across conditions"
+    },
+    {
+      "id": "P1b",
+      "claim": "Interoceptive focus enhances near-threshold detection",
+      "confirming_evidence": "Cardiac-phase-locked hit-rate advantage at diastole relative to systole",
+      "falsifying_evidence": "Uniform detection rates across cardiac phases"
+    },
+    {
+      "id": "P1c",
+      "claim": "HEP predicts detection independently of arousal",
+      "confirming_evidence": "HEP–P3b partial correlation survives HRV covariate control",
+      "falsifying_evidence": "HEP effect disappears after arousal (HRV, pupil) covariate control"
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "Formally specified. Parameter identifiability confirmed via simulation (Appendix A.4). Identifiability of Πⁱ from HEP confirmed via block-diagonal Fisher Information Matrix.",
+  "participants": {
+    "n_target": 40,
+    "n_minimum": 32,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Normal or corrected-to-normal vision",
+      "Resting heart rate 50–100 BPM with regular sinus rhythm",
+      "No psychoactive medication within 30 days",
+      "No history of cardiac arrhythmia or autonomic neuropathy"
+    ],
+    "exclusion_criteria": [
+      "Irregular ECG rhythm (assessed by study nurse at screening)",
+      "Resting heart rate < 50 or > 100 BPM",
+      "History of neurological or psychiatric disorder (DSM-5 criteria)",
+      "Use of beta-blockers or other HR-modifying medication",
+      "Inability to maintain fixation for 30-minute EEG blocks"
+    ]
+  },
+  "apparatus": {
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz, re-referenced offline to average mastoids",
+    "ECG": "BrainAmp ExG bipolar lead-II at 1000 Hz, synchronised to EEG clock",
+    "display": "VPixx ProPixx at 120 Hz, viewing distance 57 cm, gamma-corrected",
+    "stimulus_delivery": "Psychtoolbox-3 (MATLAB R2024b) with photodiode verification of onset timing",
+    "cardiac_phase_algorithm": "R-peak detection via Pan-Tompkins (real-time), diastole window 300–500 ms post R-peak, systole window 0–150 ms post R-peak"
+  },
+  "trial_structure": {
+    "isi_ms": [1200, 1600],
+    "fixation_duration_ms": 500,
+    "cardiac_phase_window_ms": {
+      "systole": [0, 150],
+      "diastole": [300, 500]
+    },
+    "jitter_tolerance_ms": 10,
+    "target": {
+      "type": "Gabor patch, vertical orientation",
+      "spatial_frequency_cpd": 3,
+      "contrast_levels": [0.02, 0.04, 0.08, 0.16, 0.32],
+      "duration_ms": 33,
+      "background_luminance_cd_m2": 50
+    },
+    "response": "2AFC (seen / not seen), response window 1500 ms, response-locked to keypress"
+  },
+  "blocks": {
+    "practice_trials": 20,
+    "experimental_blocks": 8,
+    "trials_per_block": 60,
+    "total_experimental_trials": 480,
+    "break_duration_s": 60,
+    "condition_counterbalancing": "Cardiac phase pseudo-randomised across trials within block"
+  },
+  "eeg_analysis_pipeline": {
+    "bandpass_filter_hz": [0.1, 40],
+    "epoch_window_ms": [-200, 800],
+    "baseline_correction_ms": [-200, 0],
+    "artifact_rejection_threshold_uv": 100,
+    "hep_window_ms": [250, 400],
+    "hep_channels": ["Cz", "FCz", "Fz"],
+    "p3b_window_ms": [300, 600],
+    "p3b_channels": ["Pz", "P3", "P4"],
+    "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
+    "minimum_clean_epochs_per_condition": 30
+  },
+  "dependent_variables": [
+    "Detection rate per cardiac phase (systole vs. diastole)",
+    "d-prime (signal detection theory) per cardiac phase",
+    "HEP mean amplitude (250–400 ms) at Cz, FCz, Fz",
+    "P3b mean amplitude (300–600 ms) at Pz",
+    "HEP–P3b trial-by-trial correlation (mixed-effects)",
+    "HRV (RMSSD) as arousal covariate"
+  ],
+  "primary_hypothesis": "HEP amplitude in the 250–400 ms window predicts P3b amplitude on a trial-by-trial basis, and detection rate is higher at diastole than systole, consistent with elevated Πⁱ_eff during cardiac deceleration lowering θₜ.",
+  "primary_analysis": "Mixed-effects model: P3b_amplitude ~ HEP_amplitude * cardiac_phase + RMSSD + (HEP_amplitude * cardiac_phase | participant). Secondary: logistic mixed-effects for detection ~ cardiac_phase * contrast + (cardiac_phase | participant).",
+  "power_analysis": {
+    "effect_size_d": 0.4,
+    "alpha": 0.05,
+    "power": 0.9,
+    "n_required": 34,
+    "software": "G*Power 3.1",
+    "based_on": "Garfinkel et al. (2014) cardiac-phase detection effect; Canales-Johnson et al. (2020) HEP–P3b coupling"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "pi_i_cardiac_systole": 0.6,
+    "pi_i_cardiac_diastole": 1.2
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "IRB-2026-EEG-XXX",
+    "approval_date": "2026-05-01"
+  },
+  "submission_blocking_issues": [],
+  "caveats": []
+}
