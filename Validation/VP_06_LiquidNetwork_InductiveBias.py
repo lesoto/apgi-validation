@@ -108,10 +108,10 @@ from utils.falsification_thresholds import (
     F2_1_MIN_ADVANTAGE_PCT,
     F2_1_MIN_COHENS_H,
     F2_1_MIN_PP_DIFF,
-    F2_3_MIN_RT_ADVANTAGE_MS,
     F2_3_MIN_BETA,
-    F2_3_MIN_STANDARDIZED_BETA,
     F2_3_MIN_R2,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_3_MIN_STANDARDIZED_BETA,
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_3_MIN_COHENS_D,
@@ -124,9 +124,6 @@ from utils.falsification_thresholds import (
     F5_6_ALPHA,
     F5_6_MIN_COHENS_D,
     F5_6_MIN_PERFORMANCE_DIFF_PCT,
-    V6_1_MIN_PROCESSING_RATE,
-    V6_1_MAX_LATENCY_MS,
-    V6_1_ALPHA,
     F6_1_CLIFFS_DELTA_MIN,
     F6_1_LTCN_MAX_TRANSITION_MS,
     F6_1_MANN_WHITNEY_ALPHA,
@@ -136,6 +133,9 @@ from utils.falsification_thresholds import (
     F6_2_WILCOXON_ALPHA,
     F6_DELTA_AUROC_MIN,
     GENERIC_BINARY_DECISION_THRESHOLD,
+    V6_1_ALPHA,
+    V6_1_MAX_LATENCY_MS,
+    V6_1_MIN_PROCESSING_RATE,
 )
 
 try:

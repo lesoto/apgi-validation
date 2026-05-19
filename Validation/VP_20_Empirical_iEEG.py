@@ -1225,9 +1225,7 @@ def run_protocol_main(config=None) -> Any:
 
     if test_mode and _HAS_SCHEMA_V20:
         named: Dict[str, Any] = {
-            f"V20.{i}": PredictionResult(
-                passed=True, value=0.8, threshold=0.5, status=PredictionStatus.PASSED
-            )
+            f"V20.{i}": PredictionResult(passed=True, value=0.8, threshold=0.5, status=PredictionStatus.PASSED)
             for i in range(1, 4)
         }
         return ProtocolResult(

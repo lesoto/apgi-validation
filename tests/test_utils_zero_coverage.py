@@ -37,8 +37,8 @@ class TestAuthAdapter:
         from utils.auth_adapter import AuthSession, Role
 
         session = AuthSession("user123", Role.ADMIN, "token123", time.time() + 3600)
-        assert session.user_id == "user123"  # nosec B101  # nosec B101
-        assert session.role == Role.ADMIN  # nosec B101  # nosec B101
+        assert session.user_id == "user123"  # nosec B101
+        assert session.role == Role.ADMIN  # nosec B101
         assert session.token == "token123"  # nosec B101  # nosec B105
 
     def test_auth_session_is_valid(self):

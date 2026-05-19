@@ -61,9 +61,7 @@ class ProtocolSpec:
             description=data.get("description", ""),
             validation_status=data.get("validation_status", "unspecified"),
             apgi_parameters=data.get("apgi_parameters", {}),
-            sub_predictions=[
-                SubPrediction.from_dict(p) for p in data.get("sub_predictions", [])
-            ],
+            sub_predictions=[SubPrediction.from_dict(p) for p in data.get("sub_predictions", [])],
             primary_hypothesis=data.get("primary_hypothesis", ""),
             caveats=data.get("caveats", []),
             _raw=data,

@@ -51,10 +51,9 @@ class ValidationProtocolInterface(ABC):
 
     def __getattr__(self, name: str) -> Any:
         """Resolve legacy run_validation_vN aliases without code duplication."""
-        if name.startswith("run_validation_v") and name[len("run_validation_v"):].isdigit():
+        if name.startswith("run_validation_v") and name[len("run_validation_v") :].isdigit():
             return self.run_validation
-        if name in ("run_validation_alias", "run_validation_alias_compat",
-                    "run_all_protocols_alias"):
+        if name in ("run_validation_alias", "run_validation_alias_compat", "run_all_protocols_alias"):
             return self.run_validation
         raise AttributeError(f"{type(self).__name__!r} has no attribute {name!r}")
 
@@ -77,16 +76,10 @@ class TheoryModuleInterface(ABC):
     def get_falsification_criteria(self) -> Dict[str, Any]:
         """Return quantitative falsification thresholds for this module."""
 
-    def as_protocol_result(
-        self, protocol_id: str, **kwargs: Any
-    ) -> Dict[str, Any]:
+    def as_protocol_result(self, protocol_id: str, **kwargs: Any) -> Dict[str, Any]:
         """Wrap compute() output in a ProtocolResult dict for aggregation."""
         try:
-            from utils.protocol_schema import (
-                PredictionResult,
-                PredictionStatus,
-                ProtocolResult,
-            )
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
         except ImportError:
             return self.compute(**kwargs)
 
