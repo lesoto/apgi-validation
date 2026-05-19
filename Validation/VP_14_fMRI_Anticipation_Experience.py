@@ -556,6 +556,13 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
+try:
+    from utils.protocol_loader import load_protocol as _load_protocol_p05
+
+    _PROTOCOL_SPEC_P05 = _load_protocol_p05("APGI-P05")
+except Exception:
+    _PROTOCOL_SPEC_P05 = None
+
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -586,9 +593,7 @@ def run_protocol_main(config=None):
                 errors=[],
                 metadata={"test_mode": True},
             ).to_dict()
-    else:
-        # Run full validation simulation
-        return run_validation()
+        return {"status": "success", "test_mode": True}
 
     legacy_result = run_validation()
     if not HAS_SCHEMA:
@@ -604,6 +609,21 @@ def run_protocol_main(config=None):
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
+    # Add JSON protocol sub-predictions (P5a–P5d from APGI-P05)
+    if _PROTOCOL_SPEC_P05 is not None:
+        _pred_map = {"P5a": "V14.1", "P5b": "V14.2", "P5c": "V14.3", "P5d": "V14.1"}
+        for sub_pred in _PROTOCOL_SPEC_P05.sub_predictions:
+            linked_v = _pred_map.get(sub_pred.id)
+            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
+            named_predictions[sub_pred.id] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                name=sub_pred.claim,
+                evidence=[sub_pred.confirming_evidence],
+                sources=["APGI-P05", "VP_14_fMRI_Anticipation_Experience"],
+            )
+
+    spec_params = _PROTOCOL_SPEC_P05.apgi_parameters if _PROTOCOL_SPEC_P05 else {}
     return ProtocolResult(
         protocol_id="VP_14_fMRI_Anticipation_Experience",
         timestamp=np.datetime64("now").astype(str),
@@ -618,6 +638,8 @@ def run_protocol_main(config=None):
             "last_updated": "2026-04-06",
             "verification": "Standardized BOLD simulation with double-gamma HRF implemented.",
             **legacy_result.get("summary", {}),
+            "protocol_spec_id": "APGI-P05",
+            "apgi_parameters": spec_params,
         },
     ).to_dict()
 

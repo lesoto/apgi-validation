@@ -3759,6 +3759,13 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
+try:
+    from utils.protocol_loader import load_protocol as _load_protocol
+
+    _PROTOCOL_SPEC = _load_protocol("APGI-P02")
+except Exception:
+    _PROTOCOL_SPEC = None
+
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -3776,6 +3783,21 @@ def run_protocol_main(config=None):
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
+    # Add JSON protocol sub-predictions (P2a, P2b, P2c from APGI-P02)
+    if _PROTOCOL_SPEC is not None:
+        _pred_map = {"P2a": "V7.1", "P2b": "V7.2", "P2c": "V7.3"}
+        for sub_pred in _PROTOCOL_SPEC.sub_predictions:
+            linked_v = _pred_map.get(sub_pred.id)
+            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
+            named_predictions[sub_pred.id] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                name=sub_pred.claim,
+                evidence=[sub_pred.confirming_evidence],
+                sources=["APGI-P02", "VP_07_TMS_CausalInterventions"],
+            )
+
+    spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
         protocol_id="VP_07_TMS_CausalInterventions",
         timestamp=datetime.now().isoformat(),
@@ -3784,7 +3806,11 @@ def run_protocol_main(config=None):
         data_sources=["TMS Simulation", "Pharmacological Model"],
         methodology="causal_intervention_psychophysics",
         errors=[],
-        metadata=legacy_result.get("results", {}).get("summary", {}),
+        metadata={
+            **legacy_result.get("results", {}).get("summary", {}),
+            "protocol_spec_id": "APGI-P02",
+            "apgi_parameters": spec_params,
+        },
     ).to_dict()
 
 

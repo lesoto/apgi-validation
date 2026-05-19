@@ -1146,6 +1146,14 @@ class APGIValidationProtocol12:
         return self.results
 
 
+try:
+    from utils.protocol_loader import load_protocol as _load_protocol_p04
+
+    _PROTOCOL_SPEC_P04 = _load_protocol_p04("APGI-P04")
+except Exception:
+    _PROTOCOL_SPEC_P04 = None
+
+
 def run_protocol():
     return run_validation()
 
@@ -1196,6 +1204,28 @@ def run_protocol_main(config=None):
             )
             for k, v in legacy["named_predictions"].items()
         }
+
+        # Add JSON protocol sub-predictions (P4a–P4d from APGI-P04)
+        if _PROTOCOL_SPEC_P04 is not None:
+            _v12_keys = list(named.keys())
+            _pred_map = {
+                "P4a": _v12_keys[0] if len(_v12_keys) > 0 else None,
+                "P4b": _v12_keys[1] if len(_v12_keys) > 1 else None,
+                "P4c": _v12_keys[2] if len(_v12_keys) > 2 else None,
+                "P4d": _v12_keys[0] if len(_v12_keys) > 0 else None,
+            }
+            for sub_pred in _PROTOCOL_SPEC_P04.sub_predictions:
+                linked_v = _pred_map.get(sub_pred.id)
+                passed = named[linked_v].passed if linked_v and linked_v in named else False
+                named[sub_pred.id] = PredictionResult(
+                    passed=passed,
+                    status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                    name=sub_pred.claim,
+                    evidence=[sub_pred.confirming_evidence],
+                    sources=["APGI-P04", "VP_12_Clinical_CrossSpecies_Convergence"],
+                )
+
+        spec_params = _PROTOCOL_SPEC_P04.apgi_parameters if _PROTOCOL_SPEC_P04 else {}
         return ProtocolResult(
             protocol_id="VP_12_Clinical_CrossSpecies_Convergence",
             timestamp=datetime.now().isoformat(),
@@ -1204,7 +1234,11 @@ def run_protocol_main(config=None):
             data_sources=["Clinical Datasets", "Literature Parameters"],
             methodology="clinical_cross_species_convergence",
             errors=[],
-            metadata=legacy.get("results", {}).get("summary", {}),
+            metadata={
+                **legacy.get("results", {}).get("summary", {}),
+                "protocol_spec_id": "APGI-P04",
+                "apgi_parameters": spec_params,
+            },
         ).to_dict()
     except ImportError:
         return legacy

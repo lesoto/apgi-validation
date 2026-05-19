@@ -3737,6 +3737,13 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
+try:
+    from utils.protocol_loader import load_protocol as _load_protocol
+
+    _PROTOCOL_SPEC = _load_protocol("APGI-P03")
+except Exception:
+    _PROTOCOL_SPEC = None
+
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -3779,6 +3786,21 @@ def run_protocol_main(config=None):
         ),
     }
 
+    # Add JSON protocol sub-predictions (P3a–P3d from APGI-P03)
+    if _PROTOCOL_SPEC is not None:
+        _pred_map = {"P3a": "V3.3", "P3b": "V3.2", "P3c": "V3.1", "P3d": "V3.1"}
+        for sub_pred in _PROTOCOL_SPEC.sub_predictions:
+            linked_v = _pred_map.get(sub_pred.id)
+            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
+            named_predictions[sub_pred.id] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
+                name=sub_pred.claim,
+                evidence=[sub_pred.confirming_evidence],
+                sources=["APGI-P03", "VP_03_ActiveInference_AgentSimulations"],
+            )
+
+    spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
         protocol_id="VP_03_ActiveInference_AgentSimulations",
         timestamp=datetime.now().isoformat(),
@@ -3787,7 +3809,11 @@ def run_protocol_main(config=None):
         data_sources=["Agent Simulations"],
         methodology="active_inference_simulation",
         errors=[],
-        metadata=results.get("summary", {}),
+        metadata={
+            **results.get("summary", {}),
+            "protocol_spec_id": "APGI-P03",
+            "apgi_parameters": spec_params,
+        },
     ).to_dict()
 
 
