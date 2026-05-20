@@ -29,6 +29,7 @@ This would indicate that the falsification coordination framework is not robust.
 """
 
 import importlib.util
+import inspect
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -683,7 +684,7 @@ class APGIMasterFalsifier:
                 config = module.APGIConfig()
                 agent = APGIAgentClass(config=config)
             else:
-                agent = APGIAgentClass()
+                agent = APGIAgentClass({})
 
             logger.info(f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})")
             return agent
@@ -821,8 +822,18 @@ class APGIMasterFalsifier:
                     "falsified": True,
                 }
 
-        # Run the protocol
-        result = run_func(**kwargs)
+        # Run the protocol — filter kwargs to only what the function accepts
+        sig = inspect.signature(run_func)
+        params = sig.parameters
+        has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if has_var_keyword:
+            call_kwargs = kwargs
+        else:
+            call_kwargs = {k: v for k, v in kwargs.items() if k in params}
+            # Aggregator protocols that need collected results as positional input
+            if "results_input" in params and "results_input" not in call_kwargs:
+                call_kwargs["results_input"] = dict(self.protocol_results)
+        result = run_func(**call_kwargs)
 
         # Standardize result format
         if "falsified" not in result:

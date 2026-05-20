@@ -52,17 +52,17 @@
       "FP_01_ActiveInference.py": "a3ce1f4e11cc8074f07a02115d08a3e2752928203c5ffd259da0bd8b3ffea0c4",
       "FP_02_AgentComparison_ConvergenceBenchmark.py": "00c72afd8c5cad9688accdd7fad640ecf2a5731283e6346913a4204b42d521f7",
       "FP_03_FrameworkLevel_MultiProtocol.py": "4ca66b8ce2c8426d073b7fdc8a5245de03e565014daf8520ed0a4ce8fb869da1",
-      "FP_04_PhaseTransition_EpistemicArchitecture.py": "b975c67a09ea665afd5270bed7364402ee021b8e438e1bd5e538c80368a441d0",
+      "FP_04_PhaseTransition_EpistemicArchitecture.py": "2f55c9f18b9ef87c25978ae94de5f3cb94ca2d573e4740f481fd70cbd9a5e5d8",
       "FP_05_EvolutionaryPlausibility.py": "29be7df9a5aa4c8e6a45d558b40649a157ab5845aebcbf67e41e88b9a59cd978",
-      "FP_06_LiquidNetwork_EnergyBenchmark.py": "8946b40a1bc91a795a6d36e0409f34aa620db8cab39101e452acf79fd09113b2",
+      "FP_06_LiquidNetwork_EnergyBenchmark.py": "08944747af9bb369f2cede968e11bf7a6d912e6d824a1ff0acd9dc1a87ca0d2c",
       "FP_07_MathematicalConsistency.py": "90f099bdc9e7c0de1e87a03b3a100f0add65ae64eeae1ef226a3b79269ac512f",
-      "FP_08_ParameterSensitivity_Identifiability.py": "93bce198d0219b172997af095524a2e06206db0b0f3ca728056fa59c146aedb3",
-      "FP_09_NeuralSignatures_P3b_HEP.py": "b8aab6d81ed75937d5c442e840e9ad56d8a37de579614b8fc46920e280ac43cc",
-      "FP_10_BayesianEstimation_MCMC.py": "0a8f53f65f662968f923ab9ccdad53f51a72d494fef804ce471fe485451151a8",
+      "FP_08_ParameterSensitivity_Identifiability.py": "4d7d36083182ba14676d8439d66001b3cbf94a695e3ad40770421d742a219a60",
+      "FP_09_NeuralSignatures_P3b_HEP.py": "ba17cb2acc72a3343d22c5620ec07d30007fc3afc52e7d934a7cabe30876e431",
+      "FP_10_BayesianEstimation_MCMC.py": "2a12af6d5c9bea9ee994d0716c0cbe5ca268f76d47cc41ff00dbeb94f8ff775d",
       "FP_11_LiquidNetworkDynamics_EchoState.py": "3f866057b67cc4318f5bd85fb5c661a6735db54debbb941011437028073e96bc",
       "FP_12_CrossSpeciesScaling.py": "a83cab920119bf056765acfab0bffa49f4c40a390a1bd9094f6ac1962f122ec3",
-      "FP_ALL_Aggregator.py": "93ccc891f6c3f1e38dfce73f952cb4d7f042b681f1daa19ed9eb8cc86e9aae22",
-      "Master_Falsification.py": "3f9c7c9196cdd9b27965409e54503b555a032749f2451c584fdc67b46cf83d03"
+      "FP_ALL_Aggregator.py": "6a6e220cfc5ce45d087c2d87984bbb9627d4815c3d4f3797eb2afee4d7667138",
+      "Master_Falsification.py": "49261c86db73e2c258c2fa26ae0e7ada292cae90fba3062fa02761f65dae57d2"
     }
   }
 }
