@@ -71,8 +71,10 @@ except ImportError:
 try:
     from tqdm import tqdm
 except ImportError:
+
     def tqdm(iterable, **kwargs):  # type: ignore[misc]
         return iterable
+
 
 # Bayesian t-tests (Rouder et al. JZS prior)
 try:

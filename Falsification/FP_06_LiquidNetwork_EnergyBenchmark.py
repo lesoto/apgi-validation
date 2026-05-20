@@ -2051,9 +2051,7 @@ def run_falsification():
     Main entry point for FP-06 Liquid Network Energy Benchmark.
     """
     if not HAS_TORCH:
-        raise ImportError(
-            "Protocol FP-06 requires PyTorch. Install with: pip install torch"
-        )
+        raise ImportError("Protocol FP-06 requires PyTorch. Install with: pip install torch")
     try:
         print("Running APGI Falsification Protocol 6: Network Comparison Experiment")
         config = {

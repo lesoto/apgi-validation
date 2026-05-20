@@ -1224,10 +1224,7 @@ def generate_state_comparison_table(states: List[str]) -> str:
 # =============================================================================
 
 
-def validate_all_states() -> Tuple[
-    Dict[str, Dict[str, bool]],
-    List[Dict[str, List[str]]],
-]:
+def validate_all_states() -> Tuple[int, int, List[str]]:
     """Validate all state parameters and formulas"""
     results: Dict[str, Dict[str, bool]] = {}
     edge_cases: List[Dict[str, List[str]]] = []
@@ -1257,12 +1254,19 @@ def validate_all_states() -> Tuple[
 
         results[name] = checks
 
-    return results, edge_cases
+    # Calculate passed and failed counts
+    passed_count = sum(1 for checks in results.values() if all(checks.values()))
+    failed_count = len(results) - passed_count
+    warnings = [f"{name}: {', '.join(checks)}" for name, checks in edge_cases]
+
+    return passed_count, failed_count, warnings
 
 
 def print_validation_report():
     """Print a validation report for all states"""
-    results, edge_cases = validate_all_states()
+    passed_count, failed_count, warnings = validate_all_states()
+    results: Dict[str, Dict[str, bool]] = {}
+    edge_cases: List[Dict[str, List[str]]] = []
 
     print("\n" + "=" * 70)
     print("APGI STATE LIBRARY VALIDATION REPORT")
@@ -1311,8 +1315,10 @@ class PsychStatesModule:
     MODULE_LEVEL: str = "Level 2"
 
     def compute(self, **kwargs) -> dict:
-        passed_count, failed_count, warnings = validate_all_states()
-        return {"passed": passed_count, "failed": failed_count, "warnings": warnings}
+        results, edge_cases = validate_all_states()
+        passed_count = sum(1 for checks in results.values() if all(checks.values()))
+        failed_count = len(results) - passed_count
+        return {"passed": passed_count, "failed": failed_count, "warnings": edge_cases}
 
     def get_falsification_criteria(self) -> dict:
         return {

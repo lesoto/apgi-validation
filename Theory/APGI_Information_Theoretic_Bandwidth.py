@@ -1290,7 +1290,10 @@ class BandwidthModule:
     MODULE_LEVEL: str = "Level 2"
 
     def compute(self, **kwargs) -> dict:
-        return run_bandwidth_analysis()
+        from dataclasses import asdict
+
+        report = run_bandwidth_analysis()
+        return asdict(report)
 
     def get_falsification_criteria(self) -> dict:
         return {

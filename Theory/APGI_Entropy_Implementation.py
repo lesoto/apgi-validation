@@ -2931,7 +2931,9 @@ class EntropyModule:
     MODULE_LEVEL: str = "Level 1"
 
     def compute(self, **kwargs) -> dict:
-        return main()
+        # Note: main() is a GUI launcher and returns None
+        # For programmatic access, run entropy analysis directly
+        return {"status": "GUI_LAUNCHER", "message": "Use main() to launch GUI for interactive analysis"}
 
     def get_falsification_criteria(self) -> dict:
         return {
