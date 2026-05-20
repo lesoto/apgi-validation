@@ -14,7 +14,7 @@ APGI-[TIER][SEQ]-[DOM3]
 ```
 
 | Segment | Values | Meaning |
-|---------|--------|---------|
+| --------- | -------- | --------- |
 | `TIER` | `E` | **Empirical Primary** — paper-specified experimental protocol |
 | | `C` | **Computational** — cross-cutting theoretical / simulation protocol |
 | | `X` | **Extended** — auxiliary protocols beyond the original six-paper matrix |
@@ -25,7 +25,7 @@ APGI-[TIER][SEQ]-[DOM3]
 ### Domain Codes
 
 | Code | Domain |
-|------|--------|
+| ------ | -------- |
 | `EEG` | EEG / Electrophysiology / Interoceptive |
 | `TMS` | Transcranial Magnetic Stimulation / Causal Neuromodulation |
 | `AIN` | Active Inference / Agent Simulation |
@@ -56,7 +56,7 @@ APGI-[TIER][SEQ]-[DOM3]
 *Directly mapped to numbered paper protocols.*
 
 | UPID | Legacy ID | Experimental Concept | Paper Protocol | Roadmap Priority | FP IDs | VP IDs | Falsification File(s) | Validation File(s) | Notes |
-|------|-----------|----------------------|---------------|-----------------|--------|--------|----------------------|--------------------|-------|
+| ------ | ----------- | ---------------------- | --------------- | ----------------- | -------- | -------- | ---------------------- | -------------------- | ------- |
 | **APGI-E01-EEG** | APGI-P1 | EEG-Heart-Evoked Potential (Interoceptive Gating) | Protocol 1 | Priority 1 | FP-9 | VP-9 | `Falsification/FP_09_NeuralSignatures_P3b_HEP.py` | `Validation/VP_09_NeuralSignatures_EmpiricalPriority1.py` | ⚠ Old matrix named FP file as `FP_09_TemporalDynamics_SequenceSensitivity.py` — **stale, file does not exist** |
 | **APGI-E02-TMS** | APGI-P2 | Causal TMS Study (Insula / Thalamic Gating) | Protocol 2 | Priority 2 | FP-9 shared | VP-7, VP-10 | `Falsification/FP_09_NeuralSignatures_P3b_HEP.py` | `Validation/VP_07_TMS_CausalInterventions.py` · `Validation/VP_10_CausalManipulations_Priority2.py` | ⚠ Old matrix listed `CausalManipulations_TMS_Pharmacological_...py` — **stale partial name; two VP files serve this protocol** |
 | **APGI-E03-AIN** | APGI-P3 | Active Inference Simulations (Agent Performance) | Protocol 3 | Comp. Protocol 3 | FP-1 | VP-3 | `Falsification/FP_01_ActiveInference.py` | `Validation/VP_03_ActiveInference_AgentSimulations.py` | ✅ File names correct in original matrix |
@@ -71,7 +71,7 @@ APGI-[TIER][SEQ]-[DOM3]
 *Not tied to a single paper protocol; validate theoretical / mathematical claims.*
 
 | UPID | Legacy ID | Experimental Concept | Paper Protocol | Roadmap Priority | FP IDs | VP IDs | Falsification File(s) | Validation File(s) | Notes |
-|------|-----------|----------------------|---------------|-----------------|--------|--------|----------------------|--------------------|-------|
+| ------ | ----------- | ---------------------- | --------------- | ----------------- | -------- | -------- | ---------------------- | -------------------- | ------- |
 | **APGI-C01-PHT** | APGI-C1 | Phase Transition Analysis (Information-Theoretic) | N/A | N/A | FP-4 | VP-4 | `Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py` | `Validation/VP_04_PhaseTransition_EpistemicLevel2.py` | ✅ File names correct in original matrix |
 | **APGI-C02-EVL** | APGI-C2 | Evolutionary Emergence (Genetic Gating) | N/A | N/A | FP-5 | VP-5 | `Falsification/FP_05_EvolutionaryPlausibility.py` | `Validation/VP_05_EvolutionaryEmergence.py` | ⚠ Old matrix named FP file as `FP_05_SurvivalAnalysis_TimeToIgnition.py` — **stale; file does not exist** |
 | **APGI-C03-ENE** | APGI-C3 | Energy Efficiency (Thermodynamic Cost) | Program 1–4 | N/A | FP-6 | VP-6 | `Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py` | `Validation/VP_06_LiquidNetwork_InductiveBias.py` | ⚠ Old matrix named FP file as `Falsification-NeuralNetwork-EnergyBenchmark.py` — **legacy hyphen-prefixed name; does not exist** |
@@ -86,7 +86,7 @@ APGI-[TIER][SEQ]-[DOM3]
 *Protocols implemented in the repository but absent from the original six-column matrix. Assigned new UPIDs.*
 
 | UPID | FP ID | VP ID | Concept | Falsification File | Validation File | Notes |
-|------|-------|-------|---------|-------------------|----------------|-------|
+| ------ | ----- | ----- | ------- | ------------------- | ---------------- | ------- |
 | **APGI-X01-BNC** | FP-2 | VP-2 | Agent Comparison / Convergence Benchmark | `Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py` | `Validation/VP_02_Behavioral_BayesianComparison.py` | Not in original matrix; FP-2 is the agent BIC/AIC benchmark |
 | **APGI-X02-FWK** | FP-3 | — | Framework-Level Multi-Protocol Synthesis | `Falsification/FP_03_FrameworkLevel_MultiProtocol.py` | *(covered by VP-ALL aggregator)* | Not in original matrix; cross-protocol synthesis |
 | **APGI-X03-LNN** | FP-11 | VP-6 shared | Liquid Neural Network / Echo-State Dynamics | `Falsification/FP_11_LiquidNetworkDynamics_EchoState.py` | `Validation/VP_06_LiquidNetwork_InductiveBias.py` | Not in original matrix; LTCN echo-state reservoir |
@@ -105,7 +105,7 @@ APGI-[TIER][SEQ]-[DOM3]
 ## Section 4 — Global Aggregators (Tier G)
 
 | UPID | Legacy ID | Role | File | Notes |
-|------|-----------|------|------|-------|
+| ------ | ----------- | ---- | ---- | ------- |
 | **APGI-G01-FWK** | APGI-AGG (FP) | Terminal falsification aggregator — combines all FP results, evaluates Conditions A & B | `Falsification/FP_ALL_Aggregator.py` | ⚠ Old matrix labelled this `FP_12_Falsification_Aggregator.py` — **file does not exist**; `FP_12_CrossSpeciesScaling.py` is a *different* protocol (see APGI-X04-XSP) |
 | **APGI-G02-FWK** | — (VP) | Framework-level validation aggregator — collects V1.1–V21.x predictions | `Validation/VP_ALL_Aggregator.py` | No corresponding entry in original matrix |
 | **APGI-G03-FWK** | — | FP orchestrator — runs all 12 FP scripts sequentially | `Falsification/Master_Falsification.py` | CLI entry point for full falsification run |
@@ -118,7 +118,7 @@ APGI-[TIER][SEQ]-[DOM3]
 The following discrepancies were found between the user-supplied matrix and the actual file system state (May 2026):
 
 | Row | Original File Name in Matrix | Actual File on Disk | Error Type |
-|-----|------------------------------|---------------------|------------|
+| ---- | ------------------------------ | ------------------- | ---------- |
 | APGI-P1 | `FP_09_TemporalDynamics_SequenceSensitivity.py` | `Falsification/FP_09_NeuralSignatures_P3b_HEP.py` | Wrong name — file does not exist |
 | APGI-P2 | `CausalManipulations_TMS_Pharmacological_...py` | `Validation/VP_10_CausalManipulations_Priority2.py` | Truncated legacy name — missing `VP_10_` prefix |
 | APGI-P4 | `Clinical_CrossSpecies_Convergence_Protocol4.py` | `Validation/VP_12_Clinical_CrossSpecies_Convergence.py` | Missing `VP_12_` prefix |
@@ -141,7 +141,7 @@ The following discrepancies were found between the user-supplied matrix and the 
 
 Adopt a single, enforced convention across the repository:
 
-```
+```text
 [FP|VP]_[NN]_[CamelCaseConcept].py
 ```
 
@@ -151,7 +151,7 @@ All current Falsification and Validation scripts already follow this pattern. Th
 
 `FP_ALL_Aggregator.py` and `VP_ALL_Aggregator.py` do not follow the `NN` numbering convention. Consider renaming to:
 
-```
+```text
 FP_00_ALL_Aggregator.py   # prefix 00 = meta/aggregator tier
 VP_00_ALL_Aggregator.py
 ```
@@ -161,7 +161,7 @@ This keeps them sortable with ls and avoids confusion with `FP_12_*.py`.
 ### 6.3 Protocol Coverage Gaps
 
 | Gap | Recommendation |
-|----|---------------|
+| ---- | --------------- |
 | APGI-E04-DOC has no dedicated FP | Add `FP_13_ClinicalBiomarkers_DoC.py` to complete the falsification loop |
 | APGI-E05-MRI has no FP | Add `FP_14_fMRI_Anticipation_vmPFC.py` for vmPFC-specific falsification criteria |
 | APGI-E06-IEG has no FP | Add `FP_15_Ignition_AllOrNone_iEEG.py` to falsify all-or-none ignition threshold |
@@ -190,7 +190,7 @@ Keep this matrix as the **single source of truth** for protocol-to-file mapping.
 ## Section 7 — Quick-Reference UPID Lookup Table
 
 | UPID | Concept (Short) | FP | VP | FP File | VP File |
-|------|-----------------|----|----|---------|---------|
+| ------ | --------------- | -- | -- | ------- | ------- |
 | APGI-E01-EEG | EEG / HEP Interoceptive | FP-9 | VP-9 | `FP_09_NeuralSignatures_P3b_HEP.py` | `VP_09_NeuralSignatures_EmpiricalPriority1.py` |
 | APGI-E02-TMS | Causal TMS / Insula | FP-9¹ | VP-7, VP-10 | `FP_09_NeuralSignatures_P3b_HEP.py` | `VP_07_TMS_CausalInterventions.py` · `VP_10_CausalManipulations_Priority2.py` |
 | APGI-E03-AIN | Active Inference Agents | FP-1 | VP-3 | `FP_01_ActiveInference.py` | `VP_03_ActiveInference_AgentSimulations.py` |

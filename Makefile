@@ -20,7 +20,7 @@ venv:
 
 clean:
 	@echo "Cleaning temporary files and cache directories..."
-	python3 utils/delete_pycache.py --yes
+	python3 delete_pycache.py --yes
 
 test:
 	python3 -m pytest
