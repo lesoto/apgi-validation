@@ -14,7 +14,11 @@ where M(c,a) is a bounded somatic marker value ∈ [−2, +2] and β is an empir
 
 ### Connection to App Implementation (Innovation 1)
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI_Multimodal_Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
+**Paper 1 Equation Reference**: Eq. 1 (Somatic Marker Modulation)
+
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_02_AgentComparisonConvergenceBenchmark.py`
+
+Implement Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) with bounded exponential modulation in agent-based simulations, enforcing physiological bounds [0.1, 10.0] and capturing nonlinear gain-control across hierarchical levels.
 
 ### Relationship to Prior Work (Innovation 1)
 
@@ -30,7 +34,9 @@ specifies the threshold as an actively regulated, predictive variable where C_me
 
 ### Connection to App Implementation (Innovation 2)
 
-The allostatic modulation of the ignition threshold is implemented in the `threshold_dynamics` method in `APGI_Full_Dynamic_Model.py` and in the agent's step function in `Falsification/Falsification-Protocol-1.py`. The threshold adapts dynamically as a predictive variable, with the equation dtheta_dt = (self.theta_0 - self.theta_t) / self.tau_theta + self.eta_theta * (self.metabolic_cost - self.information_value), incorporating anticipated metabolic cost and information value to preemptively adjust the access criterion.
+`Falsification/FP_01_ActiveInference.py`, `utils/constants.py` (DIM_CONSTANTS)
+
+Implements threshold adaptation with metabolic cost-benefit: dθ_t/dt = (θ₀ - θ_t)/τ_θ + η_θ · (C_metabolic - V_information), incorporating anticipated metabolic cost and information value with configurable timescales τ_θ ≈ 10-100s.
 
 ### Relationship to Prior Work (Innovation 2)
 
@@ -46,7 +52,9 @@ This converts previously untestable efficiency claims into claims with defined d
 
 ### Connection to App Implementation (Innovation 3)
 
-The three-level epistemic architecture is implemented in the `MultiLevelEntropyModule` class in `APGI_Entropy_Implementation.py`, which computes entropy at three distinct levels: thermodynamic (using `ThermodynamicEntropyCalculator` for joules/kelvin constraints), information-theoretic (using `ShannonEntropyCalculator` for bits/mutual information), and variational (using `VariationalFreeEnergyCalculator` for Bayesian model fitting). This module provides bridge principles like Landauer's principle for computational-thermodynamic mappings and includes a self-applicable scoring rubric with falsification criteria.
+`Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py`, `Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_10_BayesianEstimationMCMC.py`
+
+Computes entropy/energy metrics at thermodynamic (joules/kelvin), information-theoretic (bits/mutual information), and variational (Bayesian model fitting) levels with bridge principles from Landauer's principle and variational inference.
 
 ### Relationship to Prior Work (Innovation 3)
 
@@ -60,7 +68,9 @@ APGI's advance is the specific mapping of the ignition threshold onto the mathem
 
 ### Connection to App Implementation (Innovation 4)
 
-The cortex-as-liquid-computer with threshold as attractor-basin bifurcation point is implemented in `APGI_Liquid_Network_Implementation.py`, where liquid time-constant networks (LTCNs) model cortical dynamics with adaptive time constants modulated by precision weights. The bifurcation structure is realized through phase transitions in the ODE state space of the liquid neurons, generating predictions about bistability, hysteresis, and critical slowing linked to precision-weighted prediction error accumulation and threshold adaptation rate.
+`Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`, `Validation/VP_06_LiquidNetworkInductiveBias.py`
+
+Uses liquid time-constant networks (LTCNs) with adaptive time constants modulated by precision weights, realizing bifurcation structure as a saddle-node bifurcation in network state space, generating quantitative predictions about hysteresis width (Δθ ≈ 0.1–0.2 θ_t), critical slowing, and bistability.
 
 ### Relationship to Prior Work (Innovation 4)
 
@@ -76,7 +86,9 @@ The five-level discretization is acknowledged as an analytical convenience deriv
 
 ### Connection to App Implementation (Innovation 5)
 
-The self-similar APGI computation across hierarchical timescales is implemented through the HierarchicalGenerativeModel in Falsification/Falsification-Protocol-1.py, with level-specific time constants (tau) ranging from 0.05s to 2.0s across sensory, organ, and homeostatic levels. The threshold-gated access mechanism (Π·|ε| > θ_t) is applied at each level with level-specific parameters, converting the established temporal hierarchy into a unified mechanistic framework for temporal depth.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`
+
+Implement hierarchical generative model with level-specific time constants (τ = 0.05s to 2.0s) across sensory, organ, and homeostatic levels, applying threshold-gated access mechanism (Π·|ε| > θ_t) at each level.
 
 ### Relationship to Prior Work (Innovation 5)
 
@@ -92,7 +104,9 @@ The problem of comparing interoceptive and exteroceptive prediction errors is no
 
 ### Connection to App Implementation (Innovation 6)
 
-The cross-modal z-score standardization is implemented in the `APGINormalizer` class in `APGI_Multimodal_Integration.py`, which performs modality-specific z-scoring with running estimates of mean and variance for interoceptive (HEP, SCR, heart_rate) and exteroceptive (gamma_power, P3b_amplitude, pupil_diameter) modalities, yielding dimensionless, comparable prediction error magnitudes for multimodal integration.
+`utils/eeg_processing.py`, `utils/eeg_simulator.py`, `Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py`
+
+Performs modality-specific z-scoring with running estimates for interoceptive (HEP, SCR, heart_rate) and exteroceptive (gamma_power, P3b_amplitude, pupil_diameter) modalities, yielding dimensionless prediction error magnitudes.
 
 ## 7. Seven Standards for Viable Consciousness Theories as a Self-Regulatory Framework
 
@@ -100,7 +114,9 @@ The proposal of seven explicit, ranked methodological standards—Level Transpar
 
 ### Connection to App Implementation (Innovation 7)
 
-The seven standards for viable consciousness theories are implemented as validation criteria in the APGI validation suite, with self-application demonstrated in the Falsification/ and Validation/ directories. Each protocol includes quantitative benchmarks, falsification conditions, and alternative comparisons, converting the standards into operational validation tools.
+`Validation/VP_01_SyntheticEEGMLClassification.py` through `Validation/VP_22_FMRIAnticipationExperience.py`
+
+Validation protocols include quantitative benchmarks, falsification conditions, and alternative comparisons, applying seven standards (Level Transparency, Bridge Principles, Quantitative Benchmarks, Falsification Conditions, Alternative Comparison, Evolutionary Plausibility, Causal Roadmap) as operational validation tools.
 
 ## 8. APGI-LNN Mapping Table: Five Structural Correspondences Between Computational Constructs and ODE Parameters
 
@@ -108,7 +124,9 @@ The systematic mapping between APGI abstractions and Liquid Neural Network param
 
 ### Connection to App Implementation (Innovation 8)
 
-The APGI-LNN mapping table is implemented in `APGI_Liquid_Network_Implementation.py`, with precision weighting mapped to liquid time constant (τ) modulation via `tau_intero_baseline` and `tau_extero_baseline`, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to bifurcation points in the ODE state space.
+`Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`, `utils/constants.py`
+
+Maps precision weighting to liquid time constant (τ) modulation, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to saddle-node bifurcation points where Π·|ε| = θ_t defines the separatrix between subthreshold and ignited attractor basins.
 
 ## 9. 1/f Spectral Slope as Quantitative Prediction of Hierarchical APGI Architecture
 
@@ -145,7 +163,9 @@ APGI's contribution is not deriving 1/f dynamics de novo but specifying which re
 
 ### Connection to App Implementation (Innovation 9)
 
-The 1/f spectral slope predictions are implemented through the hierarchical generative models in Falsification-Protocol-1.py, where nested regulatory loops with precision weights and allostatic thresholds across timescales generate the predicted aperiodic exponents (β ≈ 0.8-1.2 wakefulness, β ≈ 1.5-2.0 deep sleep, β > 1.5 anesthesia), with falsification criteria based on FOOOF/specparam measurements.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_09_NeuralSignaturesP3bHEP.py`, `utils/eeg_processing.py`
+
+Predicts aperiodic exponents α_spec ≈ 0.8-1.2 (wakefulness), α_spec ≈ 1.5-2.0 (deep sleep), α_spec > 1.5 (anesthesia) through nested regulatory loops with precision weights and allostatic thresholds across timescales.
 
 ### Relationship to Prior Work (Innovation 9)
 
@@ -161,7 +181,9 @@ Quantitative threshold predictions are presented as strong-form falsifiable targ
 
 ### Connection to App Implementation (Innovation 10)
 
-The psychiatric disorder recharacterization is implemented in APGI_Psychological_States.py, with specific parameter profiles for GAD (elevated β ≈0.7), MDD (blunted Πⁱ, elevated θ_t), Psychosis (aberrant Π), and PTSD (hyper-precise somatic markers), providing quantitative biomarker predictions for hierarchical level-specific dysregulation.
+`config/profiles/*.yaml`, `utils/parameter_validator.py`, `utils/apgi_config.py`
+
+Provides specific parameter profiles for psychiatric states including GAD (elevated β ≈0.7), MDD (blunted Πⁱ, elevated θ_t), Psychosis (aberrant Π), and PTSD (hyper-precise somatic markers), providing quantitative biomarker predictions for hierarchical level-specific dysregulation.
 
 ### Relationship to Prior Work (Innovation 10)
 
@@ -173,7 +195,9 @@ Building on the bifurcation framework established in Innovation 4 and on prior d
 
 ### Connection to App Implementation (Innovation 11)
 
-The phase transition predictions are implemented in the liquid network dynamics of APGI_Liquid_Network_Implementation.py, where precision-weighted prediction error accumulation leads to bistable firing rates, critical slowing near thresholds, and hysteresis in the ODE state space, with testable signatures for intracranial EEG.
+`Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`
+
+Implements saddle-node bifurcation dynamics in liquid network state space, generating bistable firing rates (subthreshold <5 Hz vs. ignited 20-40 Hz), critical slowing (τ_AC ∝ |Π·|ε| - θ_t|^(-0.5)), and hysteresis (Δθ ≈ 0.1–0.2 θ_t) linked to precision-weighted prediction error accumulation.
 
 ## 12. Cross-Level Bidirectional Coupling Formalized as Coupled Differential Equations
 
@@ -181,7 +205,9 @@ The formalization of top-down precision modulation (higher levels set precision 
 
 ### Connection to App Implementation (Innovation 12)
 
-The cross-level bidirectional coupling is implemented as coupled differential equations in the HierarchicalGenerativeModel of Falsification-Protocol-1.py, formalizing top-down precision modulation and bottom-up error propagation across sensory, organ, and homeostatic levels with quantitative predictions for PAC signatures.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`
+
+Formalizes top-down precision modulation and bottom-up error propagation as coupled differential equations across sensory, organ, and homeostatic levels with quantitative predictions for PAC signatures.
 
 ### Relationship to Prior Work (Innovation 12)
 
@@ -197,7 +223,9 @@ The prediction that near-threshold visual stimuli presented during high HEP phas
 
 ### Connection to App Implementation (Innovation 13)
 
-The cardiac phase-dependent detection rate prediction is implemented in the multimodal integration of APGI_Multimodal_Integration.py, where interoceptive precision gating modulates exteroceptive access, predicting 15-20% higher detection rates during high HEP phases, discriminable from standard GWT via HEP amplitude measurements.
+`Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py`, `utils/eeg_processing.py`
+
+Interoceptive precision gating modulates exteroceptive access, predicting 15-20% higher detection rates during high HEP phases (250-400ms post-R-wave), discriminable from standard GWT via HEP amplitude measurements.
 
 ## 14. Somatic Marker Modulation of Precision (Πⁱ), Not Prediction Error (εⁱ), as Distinguishing Claim
 
@@ -205,7 +233,9 @@ The explicit distinction between two ways somatic markers could work—modulatin
 
 ### Connection to App Implementation (Innovation 14)
 
-The somatic marker modulation of precision is implemented in the `compute_somatic_modulation` method of APGI_Multimodal_Integration.py, where M(c,a) modulates Πⁱ_eff rather than εⁱ, predicting vmPFC correlations with anticipatory insula activation for precision weighting.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_02_AgentComparisonConvergenceBenchmark.py`
+
+M(c,a) modulates Πⁱ_eff rather than εⁱ, predicting vmPFC correlations with anticipatory insula activation for precision weighting.
 
 ## 15. Backward Masking, Attentional Blink, and Binocular Rivalry Reinterpreted as Liquid Network Phenomena
 
@@ -213,7 +243,9 @@ The reinterpretation of three classic paradigms through reservoir dynamics—bac
 
 ### Connection to App Implementation (Innovation 15)
 
-The reinterpretation of backward masking, attentional blink, and binocular rivalry is implemented in the liquid network dynamics of APGI_Liquid_Network_Implementation.py, where reservoir decay rates, saturation within integration windows, and precision-weighted competition generate quantitative predictions for each paradigm's parameters.
+`Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`, `Validation/VP_06_LiquidNetworkInductiveBias.py`
+
+Reservoir dynamics generate quantitative predictions for backward masking (decay rates), attentional blink (saturation within integration windows), and binocular rivalry (precision-weighted competition).
 
 ## 16. Phase-Amplitude Coupling as Neural Implementation of Inter-Level Hierarchical Precision
 
@@ -223,7 +255,9 @@ APGI builds on these established PAC-precision mappings by extending them to con
 
 ### Connection to App Implementation (Innovation 16)
 
-The phase-amplitude coupling predictions are implemented in the hierarchical generative models of Falsification-Protocol-1.py, specifying theta-gamma PAC for Level 1-2 coupling and delta-theta PAC for Level 3-4 coupling with quantitative predictions for coupling strength across states.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_09_NeuralSignaturesP3bHEP.py`, `utils/eeg_processing.py`
+
+Specifies theta-gamma PAC for Level 1-2 coupling and delta-theta PAC for Level 3-4 coupling with quantitative predictions for coupling strength across consciousness states.
 
 ### Relationship to Prior Work (Innovation 16)
 
@@ -235,7 +269,9 @@ Van der Hart, Nijenhuis, & Steele (2006, The Haunted Self) provided the foundati
 
 ### Connection to App Implementation (Innovation 17)
 
-The dissociation as level decoupling is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting between-level EEG coherence ≥40% below norms while within-level coherence remains intact (<15% deviation) during dissociative episodes.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`
+
+Predicts between-level EEG coherence ≥40% below norms (d > 1.2, p < 0.001) while within-level coherence remains intact (<15% deviation, d < 0.3, p > 0.05) during dissociative episodes (Clinician-Administered Dissociative States Scale score >15).
 
 ### Relationship to Prior Work (Innovation 17)
 
@@ -247,7 +283,9 @@ The proposed continuous perceptual threshold paradigm—participants perform sus
 
 ### Connection to App Implementation (Innovation 18)
 
-The fractional dimension of threshold dynamics is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, predicting fractal (power-law) autocorrelation decay in sustained near-threshold detection tasks, with reduced dimension in depression and excessive in ADHD.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_08_ParameterSensitivityIdentifiability.py`
+
+Predicts fractal (power-law) autocorrelation decay in sustained near-threshold detection tasks, with reduced dimension in depression and excessive in ADHD.
 
 ## 19. APGI-Adaptive Threshold as Explanation for Flow States and Psychedelic Effects
 
@@ -257,7 +295,9 @@ These generate measurable EEG predictions: flow should correlate with moderate a
 
 ### Connection to App Implementation (Innovation 19)
 
-The APGI-adaptive threshold explanations are implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py and parameter profiles in APGI_Psychological_States.py, formalizing flow as θ_t optimization and psychedelics as precision landscape flattening with specific EEG predictions.
+`Falsification/FP_01_ActiveInference.py`, `config/profiles/*.yaml`, `utils/parameter_validator.py`
+
+Formalizes flow as θ_t optimization and psychedelics as precision landscape flattening with specific EEG predictions (moderate alpha suppression, sustained beta-gamma coherence for flow; increased P3b frequency with reduced amplitude specificity for psychedelics).
 
 ### Relationship to Prior Work (Innovation 19)
 
@@ -269,7 +309,9 @@ The proposal that HEP amplitude (proxy for Πⁱ, grounded in Sel et al., 2017) 
 
 ### Connection to App Implementation (Innovation 20)
 
-The joint biomarkers are implemented in the multimodal integration of APGI_Multimodal_Integration.py and validation protocols in Validation/, with HEP amplitude as proxy for Πⁱ and PCI as proxy for global ignition capacity, predicting recovery in disorders of consciousness.
+`Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py`, `Falsification/FP_09_NeuralSignaturesP3bHEP.py`, `utils/eeg_processing.py`
+
+HEP amplitude as proxy for Πⁱ and PCI as proxy for global ignition capacity, with joint predictions for recovery in disorders of consciousness.
 
 ## 21. Evolutionary Derivation of Liquid Architecture from Biological Constraints
 
@@ -279,7 +321,9 @@ This derivation demonstrates architectural compatibility with biological constra
 
 ### Connection to App Implementation (Innovation 21)
 
-The evolutionary derivation is implemented in the liquid network architecture of APGI_Liquid_Network_Implementation.py, where features like threshold filtering, predictive hierarchy, and precision-weighted coding are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
+`Falsification/FP_05_EvolutionaryPlausibility.py`, `Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`
+
+Features like threshold filtering, predictive hierarchy, precision-weighted population coding, interoceptive prioritization, and multi-timescale integration are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
 
 ## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 4
 
@@ -289,7 +333,9 @@ APGI's specific contribution is mapping these established empirical trajectories
 
 ### Connection to App Implementation (Innovation 22)
 
-The developmental trajectory is implemented in the hierarchical generative models of Falsification-Protocol-1.py, predicting level emergence sequence from Level 1 at birth to Level 4 in adolescence, with transitions trackable via intrinsic timescale lengthening.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`, `Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py`
+
+Predicts level emergence sequence: Level 1 (birth, τ₁≈50ms) → Level 2 (6–12mo, τ₂≈200–500ms) → Level 3 (2–4yr, τ₃≈1–2s) → Level 4 (12–16yr, τ₄≈5–20s), with transitions defined by >50% increase in intrinsic timescale and >30% increase in inter-level PAC strength.
 
 ### Relationship to Prior Work (Innovation 22)
 
@@ -301,7 +347,9 @@ Fleming & Dolan (2012, Trends in Cognitive Sciences) formalized metacognition as
 
 ### Connection to App Implementation (Innovation 23)
 
-The meta-consciousness implementation is in the hierarchical architecture of Falsification-Protocol-1.py, where Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy correlations with inter-level coupling strength.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`, `Validation/VP_07_TMSCausalInterventions.py`
+
+Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy (type-2 ROC AUC) correlates with Level ℓ–ℓ+1 PAC strength at r > 0.45 (p < 0.001), with TMS disruption of Level ℓ+1 reducing meta-d'/d' by ≥35% while preserving Level ℓ performance (d' reduction <10%).
 
 ### Relationship to Prior Work (Innovation 23)
 
@@ -317,7 +365,9 @@ Unlike most theoretical consciousness papers that offer qualitative predictions,
 
 ### Connection to App Implementation (Innovation 24)
 
-The pre-registered empirical protocols are implemented in the Validation/ directory, with protocols like Validation_Protocol_1.py through Validation_Protocol_12.py, each including explicit power analyses, effect sizes, and pre-specified falsification criteria.
+`Validation/VP_01_SyntheticEEGMLClassification.py` through `Validation/VP_22_FMRIAnticipationExperience.py`
+
+Each protocol includes explicit power analyses, effect sizes, and pre-specified falsification criteria (e.g., cardiac modulation >12% for interoceptive gating, PCI reduction of 15-25% for TMS disruption).
 
 ## 25. APGI Clinical Assessment Battery (APGI-CAB): Proposed Multimodal Diagnostic Instrument
 
@@ -325,7 +375,9 @@ This item describes a proposed multimodal diagnostic instrument concept, not a v
 
 ### Connection to App Implementation (Innovation 25)
 
-The APGI Clinical Assessment Battery is proposed in the validation framework of APGI_Validation_GUI.py (root) and Validation/Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
+`APGI_Validation_GUI.py` (root), `Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py`, `Validation/VP_12_ClinicalCrossSpeciesConvergence.py`
+
+Combines HEP + PCI + behavioral interoceptive tasks as assessment architecture targeting psychiatric populations (anxiety, depression, PTSD, autism) for validating APGI parameter profiles. **Status:** CABBattery class proposed but not yet implemented.
 
 ## 26. Parameter Estimation Workflow
 
@@ -333,7 +385,9 @@ Behavioral constraints confining parameter ranges through simulation of detectio
 
 ### Connection to App Implementation (Innovation 26)
 
-The parameter estimation workflow is implemented in APGI_Parameter_Estimation.py, using behavioral constraints from simulation of detection rates, ignition frequencies, and RT distributions to confine parameter ranges with identifiability analyses.
+`utils/parameter_validator.py`, `Falsification/FP_08_ParameterSensitivityIdentifiability.py`, `Falsification/FP_10_BayesianEstimationMCMC.py`
+
+Uses behavioral constraints from simulation of detection rates, ignition frequencies, and RT distributions to confine parameter ranges with identifiability analyses (core parameters r > 0.82, auxiliary r > 0.68).
 
 ## 27. Continuous-Time Dynamical Equations (dSₜ/dt, dθₜ/dt)
 
@@ -341,7 +395,9 @@ Distinguishes surprise accumulation from threshold adaptation as separate proces
 
 ### Connection to App Implementation (Innovation 27)
 
-The continuous-time dynamical equations are implemented in APGI_Full_Dynamic_Model.py, distinguishing surprise accumulation (dS_t/dt) from threshold adaptation (dθ_t/dt) with distinct time constants (λ_S ≈ 2–5 s⁻¹ vs λ_θ ≈ 0.01–0.1 s⁻¹).
+`Falsification/FP_01_ActiveInference.py`, `utils/constants.py` (DIM_CONSTANTS)
+
+Distinguishes surprise accumulation (dS_t/dt = -S_t/τ_S + input_drive) from threshold adaptation (dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)) with distinct time constants: τ_S ≈ 0.2–0.5 s vs τ_θ ≈ 10–100 s (decay rates λ_S = 1/τ_S ≈ 2–5 s⁻¹, λ_θ = 1/τ_θ ≈ 0.01–0.1 s⁻¹).
 
 ## 28. Full Neuromodulatory Implementation of Each LNN Parameter
 
@@ -349,7 +405,9 @@ Precision weighting to acetylcholine/NMDA coupling; threshold to norepinephrine/
 
 ### Connection to App Implementation (Innovation 28)
 
-The full neuromodulatory implementation is in APGI_Liquid_Network_Implementation.py, mapping precision weighting to acetylcholine/NMDA coupling, threshold to norepinephrine/LC dynamics, interoceptive integration to insula-VAN circuit, and somatic bias to vmPFC-insula asymmetric projection.
+`Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`, `utils/constants.py`
+
+Maps precision weighting to acetylcholine/NMDA coupling, threshold to norepinephrine/LC dynamics, interoceptive integration to insula-VAN circuit, and somatic bias to vmPFC-insula asymmetric projection.
 
 ## 29. Comparative Analysis of Liquid Networks versus Alternative Architectures
 
@@ -357,7 +415,9 @@ Comparison against feedforward, recurrent, and transformer architectures on five
 
 ### Connection to App Implementation (Innovation 29)
 
-The comparative analysis is implemented in APGI_Liquid_Network_Implementation.py, demonstrating liquid networks' intrinsic properties (sharp thresholds, temporal integration, metabolic selectivity, fading memory, multi-timescale dynamics) versus alternative architectures requiring additional mechanisms.
+`Falsification/FP_06_LiquidNetworkEnergyBenchmark.py`, `Falsification/FP_11_LiquidNetworkDynamicsEchoState.py`, `Validation/VP_06_LiquidNetworkInductiveBias.py`
+
+Demonstrates liquid networks' intrinsic properties (sharp thresholds, temporal integration, metabolic selectivity, fading memory, multi-timescale dynamics) versus alternative architectures requiring additional mechanisms.
 
 ## 30. Depression Recharacterized at the Hierarchical Level
 
@@ -365,7 +425,9 @@ Level 3–4 rigidity (mPFC-hippocampal hyperconnectivity ≥50% above controls) 
 
 ### Connection to App Implementation (Innovation 30)
 
-The depression recharacterization is implemented in APGI_Psychological_States.py, with Level 3-4 rigidity (elevated θ_t) and Level 1-2 disconnection (blunted Πⁱ), extending REBUS with precision-gated threshold predictions.
+`config/profiles/*.yaml`, `utils/parameter_validator.py`, `utils/apgi_config.py`
+
+Level 3-4 rigidity (elevated θ_t) and Level 1-2 disconnection (blunted Πⁱ), extending REBUS with precision-gated threshold predictions.
 
 ## 31. Circadian Modulation of θₜ as Formally Incorporated Oscillatory Coupling
 
@@ -373,7 +435,9 @@ Cortisol morning peak lowering threshold for memory consolidation, evening melat
 
 ### Connection to App Implementation (Innovation 31)
 
-The circadian modulation is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, with cortisol morning peaks lowering θ_t for memory consolidation and melatonin evening rises elevating it for sensory processing.
+`Falsification/FP_01_ActiveInference.py`, `utils/constants.py`
+
+Cortisol morning peaks lower θ_t for memory consolidation, melatonin evening rises elevate θ_t for sensory processing, linking to endocrine rhythms.
 
 ## 32. Ultradian ~90-Minute Rest-Activity Cycle Reinterpreted as Periodic Threshold Recalibration
 
@@ -381,7 +445,9 @@ The Basic Rest-Activity Cycle (BRAC), established by Kleitman (1963) and subsequ
 
 ### Connection to App Implementation (Innovation 32)
 
-The ultradian cycle is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, with sustained cognitive engagement depleting neuromodulator reserves and elevating θ_t until rest recalibrates it.
+`Falsification/FP_01_ActiveInference.py`, `Falsification/FP_05_EvolutionaryPlausibility.py`
+
+Sustained cognitive engagement depletes neuromodulator reserves and elevates θ_t until rest recalibrates it, predicting ~90-minute performance oscillations.
 
 ### Relationship to Prior Work (Innovation 32)
 
@@ -393,7 +459,9 @@ Simpler nervous systems should show fewer hierarchical levels, shorter intrinsic
 
 ### Connection to App Implementation (Innovation 33)
 
-The cross-species prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting fewer levels, shorter timescales, and reduced PAC complexity in simpler nervous systems, testable via comparative PCI measurements.
+`Falsification/FP_12_CrossSpeciesScaling.py`, `Falsification/FP_03_FrameworkLevelMultiProtocol.py`
+
+Predicts hierarchical level count L ≈ 1 + log₁₀(N_cortical_neurons/10⁶), level timescales τ_ℓ ∝ (brain_mass)^(1/4), and PAC complexity C_PAC ∝ L(L-1)/2 in cross-species comparisons, with specific predictions: mouse (L≈2, τ₁≈30ms), macaque (L≈3, τ₁≈80ms), human (L≈4, τ₁≈150ms), testable via comparative PCI and intrinsic timescale measurements.
 
 ## 34. Cultural Neuroscience Prediction
 
@@ -401,14 +469,16 @@ Linguistic temporal grammar and contemplative practices (meditation traditions) 
 
 ### Connection to App Implementation (Innovation 34)
 
-The cultural neuroscience prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting meditation and linguistic temporal grammar effects on inter-level coupling strength and level-specific θ_t values.
+`Validation/VP_11_MCMCCulturalNeurosciencePriority3.py`, `Falsification/FP_10_BayesianEstimationMCMC.py`
+
+Predicts meditation effects: 10,000+ hours focused attention practice → 15–25% increase in Level 3–4 theta-gamma PAC, 30–40% reduction in θ_t coefficient of variation; linguistic temporal grammar effects: languages with >8 temporal markers → 10–20% stronger delta-theta PAC and 5–15% elevated baseline θ_t in temporal tasks vs. isolating languages.
 
 ## 35. APGI Multimodal Classifier: Implemented Stratification Tool for Psychiatric Diagnosis
 
 The APGI Multimodal Classifier is now implemented in `APGI_Multimodal_Classifier.py` with advanced Bayesian parameter inversion and mechanistic stratification capabilities. The implementation includes:
 
 - **APGIBayesianInversion**: Hierarchical Bayesian inversion to recover latent trait parameters (θ₀, Πᵢ, β) from observed data
-- **APGIMechanisticStratifier**: Machine learning stratification using recovered APGI parameters for psychiatric disorder classification  
+- **APGIMechanisticStratifier**: Machine learning stratification using recovered APGI parameters for psychiatric disorder classification
 - **Precision-weighted multimodal integration**: Grounded in theoretically motivated parameters (Πⁱ, θₜ, β) rather than empirically derived clusters
 - **Real-time clinical interpretation**: Provides psychiatric disorder profiling with feature importance analysis
 
@@ -416,11 +486,8 @@ The classifier extends approaches like Drysdale et al. (2017, Nature Medicine) b
 
 ### Connection to App Implementation (Innovation 35)
 
-The APGI Multimodal Classifier is implemented in `APGI_Multimodal_Classifier.py` with:
+`APGI_Validation_GUI.py` (root), `Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py`, `Validation/VP_14_FMRIAnticipationExperience.py`
 
-- Bayesian parameter inversion using PyMC for uncertainty quantification
-- Random forest classification with mechanistic feature importance  
-- Clinical disorder profiles (healthy, anxiety, depression, psychosis)
-- Real-time parameter recovery and stratification capabilities
+Uses fMRI connectivity, pupillometry, EEG ignition markers, HRV, and behavioral modeling as inputs grounded in Πⁱ, θ_t, β parameters for machine-learning stratification of psychiatric disorders.
 
 **Falsification Criteria**: AUC > 0.80 / ΔAUROC > 0.05 for psychiatric disorder classification

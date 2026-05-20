@@ -231,6 +231,11 @@ PREDICTION_TO_PROTOCOL = {
     "V21.1": "VP_21_FreeEnergyPredictionError",
     "V21.2": "VP_21_FreeEnergyPredictionError",
     "V21.3": "VP_21_FreeEnergyPredictionError",
+    # VP-22: fMRI Anticipation vs. Experience (Somatic Marker) — enhanced P05
+    "V22.a": "VP_22_FMRIAnticipationExperience",
+    "V22.b": "VP_22_FMRIAnticipationExperience",
+    "V22.c": "VP_22_FMRIAnticipationExperience",
+    "V22.d": "VP_22_FMRIAnticipationExperience",
 }
 
 # Protocol tier classification
@@ -256,6 +261,7 @@ PROTOCOL_TIERS = {
     "VP_19_InformationErasureMVPA": "secondary",
     "VP_20_EmpiricalIEEG": "secondary",
     "VP_21_FreeEnergyPredictionError": "secondary",
+    "VP_22_FMRIAnticipationExperience": "tertiary",  # enhanced P05; companion to VP-14/VP-15
 }
 
 # VP-07 / VP-10 Boundary Clarification

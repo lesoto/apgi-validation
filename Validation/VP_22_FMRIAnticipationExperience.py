@@ -74,7 +74,7 @@ except Exception:
 try:
     from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
 except Exception:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 try:
     from utils.falsification_thresholds import V15_ANTICIPATORY_CORRELATION_MIN
@@ -152,7 +152,7 @@ def _safe_linregress(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
 class APGIP5SomaticProtocol:
     """Protocol 5 validator with simulation and empirical-data support."""
 
-    protocol_id = "VP_22_fMRI_Anticipation_Experience"
+    protocol_id = "VP_22_FMRIAnticipationExperience"
     protocol_name = "APGI-P05 fMRI Anticipation vs. Experience (Somatic Marker)"
 
     def __init__(self, config: Optional[Protocol5Config] = None):
@@ -508,7 +508,7 @@ def run_protocol_main(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
             status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
             name=pred_id,
             evidence=[],
-            sources=["APGI-P05", "VP_22_fMRI_Anticipation_Experience"],
+            sources=["APGI-P05", "VP_22_FMRIAnticipationExperience"],
             metadata={k: v for k, v in pred.items() if k not in {"passed", "actual", "threshold"}},
         )
 
@@ -523,7 +523,7 @@ def run_protocol_main(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
     completion = 100
 
     return ProtocolResult(
-        protocol_id="VP_22_fMRI_Anticipation_Experience",
+        protocol_id="VP_22_FMRIAnticipationExperience",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=completion,

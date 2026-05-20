@@ -16,9 +16,7 @@ from Falsification.FP_10_BayesianEstimationMCMC import (
     run_mcmc_bayesian_estimation,
     set_data_source,
 )
-from Falsification.FP_10_BayesianEstimationMCMC import (
-    test_parameter_identifiability as check_parameter_identifiability,
-)
+from Falsification.FP_10_BayesianEstimationMCMC import test_parameter_identifiability as check_parameter_identifiability
 
 
 class TestDataSource:

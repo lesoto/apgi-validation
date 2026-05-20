@@ -1,7 +1,7 @@
-# APGI Consolidated Implementation Matrix
+# APGI Naming Conventions
 
 **Scope:** All 35 protocol scripts across `Falsification/` and `Validation/` folders, plus orchestrators  
-**Source of truth for file names:** `ls Falsification/*.py` and `ls Validation/*.py` (May 2026 audit)
+**Source of truth for file names:** `ls Falsification/*.py` and `ls Validation/*.py` 
 
 ---
 
@@ -222,6 +222,57 @@ Keep this matrix as the **single source of truth** for protocol-to-file mapping.
 
 > ¹ FP-9 serves both E01 (EEG signatures) and E02 (TMS causal) via shared neural-signature criteria.  
 > ² VP-7 is the TMS validation file; a dedicated mathematical-consistency VP is absent (see improvement §6.3).
+
+---
+
+---
+
+## Section 8 — Paper Protocol to VP/FP Mapping
+
+*Sourced from codebase audit (April 2026). Maps the six numbered paper protocols and four epistemic roadmap priorities to their implementing VP/FP files.*
+
+| Paper Protocol | VP/FP | Status | Notes |
+| ---------------- | ------- | -------- | ------- |
+| Paper Protocol 1 (Psychophysics) | VP-8 | ✅ Full | Bonferroni corrections applied |
+| Paper Protocol 2 (TMS Causal) | VP-7 | ✅ Full | Dual-file structure |
+| Paper Protocol 3 (Active Inference) | VP-3 | ✅ Full | BIC/AIC and Mann-Whitney U |
+| Paper Protocol 4 (DoC Clinical) | VP-12 | ✅ Full | Liquid network included |
+| Paper Protocol 5 (fMRI) | VP-14, VP-15, VP-22 | ✅ Full | VP-14 primary; VP-15 vmPFC focus; VP-22 somatic marker emphasis |
+| Paper Protocol 6 (Parameter Estimation) | VP-1 + VP-2 | ✅ Split | EEG/ML + Behavioral |
+| Epistemic Paper P5–P8 | VP-4 | ✅ Full | Metabolic cost driver patched |
+| Epistemic Roadmap Priority 1 | VP-9 | ✅ Full | Power-analysis gating |
+| Epistemic Roadmap Priority 2 | VP-10 | ✅ Full | Overlaps VP-7 |
+| Epistemic Roadmap Priority 3 | VP-11 | ✅ Full | Gelman-Rubin R̂ ≤ 1.01 |
+| Epistemic Roadmap Priority 4 | VP-12 | ✅ Shared | Same as Protocol 4 |
+
+---
+
+## Section 9 — Named Predictions Cross-Reference
+
+*18 predictions tracked by `FP_ALL_Aggregator.py` via `PREDICTION_TO_PROTOCOL` dict. Each prediction maps to a source protocol and has a defined falsification criterion.*
+
+| Prediction ID | Description | Source Protocol | Falsified if… |
+| --------------- | ------------- | ----------------- | --------------- |
+| P1.1 | Interoceptive precision modulates detection threshold (d=0.40–0.60) | FP-1 / `FP_01_ActiveInference.py` | d <0.35 or p≥0.01 |
+| P1.2 | Arousal amplifies Πⁱ–threshold relationship | FP-1 / `FP_01_ActiveInference.py` | Interaction p≥0.01 |
+| P1.3 | High-IA individuals show stronger arousal benefit | FP-1 / `FP_01_ActiveInference.py` | Effect absent or reversed |
+| P2.a | dlPFC TMS shifts threshold >0.1 log units | VP-10 / `VP_10_CausalManipulationsPriority2.py` | Shift <0.05 log units |
+| P2.b | Insula TMS reduces HEP ~30% AND PCI ~20% (double dissociation) | VP-10 / `VP_10_CausalManipulationsPriority2.py` | Either reduction absent |
+| P2.c | High-IA × insula TMS interaction | VP-10 / `VP_10_CausalManipulationsPriority2.py` | Interaction p≥0.05 |
+| P3.conv | APGI converges in 50–80 trials (beats baselines) | FP-2 / `FP_02_AgentComparisonConvergenceBenchmark.py` | APGI >100 trials to criterion |
+| P3.bic | APGI BIC lower than StandardPP and GWTOnly | FP-2 / `FP_02_AgentComparisonConvergenceBenchmark.py` | ΔBIC <10 vs alternatives |
+| P4.a | PCI+HEP joint AUC >0.80 for DoC classification | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | AUC <0.75 |
+| P4.b | DMN to PCI r>0.50; DMN to HEP r<0.20 | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | Either correlation outside range |
+| P4.c | Cold pressor increases PCI >10% in MCS, not VS | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | No differential response |
+| P4.d | Baseline PCI+HEP predicts 6-month recovery ΔR²>0.10 | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | ΔR² <0.05 |
+| P5.a | vmPFC to SCR anticipatory correlation r>0.40 | FP-5 / `FP_05_EvolutionaryPlausibility.py` | r <0.25 |
+| P5.b | vmPFC uncorrelated with posterior insula (r<0.20) | FP-5 / `FP_05_EvolutionaryPlausibility.py` | r >0.30 |
+| fp10a_mcmc | Bayesian MCMC: Gelman–Rubin R̂ ≤1.01 (convergence) | FP-10 / `FP_10_BayesianEstimationMCMC.py` | R̂ >1.01 |
+| fp10b_bf | BF₁₀ ≥3 for APGI vs StandardPP / GWT | FP-10 / `FP_10_BayesianEstimationMCMC.py` | BF₁₀ <3 |
+| fp10c_mae | APGI ≥20% lower MAE than alternatives | FP-10 / `FP_10_BayesianEstimationMCMC.py` | MAE reduction <20% |
+| fp10_scaling | Cross-species scaling: allometric exponents within ±2 SD | FP-12 / `FP_12_CrossSpeciesScaling.py` | Exponents >2 SD from expectation |
+
+**FP-10 note:** FP-10 is internally split into FP10a (Bayesian MCMC) and FP10b (Cross-Species Scaling via FP-12). Both must pass; either failure falsifies FP-10.
 
 ---
 

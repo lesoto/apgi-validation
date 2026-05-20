@@ -1315,10 +1315,8 @@ class PsychStatesModule:
     MODULE_LEVEL: str = "Level 2"
 
     def compute(self, **kwargs) -> dict:
-        results, edge_cases = validate_all_states()
-        passed_count = sum(1 for checks in results.values() if all(checks.values()))
-        failed_count = len(results) - passed_count
-        return {"passed": passed_count, "failed": failed_count, "warnings": edge_cases}
+        passed_count, failed_count, warnings = validate_all_states()
+        return {"passed": passed_count, "failed": failed_count, "warnings": warnings}
 
     def get_falsification_criteria(self) -> dict:
         return {

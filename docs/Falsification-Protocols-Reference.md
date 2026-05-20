@@ -580,7 +580,7 @@ def run_protocol_safely(protocol_func):
 ## Integration with Validation System
 
 ```python
-from validation.APGI_Master_Validation import APGIMasterValidator
+from Validation.Master_Validation import APGIMasterValidator
 
 validator = APGIMasterValidator()
 

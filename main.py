@@ -2890,34 +2890,34 @@ def falsify(
             falsification_dir / f"FP_{i:02d}_ActiveInference.py"
             if i == 1
             else (
-                falsification_dir / f"FP_{i:02d}_AgentComparison_ConvergenceBenchmark.py"
+                falsification_dir / f"FP_{i:02d}_AgentComparisonConvergenceBenchmark.py"
                 if i == 2
                 else (
-                    falsification_dir / f"FP_{i:02d}_FrameworkLevel_MultiProtocol.py"
+                    falsification_dir / f"FP_{i:02d}_FrameworkLevelMultiProtocol.py"
                     if i == 3
                     else (
-                        falsification_dir / f"FP_{i:02d}_PhaseTransition_EpistemicArchitecture.py"
+                        falsification_dir / f"FP_{i:02d}_PhaseTransitionEpistemicArchitecture.py"
                         if i == 4
                         else (
                             falsification_dir / f"FP_{i:02d}_EvolutionaryPlausibility.py"
                             if i == 5
                             else (
-                                falsification_dir / f"FP_{i:02d}_LiquidNetwork_EnergyBenchmark.py"
+                                falsification_dir / f"FP_{i:02d}_LiquidNetworkEnergyBenchmark.py"
                                 if i == 6
                                 else (
                                     falsification_dir / f"FP_{i:02d}_MathematicalConsistency.py"
                                     if i == 7
                                     else (
-                                        falsification_dir / f"FP_{i:02d}_ParameterSensitivity_Identifiability.py"
+                                        falsification_dir / f"FP_{i:02d}_ParameterSensitivityIdentifiability.py"
                                         if i == 8
                                         else (
-                                            falsification_dir / f"FP_{i:02d}_NeuralSignatures_P3b_HEP.py"
+                                            falsification_dir / f"FP_{i:02d}_NeuralSignaturesP3bHEP.py"
                                             if i == 9
                                             else (
-                                                falsification_dir / f"FP_{i:02d}_BayesianEstimation_MCMC.py"
+                                                falsification_dir / f"FP_{i:02d}_BayesianEstimationMCMC.py"
                                                 if i == 10
                                                 else (
-                                                    falsification_dir / f"FP_{i:02d}_LiquidNetworkDynamics_EchoState.py"
+                                                    falsification_dir / f"FP_{i:02d}_LiquidNetworkDynamicsEchoState.py"
                                                     if i == 11
                                                     else (
                                                         falsification_dir / f"FP_{i:02d}_CrossSpeciesScaling.py"

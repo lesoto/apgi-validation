@@ -387,9 +387,9 @@ PREDICTION_TO_PROTOCOL = {
     "P1.2": "FP_01_ActiveInference",
     "P1.3": "FP_01_ActiveInference",
     # FP-2: TMS/Pharmacological Causal Manipulation
-    "P2.a": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.b": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.c": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "P2.a": "VP_10_CausalManipulationsPriority2",
+    "P2.b": "VP_10_CausalManipulationsPriority2",
+    "P2.c": "VP_10_CausalManipulationsPriority2",
     # FP-3: Agent Comparison Convergence
     "P3.conv": "FP_02_AgentComparisonConvergenceBenchmark",
     "P3.bic": "FP_02_AgentComparisonConvergenceBenchmark",
@@ -414,7 +414,7 @@ PREDICTION_TO_PROTOCOL = {
 # This catches typos in protocol IDs early rather than silently failing at runtime
 VALID_PROTOCOL_IDS = {
     "FP_01_ActiveInference",
-    "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "VP_10_CausalManipulationsPriority2",
     "FP_02_AgentComparisonConvergenceBenchmark",
     "FP_09_NeuralSignaturesP3bHEP",
     "FP_05_EvolutionaryPlausibility",
