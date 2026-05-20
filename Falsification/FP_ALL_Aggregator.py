@@ -391,23 +391,23 @@ PREDICTION_TO_PROTOCOL = {
     "P2.b": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
     "P2.c": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
     # FP-3: Agent Comparison Convergence
-    "P3.conv": "FP_02_AgentComparison_ConvergenceBenchmark",
-    "P3.bic": "FP_02_AgentComparison_ConvergenceBenchmark",
+    "P3.conv": "FP_02_AgentComparisonConvergenceBenchmark",
+    "P3.bic": "FP_02_AgentComparisonConvergenceBenchmark",
     # FP-4: DoC Clinical Predictions
-    "P4.a": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.b": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.c": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.d": "FP_09_NeuralSignatures_P3b_HEP",
+    "P4.a": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.b": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.c": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.d": "FP_09_NeuralSignaturesP3bHEP",
     # FP-5: Skin Conductance / Affective Markers
     "P5.a": "FP_05_EvolutionaryPlausibility",
     "P5.b": "FP_05_EvolutionaryPlausibility",
     # DS-01: Sergent 2005 Attentional Blink
     "DS-01.1": "DS_01_Sergent2005_AttentionalBlink",
     # FP-10: Bayesian MCMC + Cross-Species Scaling
-    "fp10a_mcmc": "FP_10_BayesianEstimation_MCMC",
-    "fp10b_bf": "FP_10_BayesianEstimation_MCMC",
-    "fp10c_mae": "FP_10_BayesianEstimation_MCMC",
-    "fp10b_scaling": "FP_10_BayesianEstimation_MCMC",
+    "fp10a_mcmc": "FP_10_BayesianEstimationMCMC",
+    "fp10b_bf": "FP_10_BayesianEstimationMCMC",
+    "fp10c_mae": "FP_10_BayesianEstimationMCMC",
+    "fp10b_scaling": "FP_10_BayesianEstimationMCMC",
 }
 
 # FP-12 Fix 4: Validate PREDICTION_TO_PROTOCOL mapping at module load time
@@ -415,10 +415,10 @@ PREDICTION_TO_PROTOCOL = {
 VALID_PROTOCOL_IDS = {
     "FP_01_ActiveInference",
     "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "FP_02_AgentComparison_ConvergenceBenchmark",
-    "FP_09_NeuralSignatures_P3b_HEP",
+    "FP_02_AgentComparisonConvergenceBenchmark",
+    "FP_09_NeuralSignaturesP3bHEP",
     "FP_05_EvolutionaryPlausibility",
-    "FP_10_BayesianEstimation_MCMC",
+    "FP_10_BayesianEstimationMCMC",
     "DS_01_Sergent2005_AttentionalBlink",
 }
 
@@ -1753,8 +1753,8 @@ class FalsificationAggregator:
         disagreements between the two protocols and flags them for manual review.
 
         Args:
-            fp06_results: Results from FP_06_LiquidNetwork_EnergyBenchmark
-            fp11_results: Results from FP_11_LiquidNetworkDynamics_EchoState
+            fp06_results: Results from FP_06_LiquidNetworkEnergyBenchmark
+            fp11_results: Results from FP_11_LiquidNetworkDynamicsEchoState
 
         Returns:
             dict: Reconciliation report with PROTOCOL_CONFLICT status if disagreements found

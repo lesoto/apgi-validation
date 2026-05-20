@@ -46,15 +46,15 @@ Tier: SECONDARY
 
 Master_Validation.py registration:
     "Protocol-18": {
-        "file": "VP_18_EEG_Microstate_GFP_P3b.py",
+        "file": "VP_18_EEGMicrostateGFPP3b.py",
         "function": "run_validation",
         "description": "EEG Microstate Energy Analysis (GFP / P3b)",
     }
 
 VP_ALL_Aggregator.py registration:
-    "V18.1": "VP_18_EEG_Microstate_GFP_P3b",
-    "V18.2": "VP_18_EEG_Microstate_GFP_P3b",
-    "V18.3": "VP_18_EEG_Microstate_GFP_P3b",
+    "V18.1": "VP_18_EEGMicrostateGFPP3b",
+    "V18.2": "VP_18_EEGMicrostateGFPP3b",
+    "V18.3": "VP_18_EEGMicrostateGFPP3b",
 """
 
 import logging
@@ -461,7 +461,7 @@ class GFPMicrostateValidator:
                 "overall_score": passed_tests / total_tests,
                 "tests_passed": passed_tests,
                 "tests_total": total_tests,
-                "protocol_id": "VP_18_EEG_Microstate_GFP_P3b",
+                "protocol_id": "VP_18_EEGMicrostateGFPP3b",
                 "validation_timestamp": datetime.now().isoformat(),
                 "measurement_gap_note": (
                     "GFP is the spatial standard deviation of scalp potential "
@@ -546,10 +546,10 @@ def run_protocol_main(config=None):
                 threshold=v.get("threshold"),
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=v.get("test_name", pred_id),
-                sources=["VP_18_EEG_Microstate_GFP_P3b"],
+                sources=["VP_18_EEGMicrostateGFPP3b"],
             )
         return ProtocolResult(
-            protocol_id="VP_18_EEG_Microstate_GFP_P3b",
+            protocol_id="VP_18_EEGMicrostateGFPP3b",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["EEG Microstate Simulation"],

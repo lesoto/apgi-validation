@@ -788,7 +788,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_15_fMRI_Anticipation_vmPFC",
+                protocol_id="VP_15_FMRIAnticipationVmPFC",
                 timestamp=datetime.now().isoformat(),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -817,12 +817,12 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 threshold=pred_data.get("threshold"),
                 status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
                 evidence=[str(pred_data.get("actual", ""))],
-                sources=["VP_15_fMRI_Anticipation_vmPFC"],
+                sources=["VP_15_FMRIAnticipationVmPFC"],
                 metadata={"validation_status": "SIMULATION_VALIDATED_ONLY"},
             )
 
         return ProtocolResult(
-            protocol_id="VP_15_fMRI_Anticipation_vmPFC",
+            protocol_id="VP_15_FMRIAnticipationVmPFC",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=100,

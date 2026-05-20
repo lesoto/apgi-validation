@@ -1,5 +1,5 @@
 """
-Tests for VP_19_InformationErasure_MVPA.py
+Tests for VP_19_InformationErasureMVPA.py
 """
 
 import sys
@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Validation.VP_19_InformationErasure_MVPA import (
+from Validation.VP_19_InformationErasureMVPA import (
     BIN_CENTRES_MS,
     CATEGORIES,
     IGNITION_BIN_IDX,
@@ -284,7 +284,7 @@ class TestInformationErasureValidator:
         assert "tests_passed" in results  # nosec B101
         assert "tests_total" in results  # nosec B101
         assert results["tests_total"] == 3  # nosec B101
-        assert results["protocol_id"] == "VP_19_InformationErasure_MVPA"  # nosec B101
+        assert results["protocol_id"] == "VP_19_InformationErasureMVPA"  # nosec B101
         assert "measurement_gap_note" in results  # nosec B101
 
     def test_overall_score_range(self, fast_validator):
@@ -327,7 +327,7 @@ class TestInformationErasureValidator:
         assert result["max_consecutive_below_chance_bins"] >= 4  # nosec B101
         assert result["passed"] is True  # nosec B101
 
-    @patch("Validation.VP_19_InformationErasure_MVPA.HAS_MATPLOTLIB", False)
+    @patch("Validation.VP_19_InformationErasureMVPA.HAS_MATPLOTLIB", False)
     def test_generate_figure_no_matplotlib(self, fast_validator):
         result = fast_validator.generate_summary_figure()
         assert result is None  # nosec B101
@@ -351,7 +351,7 @@ class TestRunValidation:
 
     def test_has_protocol_id(self):
         result = run_validation(seed=1, n_permutations=FAST_N_PERM)
-        assert result["protocol_id"] == "VP_19_InformationErasure_MVPA"  # nosec B101
+        assert result["protocol_id"] == "VP_19_InformationErasureMVPA"  # nosec B101
 
     def test_accepts_kwargs(self):
         result = run_validation(seed=2, n_permutations=FAST_N_PERM, extra="ignored")

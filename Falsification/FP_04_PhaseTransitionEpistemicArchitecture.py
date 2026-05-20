@@ -2819,7 +2819,7 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[f"Metric: {pred_id}"],
-            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
+            sources=["FP_04_PhaseTransitionEpistemicArchitecture"],
             metadata=pred_data,
         )
 
@@ -2834,12 +2834,12 @@ def run_protocol_main(config=None):
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=sub_pred.claim,
                 evidence=[sub_pred.confirming_evidence, sub_pred.falsifying_evidence],
-                sources=["APGI-P06", "FP_04_PhaseTransition_EpistemicArchitecture"],
+                sources=["APGI-P06", "FP_04_PhaseTransitionEpistemicArchitecture"],
             )
 
     spec_params = _PROTOCOL_SPEC_FP04.apgi_parameters if _PROTOCOL_SPEC_FP04 else {}
     return ProtocolResult(
-        protocol_id="FP_04_PhaseTransition_EpistemicArchitecture",
+        protocol_id="FP_04_PhaseTransitionEpistemicArchitecture",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=75,

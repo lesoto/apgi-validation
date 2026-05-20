@@ -1184,10 +1184,10 @@ def run_protocol_main(config=None):
                 threshold=v.get("threshold"),
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=v.get("test_name", pred_id),
-                sources=["VP_21_FreeEnergy_PredictionError"],
+                sources=["VP_21_FreeEnergyPredictionError"],
             )
         return ProtocolResult(
-            protocol_id="VP_21_FreeEnergy_PredictionError",
+            protocol_id="VP_21_FreeEnergyPredictionError",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["MMN/HEP Free-Energy Simulation"],

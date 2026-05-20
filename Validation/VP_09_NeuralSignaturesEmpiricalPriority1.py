@@ -77,7 +77,7 @@ except Exception as e:
 
 # Import FP-09 theta-gamma PAC function (Tort et al. 2010 Modulation Index)
 try:
-    from Falsification.FP_09_NeuralSignatures_P3b_HEP import (  # noqa: F401
+    from Falsification.FP_09_NeuralSignaturesP3bHEP import (  # noqa: F401
         FalsificationThresholds,
         NeuralSignatureResult,
         detect_theta_gamma_pac,
@@ -3177,12 +3177,12 @@ def run_protocol_main(config=None):
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=sub_pred.claim,
                 evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P01", "VP_09_NeuralSignatures_EmpiricalPriority1"],
+                sources=["APGI-P01", "VP_09_NeuralSignaturesEmpiricalPriority1"],
             )
 
     spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
-        protocol_id="VP_09_NeuralSignatures_EmpiricalPriority1",
+        protocol_id="VP_09_NeuralSignaturesEmpiricalPriority1",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,
@@ -3258,7 +3258,7 @@ class MultiTimescaleValidator:
 
     def get_available_protocols(self) -> List[str]:
         """Get available validation protocols."""
-        return ["VP_09_NeuralSignatures_EmpiricalPriority1"]
+        return ["VP_09_NeuralSignaturesEmpiricalPriority1"]
 
     def run_validation(
         self,

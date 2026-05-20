@@ -209,7 +209,7 @@ F6_DELTA_AUROC_MIN: float = 0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold fo
 # ---------------------------------------------------------------------------
 # VP-7: TMS Causal Interventions Parameters
 VP7_BASELINE_ESTIMATION_MIN_TRIALS: int = 50  # Minimum trials for reliable baseline estimation
-# Used in VP_07_TMS_CausalInterventions.py and VP_10_CausalManipulations_Priority2.py
+# Used in VP_07_TMSCausalInterventions.py and VP_10_CausalManipulationsPriority2.py
 # Ensures test-retest reliability for threshold determination
 # Based on psychometric measurement best practicesholds
 # ---------------------------------------------------------------------------
@@ -498,7 +498,7 @@ GENERIC_BINARY_DECISION_THRESHOLD: float = 0.50  # default binary decision cut-o
 # F4 - Phase Transition & Epistemic Architecture thresholds
 # Level 2 Information-Theoretic thresholds (FP-04)
 VP4_TE_N_BINS: int = 20  # Number of bins for transfer entropy discretization
-# Used in VP_04_PhaseTransition_EpistemicLevel2.py for information-theoretic analysis
+# Used in VP_04_PhaseTransitionEpistemicLevel2.py for information-theoretic analysis
 # Standard value for discretization in continuous information flow analysis
 LEVEL2_TE_THRESHOLD: float = 0.5  # Transfer entropy threshold for level 2 communication
 LEVEL2_MI_THRESHOLD: float = 0.3  # Mutual information threshold for level 2 integration

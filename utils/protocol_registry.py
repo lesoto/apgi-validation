@@ -181,7 +181,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-02",
-            filename="Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py",
+            filename="Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
             title="Agent Comparison & Convergence Benchmark",
             description="Benchmark protocol for comparing agent convergence",
             priority_level="P2",
@@ -193,7 +193,7 @@ def _initialize_registry():
                 "IGT",
                 "IowaGamblingTask",
                 "F2-Iowa",
-                "FP_02_AgentComparison_ConvergenceBenchmark",
+                "FP_02_AgentComparisonConvergenceBenchmark",
             ],
         )
     )
@@ -201,7 +201,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-03",
-            filename="Falsification/FP_03_FrameworkLevel_MultiProtocol.py",
+            filename="Falsification/FP_03_FrameworkLevelMultiProtocol.py",
             title="Framework Level Multi-Protocol",
             description="Multi-protocol validation at framework level",
             priority_level="Integration",
@@ -211,7 +211,7 @@ def _initialize_registry():
                 "MultiProtocol",
                 "Framework",
                 "Integration",
-                "FP_03_FrameworkLevel_MultiProtocol",
+                "FP_03_FrameworkLevelMultiProtocol",
             ],
         )
     )
@@ -219,7 +219,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-04",
-            filename="Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py",
+            filename="Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",
             title="Phase Transition & Bistability (APGI-P06 linked)",
             description="Bistability + critical slowing + hysteresis; linked to APGI-P06 iEEG",
             priority_level="F4",
@@ -229,7 +229,7 @@ def _initialize_registry():
                 "PhaseTransition",
                 "Bistability",
                 "CriticalSlowing",
-                "FP_04_PhaseTransition_EpistemicArchitecture",
+                "FP_04_PhaseTransitionEpistemicArchitecture",
             ],
         )
     )
@@ -249,12 +249,12 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-06",
-            filename="Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py",
+            filename="Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",
             title="Neural Network Energy Benchmark",
             description="Energy consumption benchmark for liquid/neural networks",
             priority_level="Benchmark",
             category="Falsification",
-            aliases=["EnergyBenchmark", "NeuralEnergy", "FP_06_LiquidNetwork_EnergyBenchmark"],
+            aliases=["EnergyBenchmark", "NeuralEnergy", "FP_06_LiquidNetworkEnergyBenchmark"],
         )
     )
 
@@ -273,7 +273,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-08",
-            filename="Falsification/FP_08_ParameterSensitivity_Identifiability.py",
+            filename="Falsification/FP_08_ParameterSensitivityIdentifiability.py",
             title="Parameter Sensitivity & Identifiability",
             description="Analysis of parameter sensitivity and model identifiability",
             priority_level="Analysis",
@@ -283,7 +283,7 @@ def _initialize_registry():
                 "Sensitivity",
                 "Identifiability",
                 "ParamAnalysis",
-                "FP_08_ParameterSensitivity_Identifiability",
+                "FP_08_ParameterSensitivityIdentifiability",
             ],
         )
     )
@@ -291,33 +291,33 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-09",
-            filename="Falsification/FP_09_NeuralSignatures_P3b_HEP.py",
+            filename="Falsification/FP_09_NeuralSignaturesP3bHEP.py",
             title="Neural Signatures — EEG P3b & HEP (APGI-P01 linked)",
             description="EEG P3b/HEP signature validation; linked to APGI-P01",
             priority_level="Validation",
             category="Falsification",
-            aliases=["NeuralSignatures-EEG", "EEG", "P3b", "HEP", "NeuralSignatures", "FP_09_NeuralSignatures_P3b_HEP"],
+            aliases=["NeuralSignatures-EEG", "EEG", "P3b", "HEP", "NeuralSignatures", "FP_09_NeuralSignaturesP3bHEP"],
         )
     )
 
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-10",
-            filename="Falsification/FP_10_BayesianEstimation_MCMC.py",
+            filename="Falsification/FP_10_BayesianEstimationMCMC.py",
             title="Bayesian Estimation with MCMC",
             description="MCMC-based Bayesian parameter estimation",
             priority_level="Advanced",
             category="Falsification",
             # NOTE: FP_10_Falsification_BayesianEstimation_ParameterRecovery.py is
             # DEPRECATED — all FP-10 calls route through the canonical MCMC file.
-            aliases=["BayesianEstimation-MCMC", "MCMC", "BayesianMCMC", "FP10", "FP_10_BayesianEstimation_MCMC"],
+            aliases=["BayesianEstimation-MCMC", "MCMC", "BayesianMCMC", "FP10", "FP_10_BayesianEstimationMCMC"],
         )
     )
 
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FP-11",
-            filename="Falsification/FP_11_LiquidNetworkDynamics_EchoState.py",
+            filename="Falsification/FP_11_LiquidNetworkDynamicsEchoState.py",
             title="Liquid Network Dynamics — Echo State",
             description="Liquid network dynamics validation with echo state networks",
             priority_level="Advanced",
@@ -327,7 +327,7 @@ def _initialize_registry():
                 "LiquidNetwork",
                 "EchoState",
                 "LTC",
-                "FP_11_LiquidNetworkDynamics_EchoState",
+                "FP_11_LiquidNetworkDynamicsEchoState",
             ],
         )
     )
@@ -350,28 +350,28 @@ def _initialize_registry():
     _vp_entries = [
         (
             "VP-01",
-            "VP_01_SyntheticEEG_MLClassification.py",
+            "VP_01_SyntheticEEGMLClassification.py",
             "Synthetic EEG ML Classification",
             "ML classification of synthetic EEG with precision-weighting",
             ["VP01", "SyntheticEEG", "MLClassification"],
         ),
         (
             "VP-02",
-            "VP_02_Behavioral_BayesianComparison.py",
+            "VP_02_BehavioralBayesianComparison.py",
             "Behavioral Bayesian Model Comparison",
             "Bayesian model comparison on behavioral data",
             ["VP02", "BehavioralBayes", "BayesianComparison"],
         ),
         (
             "VP-03",
-            "VP_03_ActiveInference_AgentSimulations.py",
+            "VP_03_ActiveInferenceAgentSimulations.py",
             "Active Inference Agent Simulations (APGI-P03 linked)",
             "Agent-based active inference; linked to APGI-P03",
             ["VP03", "ActiveInference", "AgentSimulations"],
         ),
         (
             "VP-04",
-            "VP_04_PhaseTransition_EpistemicLevel2.py",
+            "VP_04_PhaseTransitionEpistemicLevel2.py",
             "Phase Transition Epistemic Level 2",
             "Phase transition dynamics at epistemic level 2",
             ["VP04", "PhaseTransitionEpistemic"],
@@ -385,112 +385,112 @@ def _initialize_registry():
         ),
         (
             "VP-06",
-            "VP_06_LiquidNetwork_InductiveBias.py",
+            "VP_06_LiquidNetworkInductiveBias.py",
             "Liquid Network Inductive Bias",
             "Inductive bias testing for LTC networks",
             ["VP06", "LiquidNetworkBias"],
         ),
         (
             "VP-07",
-            "VP_07_TMS_CausalInterventions.py",
+            "VP_07_TMSCausalInterventions.py",
             "TMS Causal Interventions (APGI-P02 linked)",
             "TMS/pharmacological intervention predictions; linked to APGI-P02",
             ["VP07", "TMS", "CausalInterventions"],
         ),
         (
             "VP-08",
-            "VP_08_Psychophysical_ThresholdEstimation.py",
+            "VP_08_PsychophysicalThresholdEstimation.py",
             "Psychophysical Threshold Estimation",
             "Threshold estimation from psychophysical data",
             ["VP08", "Psychophysical", "ThresholdEstimation"],
         ),
         (
             "VP-09",
-            "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            "VP_09_NeuralSignaturesEmpiricalPriority1.py",
             "Convergent Neural Signatures — Priority 1 (APGI-P01 linked)",
             "Neural signature convergence; linked to APGI-P01 EEG protocol",
             ["VP09", "NeuralSignatures", "Priority1", "HEP-VP"],
         ),
         (
             "VP-10",
-            "VP_10_CausalManipulations_Priority2.py",
+            "VP_10_CausalManipulationsPriority2.py",
             "Causal Manipulations — Priority 2 (APGI-P02 linked)",
             "Causal manipulation validation; linked to APGI-P02 TMS",
             ["VP10", "CausalManipulations", "Priority2"],
         ),
         (
             "VP-11",
-            "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+            "VP_11_MCMCCulturalNeurosciencePriority3.py",
             "MCMC Cultural Neuroscience — Priority 3",
             "MCMC-based cultural neuroscience testing",
             ["VP11", "MCMC-Cultural", "CulturalNeuroscience"],
         ),
         (
             "VP-12",
-            "VP_12_Clinical_CrossSpecies_Convergence.py",
+            "VP_12_ClinicalCrossSpeciesConvergence.py",
             "Clinical & Cross-Species Convergence (APGI-P04 linked)",
             "Clinical/cross-species convergence; linked to APGI-P04 DoC",
             ["VP12", "Clinical", "CrossSpeciesConvergence"],
         ),
         (
             "VP-13",
-            "VP_13_Epistemic_Architecture.py",
+            "VP_13_EpistemicArchitecture.py",
             "Epistemic Architecture",
             "Epistemic architecture validation",
             ["VP13", "EpistemicArchitecture"],
         ),
         (
             "VP-14",
-            "VP_14_fMRI_Anticipation_Experience.py",
+            "VP_14_FMRIAnticipationExperience.py",
             "fMRI Anticipation vs Experience (APGI-P05 linked)",
             "BOLD tracking of S(t)/M(t); linked to APGI-P05 fMRI",
             ["VP14", "fMRI-Anticipation"],
         ),
         (
             "VP-15",
-            "VP_15_fMRI_Anticipation_vmPFC.py",
+            "VP_15_FMRIAnticipationVmPFC.py",
             "fMRI Anticipation vmPFC",
             "vmPFC-posterior insula connectivity in anticipation",
             ["VP15", "vmPFC-fMRI"],
         ),
         (
             "VP-16",
-            "VP_16_Metabolic_ATP_GroundTruth.py",
+            "VP_16_MetabolicATPGroundTruth.py",
             "Metabolic ATP Ground Truth",
             "Metabolic cost validation against ATP measurements",
             ["VP16", "MetabolicATP"],
         ),
         (
             "VP-17",
-            "VP_17_AllenVisualCoding_Fatigue.py",
+            "VP_17_AllenVisualCodingFatigue.py",
             "Allen Visual Coding Fatigue",
             "Neural fatigue effects in Allen Brain visual coding data",
             ["VP17", "AllenVisualCoding"],
         ),
         (
             "VP-18",
-            "VP_18_EEG_Microstate_GFP_P3b.py",
+            "VP_18_EEGMicrostateGFPP3b.py",
             "EEG Microstate GFP P3b",
             "EEG microstate and global field power P3b analysis",
             ["VP18", "EEG-Microstate", "GFP-P3b"],
         ),
         (
             "VP-19",
-            "VP_19_InformationErasure_MVPA.py",
+            "VP_19_InformationErasureMVPA.py",
             "Information Erasure MVPA",
             "MVPA-based information erasure testing",
             ["VP19", "InformationErasure", "MVPA"],
         ),
         (
             "VP-20",
-            "VP_20_Empirical_iEEG.py",
+            "VP_20_EmpiricalIEEG.py",
             "Empirical intracranial EEG (APGI-P06 linked)",
             "iEEG bistability and critical slowing; linked to APGI-P06",
             ["VP20", "iEEG", "EmpiricalIEEG"],
         ),
         (
             "VP-21",
-            "VP_21_FreeEnergy_PredictionError.py",
+            "VP_21_FreeEnergyPredictionError.py",
             "Free Energy Prediction Error",
             "Variational free energy and prediction error validation",
             ["VP21", "FreeEnergy", "PredictionError"],

@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
+from Falsification.FP_09_NeuralSignaturesP3bHEP import (
     EEGData,
     FalsificationThresholds,
     NeuralSignatureResult,

@@ -27,7 +27,7 @@ Paper basis: APGI-FRAMEWORK-Paper, Prediction 1;
 Tier: PRIMARY.
 
 Master_Validation.py registration:
-    "Protocol-2": {"file": "VP_02_Behavioral_BayesianComparison.py",
+    "Protocol-2": {"file": "VP_02_BehavioralBayesianComparison.py",
 
 LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
 Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
@@ -2098,7 +2098,7 @@ def run_validation(
         _generate_vp02_visualization(results, named_predictions, status)
 
         return ProtocolResult(
-            protocol_id="VP_02_Behavioral_BayesianComparison",
+            protocol_id="VP_02_BehavioralBayesianComparison",
             named_predictions=named_predictions,
             completion_percentage=100,
             status=status,
@@ -2110,7 +2110,7 @@ def run_validation(
     except Exception as exc:
         logger.exception(f"Protocol 2 encountered an unexpected error: {exc}")
         return ProtocolResult(
-            protocol_id="VP_02_Behavioral_BayesianComparison",
+            protocol_id="VP_02_BehavioralBayesianComparison",
             named_predictions={},
             completion_percentage=0,
             status="error",
@@ -2241,7 +2241,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_02_Behavioral_BayesianComparison",
+        protocol_id="VP_02_BehavioralBayesianComparison",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

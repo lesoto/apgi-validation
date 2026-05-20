@@ -2736,7 +2736,7 @@ def run_protocol():
     if eeg_files:
         try:
             # Try to integrate VP-09 empirical results
-            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import APGINeuralSignaturesValidator
+            from Validation.VP_09_NeuralSignaturesEmpiricalPriority1 import APGINeuralSignaturesValidator
 
             validator = APGINeuralSignaturesValidator()
             # Simplified mock run for aggregator - in production this would load real files
@@ -3583,7 +3583,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 threshold=pred_data.get("threshold"),
                 status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
-                sources=["FP_09_NeuralSignatures_P3b_HEP"],
+                sources=["FP_09_NeuralSignaturesP3bHEP"],
                 metadata={
                     "validation_status": pred_data.get("validation_status"),
                     "data_source": legacy_result.get("data_source"),
@@ -3601,12 +3601,12 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                     status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                     name=sub_pred.claim,
                     evidence=[sub_pred.confirming_evidence, sub_pred.falsifying_evidence],
-                    sources=["APGI-P01", "FP_09_NeuralSignatures_P3b_HEP"],
+                    sources=["APGI-P01", "FP_09_NeuralSignaturesP3bHEP"],
                 )
 
         spec_params = _PROTOCOL_SPEC_FP09.apgi_parameters if _PROTOCOL_SPEC_FP09 else {}
         return ProtocolResult(
-            protocol_id="FP_09_NeuralSignatures_P3b_HEP",
+            protocol_id="FP_09_NeuralSignaturesP3bHEP",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=55,  # Updated from Protocols.md

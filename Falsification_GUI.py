@@ -179,7 +179,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 2: Iowa Gambling": {
-                "file": "Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py",
+                "file": "Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
                 "description": "IGT variant with simulated interoceptive costs",
                 "parameters": {
@@ -214,7 +214,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 3: Agent Comparison": {
-                "file": "Falsification/FP_03_FrameworkLevel_MultiProtocol.py",
+                "file": "Falsification/FP_03_FrameworkLevelMultiProtocol.py",
                 "class": "AgentComparisonExperiment",
                 "description": "Run complete agent comparison experiment",
                 "parameters": {
@@ -242,7 +242,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 4: Phase Transition": {
-                "file": "Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py",
+                "file": "Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",
                 "class": "InformationTheoreticAnalysis",
                 "description": "Test APGI ignition phase transition signatures",
                 "parameters": {
@@ -310,7 +310,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 6: Network Comparison": {
-                "file": "Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py",
+                "file": "Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",
                 "class": "NetworkComparisonExperiment",
                 "description": "Compare APGI-inspired vs standard architectures",
                 "parameters": {
@@ -380,7 +380,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 8: Parameter Sensitivity": {
-                "file": "Falsification/FP_08_ParameterSensitivity_Identifiability.py",
+                "file": "Falsification/FP_08_ParameterSensitivityIdentifiability.py",
                 "class": "ParameterSensitivityAnalyzer",
                 "description": "Parameter sensitivity and identifiability analysis",
                 "parameters": {
@@ -408,7 +408,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 9: Neural Signatures": {
-                "file": "Falsification/FP_09_NeuralSignatures_P3b_HEP.py",
+                "file": "Falsification/FP_09_NeuralSignaturesP3bHEP.py",
                 "class": "NeuralSignatureValidator",
                 "description": "Validate P3b and HEP neural signatures",
                 "parameters": {
@@ -450,7 +450,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 10: Bayesian Estimation": {
-                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
+                "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "class": "BayesianParameterRecovery",
                 "description": "Bayesian parameter recovery analysis",
                 "parameters": {
@@ -478,7 +478,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 11: Liquid Network Dynamics": {
-                "file": "Falsification/FP_11_LiquidNetworkDynamics_EchoState.py",
+                "file": "Falsification/FP_11_LiquidNetworkDynamicsEchoState.py",
                 "class": "LiquidNetworkDynamicsAnalyzer",
                 "description": "Liquid network dynamics and echo state analysis",
                 "parameters": {

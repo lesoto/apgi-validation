@@ -52,7 +52,7 @@ Tier: SECONDARY — extends core validation with rigorous Bayesian inference,
 
 Master_Validation.py registration:
     "Protocol-11": {
-        "file": "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+        "file": "VP_11_MCMCCulturalNeurosciencePriority3.py",
         "function": "run_validation",
         "description": "Bayesian Estimation & Individual Differences",
     }
@@ -4335,7 +4335,7 @@ def run_protocol_main(config=None):
                 ),
             }
             return ProtocolResult(
-                protocol_id="VP_11_MCMC_CulturalNeuroscience_Priority3",
+                protocol_id="VP_11_MCMCCulturalNeurosciencePriority3",
                 timestamp=datetime.now().isoformat(),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -4367,7 +4367,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_11_MCMC_CulturalNeuroscience_Priority3",
+        protocol_id="VP_11_MCMCCulturalNeurosciencePriority3",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,
@@ -4833,7 +4833,7 @@ def validate() -> Dict[str, Any]:
         results = validator.run_validation()
 
         # Add metadata
-        results["protocol_name"] = "VP_11_MCMC_CulturalNeuroscience_Priority3"
+        results["protocol_name"] = "VP_11_MCMCCulturalNeurosciencePriority3"
         results["protocol_description"] = (
             "Bayesian Estimation & Individual Differences - Cultural Neuroscience Priority 3"
         )
@@ -4845,7 +4845,7 @@ def validate() -> Dict[str, Any]:
         logger.error(f"Validation failed: {e}")
         return {
             "error": str(e),
-            "protocol_name": "VP_11_MCMC_CulturalNeuroscience_Priority3",
+            "protocol_name": "VP_11_MCMCCulturalNeurosciencePriority3",
             "protocol_description": "Bayesian Estimation & Individual Differences - Cultural Neuroscience Priority 3",
             "validation_timestamp": str(pd.Timestamp.now()),
             "validation_passed": False,

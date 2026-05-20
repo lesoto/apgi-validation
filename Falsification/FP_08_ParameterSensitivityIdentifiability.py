@@ -9,7 +9,7 @@ Per specification, F8.SA (Sobol analysis) requires a live APGIAgent instance -
 synthetic oracles are not permitted for parameter sensitivity validation.
 
 Dependencies:
-- Requires APGIAgent from VP_03_ActiveInference_AgentSimulations
+- Requires APGIAgent from VP_03_ActiveInferenceAgentSimulations
 - Execution order: VP-03 must run before FP-08
 - Agent instance passed via dependency injection to FP08Runner.run()
 
@@ -64,7 +64,7 @@ if str(project_root) not in sys.path:
 
 try:
     try:
-        from Validation.VP_03_ActiveInference_AgentSimulations import APGIActiveInferenceAgent as APGIAgent
+        from Validation.VP_03_ActiveInferenceAgentSimulations import APGIActiveInferenceAgent as APGIAgent
 
         APGIAgent_Local = APGIAgent
     except ImportError:
@@ -3145,12 +3145,12 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[pred_data.get("actual", "NOT_EVALUATED")],
-            sources=["FP_08_ParameterSensitivity_Identifiability"],
+            sources=["FP_08_ParameterSensitivityIdentifiability"],
             metadata=pred_data,
         )
 
     return ProtocolResult(
-        protocol_id="FP_08_ParameterSensitivity_Identifiability",
+        protocol_id="FP_08_ParameterSensitivityIdentifiability",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=90,

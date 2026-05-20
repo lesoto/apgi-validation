@@ -3530,12 +3530,12 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[pred_data.get("actual", "NOT_EVALUATED")],
-            sources=["FP_11_LiquidNetworkDynamics_EchoState"],
+            sources=["FP_11_LiquidNetworkDynamicsEchoState"],
             metadata=pred_data,
         )
 
     return ProtocolResult(
-        protocol_id="FP_11_LiquidNetworkDynamics_EchoState",
+        protocol_id="FP_11_LiquidNetworkDynamicsEchoState",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=90,

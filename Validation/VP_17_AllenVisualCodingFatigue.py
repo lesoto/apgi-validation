@@ -16,15 +16,15 @@ Tier: SECONDARY
 
 Master_Validation.py registration:
     "Protocol-17": {
-        "file": "VP_17_AllenVisualCoding_Fatigue.py",
+        "file": "VP_17_AllenVisualCodingFatigue.py",
         "function": "run_validation",
         "description": "Allen Visual Coding Fatigue Analysis - Quantitative Model Fits",
     }
 
 VP_ALL_Aggregator.py registration:
-    "V17.1": "VP_17_AllenVisualCoding_Fatigue",
-    "V17.2": "VP_17_AllenVisualCoding_Fatigue",
-    "V17.3": "VP_17_AllenVisualCoding_Fatigue",
+    "V17.1": "VP_17_AllenVisualCodingFatigue",
+    "V17.2": "VP_17_AllenVisualCodingFatigue",
+    "V17.3": "VP_17_AllenVisualCodingFatigue",
 
 LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
 Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
@@ -551,10 +551,10 @@ def run_protocol_main(config=None):
                 threshold=v.get("threshold"),
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=v.get("test_name", pred_id),
-                sources=["VP_17_AllenVisualCoding_Fatigue"],
+                sources=["VP_17_AllenVisualCodingFatigue"],
             )
         return ProtocolResult(
-            protocol_id="VP_17_AllenVisualCoding_Fatigue",
+            protocol_id="VP_17_AllenVisualCodingFatigue",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["Allen Brain Observatory Visual Coding"],

@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 # Import the protocol to test
-from Falsification.FP_09_NeuralSignatures_P3b_HEP import EEGData, FalsificationThresholds, NeuralSignatureValidator
+from Falsification.FP_09_NeuralSignaturesP3bHEP import EEGData, FalsificationThresholds, NeuralSignatureValidator
 
 
 class TestNeuralSignaturesEEGProtocol8:

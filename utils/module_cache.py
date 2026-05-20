@@ -288,7 +288,7 @@ class ModuleCache:
             "APGIParameterEstimation": project_root / "Theory" / "APGI_Parameter_Estimation.py",
             "APGIPsychologicalStates": project_root / "Theory" / "APGI_Psychological_States.py",
             "APGIMasterValidator": project_root / "Validation" / "Master_Validation.py",
-            "APGIValidationPipeline": project_root / "Validation" / "VP_01_SyntheticEEG_MLClassification.py",
+            "APGIValidationPipeline": project_root / "Validation" / "VP_01_SyntheticEEGMLClassification.py",
         }
 
         self.preload_modules(common_modules)

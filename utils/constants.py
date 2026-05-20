@@ -358,7 +358,7 @@ SHUFFLE_SEED_OFFSET = 1000
 
 # HIGH-02: FP-04 DoC Synthetic Classification Feature Weights
 # Feature weights for biomarker-based DoC (Disorders of Consciousness) classification
-# Used in FP_04_PhaseTransition_EpistemicArchitecture.py for ROC analysis
+# Used in FP_04_PhaseTransitionEpistemicArchitecture.py for ROC analysis
 FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS = (
     np.array([1.2, 0.8, 1.0, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05])
     if np is not None

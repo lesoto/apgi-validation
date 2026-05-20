@@ -4592,7 +4592,7 @@ def test_noise_amplitude_sensitivity(
 
 def run_validation(progress_callback=None, **kwargs) -> ProtocolResult:
     """Entry point for CLI validation."""
-    protocol_id = "VP_01_SyntheticEEG_MLClassification"
+    protocol_id = "VP_01_SyntheticEEGMLClassification"
     try:
         results_summary = main(progress_callback=progress_callback)
 
@@ -4671,7 +4671,7 @@ def run_protocol_main(config=None):
         # Return mock results for fast test execution
         if HAS_SCHEMA:
             return ProtocolResult(
-                protocol_id="VP_01_SyntheticEEG_MLClassification",
+                protocol_id="VP_01_SyntheticEEGMLClassification",
                 timestamp=datetime.now().isoformat(),
                 named_predictions={
                     "V1.1": PredictionResult(
@@ -4680,7 +4680,7 @@ def run_protocol_main(config=None):
                         threshold=0.80,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEG_MLClassification"],
+                        sources=["VP_01_SyntheticEEGMLClassification"],
                     ),
                     "V1.2": PredictionResult(
                         passed=True,
@@ -4688,7 +4688,7 @@ def run_protocol_main(config=None):
                         threshold=0.50,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEG_MLClassification"],
+                        sources=["VP_01_SyntheticEEGMLClassification"],
                     ),
                     "V1.3": PredictionResult(
                         passed=True,
@@ -4696,7 +4696,7 @@ def run_protocol_main(config=None):
                         threshold=0.75,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEG_MLClassification"],
+                        sources=["VP_01_SyntheticEEGMLClassification"],
                     ),
                 },
                 completion_percentage=100,
@@ -4730,11 +4730,11 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
             evidence=[str(pred_data.get("actual", ""))],
-            sources=["VP_01_SyntheticEEG_MLClassification"],
+            sources=["VP_01_SyntheticEEGMLClassification"],
         )
 
     return ProtocolResult(
-        protocol_id="VP_01_SyntheticEEG_MLClassification",
+        protocol_id="VP_01_SyntheticEEGMLClassification",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

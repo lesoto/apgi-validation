@@ -152,110 +152,110 @@ except ImportError:
 # Protocol routing table - maps named predictions to validation protocols
 PREDICTION_TO_PROTOCOL = {
     # VP-1: Synthetic EEG ML Classification
-    "V1.1": "VP_01_SyntheticEEG_MLClassification",
-    "V1.2": "VP_01_SyntheticEEG_MLClassification",
-    "V1.3": "VP_01_SyntheticEEG_MLClassification",
+    "V1.1": "VP_01_SyntheticEEGMLClassification",
+    "V1.2": "VP_01_SyntheticEEGMLClassification",
+    "V1.3": "VP_01_SyntheticEEGMLClassification",
     # VP-2: Behavioral Bayesian Comparison
-    "V2.1": "VP_02_Behavioral_BayesianComparison",
-    "V2.2": "VP_02_Behavioral_BayesianComparison",
-    "V2.3": "VP_02_Behavioral_BayesianComparison",
+    "V2.1": "VP_02_BehavioralBayesianComparison",
+    "V2.2": "VP_02_BehavioralBayesianComparison",
+    "V2.3": "VP_02_BehavioralBayesianComparison",
     # VP-3: Active Inference Agent Comparison
-    "V3.1": "VP_03_ActiveInference_AgentSimulations",
-    "V3.2": "VP_03_ActiveInference_AgentSimulations",
-    "V3.3": "VP_03_ActiveInference_AgentSimulations",
+    "V3.1": "VP_03_ActiveInferenceAgentSimulations",
+    "V3.2": "VP_03_ActiveInferenceAgentSimulations",
+    "V3.3": "VP_03_ActiveInferenceAgentSimulations",
     # VP-4: Phase Transition / Epistemic Level 2
-    "V4.1": "VP_04_PhaseTransition_EpistemicLevel2",
-    "V4.2": "VP_04_PhaseTransition_EpistemicLevel2",
-    "V4.3": "VP_04_PhaseTransition_EpistemicLevel2",
+    "V4.1": "VP_04_PhaseTransitionEpistemicLevel2",
+    "V4.2": "VP_04_PhaseTransitionEpistemicLevel2",
+    "V4.3": "VP_04_PhaseTransitionEpistemicLevel2",
     # VP-5: Evolutionary Emergence
     "V5.1": "VP_05_EvolutionaryEmergence",
     "V5.2": "VP_05_EvolutionaryEmergence",
     "V5.3": "VP_05_EvolutionaryEmergence",
     # VP-6: Liquid Network Inductive Bias
-    "V6.1": "VP_06_LiquidNetwork_InductiveBias",
-    "V6.2": "VP_06_LiquidNetwork_InductiveBias",
-    "V6.3": "VP_06_LiquidNetwork_InductiveBias",
+    "V6.1": "VP_06_LiquidNetworkInductiveBias",
+    "V6.2": "VP_06_LiquidNetworkInductiveBias",
+    "V6.3": "VP_06_LiquidNetworkInductiveBias",
     # VP-7: TMS/Pharmacological Causal Interventions (CANONICAL for P2.a-P2.c)
-    "V7.1": "VP_07_TMS_CausalInterventions",
-    "V7.2": "VP_07_TMS_CausalInterventions",
-    "V7.3": "VP_07_TMS_CausalInterventions",
+    "V7.1": "VP_07_TMSCausalInterventions",
+    "V7.2": "VP_07_TMSCausalInterventions",
+    "V7.3": "VP_07_TMSCausalInterventions",
     # VP-8: Psychophysical Threshold Estimation
-    "V8.1": "VP_08_Psychophysical_ThresholdEstimation",
-    "V8.2": "VP_08_Psychophysical_ThresholdEstimation",
-    "V8.3": "VP_08_Psychophysical_ThresholdEstimation",
+    "V8.1": "VP_08_PsychophysicalThresholdEstimation",
+    "V8.2": "VP_08_PsychophysicalThresholdEstimation",
+    "V8.3": "VP_08_PsychophysicalThresholdEstimation",
     # VP-9: Convergent Neural Signatures
-    "V9.1": "VP_09_NeuralSignatures_EmpiricalPriority1",
-    "V9.2": "VP_09_NeuralSignatures_EmpiricalPriority1",
-    "V9.3": "VP_09_NeuralSignatures_EmpiricalPriority1",
+    "V9.1": "VP_09_NeuralSignaturesEmpiricalPriority1",
+    "V9.2": "VP_09_NeuralSignaturesEmpiricalPriority1",
+    "V9.3": "VP_09_NeuralSignaturesEmpiricalPriority1",
     # VP-10: Causal Manipulations (SUPPLEMENTARY - NOT in 14-prediction tally)
     # V10.1-V10.3 removed - VP-07 is canonical source for these predictions
     # VP-11: MCMC / Cultural Neuroscience
-    "V11.1": "VP_11_MCMC_CulturalNeuroscience_Priority3",
-    "V11.2": "VP_11_MCMC_CulturalNeuroscience_Priority3",
-    "V11.3": "VP_11_MCMC_CulturalNeuroscience_Priority3",
+    "V11.1": "VP_11_MCMCCulturalNeurosciencePriority3",
+    "V11.2": "VP_11_MCMCCulturalNeurosciencePriority3",
+    "V11.3": "VP_11_MCMCCulturalNeurosciencePriority3",
     # VP-12: Clinical Cross-Species Convergence
-    "V12.1": "VP_12_Clinical_CrossSpecies_Convergence",
-    "V12.2": "VP_12_Clinical_CrossSpecies_Convergence",
-    "V12.3": "VP_12_Clinical_CrossSpecies_Convergence",
+    "V12.1": "VP_12_ClinicalCrossSpeciesConvergence",
+    "V12.2": "VP_12_ClinicalCrossSpeciesConvergence",
+    "V12.3": "VP_12_ClinicalCrossSpeciesConvergence",
     # VP-13: Epistemic Architecture P5–P12
-    "V13.1": "VP_13_Epistemic_Architecture",
-    "V13.2": "VP_13_Epistemic_Architecture",
-    "V13.3": "VP_13_Epistemic_Architecture",
+    "V13.1": "VP_13_EpistemicArchitecture",
+    "V13.2": "VP_13_EpistemicArchitecture",
+    "V13.3": "VP_13_EpistemicArchitecture",
     # VP-14: fMRI Anticipation/Experience
-    "V14.1": "VP_14_fMRI_Anticipation_Experience",
-    "V14.2": "VP_14_fMRI_Anticipation_Experience",
-    "V14.3": "VP_14_fMRI_Anticipation_Experience",
+    "V14.1": "VP_14_FMRIAnticipationExperience",
+    "V14.2": "VP_14_FMRIAnticipationExperience",
+    "V14.3": "VP_14_FMRIAnticipationExperience",
     # VP-15: fMRI Anticipation/vmPFC
-    "V15.1": "VP_15_fMRI_Anticipation_vmPFC",
-    "V15.2": "VP_15_fMRI_Anticipation_vmPFC",
-    "V15.3": "VP_15_fMRI_Anticipation_vmPFC",
+    "V15.1": "VP_15_FMRIAnticipationVmPFC",
+    "V15.2": "VP_15_FMRIAnticipationVmPFC",
+    "V15.3": "VP_15_FMRIAnticipationVmPFC",
     # VP-16: Metabolic ATP Ground-Truth
-    "V16.1": "VP_16_Metabolic_ATP_GroundTruth",
-    "V16.2": "VP_16_Metabolic_ATP_GroundTruth",
-    "V16.3": "VP_16_Metabolic_ATP_GroundTruth",
+    "V16.1": "VP_16_MetabolicATPGroundTruth",
+    "V16.2": "VP_16_MetabolicATPGroundTruth",
+    "V16.3": "VP_16_MetabolicATPGroundTruth",
     # VP-17: Allen Visual Coding Fatigue Analysis
-    "V17.1": "VP_17_AllenVisualCoding_Fatigue",
-    "V17.2": "VP_17_AllenVisualCoding_Fatigue",
-    "V17.3": "VP_17_AllenVisualCoding_Fatigue",
-    "V18.1": "VP_18_EEG_Microstate_GFP_P3b",
-    "V18.2": "VP_18_EEG_Microstate_GFP_P3b",
-    "V18.3": "VP_18_EEG_Microstate_GFP_P3b",
-    "V19.1": "VP_19_InformationErasure_MVPA",
-    "V19.2": "VP_19_InformationErasure_MVPA",
-    "V19.3": "VP_19_InformationErasure_MVPA",
+    "V17.1": "VP_17_AllenVisualCodingFatigue",
+    "V17.2": "VP_17_AllenVisualCodingFatigue",
+    "V17.3": "VP_17_AllenVisualCodingFatigue",
+    "V18.1": "VP_18_EEGMicrostateGFPP3b",
+    "V18.2": "VP_18_EEGMicrostateGFPP3b",
+    "V18.3": "VP_18_EEGMicrostateGFPP3b",
+    "V19.1": "VP_19_InformationErasureMVPA",
+    "V19.2": "VP_19_InformationErasureMVPA",
+    "V19.3": "VP_19_InformationErasureMVPA",
     # VP-20: Empirical iEEG Pipeline
-    "V20.1": "VP_20_Empirical_iEEG",
-    "V20.2": "VP_20_Empirical_iEEG",
-    "V20.3": "VP_20_Empirical_iEEG",
+    "V20.1": "VP_20_EmpiricalIEEG",
+    "V20.2": "VP_20_EmpiricalIEEG",
+    "V20.3": "VP_20_EmpiricalIEEG",
     # VP-21: Free Energy Proxy (PE tracking)
-    "V21.1": "VP_21_FreeEnergy_PredictionError",
-    "V21.2": "VP_21_FreeEnergy_PredictionError",
-    "V21.3": "VP_21_FreeEnergy_PredictionError",
+    "V21.1": "VP_21_FreeEnergyPredictionError",
+    "V21.2": "VP_21_FreeEnergyPredictionError",
+    "V21.3": "VP_21_FreeEnergyPredictionError",
 }
 
 # Protocol tier classification
 PROTOCOL_TIERS = {
-    "VP_01_SyntheticEEG_MLClassification": "primary",
-    "VP_02_Behavioral_BayesianComparison": "primary",
-    "VP_03_ActiveInference_AgentSimulations": "secondary",
-    "VP_04_PhaseTransition_EpistemicLevel2": "secondary",
+    "VP_01_SyntheticEEGMLClassification": "primary",
+    "VP_02_BehavioralBayesianComparison": "primary",
+    "VP_03_ActiveInferenceAgentSimulations": "secondary",
+    "VP_04_PhaseTransitionEpistemicLevel2": "secondary",
     "VP_05_EvolutionaryEmergence": "tertiary",
-    "VP_06_LiquidNetwork_InductiveBias": "secondary",
-    "VP_07_TMS_CausalInterventions": "secondary",  # CANONICAL P2 source (VP-7)
-    "VP_08_Psychophysical_ThresholdEstimation": "secondary",
-    "VP_09_NeuralSignatures_EmpiricalPriority1": "tertiary",
-    "VP_10_CausalManipulations_Priority2": "tertiary",  # SUPPLEMENTARY to VP-7
-    "VP_11_MCMC_CulturalNeuroscience_Priority3": "secondary",
-    "VP_12_Clinical_CrossSpecies_Convergence": "secondary",
-    "VP_13_Epistemic_Architecture": "secondary",
-    "VP_14_fMRI_Anticipation_Experience": "tertiary",
-    "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
-    "VP_16_Metabolic_ATP_GroundTruth": "secondary",
-    "VP_17_AllenVisualCoding_Fatigue": "secondary",
-    "VP_18_EEG_Microstate_GFP_P3b": "secondary",
-    "VP_19_InformationErasure_MVPA": "secondary",
-    "VP_20_Empirical_iEEG": "secondary",
-    "VP_21_FreeEnergy_PredictionError": "secondary",
+    "VP_06_LiquidNetworkInductiveBias": "secondary",
+    "VP_07_TMSCausalInterventions": "secondary",  # CANONICAL P2 source (VP-7)
+    "VP_08_PsychophysicalThresholdEstimation": "secondary",
+    "VP_09_NeuralSignaturesEmpiricalPriority1": "tertiary",
+    "VP_10_CausalManipulationsPriority2": "tertiary",  # SUPPLEMENTARY to VP-7
+    "VP_11_MCMCCulturalNeurosciencePriority3": "secondary",
+    "VP_12_ClinicalCrossSpeciesConvergence": "secondary",
+    "VP_13_EpistemicArchitecture": "secondary",
+    "VP_14_FMRIAnticipationExperience": "tertiary",
+    "VP_15_FMRIAnticipationVmPFC": "tertiary",
+    "VP_16_MetabolicATPGroundTruth": "secondary",
+    "VP_17_AllenVisualCodingFatigue": "secondary",
+    "VP_18_EEGMicrostateGFPP3b": "secondary",
+    "VP_19_InformationErasureMVPA": "secondary",
+    "VP_20_EmpiricalIEEG": "secondary",
+    "VP_21_FreeEnergyPredictionError": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification
@@ -644,7 +644,7 @@ class ValidationAggregator:
         """Get all prediction IDs associated with a specific protocol.
 
         Args:
-            protocol_name: Name of the protocol (e.g., "VP_02_Behavioral_BayesianComparison")
+            protocol_name: Name of the protocol (e.g., "VP_02_BehavioralBayesianComparison")
 
         Returns:
             List of prediction IDs for that protocol
@@ -837,21 +837,21 @@ def run_end_to_end_validation_pipeline(
     if protocol_modules is None:
         # Default: run all VP protocols
         protocol_modules = [
-            "Validation.VP_01_SyntheticEEG_MLClassification",
-            "Validation.VP_02_Behavioral_BayesianComparison",
-            "Validation.VP_03_ActiveInference_AgentSimulations",
-            "Validation.VP_04_PhaseTransition_EpistemicLevel2",
+            "Validation.VP_01_SyntheticEEGMLClassification",
+            "Validation.VP_02_BehavioralBayesianComparison",
+            "Validation.VP_03_ActiveInferenceAgentSimulations",
+            "Validation.VP_04_PhaseTransitionEpistemicLevel2",
             "Validation.VP_05_EvolutionaryEmergence",
-            "Validation.VP_06_LiquidNetwork_InductiveBias",
-            "Validation.VP_07_TMS_CausalInterventions",
-            "Validation.VP_08_Psychophysical_ThresholdEstimation",
-            "Validation.VP_09_NeuralSignatures_EmpiricalPriority1",
-            "Validation.VP_10_CausalManipulations_Priority2",
-            "Validation.VP_11_MCMC_CulturalNeuroscience_Priority3",
-            "Validation.VP_12_Clinical_CrossSpecies_Convergence",
-            "Validation.VP_13_Epistemic_Architecture",
-            "Validation.VP_14_fMRI_Anticipation_Experience",
-            "Validation.VP_15_fMRI_Anticipation_vmPFC",
+            "Validation.VP_06_LiquidNetworkInductiveBias",
+            "Validation.VP_07_TMSCausalInterventions",
+            "Validation.VP_08_PsychophysicalThresholdEstimation",
+            "Validation.VP_09_NeuralSignaturesEmpiricalPriority1",
+            "Validation.VP_10_CausalManipulationsPriority2",
+            "Validation.VP_11_MCMCCulturalNeurosciencePriority3",
+            "Validation.VP_12_ClinicalCrossSpeciesConvergence",
+            "Validation.VP_13_EpistemicArchitecture",
+            "Validation.VP_14_FMRIAnticipationExperience",
+            "Validation.VP_15_FMRIAnticipationVmPFC",
         ]
 
     protocol_outputs = []

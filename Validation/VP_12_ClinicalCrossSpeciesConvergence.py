@@ -1093,7 +1093,7 @@ def run_validation():
             converted_preds[k] = PredictionResult(passed=bool(v))
 
     return ProtocolResult(
-        protocol_id="VP_12_Clinical_CrossSpecies_Convergence",
+        protocol_id="VP_12_ClinicalCrossSpeciesConvergence",
         named_predictions=converted_preds,
         completion_percentage=100,
         status="success",
@@ -1179,7 +1179,7 @@ def run_protocol_main(config=None):
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_12_Clinical_CrossSpecies_Convergence",
+                protocol_id="VP_12_ClinicalCrossSpeciesConvergence",
                 timestamp=datetime.now().isoformat(),
                 named_predictions=named,
                 completion_percentage=100,
@@ -1222,12 +1222,12 @@ def run_protocol_main(config=None):
                     status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                     name=sub_pred.claim,
                     evidence=[sub_pred.confirming_evidence],
-                    sources=["APGI-P04", "VP_12_Clinical_CrossSpecies_Convergence"],
+                    sources=["APGI-P04", "VP_12_ClinicalCrossSpeciesConvergence"],
                 )
 
         spec_params = _PROTOCOL_SPEC_P04.apgi_parameters if _PROTOCOL_SPEC_P04 else {}
         return ProtocolResult(
-            protocol_id="VP_12_Clinical_CrossSpecies_Convergence",
+            protocol_id="VP_12_ClinicalCrossSpeciesConvergence",
             timestamp=datetime.now().isoformat(),
             named_predictions=named,
             completion_percentage=100,

@@ -2220,12 +2220,12 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 threshold=pred_data.get("threshold"),
                 status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("description", "")],
-                sources=["FP_06_LiquidNetwork_EnergyBenchmark"],
+                sources=["FP_06_LiquidNetworkEnergyBenchmark"],
                 metadata=pred_data,
             )
 
         return ProtocolResult(
-            protocol_id="FP_06_LiquidNetwork_EnergyBenchmark",
+            protocol_id="FP_06_LiquidNetworkEnergyBenchmark",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=75,
@@ -3305,12 +3305,12 @@ def run_protocol_main_alias(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[pred_data.get("description", "NOT_EVALUATED")],
-            sources=["FP_06_LiquidNetwork_EnergyBenchmark"],
+            sources=["FP_06_LiquidNetworkEnergyBenchmark"],
             metadata=pred_data,
         )
 
     return ProtocolResult(
-        protocol_id="FP_06_LiquidNetwork_EnergyBenchmark",
+        protocol_id="FP_06_LiquidNetworkEnergyBenchmark",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=95,

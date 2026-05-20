@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 # Import the protocol to test
-from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
+from Falsification.FP_02_AgentComparisonConvergenceBenchmark import (
     IowaGamblingTaskEnvironment,
     ThreatRewardTradeoffEnvironment,
     VolatileForagingEnvironment,

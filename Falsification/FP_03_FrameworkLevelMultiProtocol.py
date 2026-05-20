@@ -596,7 +596,7 @@ def _get_protocol2() -> Any:
         protocol2_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "FP_02_AgentComparison_ConvergenceBenchmark.py",
+                "FP_02_AgentComparisonConvergenceBenchmark.py",
             )
         )
         if not os.path.exists(protocol2_path):
@@ -910,16 +910,16 @@ class AgentComparisonExperiment:
         # Define all 12 protocols for full framework synthesis
         protocol_files = {
             1: "FP_01_ActiveInference.py",
-            2: "FP_02_AgentComparison_ConvergenceBenchmark.py",
-            3: "FP_03_FrameworkLevel_MultiProtocol.py",  # Note: This is itself, but it won't recursion because of checks
-            4: "FP_04_PhaseTransition_EpistemicArchitecture.py",
+            2: "FP_02_AgentComparisonConvergenceBenchmark.py",
+            3: "FP_03_FrameworkLevelMultiProtocol.py",  # Note: This is itself, but it won't recursion because of checks
+            4: "FP_04_PhaseTransitionEpistemicArchitecture.py",
             5: "FP_05_EvolutionaryPlausibility.py",
-            6: "FP_06_LiquidNetwork_EnergyBenchmark.py",
+            6: "FP_06_LiquidNetworkEnergyBenchmark.py",
             7: "FP_07_MathematicalConsistency.py",
-            8: "FP_08_ParameterSensitivity_Identifiability.py",
-            9: "FP_09_NeuralSignatures_P3b_HEP.py",
-            10: "FP_10_BayesianEstimation_MCMC.py",
-            11: "FP_11_LiquidNetworkDynamics_EchoState.py",
+            8: "FP_08_ParameterSensitivityIdentifiability.py",
+            9: "FP_09_NeuralSignaturesP3bHEP.py",
+            10: "FP_10_BayesianEstimationMCMC.py",
+            11: "FP_11_LiquidNetworkDynamicsEchoState.py",
             12: "FP_12_CrossSpeciesScaling.py",
         }
 
@@ -3570,14 +3570,14 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[pred_data.get("description", "NOT_EVALUATED")],
-            sources=["FP_03_FrameworkLevel_MultiProtocol"],
+            sources=["FP_03_FrameworkLevelMultiProtocol"],
             metadata=pred_data,
         )
 
     # Use StandardProtocolResult (Pydantic model) when schema is available
     ResultClass = StandardProtocolResult if HAS_SCHEMA and StandardProtocolResult else ProtocolResult
     return ResultClass(
-        protocol_id="FP_03_FrameworkLevel_MultiProtocol",
+        protocol_id="FP_03_FrameworkLevelMultiProtocol",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=85,
@@ -3653,15 +3653,15 @@ class MultiProtocolRunner:
         # Attempt to dynamically load and run the named protocol module
         protocol_module_map: Dict[str, str] = {
             "FP-01": "Falsification.FP_01_ActiveInference",
-            "FP-02": "Falsification.FP_02_AgentComparison_ConvergenceBenchmark",
-            "FP-04": "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+            "FP-02": "Falsification.FP_02_AgentComparisonConvergenceBenchmark",
+            "FP-04": "Falsification.FP_04_PhaseTransitionEpistemicArchitecture",
             "FP-05": "Falsification.FP_05_EvolutionaryPlausibility",
-            "FP-06": "Falsification.FP_06_LiquidNetwork_EnergyBenchmark",
+            "FP-06": "Falsification.FP_06_LiquidNetworkEnergyBenchmark",
             "FP-07": "Falsification.FP_07_MathematicalConsistency",
-            "FP-08": "Falsification.FP_08_ParameterSensitivity_Identifiability",
-            "FP-09": "Falsification.FP_09_NeuralSignatures_P3b_HEP",
-            "FP-10": "Falsification.FP_10_BayesianEstimation_MCMC",
-            "FP-11": "Falsification.FP_11_LiquidNetworkDynamics_EchoState",
+            "FP-08": "Falsification.FP_08_ParameterSensitivityIdentifiability",
+            "FP-09": "Falsification.FP_09_NeuralSignaturesP3bHEP",
+            "FP-10": "Falsification.FP_10_BayesianEstimationMCMC",
+            "FP-11": "Falsification.FP_11_LiquidNetworkDynamicsEchoState",
             "FP-12": "Falsification.FP_12_CrossSpeciesScaling",
         }
 
@@ -3760,7 +3760,7 @@ def run_multi_protocol_framework(configs: List[ProtocolConfig]) -> Dict[str, Any
 
     # Build legacy result dict for schema conversion
     legacy_result: Dict[str, Any] = {
-        "protocol_id": "FP_03_FrameworkLevel_MultiProtocol",
+        "protocol_id": "FP_03_FrameworkLevelMultiProtocol",
         "status": "success" if all(r.success for r in results) else "failed",
         "named_predictions": {},
         "completion_percentage": 100,
@@ -3774,7 +3774,7 @@ def run_multi_protocol_framework(configs: List[ProtocolConfig]) -> Dict[str, Any
     if HAS_SCHEMA and StandardProtocolResult is not None:
         # Convert legacy format to standardized schema
         standardized_result = StandardProtocolResult.from_legacy_format(
-            "FP_03_FrameworkLevel_MultiProtocol",
+            "FP_03_FrameworkLevelMultiProtocol",
             legacy_result,
         )
         # Convert back to dict for consistent return type

@@ -734,7 +734,7 @@ def formal_model(
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
                     try:
-                        from Validation.VP_07_TMS_CausalInterventions import HierarchicalProcessingValidator
+                        from Validation.VP_07_TMSCausalInterventions import HierarchicalProcessingValidator
 
                         validator = HierarchicalProcessingValidator()
                         validation_result = validator.validate()
@@ -3238,7 +3238,7 @@ def neural_signatures(
         # Import neural signatures validator
         spec = importlib.util.spec_from_file_location(
             "neural_signatures",
-            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignaturesEmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)
@@ -3288,7 +3288,7 @@ def causal_manipulations(
         # Import the causal manipulations validator
         spec = importlib.util.spec_from_file_location(
             "causal_manipulations",
-            PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
+            PROJECT_ROOT / "Validation" / "VP_10_CausalManipulationsPriority2.py",
         )
         causal_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(causal_module)
@@ -3343,7 +3343,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
+            PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCodingFatigue.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3384,7 +3384,7 @@ def clinical_convergence(
         # Import the clinical convergence validator
         spec = importlib.util.spec_from_file_location(
             "clinical_convergence",
-            PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
+            PROJECT_ROOT / "Validation" / "VP_12_ClinicalCrossSpeciesConvergence.py",
         )
         clinical_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(clinical_module)
@@ -3760,7 +3760,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
             spec1 = importlib.util.spec_from_file_location(
                 "neural_val",
-                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignaturesEmpiricalPriority1.py",
             )
             neural_module = importlib.util.module_from_spec(spec1)
             spec1.loader.exec_module(neural_module)
@@ -3771,7 +3771,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
             spec2 = importlib.util.spec_from_file_location(
                 "causal_val",
-                PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
+                PROJECT_ROOT / "Validation" / "VP_10_CausalManipulationsPriority2.py",
             )
             causal_module = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(causal_module)
@@ -3782,7 +3782,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
+                PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCodingFatigue.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)
@@ -3793,7 +3793,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
             spec4 = importlib.util.spec_from_file_location(
                 "clinical_val",
-                PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
+                PROJECT_ROOT / "Validation" / "VP_12_ClinicalCrossSpeciesConvergence.py",
             )
             clinical_module = importlib.util.module_from_spec(spec4)
             spec4.loader.exec_module(clinical_module)

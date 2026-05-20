@@ -1351,7 +1351,7 @@ def run_validation(**kwargs):
         all_passed = all(pred.get("passed", False) for pred in named_predictions.values())
 
         return {
-            "protocol_id": "VP_10_CausalManipulations_Priority2",
+            "protocol_id": "VP_10_CausalManipulationsPriority2",
             "protocol": "VP-10",
             "source_type": "supplementary",
             "passed": all_passed,
@@ -1366,7 +1366,7 @@ def run_validation(**kwargs):
         }
     except Exception as e:
         return {
-            "protocol_id": "VP_10_CausalManipulations_Priority2",
+            "protocol_id": "VP_10_CausalManipulationsPriority2",
             "protocol": "VP-10",
             "source_type": "supplementary",
             "passed": False,
@@ -1412,12 +1412,12 @@ def run_protocol_main(config=None):
                 threshold=pred_data.get("threshold"),
                 status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                 evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
-                sources=["VP_10_CausalManipulations_Priority2"],
+                sources=["VP_10_CausalManipulationsPriority2"],
                 metadata=pred_data,
             )
 
         return ProtocolResult(
-            protocol_id="VP_10_CausalManipulations_Priority2",
+            protocol_id="VP_10_CausalManipulationsPriority2",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=75,
@@ -1432,7 +1432,7 @@ def run_protocol_main(config=None):
 
     # Fallback to dict format if schema not available
     return {
-        "protocol_id": "VP_10_CausalManipulations_Priority2",
+        "protocol_id": "VP_10_CausalManipulationsPriority2",
         "protocol": "VP-10",
         "passed": legacy_result.get("passed", False),
         "status": legacy_result.get("status", "unknown"),
@@ -2494,7 +2494,7 @@ def validate() -> Dict[str, Any]:
         results = validator.validate_causal_predictions()
 
         # Add metadata
-        results["protocol_name"] = "VP_10_CausalManipulations_Priority2"
+        results["protocol_name"] = "VP_10_CausalManipulationsPriority2"
         results["protocol_description"] = "Causal manipulations that selectively disrupt ignition parameters"
         results["validation_timestamp"] = str(pd.Timestamp.now())
 
@@ -2504,7 +2504,7 @@ def validate() -> Dict[str, Any]:
         logger.error(f"Validation failed: {e}")
         return {
             "error": str(e),
-            "protocol_name": "VP_10_CausalManipulations_Priority2",
+            "protocol_name": "VP_10_CausalManipulationsPriority2",
             "validation_timestamp": str(pd.Timestamp.now()),
             "validation_passed": False,
         }

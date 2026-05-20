@@ -45,4 +45,5 @@
 | **VP-19** | Information Erasure | Multi-Voxel Pattern Analysis (MVPA) | `VP_19_InformationErasure_MVPA.py` |
 | **VP-20** | Empirical iEEG | Intracranial EEG Analysis | `VP_20_Empirical_iEEG.py` |
 | **VP-21** | Free Energy Prediction | Prediction Error Analysis | `VP_21_FreeEnergy_PredictionError.py` |
+| **VP-22** | APGI Protocol 5: fMRI  | Anticipation vs. Experience (Somatic Marker) | `VP_22_fMRI_Anticipation_Experience.py` |
 | **VP-ALL** | Master Orchestrator | Framework-Level Validation Aggregator | `VP_ALL_Aggregator.py` |

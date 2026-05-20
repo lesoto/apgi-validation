@@ -458,14 +458,14 @@ class APGIMasterFalsifier:
                 "tier": "primary",
             },
             "FP-02": {
-                "file": "Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py",
+                "file": "Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Agent Comparison: F3.x (Performance Benchmarks)",
                 "tier": "primary",
             },
             "FP-03": {
-                "file": "Falsification/FP_03_FrameworkLevel_MultiProtocol.py",
+                "file": "Falsification/FP_03_FrameworkLevelMultiProtocol.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Framework-Level Multi-Protocol Synthesis",
@@ -486,7 +486,7 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-06": {
-                "file": "Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py",
+                "file": "Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Liquid Network / Energy Benchmark: F6.x",
@@ -500,28 +500,28 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-08": {
-                "file": "Falsification/FP_08_ParameterSensitivity_Identifiability.py",
+                "file": "Falsification/FP_08_ParameterSensitivityIdentifiability.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Parameter Sensitivity / Identifiability: F8.x",
                 "tier": "secondary",
             },
             "FP-09": {
-                "file": "Falsification/FP_09_NeuralSignatures_P3b_HEP.py",
+                "file": "Falsification/FP_09_NeuralSignaturesP3bHEP.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Neural Signatures: P4.x, P5.x (P3b, HEP)",
                 "tier": "tertiary",
             },
             "FP-10": {
-                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
+                "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Bayesian MCMC + Cross-Species Scaling",
                 "tier": "tertiary",
             },
             "FP-10a": {
-                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
+                "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Bayesian MCMC Estimation (standalone)",
@@ -535,7 +535,7 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-11": {
-                "file": "Falsification/FP_11_LiquidNetworkDynamics_EchoState.py",
+                "file": "Falsification/FP_11_LiquidNetworkDynamicsEchoState.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Liquid Network Dynamics / Echo State",
@@ -658,7 +658,7 @@ class APGIMasterFalsifier:
             RuntimeError: If APGIAgent cannot be instantiated
         """
         project_root = Path(__file__).parent.parent
-        vp3_path = project_root / "Validation" / "VP_03_ActiveInference_AgentSimulations.py"
+        vp3_path = project_root / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py"
 
         logger.info("CRIT-04 FIX: Running VP-03 prerequisite to prepare APGIAgent for FP-08...")
 

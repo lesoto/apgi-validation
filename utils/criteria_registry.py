@@ -371,7 +371,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
     # VP-08: Psychophysical Threshold Estimation (Paper 1 — Protocol 1)
     # V1.1–V1.3 here are the authoritative registry definitions; VP-01's local
     # criteria use the VP01.x prefix to avoid collision.
-    "VP_08_Psychophysical_ThresholdEstimation": {
+    "VP_08_PsychophysicalThresholdEstimation": {
         "V1.1": {
             "name": "Heartbeat Discrimination Accuracy",
             "description": "APGI should improve heartbeat discrimination compared to StandardPP",
@@ -441,7 +441,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
         },
     },
     # HIGH-05: VP-13 Epistemic Architecture Validation Protocol
-    "VP_13_Epistemic_Architecture": {
+    "VP_13_EpistemicArchitecture": {
         "V13.1": {
             "name": "Epistemic Hierarchy Validation",
             "description": "Multi-scale precision hierarchy should emerge across neural levels",

@@ -1,5 +1,5 @@
 """
-Tests for VP_16_Metabolic_ATP_GroundTruth.py
+Tests for VP_16_MetabolicATPGroundTruth.py
 """
 
 import sys
@@ -11,7 +11,7 @@ import numpy as np
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Validation.VP_16_Metabolic_ATP_GroundTruth import (
+from Validation.VP_16_MetabolicATPGroundTruth import (
     APGIMetabolicValidator,
     MetabolicGroundTruthSimulator,
     run_validation,
@@ -136,7 +136,7 @@ class TestAPGIMetabolicValidator:
         if validator.config != custom_config:
             raise AssertionError(f"Expected config {custom_config}, got {validator.config}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_basic(self, mock_model):
         """Test basic validation execution."""
         # Mock the APGI model
@@ -161,7 +161,7 @@ class TestAPGIMetabolicValidator:
         if missing_keys:
             raise KeyError(f"Missing required keys in results: {missing_keys}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_with_config(self, mock_model):
         """Test validation with custom config."""
         custom_config = {"c1": 0.12, "c2": 0.018}
@@ -177,7 +177,7 @@ class TestAPGIMetabolicValidator:
         if results is None:
             raise ValueError("Results should not be None")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIModel")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIModel")
     def test_validate_c1_c2_ground_truth_curve_fit_failure(self, mock_model):
         """Test validation handles curve_fit failures gracefully."""
         mock_instance = MagicMock()
@@ -200,7 +200,7 @@ class TestAPGIMetabolicValidator:
 class TestRunValidation:
     """Test the run_validation entry point."""
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIMetabolicValidator")
     def test_run_validation_success(self, mock_validator):
         """Test run_validation with successful validation."""
         mock_instance = MagicMock()
@@ -216,8 +216,8 @@ class TestRunValidation:
 
         result = run_validation()
 
-        if result["protocol_id"] != "VP_16_Metabolic_ATP_GroundTruth":
-            raise AssertionError(f"Expected protocol_id VP_16_Metabolic_ATP_GroundTruth, got {result['protocol_id']}")
+        if result["protocol_id"] != "VP_16_MetabolicATPGroundTruth":
+            raise AssertionError(f"Expected protocol_id VP_16_MetabolicATPGroundTruth, got {result['protocol_id']}")
         if result["status"] != "success":
             raise AssertionError(f"Expected status success, got {result['status']}")
         if result["passed"] is not True:
@@ -227,7 +227,7 @@ class TestRunValidation:
         if missing_sections:
             raise KeyError(f"Missing required sections in result: {missing_sections}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIMetabolicValidator")
     def test_run_validation_failure(self, mock_validator):
         """Test run_validation with failed validation."""
         mock_instance = MagicMock()
@@ -248,7 +248,7 @@ class TestRunValidation:
         if result["passed"] is not False:
             raise AssertionError(f"Expected passed False, got {result['passed']}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIMetabolicValidator")
     def test_run_validation_named_predictions(self, mock_validator):
         """Test named predictions structure."""
         mock_instance = MagicMock()
@@ -283,7 +283,7 @@ class TestRunValidation:
         if missing_fields:
             raise KeyError(f"V16.3 missing required fields: {missing_fields}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIMetabolicValidator")
     def test_run_validation_metrics(self, mock_validator):
         """Test metrics structure."""
         mock_instance = MagicMock()
@@ -305,7 +305,7 @@ class TestRunValidation:
         if missing_metrics:
             raise KeyError(f"Missing required metrics: {missing_metrics}")
 
-    @patch("Validation.VP_16_Metabolic_ATP_GroundTruth.APGIMetabolicValidator")
+    @patch("Validation.VP_16_MetabolicATPGroundTruth.APGIMetabolicValidator")
     def test_run_validation_metadata(self, mock_validator):
         """Test metadata structure."""
         mock_instance = MagicMock()

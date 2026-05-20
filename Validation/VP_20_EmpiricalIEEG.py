@@ -1229,7 +1229,7 @@ def run_protocol_main(config=None) -> Any:
             for i in range(1, 4)
         }
         return ProtocolResult(
-            protocol_id="VP_20_Empirical_iEEG",
+            protocol_id="VP_20_EmpiricalIEEG",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["iEEG Synthetic (TEST MODE)"],
@@ -1252,7 +1252,7 @@ def run_protocol_main(config=None) -> Any:
             threshold=v.get("threshold"),
             status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
             name=v.get("test_name", pred_id),
-            sources=["VP_20_Empirical_iEEG"],
+            sources=["VP_20_EmpiricalIEEG"],
         )
 
     # Add JSON protocol sub-predictions (P6a–P6d from APGI-P06)
@@ -1266,12 +1266,12 @@ def run_protocol_main(config=None) -> Any:
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=sub_pred.claim,
                 evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P06", "VP_20_Empirical_iEEG"],
+                sources=["APGI-P06", "VP_20_EmpiricalIEEG"],
             )
 
     spec_params = _PROTOCOL_SPEC_P06.apgi_parameters if _PROTOCOL_SPEC_P06 else {}
     return ProtocolResult(
-        protocol_id="VP_20_Empirical_iEEG",
+        protocol_id="VP_20_EmpiricalIEEG",
         named_predictions=named,
         completion_percentage=100,
         data_sources=["iEEG Empirical / Synthetic BIDS"],

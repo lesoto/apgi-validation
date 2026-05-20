@@ -4429,7 +4429,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_06_LiquidNetwork_InductiveBias",
+        protocol_id="VP_06_LiquidNetworkInductiveBias",
         timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
         named_predictions=named_predictions,
         completion_percentage=100,
@@ -4452,5 +4452,5 @@ except (ImportError, Exception):
 
 
 if __name__ == "__main__":
-    logger.info("VP_06_LiquidNetwork_InductiveBias module loaded successfully")
+    logger.info("VP_06_LiquidNetworkInductiveBias module loaded successfully")
     logger.info("Run this module through the validation framework or import its classes")

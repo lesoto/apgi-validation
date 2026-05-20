@@ -3835,12 +3835,12 @@ def run_protocol_main(config=None):
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=sub_pred.claim,
                 evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P02", "VP_07_TMS_CausalInterventions"],
+                sources=["APGI-P02", "VP_07_TMSCausalInterventions"],
             )
 
     spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
-        protocol_id="VP_07_TMS_CausalInterventions",
+        protocol_id="VP_07_TMSCausalInterventions",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

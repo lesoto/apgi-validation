@@ -584,7 +584,7 @@ def run_protocol_main(config=None):
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_14_fMRI_Anticipation_Experience",
+                protocol_id="VP_14_FMRIAnticipationExperience",
                 timestamp=np.datetime64("now").astype(str),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -620,12 +620,12 @@ def run_protocol_main(config=None):
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=sub_pred.claim,
                 evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P05", "VP_14_fMRI_Anticipation_Experience"],
+                sources=["APGI-P05", "VP_14_FMRIAnticipationExperience"],
             )
 
     spec_params = _PROTOCOL_SPEC_P05.apgi_parameters if _PROTOCOL_SPEC_P05 else {}
     return ProtocolResult(
-        protocol_id="VP_14_fMRI_Anticipation_Experience",
+        protocol_id="VP_14_FMRIAnticipationExperience",
         timestamp=np.datetime64("now").astype(str),
         named_predictions=named_predictions,
         completion_percentage=100,

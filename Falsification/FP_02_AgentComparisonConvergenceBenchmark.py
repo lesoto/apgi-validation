@@ -2971,12 +2971,12 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
             evidence=[pred_data.get("description", "NOT_EVALUATED")],
-            sources=["FP_02_AgentComparison_ConvergenceBenchmark"],
+            sources=["FP_02_AgentComparisonConvergenceBenchmark"],
             metadata=pred_data,
         )
 
     return ProtocolResult(
-        protocol_id="FP_02_AgentComparison_ConvergenceBenchmark",
+        protocol_id="FP_02_AgentComparisonConvergenceBenchmark",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=90,

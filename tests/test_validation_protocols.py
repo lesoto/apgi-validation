@@ -19,21 +19,21 @@ VALIDATION_MODULES = {}
 # List of all validation modules to test
 VALIDATION_MODULE_NAMES = [
     "APGI_Validation_GUI",
-    "VP_03_ActiveInference_AgentSimulations",
-    "VP_02_Behavioral_BayesianComparison",
-    "VP_10_CausalManipulations_Priority2",
-    "VP_12_Clinical_CrossSpecies_Convergence",
-    "VP_09_NeuralSignatures_EmpiricalPriority1",
+    "VP_03_ActiveInferenceAgentSimulations",
+    "VP_02_BehavioralBayesianComparison",
+    "VP_10_CausalManipulationsPriority2",
+    "VP_12_ClinicalCrossSpeciesConvergence",
+    "VP_09_NeuralSignaturesEmpiricalPriority1",
     "VP_05_EvolutionaryEmergence",
-    "VP_04_PhaseTransition_EpistemicLevel2",
+    "VP_04_PhaseTransitionEpistemicLevel2",
     "Master_Validation",
-    "VP_06_LiquidNetwork_InductiveBias",
-    "VP_08_Psychophysical_ThresholdEstimation",
-    "VP_11_MCMC_CulturalNeuroscience_Priority3",
-    "VP_01_SyntheticEEG_MLClassification",
-    "VP_07_TMS_CausalInterventions",
-    "VP_13_Epistemic_Architecture",
-    "VP_14_fMRI_Anticipation_Experience",
+    "VP_06_LiquidNetworkInductiveBias",
+    "VP_08_PsychophysicalThresholdEstimation",
+    "VP_11_MCMCCulturalNeurosciencePriority3",
+    "VP_01_SyntheticEEGMLClassification",
+    "VP_07_TMSCausalInterventions",
+    "VP_13_EpistemicArchitecture",
+    "VP_14_FMRIAnticipationExperience",
 ]
 
 # Try to import each module
@@ -97,12 +97,12 @@ class TestActiveInferenceSimulations:
     """Test active inference agent simulations."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_03_ActiveInference_AgentSimulations"] is None,
+        VALIDATION_MODULES["VP_03_ActiveInferenceAgentSimulations"] is None,
         reason="ActiveInference module not available",
     )
     def test_simulations_initialization(self):
         """Test active inference simulations initialization."""
-        module = VALIDATION_MODULES["VP_03_ActiveInference_AgentSimulations"]
+        module = VALIDATION_MODULES["VP_03_ActiveInferenceAgentSimulations"]
 
         try:
             simulations = module.AgentSimulations()
@@ -115,12 +115,12 @@ class TestActiveInferenceSimulations:
             pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_03_ActiveInference_AgentSimulations"] is None,
+        VALIDATION_MODULES["VP_03_ActiveInferenceAgentSimulations"] is None,
         reason="ActiveInference module not available",
     )
     def test_agent_simulation(self):
         """Test agent simulation."""
-        module = VALIDATION_MODULES["VP_03_ActiveInference_AgentSimulations"]
+        module = VALIDATION_MODULES["VP_03_ActiveInferenceAgentSimulations"]
 
         try:
             simulations = module.AgentSimulations()
@@ -141,12 +141,12 @@ class TestBayesianModelComparison:
     """Test Bayesian model comparison and parameter recovery."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"] is None,
+        VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"] is None,
         reason="BayesianModelComparison module not available",
     )
     def test_comparison_initialization(self):
         """Test model comparison initialization."""
-        module = VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"]
+        module = VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"]
 
         try:
             comparison = module.ModelComparison()
@@ -159,12 +159,12 @@ class TestBayesianModelComparison:
             pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"] is None,
+        VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"] is None,
         reason="BayesianModelComparison module not available",
     )
     def test_model_comparison(self):
         """Test model comparison."""
-        module = VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"]
+        module = VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"]
 
         try:
             comparison = module.ModelComparison()
@@ -181,12 +181,12 @@ class TestBayesianModelComparison:
             pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"] is None,
+        VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"] is None,
         reason="BayesianModelComparison module not available",
     )
     def test_parameter_recovery_validation(self):
         """Test parameter recovery validation."""
-        module = VALIDATION_MODULES["VP_02_Behavioral_BayesianComparison"]
+        module = VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"]
 
         try:
             comparison = module.ModelComparison()
@@ -208,12 +208,12 @@ class TestCausalManipulationsValidation:
     """Test TMS and pharmacological causal manipulations validation."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_10_CausalManipulations_Priority2"] is None,
+        VALIDATION_MODULES["VP_10_CausalManipulationsPriority2"] is None,
         reason="CausalManipulations module not available",
     )
     def test_manipulations_initialization(self):
         """Test causal manipulations initialization."""
-        module = VALIDATION_MODULES["VP_10_CausalManipulations_Priority2"]
+        module = VALIDATION_MODULES["VP_10_CausalManipulationsPriority2"]
 
         try:
             manipulations = module.CausalManipulations()
@@ -227,12 +227,12 @@ class TestCausalManipulationsValidation:
             pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_10_CausalManipulations_Priority2"] is None,
+        VALIDATION_MODULES["VP_10_CausalManipulationsPriority2"] is None,
         reason="CausalManipulations module not available",
     )
     def test_causal_validation(self):
         """Test causal validation."""
-        module = VALIDATION_MODULES["VP_10_CausalManipulations_Priority2"]
+        module = VALIDATION_MODULES["VP_10_CausalManipulationsPriority2"]
 
         try:
             manipulations = module.CausalManipulations()
@@ -258,12 +258,12 @@ class TestClinicalCrossSpeciesConvergence:
     """Test clinical cross-species convergence validation."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_12_Clinical_CrossSpecies_Convergence"] is None,
+        VALIDATION_MODULES["VP_12_ClinicalCrossSpeciesConvergence"] is None,
         reason="ClinicalCrossSpecies module not available",
     )
     def test_cross_species_initialization(self):
         """Test cross-species convergence initialization."""
-        module = VALIDATION_MODULES["VP_12_Clinical_CrossSpecies_Convergence"]
+        module = VALIDATION_MODULES["VP_12_ClinicalCrossSpeciesConvergence"]
 
         try:
             convergence = module.CrossSpeciesConvergence()
@@ -278,12 +278,12 @@ class TestClinicalCrossSpeciesConvergence:
             pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_12_Clinical_CrossSpecies_Convergence"] is None,
+        VALIDATION_MODULES["VP_12_ClinicalCrossSpeciesConvergence"] is None,
         reason="ClinicalCrossSpecies module not available",
     )
     def test_convergence_validation(self):
         """Test convergence validation."""
-        module = VALIDATION_MODULES["VP_12_Clinical_CrossSpecies_Convergence"]
+        module = VALIDATION_MODULES["VP_12_ClinicalCrossSpeciesConvergence"]
 
         try:
             convergence = module.CrossSpeciesConvergence()
@@ -306,12 +306,12 @@ class TestConvergentNeuralSignatures:
     """Test convergent neural signatures empirical roadmap."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_09_NeuralSignatures_EmpiricalPriority1"] is None,
+        VALIDATION_MODULES["VP_09_NeuralSignaturesEmpiricalPriority1"] is None,
         reason="ConvergentNeuralSignatures module not available",
     )
     def test_signatures_initialization(self):
         """Test neural signatures initialization."""
-        module = VALIDATION_MODULES["VP_09_NeuralSignatures_EmpiricalPriority1"]
+        module = VALIDATION_MODULES["VP_09_NeuralSignaturesEmpiricalPriority1"]
 
         try:
             signatures = module.NeuralSignatures()
@@ -326,12 +326,12 @@ class TestConvergentNeuralSignatures:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_09_NeuralSignatures_EmpiricalPriority1"] is None,
+        VALIDATION_MODULES["VP_09_NeuralSignaturesEmpiricalPriority1"] is None,
         reason="ConvergentNeuralSignatures module not available",
     )
     def test_neural_signatures_detection(self):
         """Test neural signatures detection."""
-        module = VALIDATION_MODULES["VP_09_NeuralSignatures_EmpiricalPriority1"]
+        module = VALIDATION_MODULES["VP_09_NeuralSignaturesEmpiricalPriority1"]
 
         try:
             signatures = module.NeuralSignatures()
@@ -403,12 +403,12 @@ class TestInformationTheoreticPhaseTransition:
     """Test information-theoretic phase transition validation."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"] is None,
+        VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"] is None,
         reason="InformationTheoretic module not available",
     )
     def test_phase_transition_initialization(self):
         """Test phase transition initialization."""
-        module = VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"]
+        module = VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"]
 
         try:
             phase_transition = module.PhaseTransition()
@@ -424,12 +424,12 @@ class TestInformationTheoreticPhaseTransition:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"] is None,
+        VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"] is None,
         reason="InformationTheoretic module not available",
     )
     def test_phase_transition_validation(self):
         """Test phase transition validation."""
-        module = VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"]
+        module = VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"]
 
         try:
             phase_transition = module.PhaseTransition()
@@ -497,12 +497,12 @@ class TestNeuralNetworkInductiveBias:
     """Test neural network inductive bias computational benchmark."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_06_LiquidNetwork_InductiveBias"] is None,
+        VALIDATION_MODULES["VP_06_LiquidNetworkInductiveBias"] is None,
         reason="NeuralNetworkInductiveBias module not available",
     )
     def test_benchmark_initialization(self):
         """Test inductive bias benchmark initialization."""
-        module = VALIDATION_MODULES["VP_06_LiquidNetwork_InductiveBias"]
+        module = VALIDATION_MODULES["VP_06_LiquidNetworkInductiveBias"]
 
         try:
             benchmark = module.InductiveBiasBenchmark()
@@ -517,12 +517,12 @@ class TestNeuralNetworkInductiveBias:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_06_LiquidNetwork_InductiveBias"] is None,
+        VALIDATION_MODULES["VP_06_LiquidNetworkInductiveBias"] is None,
         reason="NeuralNetworkInductiveBias module not available",
     )
     def test_bias_measurement(self):
         """Test inductive bias measurement."""
-        module = VALIDATION_MODULES["VP_06_LiquidNetwork_InductiveBias"]
+        module = VALIDATION_MODULES["VP_06_LiquidNetworkInductiveBias"]
 
         try:
             benchmark = module.InductiveBiasBenchmark()
@@ -543,12 +543,12 @@ class TestPsychophysicalThreshold:
     """Test psychophysical threshold estimation."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_08_Psychophysical_ThresholdEstimation"] is None,
+        VALIDATION_MODULES["VP_08_PsychophysicalThresholdEstimation"] is None,
         reason="PsychophysicalThreshold module not available",
     )
     def test_threshold_initialization(self):
         """Test threshold estimation initialization."""
-        module = VALIDATION_MODULES["VP_08_Psychophysical_ThresholdEstimation"]
+        module = VALIDATION_MODULES["VP_08_PsychophysicalThresholdEstimation"]
 
         try:
             threshold = module.ThresholdEstimation()
@@ -563,12 +563,12 @@ class TestPsychophysicalThreshold:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_08_Psychophysical_ThresholdEstimation"] is None,
+        VALIDATION_MODULES["VP_08_PsychophysicalThresholdEstimation"] is None,
         reason="PsychophysicalThreshold module not available",
     )
     def test_threshold_estimation(self):
         """Test threshold estimation."""
-        module = VALIDATION_MODULES["VP_08_Psychophysical_ThresholdEstimation"]
+        module = VALIDATION_MODULES["VP_08_PsychophysicalThresholdEstimation"]
 
         try:
             threshold = module.ThresholdEstimation()
@@ -591,12 +591,12 @@ class TestQuantitativeModelFits:
     """Test quantitative model fits for spiking LNN."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_11_MCMC_CulturalNeuroscience_Priority3"] is None,
+        VALIDATION_MODULES["VP_11_MCMCCulturalNeurosciencePriority3"] is None,
         reason="QuantitativeModelFits module not available",
     )
     def test_model_fits_initialization(self):
         """Test model fits initialization."""
-        module = VALIDATION_MODULES["VP_11_MCMC_CulturalNeuroscience_Priority3"]
+        module = VALIDATION_MODULES["VP_11_MCMCCulturalNeurosciencePriority3"]
 
         try:
             model_fits = module.QuantitativeModelFits()
@@ -609,12 +609,12 @@ class TestQuantitativeModelFits:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_11_MCMC_CulturalNeuroscience_Priority3"] is None,
+        VALIDATION_MODULES["VP_11_MCMCCulturalNeurosciencePriority3"] is None,
         reason="QuantitativeFits module not available",
     )
     def test_model_fitting(self):
         """Test model fitting."""
-        module = VALIDATION_MODULES["VP_11_MCMC_CulturalNeuroscience_Priority3"]
+        module = VALIDATION_MODULES["VP_11_MCMCCulturalNeurosciencePriority3"]
 
         try:
             model_fits = module.QuantitativeModelFits()
@@ -637,12 +637,12 @@ class TestSyntheticEEGMLClassification:
     """Test synthetic EEG ML classification."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_01_SyntheticEEG_MLClassification"] is None,
+        VALIDATION_MODULES["VP_01_SyntheticEEGMLClassification"] is None,
         reason="SyntheticEEG module not available",
     )
     def test_classification_initialization(self):
         """Test EEG classification initialization."""
-        module = VALIDATION_MODULES["VP_01_SyntheticEEG_MLClassification"]
+        module = VALIDATION_MODULES["VP_01_SyntheticEEGMLClassification"]
 
         try:
             classification = module.EEGClassification()
@@ -658,12 +658,12 @@ class TestSyntheticEEGMLClassification:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_01_SyntheticEEG_MLClassification"] is None,
+        VALIDATION_MODULES["VP_01_SyntheticEEGMLClassification"] is None,
         reason="SyntheticEEG module not available",
     )
     def test_eeg_classification(self):
         """Test EEG classification."""
-        module = VALIDATION_MODULES["VP_01_SyntheticEEG_MLClassification"]
+        module = VALIDATION_MODULES["VP_01_SyntheticEEGMLClassification"]
 
         try:
             classification = module.EEGClassification()
@@ -684,12 +684,12 @@ class TestTMSPharmacologicalCausalIntervention:
     """Test TMS pharmacological causal intervention validation."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_07_TMS_CausalInterventions"] is None,
+        VALIDATION_MODULES["VP_07_TMSCausalInterventions"] is None,
         reason="TMSPharmacological module not available",
     )
     def test_intervention_initialization(self):
         """Test causal intervention initialization."""
-        module = VALIDATION_MODULES["VP_07_TMS_CausalInterventions"]
+        module = VALIDATION_MODULES["VP_07_TMSCausalInterventions"]
 
         try:
             intervention = module.CausalIntervention()
@@ -705,12 +705,12 @@ class TestTMSPharmacologicalCausalIntervention:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_07_TMS_CausalInterventions"] is None,
+        VALIDATION_MODULES["VP_07_TMSCausalInterventions"] is None,
         reason="TMSPharmacological module not available",
     )
     def test_causal_intervention(self):
         """Test causal intervention."""
-        module = VALIDATION_MODULES["VP_07_TMS_CausalInterventions"]
+        module = VALIDATION_MODULES["VP_07_TMSCausalInterventions"]
 
         try:
             intervention = module.CausalIntervention()
@@ -734,12 +734,12 @@ class TestValidationProtocols:
     """Test specific validation protocols."""
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_13_Epistemic_Architecture"] is None,
-        reason="VP_13_Epistemic_Architecture module not available",
+        VALIDATION_MODULES["VP_13_EpistemicArchitecture"] is None,
+        reason="VP_13_EpistemicArchitecture module not available",
     )
     def test_protocol_11(self):
         """Test validation protocol 11."""
-        module = VALIDATION_MODULES["VP_13_Epistemic_Architecture"]
+        module = VALIDATION_MODULES["VP_13_EpistemicArchitecture"]
 
         try:
             protocol = module.ValidationProtocol11()
@@ -754,12 +754,12 @@ class TestValidationProtocols:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_14_fMRI_Anticipation_Experience"] is None,
-        reason="VP_14_fMRI_Anticipation_Experience module not available",
+        VALIDATION_MODULES["VP_14_FMRIAnticipationExperience"] is None,
+        reason="VP_14_FMRIAnticipationExperience module not available",
     )
     def test_protocol_2(self):
         """Test validation protocol 2."""
-        module = VALIDATION_MODULES["VP_14_fMRI_Anticipation_Experience"]
+        module = VALIDATION_MODULES["VP_14_FMRIAnticipationExperience"]
 
         try:
             protocol = module.ValidationProtocol2()
@@ -774,12 +774,12 @@ class TestValidationProtocols:
             pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"] is None,
-        reason="VP_04_PhaseTransition_EpistemicLevel2 module not available",
+        VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"] is None,
+        reason="VP_04_PhaseTransitionEpistemicLevel2 module not available",
     )
     def test_protocol_p4_epistemic(self):
         """Test validation protocol P4 epistemic."""
-        module = VALIDATION_MODULES["VP_04_PhaseTransition_EpistemicLevel2"]
+        module = VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"]
 
         try:
             protocol = module.ValidationProtocolP4()

@@ -53,7 +53,7 @@ class ValidationFalsificationConsistency:
         # Example: FP-01 assumes interoceptive precision modulates thresholds
         # VP-08 should confirm this psychophysically
         fp01_prediction = self.fp_results.get("FP_01_ActiveInference", {}).get("P1.1", {})
-        vp08_validation = self.vp_results.get("VP_08_Psychophysical_ThresholdEstimation", {}).get("P1.1", {})
+        vp08_validation = self.vp_results.get("VP_08_PsychophysicalThresholdEstimation", {}).get("P1.1", {})
 
         if fp01_prediction.get("passed") and not vp08_validation.get("passed"):
             issues.append(
@@ -61,7 +61,7 @@ class ValidationFalsificationConsistency:
                     issue_type="CONTRADICTION",
                     description="FP-01 passed but VP-08 validation failed - possible error in VP-08 empirical data or FP-01 simulation",
                     fp_protocol="FP-01_ActiveInference",
-                    vp_protocol="VP_08_Psychophysical_ThresholdEstimation",
+                    vp_protocol="VP_08_PsychophysicalThresholdEstimation",
                     prediction_id="P1.1",
                     severity="HIGH",
                     evidence=[
@@ -74,16 +74,16 @@ class ValidationFalsificationConsistency:
 
         # Example: FP-02 assumes agent convergence
         # VP-03 should validate that agents actually converge
-        fp02_convergence = self.fp_results.get("FP_02_AgentComparison_ConvergenceBenchmark", {}).get("P3.conv", {})
-        vp03_validation = self.vp_results.get("VP_03_ActiveInference_AgentSimulations", {}).get("P3.conv", {})
+        fp02_convergence = self.fp_results.get("FP_02_AgentComparisonConvergenceBenchmark", {}).get("P3.conv", {})
+        vp03_validation = self.vp_results.get("VP_03_ActiveInferenceAgentSimulations", {}).get("P3.conv", {})
 
         if fp02_convergence.get("passed") and not vp03_validation.get("passed"):
             issues.append(
                 ConsistencyIssue(
                     issue_type="CONTRADICTION",
                     description="FP-02 shows agent convergence but VP-03 validation failed - possible simulation error or VP-03 measurement issue",
-                    fp_protocol="FP_02_AgentComparison_ConvergenceBenchmark",
-                    vp_protocol="VP_03_ActiveInference_AgentSimulations",
+                    fp_protocol="FP_02_AgentComparisonConvergenceBenchmark",
+                    vp_protocol="VP_03_ActiveInferenceAgentSimulations",
                     prediction_id="P3.conv",
                     severity="HIGH",
                     evidence=[
@@ -112,8 +112,8 @@ class ValidationFalsificationConsistency:
             # Check if dependent FP protocols have results
             fp_dependents = [
                 "FP_01_ActiveInference",
-                "FP_02_AgentComparison_ConvergenceBenchmark",
-                "FP_03_FrameworkLevel_MultiProtocol",
+                "FP_02_AgentComparisonConvergenceBenchmark",
+                "FP_03_FrameworkLevelMultiProtocol",
             ]
             missing_deps = []
 
@@ -289,8 +289,8 @@ class ValidationFalsificationConsistency:
         """
         # Use provided results or fall back to initialized results
         fp01 = fp01_results or self.fp_results.get("FP_01_ActiveInference", {})
-        vp07 = vp07_results or self.vp_results.get("VP_07_TMS_CausalInterventions", {})
-        vp10 = vp10_results or self.vp_results.get("VP_10_CausalManipulations_Priority2", {})
+        vp07 = vp07_results or self.vp_results.get("VP_07_TMSCausalInterventions", {})
+        vp10 = vp10_results or self.vp_results.get("VP_10_CausalManipulationsPriority2", {})
 
         # Extract relevant predictions
         fp01_threshold_dynamics = fp01.get("F1.4", {})

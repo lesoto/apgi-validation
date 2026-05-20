@@ -1235,7 +1235,7 @@ class EvolutionaryAPGIEmergence:
             protocol2_path = os.path.abspath(
                 os.path.join(
                     os.path.dirname(__file__),
-                    "FP_02_AgentComparison_ConvergenceBenchmark.py",
+                    "FP_02_AgentComparisonConvergenceBenchmark.py",
                 )
             )
 

@@ -33,22 +33,22 @@ VALIDATION_PROTOCOLS = []
 
 # All validation protocol files found in the Validation directory
 VALIDATION_FILES = [
-    "VP_03_ActiveInference_AgentSimulations.py",
-    "VP_02_Behavioral_BayesianComparison.py",
-    "VP_12_Clinical_CrossSpecies_Convergence.py",
-    "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+    "VP_03_ActiveInferenceAgentSimulations.py",
+    "VP_02_BehavioralBayesianComparison.py",
+    "VP_12_ClinicalCrossSpeciesConvergence.py",
+    "VP_09_NeuralSignaturesEmpiricalPriority1.py",
     "VP_05_EvolutionaryEmergence.py",
-    "VP_10_CausalManipulations_Priority2.py",
-    "VP_04_PhaseTransition_EpistemicLevel2.py",
+    "VP_10_CausalManipulationsPriority2.py",
+    "VP_04_PhaseTransitionEpistemicLevel2.py",
     "Master_Validation.py",
-    "VP_06_LiquidNetwork_InductiveBias.py",
-    "VP_08_Psychophysical_ThresholdEstimation.py",
-    "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
-    "VP_01_SyntheticEEG_MLClassification.py",
-    "VP_07_TMS_CausalInterventions.py",
-    "VP_13_Epistemic_Architecture.py",
-    "VP_14_fMRI_Anticipation_Experience.py",
-    "VP_15_fMRI_Anticipation_vmPFC.py",
+    "VP_06_LiquidNetworkInductiveBias.py",
+    "VP_08_PsychophysicalThresholdEstimation.py",
+    "VP_11_MCMCCulturalNeurosciencePriority3.py",
+    "VP_01_SyntheticEEGMLClassification.py",
+    "VP_07_TMSCausalInterventions.py",
+    "VP_13_EpistemicArchitecture.py",
+    "VP_14_FMRIAnticipationExperience.py",
+    "VP_15_FMRIAnticipationVmPFC.py",
 ]
 
 

@@ -281,7 +281,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 
     # Format for VP_ALL aggregator
     output = {
-        "protocol_id": "VP_16_Metabolic_ATP_GroundTruth",
+        "protocol_id": "VP_16_MetabolicATPGroundTruth",
         "status": "success" if results["passed"] else "failed",
         "passed": results["passed"],
         "named_predictions": {
@@ -334,10 +334,10 @@ def run_protocol_main(config=None):
                 value=v.get("value"),
                 threshold=v.get("threshold"),
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
-                sources=["VP_16_Metabolic_ATP_GroundTruth"],
+                sources=["VP_16_MetabolicATPGroundTruth"],
             )
         return ProtocolResult(
-            protocol_id="VP_16_Metabolic_ATP_GroundTruth",
+            protocol_id="VP_16_MetabolicATPGroundTruth",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["iATPSnFR2/P-fMRS Simulation"],

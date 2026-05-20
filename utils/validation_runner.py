@@ -401,7 +401,7 @@ def validate_fp02_data_variance() -> Dict[str, Any]:
     try:
         # Import with fallback for temp directory issues
         try:
-            from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
+            from Falsification.FP_02_AgentComparisonConvergenceBenchmark import (
                 IowaGamblingTaskEnvironment,
                 validate_input_variance,
             )
@@ -458,7 +458,7 @@ def validate_fp03_dependencies() -> Dict[str, Any]:
     try:
         # Test import resolution with temp directory fallback
         try:
-            from Falsification.FP_03_FrameworkLevel_MultiProtocol import (
+            from Falsification.FP_03_FrameworkLevelMultiProtocol import (
                 AGGREGATOR_AVAILABLE,
                 SHARED_FALSEFICATION_AVAILABLE,
             )
@@ -494,7 +494,7 @@ def validate_fp04_te_computation() -> Dict[str, Any]:
 
     try:
         try:
-            from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
+            from Falsification.FP_04_PhaseTransitionEpistemicArchitecture import (
                 InformationTheoreticAnalysis,
                 SurpriseIgnitionSystem,
             )

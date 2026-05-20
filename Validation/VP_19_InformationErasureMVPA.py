@@ -52,9 +52,9 @@ suppress non-selected representations.
 Tier: SECONDARY
 
 VP_ALL_Aggregator.py registration:
-    "V19.1": "VP_19_InformationErasure_MVPA",
-    "V19.2": "VP_19_InformationErasure_MVPA",
-    "V19.3": "VP_19_InformationErasure_MVPA",
+    "V19.1": "VP_19_InformationErasureMVPA",
+    "V19.2": "VP_19_InformationErasureMVPA",
+    "V19.3": "VP_19_InformationErasureMVPA",
 """
 
 import logging
@@ -703,7 +703,7 @@ class InformationErasureValidator:
                 "overall_score": passed / total,
                 "tests_passed": passed,
                 "tests_total": total,
-                "protocol_id": "VP_19_InformationErasure_MVPA",
+                "protocol_id": "VP_19_InformationErasureMVPA",
                 "validation_timestamp": datetime.now().isoformat(),
                 "measurement_gap_note": (
                     "This protocol tests representational erasure at Level 3 "
@@ -797,10 +797,10 @@ def run_protocol_main(config=None):
                 threshold=v.get("threshold"),
                 status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
                 name=v.get("test_name", pred_id),
-                sources=["VP_19_InformationErasure_MVPA"],
+                sources=["VP_19_InformationErasureMVPA"],
             )
         return ProtocolResult(
-            protocol_id="VP_19_InformationErasure_MVPA",
+            protocol_id="VP_19_InformationErasureMVPA",
             named_predictions=named,
             completion_percentage=100,
             data_sources=["MVPA Simulation"],

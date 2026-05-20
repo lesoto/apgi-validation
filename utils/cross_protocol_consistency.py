@@ -614,7 +614,7 @@ def validate_cross_protocol_coupling(fp_results: Dict[str, Dict], vp_results: Di
 
     # Check FP-01 ↔ VP-10 coupling
     fp01 = fp_results.get("FP_01_ActiveInference", {})
-    vp10 = vp_results.get("VP_10_CausalManipulations_Priority2", {})
+    vp10 = vp_results.get("VP_10_CausalManipulationsPriority2", {})
 
     if fp01 and vp10:
         fp01_vp10_check = validate_tms_causal_consistency(fp01, vp10)

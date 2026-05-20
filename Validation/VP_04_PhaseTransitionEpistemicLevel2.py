@@ -3851,7 +3851,7 @@ def run_protocol_main(config=None):
         # Return mock results for fast test execution
         if HAS_SCHEMA:
             return ProtocolResult(
-                protocol_id="VP_04_PhaseTransition_EpistemicLevel2",
+                protocol_id="VP_04_PhaseTransitionEpistemicLevel2",
                 timestamp=datetime.now().isoformat(),
                 named_predictions={
                     "V4.1": PredictionResult(
@@ -3860,7 +3860,7 @@ def run_protocol_main(config=None):
                         threshold=1.15,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_04_PhaseTransition_EpistemicLevel2"],
+                        sources=["VP_04_PhaseTransitionEpistemicLevel2"],
                     ),
                     "V4.2": PredictionResult(
                         passed=True,
@@ -3868,7 +3868,7 @@ def run_protocol_main(config=None):
                         threshold=1.10,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_04_PhaseTransition_EpistemicLevel2"],
+                        sources=["VP_04_PhaseTransitionEpistemicLevel2"],
                     ),
                     "V4.3": PredictionResult(
                         passed=True,
@@ -3876,7 +3876,7 @@ def run_protocol_main(config=None):
                         threshold=0.90,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_04_PhaseTransition_EpistemicLevel2"],
+                        sources=["VP_04_PhaseTransitionEpistemicLevel2"],
                     ),
                 },
                 completion_percentage=100,
@@ -3912,7 +3912,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_04_PhaseTransition_EpistemicLevel2",
+        protocol_id="VP_04_PhaseTransitionEpistemicLevel2",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

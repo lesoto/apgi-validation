@@ -4,10 +4,10 @@ Tests for uncovered Falsification/ module paths
 
 Tests for Falsification modules that need additional coverage:
 - FP_07_MathematicalConsistency
-- FP_08_ParameterSensitivity_Identifiability
-- FP_09_NeuralSignatures_P3b_HEP
-- FP_10_BayesianEstimation_MCMC
-- FP_11_LiquidNetworkDynamics_EchoState
+- FP_08_ParameterSensitivityIdentifiability
+- FP_09_NeuralSignaturesP3bHEP
+- FP_10_BayesianEstimationMCMC
+- FP_11_LiquidNetworkDynamicsEchoState
 - FP_12_CrossSpeciesScaling
 - Master_Falsification
 - FP_ALL_Aggregator
@@ -165,7 +165,7 @@ class TestFP08ParameterSensitivity:
     def test_fp08_import(self):
         """Test FP_08 module import"""
         try:
-            from Falsification.FP_08_ParameterSensitivity_Identifiability import ParameterSensitivityAnalyzer
+            from Falsification.FP_08_ParameterSensitivityIdentifiability import ParameterSensitivityAnalyzer
 
             assert ParameterSensitivityAnalyzer is not None
         except ImportError:
@@ -178,7 +178,7 @@ class TestFP09NeuralSignatures:
     def test_fp09_import(self):
         """Test FP_09 module import"""
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import NeuralSignatureValidator
+            from Falsification.FP_09_NeuralSignaturesP3bHEP import NeuralSignatureValidator
 
             assert NeuralSignatureValidator is not None
         except ImportError:
@@ -191,7 +191,7 @@ class TestFP10BayesianEstimation:
     def test_fp10_import(self):
         """Test FP_10 module import"""
         try:
-            from Falsification.FP_10_BayesianEstimation_MCMC import BayesianParameterRecovery
+            from Falsification.FP_10_BayesianEstimationMCMC import BayesianParameterRecovery
 
             assert BayesianParameterRecovery is not None
         except ImportError:
@@ -204,7 +204,7 @@ class TestFP11LiquidNetwork:
     def test_fp11_import(self):
         """Test FP_11 module import"""
         try:
-            from Falsification.FP_11_LiquidNetworkDynamics_EchoState import LiquidNetworkDynamicsAnalyzer
+            from Falsification.FP_11_LiquidNetworkDynamicsEchoState import LiquidNetworkDynamicsAnalyzer
 
             assert LiquidNetworkDynamicsAnalyzer is not None
         except ImportError:

@@ -3197,12 +3197,12 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                     threshold=pred_data.get("threshold"),
                     status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
                     evidence=[str(pred_data.get("evidence", ""))],
-                    sources=["FP_10_BayesianEstimation_MCMC"],
+                    sources=["FP_10_BayesianEstimationMCMC"],
                     metadata=pred_data.copy(),
                 )
 
         return ProtocolResult(
-            protocol_id="FP_10_BayesianEstimation_MCMC",
+            protocol_id="FP_10_BayesianEstimationMCMC",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=55,  # Updated from Protocols.md

@@ -364,7 +364,7 @@ class EpistemicArchitectureValidator:
         # Fix 1: Replace hardcoded distributions with empirical data from VP-09
         # Import P3b distributions from FP-09's validated EEG analysis
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import get_p3b_distributions
+            from Falsification.FP_09_NeuralSignaturesP3bHEP import get_p3b_distributions
 
             p3b_dists = get_p3b_distributions()
 
@@ -848,7 +848,7 @@ class EpistemicArchitectureValidator:
 
         try:
             # Import FP-04's falsification criteria function
-            from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
+            from Falsification.FP_04_PhaseTransitionEpistemicArchitecture import (
                 get_falsification_criteria as get_fp04_criteria,
             )
 
@@ -1168,7 +1168,7 @@ def run_protocol_main(config=None):
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_13_Epistemic_Architecture",
+                protocol_id="VP_13_EpistemicArchitecture",
                 timestamp=datetime.now().isoformat(),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -1195,7 +1195,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_13_Epistemic_Architecture",
+        protocol_id="VP_13_EpistemicArchitecture",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,
