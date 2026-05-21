@@ -2720,12 +2720,6 @@ class FalsificationChecker:
                 "threshold": "r ≥ 0.82 (core) and r ≥ 0.68 (auxiliary)",
                 "comparison": "correlation",
             },
-            # V12.1: Pharmacological Convergence
-            "V12.1": {
-                "description": "Propofol-Induced Suppression",
-                "threshold": "Propofol reduces P3b by ≥80% and ignition by ≥70%",
-                "comparison": "reduction_magnitude",
-            },
         }
 
     def check_F1_1(self, results_by_model: Dict[str, Dict]) -> Tuple[bool, float]:
@@ -3278,7 +3272,7 @@ class FalsificationChecker:
             elif code == "V1.6":
                 passed = True
                 value_str = "α=1.1 (active)"
-            elif code.startswith("V2") or code == "V12.1":
+            elif code.startswith("V2"):
                 # These are usually passed if primary model recovery/convergence is good
                 passed = apgi_acc > 0.75
                 value_str = "Passed" if passed else "Failed recovery"

@@ -1695,8 +1695,9 @@ class APGINeuralSignaturesValidator:
                 "threshold_met": mi_increase >= 1.0,
                 "significant": p_value < 0.05,
                 "falsified": falsified,
-                "criterion_code": "P5",
+                "criterion_code": "VP9.P5",
                 "description": "Mutual information increases ≥1 bit with precision cueing",
+                "falsification_threshold": "MI increase < 1.0 bit or p ≥ 0.05",
             }
 
         except Exception as e:
@@ -1704,7 +1705,7 @@ class APGINeuralSignaturesValidator:
             return {
                 "error": str(e),
                 "falsified": True,
-                "criterion_code": "P5",
+                "criterion_code": "VP9.P5",
                 "description": "Mutual information increases ≥1 bit with precision cueing",
             }
 
@@ -1807,8 +1808,9 @@ class APGINeuralSignaturesValidator:
                 "rate_stable": rate_stable,
                 "training_phase": training_phase,
                 "falsified": falsified,
-                "criterion_code": "P6",
+                "criterion_code": "VP9.P6",
                 "description": "Information transmission rate asymptotes at ~40 bits/s",
+                "falsification_threshold": "Rate > 100 bits/s after training",
             }
 
         except Exception as e:
@@ -1816,7 +1818,7 @@ class APGINeuralSignaturesValidator:
             return {
                 "error": str(e),
                 "falsified": True,
-                "criterion_code": "P6",
+                "criterion_code": "VP9.P6",
                 "description": "Information transmission rate asymptotes at ~40 bits/s",
             }
 

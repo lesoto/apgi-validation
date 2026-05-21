@@ -9,6 +9,12 @@ This protocol utilizes simulated high-resolution metabolic datasets (100-300ms)
 based on iATPSnFR2 (Marvin et al., 2024) and ultrafast P-fMRS (Chen et al., 2020)
 to calibrate and validate the APGI energy budget.
 
+SCOPE RESTRICTION: Currently uses synthetic/simulated metabolic data only.
+Integration with real qBOLD (quantitative BOLD) or PET-based metabolic imaging
+requires an external imaging pipeline (e.g., FSL qBOLD toolbox or PET kinetic
+modelling). Connecting real imaging data is a future empirical extension and is
+NOT performed by this protocol in its current form.
+
 Predictions:
 - V16.1: APGI metabolic cost correlates with high-resolution ATP traces (r > 0.75)
 - V16.2: c1/c2 ratio consistency across frequency bands (10–100 Hz)

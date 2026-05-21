@@ -78,7 +78,7 @@ except ImportError:
     )
 
 # Fix 1: Assert that imported values match expected paper specifications
-# This ensures VP-10 and VP-07 produce consistent P2.a–P2.c outcomes
+# This ensures VP-10 (V10.a–V10.c) are distinct from VP-07 (P2.a–P2.c)
 _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT = 0.12
 _EXPECTED_P2_B_MIN_HEP_REDUCTION = 35.0
 _EXPECTED_P2_B_MIN_PCI_REDUCTION = 25.0
@@ -515,7 +515,7 @@ class CausalManipulationsValidator:
         low_ia_diff = np.mean(low_ia_insula) - np.mean(low_ia_control)
         interaction_effect = high_ia_diff - low_ia_diff
 
-        # P2.c passes if partial eta-squared meets the shared threshold and p < 0.05
+        # V10.c passes if partial eta-squared meets the shared threshold and p < 0.05
         p2c_passed = (partial_eta_squared >= P2_C_MIN_ETA_SQ) and (p_interaction < 0.05)
 
         return {
@@ -722,20 +722,20 @@ class CausalManipulationsValidator:
                 precision_passed = drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"] and p_value < 0.05
                 threshold_passed = drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
 
-            # Calculate threshold shift in log units for P2.a compliance
+            # Calculate threshold shift in log units for V10.a compliance
             baseline_theta = baseline_state["theta_t"]
             drug_theta = drug_state["theta_t"]
             # Log units: log10(drug_theta / baseline_theta)
             threshold_shift_log_units = float(
                 np.log10(drug_theta / baseline_theta) if baseline_theta > 0 and drug_theta > 0 else 0.0
-            )  # Log units for P2.a
+            )  # Log units for V10.a
 
             results[drug] = {
                 "baseline_responses": baseline_responses,
                 "drug_responses": drug_responses,
                 "stimulus_intensities": stimulus_intensities,
                 "threshold_shift": drug_theta - baseline_theta,
-                "threshold_shift_log_units": threshold_shift_log_units,  # Log units for P2.a
+                "threshold_shift_log_units": threshold_shift_log_units,  # Log units for V10.a
                 "precision_change": drug_state["Pi_e_baseline"] - baseline_state["Pi_e_baseline"],
                 "t_statistic": float(t_stat),
                 "p_value": float(p_value),
@@ -935,12 +935,12 @@ class CausalManipulationsValidator:
 
     def _extract_named_predictions(self, results: Dict) -> Dict[str, Dict]:
         """
-        Extract named predictions P2.a, P2.b, P2.c from validation results.
+        Extract named predictions V10.a, V10.b, V10.c from validation results.
 
         Paper-specified thresholds:
-        - P2.a: dlPFC threshold shift above the shared minimum log-unit threshold
-        - P2.b: HEP and PCI reductions meet shared minimum reduction thresholds
-        - P2.c: Interaction F with shared partial eta-squared threshold
+        - V10.a: dlPFC threshold shift above the shared minimum log-unit threshold
+        - V10.b: HEP and PCI reductions meet shared minimum reduction thresholds
+        - V10.c: Interaction F with shared partial eta-squared threshold
 
         Returns:
             Dictionary with structured results for each named prediction
@@ -949,7 +949,7 @@ class CausalManipulationsValidator:
         if results is None:
             results = {}
 
-        # P2.a: dlPFC threshold shift from pharmacological effects (log units)
+        # V10.a: dlPFC threshold shift from pharmacological effects (log units)
         pharma_results = results.get("pharmacological_precision_modulation", {})
         atomoxetine_result = pharma_results.get("atomoxetine", {})
 
@@ -957,10 +957,10 @@ class CausalManipulationsValidator:
         dlpfc_threshold_shift_log = atomoxetine_result.get("threshold_shift_log_units", 0)
         dlpfc_p_value = atomoxetine_result.get("p_value", 1.0)
 
-        # P2.a passes if threshold shift exceeds the shared log-unit threshold
+        # V10.a passes if threshold shift exceeds the shared log-unit threshold
         p2a_passed = (dlpfc_threshold_shift_log > P2_A_MIN_THRESHOLD_SHIFT) and (dlpfc_p_value < 0.01)
 
-        # P2.b: HEP and PCI reductions from TMS ignition disruption
+        # V10.b: HEP and PCI reductions from TMS ignition disruption
         tms_results = results.get("tms_ignition_disruption", {})
         region_effects = tms_results.get("region_specific_effects", {})
 
@@ -982,22 +982,22 @@ class CausalManipulationsValidator:
             hep_reduction = 0.0
             pci_reduction = 0.0
 
-        # P2.b passes if HEP/PCI reductions exceed shared minima
+        # V10.b passes if HEP/PCI reductions exceed shared minima
         p2b_passed = (hep_reduction >= P2_B_MIN_HEP_REDUCTION / 100.0) and (
             pci_reduction >= P2_B_MIN_PCI_REDUCTION / 100.0
         )
 
-        # P2.c: High-IA × insula interaction from actual interaction test
+        # V10.c: High-IA × insula interaction from actual interaction test
         interaction_results = results.get("high_ia_insula_interaction", {})
         interaction_f = interaction_results.get("interaction_f", 0)
         interaction_p = interaction_results.get("interaction_p", 1.0)
         partial_eta_squared = interaction_results.get("partial_eta_squared", 0)
 
-        # P2.c passes if partial eta-squared exceeds the shared threshold
+        # V10.c passes if partial eta-squared exceeds the shared threshold
         p2c_passed = (partial_eta_squared >= P2_C_MIN_ETA_SQ) and (interaction_p < 0.05)
 
         return {
-            "P2.a": {
+            "V10.a": {
                 "passed": p2a_passed,
                 "description": "dlPFC threshold shift exceeds shared minimum log units",
                 "threshold_shift_log": float(dlpfc_threshold_shift_log),
@@ -1005,7 +1005,7 @@ class CausalManipulationsValidator:
                 "threshold": f"> {P2_A_MIN_THRESHOLD_SHIFT:.2f} log units, p < 0.01",
                 "actual": f"Log shift: {dlpfc_threshold_shift_log:.3f}, p: {dlpfc_p_value:.4f}",
             },
-            "P2.b": {
+            "V10.b": {
                 "passed": p2b_passed,
                 "description": "Insula reduces HEP ~30% AND PCI ~20%",
                 "hep_reduction": float(hep_reduction),
@@ -1015,7 +1015,7 @@ class CausalManipulationsValidator:
                 ),
                 "actual": f"HEP: {hep_reduction:.2f}, PCI: {pci_reduction:.2f}",
             },
-            "P2.c": {
+            "V10.c": {
                 "passed": p2c_passed,
                 "description": "High-IA × insula interaction",
                 "interaction_f": float(interaction_f),
@@ -1305,10 +1305,10 @@ def main():
 def run_validation(**kwargs):
     """Standard validation entry point for Protocol 10.
 
-    Returns structured results with named predictions P2.a, P2.b, P2.c
+    Returns structured results with named predictions V10.a, V10.b, V10.c
     for Aggregator consumption.
 
-    IMPORTANT: VP-10 is SUPPLEMENTARY to VP-07 for P2.a-P2.c predictions.
+    IMPORTANT: VP-10 (V10.a–V10.c) is SUPPLEMENTARY to VP-07 (P2.a–P2.c).
     VP-07 (TMS_CausalInterventions) is the CANONICAL source.
     VP-10 provides extended validation including:
       - Pharmacological specificity testing
@@ -1318,11 +1318,11 @@ def run_validation(**kwargs):
         validator = CausalManipulationsValidator()
         results = validator.validate_causal_predictions()
 
-        # Extract named predictions P2.a, P2.b, P2.c
+        # Extract named predictions V10.a, V10.b, V10.c
         named_predictions = validator._extract_named_predictions(results)
 
         # Mark P2 predictions as supplementary (VP-10 is not canonical for P2)
-        for p2_key in ["P2.a", "P2.b", "P2.c"]:
+        for p2_key in ["V10.a", "V10.b", "V10.c"]:
             if p2_key in named_predictions:
                 named_predictions[p2_key]["source_type"] = "supplementary"
                 named_predictions[p2_key]["canonical_source"] = "VP-07"
@@ -1356,7 +1356,7 @@ def run_validation(**kwargs):
             "source_type": "supplementary",
             "passed": all_passed,
             "status": "success" if all_passed else "failed",
-            "message": f"Protocol 10 (SUPPLEMENTARY) completed: P2.a={named_predictions['P2.a']['passed']}, P2.b={named_predictions['P2.b']['passed']}, P2.c={named_predictions['P2.c']['passed']}",
+            "message": f"Protocol 10 (SUPPLEMENTARY) completed: V10.a={named_predictions['V10.a']['passed']}, V10.b={named_predictions['V10.b']['passed']}, V10.c={named_predictions['V10.c']['passed']}",
             "named_predictions": named_predictions,
             "overall_causal_validation_score": results.get("overall_causal_validation_score", 0),
             "supplementary_tests": {
@@ -1373,17 +1373,17 @@ def run_validation(**kwargs):
             "status": "error",
             "message": f"Protocol 10 failed: {str(e)}",
             "named_predictions": {
-                "P2.a": {
+                "V10.a": {
                     "passed": False,
                     "error": str(e),
                     "source_type": "supplementary",
                 },
-                "P2.b": {
+                "V10.b": {
                     "passed": False,
                     "error": str(e),
                     "source_type": "supplementary",
                 },
-                "P2.c": {
+                "V10.c": {
                     "passed": False,
                     "error": str(e),
                     "source_type": "supplementary",
@@ -1454,7 +1454,7 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
 
     Consistency check:
     - If FP-01 predicts dlPFC drives threshold (τ_θ parameter) via F1.4
-    - Then VP-10 TMS to dlPFC should shift threshold in predicted direction via P2.a
+    - Then VP-10 TMS to dlPFC should shift threshold in predicted direction via V10.a
 
     Args:
         fp01_results: Results from FP-01 protocol
@@ -1465,7 +1465,7 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
     """
     # Extract relevant predictions
     fp01_threshold_dynamics = fp01_results.get("F1.4", {})
-    vp10_dlpfc_tms = vp10_results.get("P2.a", {})
+    vp10_dlpfc_tms = vp10_results.get("V10.a", {})
 
     # Check consistency
     passed = fp01_threshold_dynamics.get("passed", False) and vp10_dlpfc_tms.get("passed", False)
@@ -1489,7 +1489,7 @@ def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> d
         "passed": passed and direction_consistent,
         "evidence": [
             f"FP-01 F1.4 (threshold dynamics): {fp01_threshold_dynamics.get('passed')}",
-            f"VP-10 P2.a (dlPFC TMS): {vp10_dlpfc_tms.get('passed')}",
+            f"VP-10 V10.a (dlPFC TMS): {vp10_dlpfc_tms.get('passed')}",
             f"Direction consistency: {direction_consistent}",
         ],
         "fp01_threshold_direction": fp01_threshold_dynamics.get("threshold_direction", "unknown"),
@@ -2446,7 +2446,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 def validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param=5.0, surplus_s=0.5):
-    """Standalone wrapper for P2.a TMS log ignition validation."""
+    """Standalone wrapper for V10.a TMS log ignition validation."""
     config = {"significance_level": 0.01, "power_threshold": 0.8}
     validator = CausalManipulationsValidator(config)
     # Convert scalars to arrays if needed
@@ -2456,7 +2456,7 @@ def validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param=5.0, surplu
 
 
 def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
-    """Standalone wrapper for P2.b HEP/PCI validation (insula TMS)."""
+    """Standalone wrapper for V10.b HEP/PCI validation (insula TMS)."""
     config = {"significance_level": 0.01, "power_threshold": 0.8}
     validator = CausalManipulationsValidator(config)
     # Convert scalars to arrays if needed
@@ -2468,7 +2468,7 @@ def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
 
 
 def validate_p2c_high_ia_interaction(tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b):
-    """Standalone wrapper for P2.c high IA interaction validation."""
+    """Standalone wrapper for V10.c high IA interaction validation."""
     config = {"significance_level": 0.01, "power_threshold": 0.8}
     validator = CausalManipulationsValidator(config)
     # Convert to arrays if needed

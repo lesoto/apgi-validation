@@ -1579,7 +1579,7 @@ class BayesianModelComparison:
     def bridge_sampling(self, trace, model) -> float:
         """
         Compute marginal likelihood using bridge sampling.
-        Since full implementation requires PyMC3/PyMCX integration which can be complex,
+        Since full implementation requires PyMC (v5+) integration which can be complex,
         we use the bridge sampling approximation based on the harmonic mean or via arviz.
         Here we calculate log marginal likelihood which is then used for BF computation.
         """

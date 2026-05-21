@@ -143,6 +143,7 @@ protocol_files = [
     ("APGI_Protocol_19", "VP_19_InformationErasureMVPA.py"),
     ("APGI_Protocol_20", "VP_20_EmpiricalIEEG.py"),
     ("APGI_Protocol_21", "VP_21_FreeEnergyPredictionError.py"),
+    ("APGI_Protocol_22", "VP_22_FMRIAnticipationExperience.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
 
@@ -509,7 +510,13 @@ class APGIValidationGUI:
             14: "Protocol 14: Priority 1 (fMRI Anticipation Experience)",
             15: "Protocol 15: Priority 1 (fMRI Anticipation vmPFC)",
             16: "Protocol 16: Metabolic ATP Ground-Truth (iATPSnFR2)",
-            17: "Protocol ALL: Master Aggregator (All Protocols)",
+            17: "Protocol 17: Allen Visual Coding Fatigue",
+            18: "Protocol 18: EEG Microstate GFP P3b",
+            19: "Protocol 19: Information Erasure MVPA",
+            20: "Protocol 20: Empirical iEEG",
+            21: "Protocol 21: Free Energy Prediction Error",
+            22: "Protocol 22: fMRI Anticipation Experience (Enhanced)",
+            99: "Protocol ALL: Master Aggregator (All Protocols)",
         }
 
         for i, (num, desc) in enumerate(protocols_info.items()):
@@ -932,12 +939,8 @@ class APGIValidationGUI:
             buttons_frame,
             text="📄 Generate PDF Report",
             command=self.generate_enhanced_report,
-        ).grid(row=1, column=0, pady=5, padx=5)
-        ttk.Button(buttons_frame, text="📧 Email Report", command=self.email_report).grid(
-            row=1, column=1, pady=5, padx=5
-        )
+        ).grid(row=1, column=0, columnspan=2, pady=5, padx=5)
 
-        # Historical Analysis Section
         analysis_frame = ttk.LabelFrame(parent_frame, text="Historical Analysis", padding="10")
         analysis_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         analysis_frame.columnconfigure(1, weight=1)
@@ -1273,11 +1276,6 @@ class APGIValidationGUI:
 
         except Exception as e:
             messagebox.showerror("Report Error", f"Failed to generate enhanced report: {e}")
-
-    def email_report(self):
-        """Email report functionality (placeholder)."""
-        messagebox.showinfo("Email Report", "Email functionality would be implemented here")
-        self.export_results_text.insert(tk.END, "📧 Email report feature coming soon\n")
         self.export_results_text.see(tk.END)
 
     def analyze_trends(self):
@@ -1864,10 +1862,13 @@ class APGIValidationGUI:
 
             # Validate protocol numbers
             for protocol_num in selected_protocols:
-                if not isinstance(protocol_num, int) or protocol_num not in self.validator.PROTOCOL_TIERS:
+                if protocol_num == 99:
+                    # Protocol ALL is always valid
+                    continue
+                if not isinstance(protocol_num, int) or protocol_num < 1 or protocol_num > 22:
                     messagebox.showerror(
                         "Error",
-                        f"Invalid protocol number: {protocol_num}. Must be between 1 and {len(self.validator.PROTOCOL_TIERS)}.",
+                        f"Invalid protocol number: {protocol_num}. Must be between 1 and 22.",
                     )
                     return
 
@@ -2025,7 +2026,7 @@ Interpretation:
                 (19, "VP_19_InformationErasureMVPA.py"),
                 (20, "VP_20_EmpiricalIEEG.py"),
                 (21, "VP_21_FreeEnergyPredictionError.py"),
-                (22, "VP_ALL_Aggregator.py"),
+                (22, "VP_22_FMRIAnticipationExperience.py"),
             ]
 
             if protocol_num < 1 or protocol_num > len(protocol_files):
@@ -2969,7 +2970,7 @@ Interpretation:
                 if hasattr(self.validator, "generate_master_report"):
                     report = self.validator.generate_master_report()
                     summary = Paragraph(
-                        f"Overall Decision: {report.overall_decision}",
+                        f"Overall Decision: {report['overall_decision']}",
                         styles["Heading2"],
                     )
                     story.append(summary)
@@ -3068,8 +3069,8 @@ def run_headless() -> None:
 
             # Generate master report
             report = validator.generate_master_report()
-            logger.info(f"Overall Decision: {report.overall_decision}")
-            logger.info(f"Protocols Passed: {report.passed_protocols}/{report.completed_protocols}")
+            logger.info(f"Overall Decision: {report['overall_decision']}")
+            logger.info(f"Protocols Passed: {report['passed_protocols']}/{report['completed_protocols']}")
 
         except Exception as e:
             logger.error(f"Error running protocols: {e}")

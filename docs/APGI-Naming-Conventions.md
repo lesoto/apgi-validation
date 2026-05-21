@@ -57,7 +57,7 @@ APGI-[TIER][SEQ]-[DOM3]
 
 | UPID | Legacy ID | Experimental Concept | Paper Protocol | Roadmap Priority | FP IDs | VP IDs | Falsification File(s) | Validation File(s) | Notes |
 | ------ | ----------- | ---------------------- | --------------- | ----------------- | -------- | -------- | ---------------------- | -------------------- | ------- |
-| **APGI-E01-EEG** | APGI-P1 | EEG-Heart-Evoked Potential (Interoceptive Gating) | Protocol 1 | Priority 1 | FP-9 | VP-9 | `Falsification/FP_09_NeuralSignaturesP3bHEP.py` | `Validation/VP_09_NeuralSignaturesEmpiricalPriority1.py` | ⚠ Old matrix named FP file as `FP_09_TemporalDynamics_SequenceSensitivity.py` — **stale, file does not exist** |
+
 | **APGI-E02-TMS** | APGI-P2 | Causal TMS Study (Insula / Thalamic Gating) | Protocol 2 | Priority 2 | FP-9 shared | VP-7, VP-10 | `Falsification/FP_09_NeuralSignaturesP3bHEP.py` | `Validation/VP_07_TMSCausalInterventions.py` · `Validation/VP_10_CausalManipulationsPriority2.py` | ⚠ Old matrix listed `CausalManipulations_TMS_Pharmacological_...py` — **stale partial name; two VP files serve this protocol** |
 | **APGI-E03-AIN** | APGI-P3 | Active Inference Simulations (Agent Performance) | Protocol 3 | Comp. Protocol 3 | FP-1 | VP-3 | `Falsification/FP_01_ActiveInference.py` | `Validation/VP_03_ActiveInferenceAgentSimulations.py` | ✅ File names correct in original matrix |
 | **APGI-E04-DOC** | APGI-P4 | Disorders of Consciousness (Clinical Biomarkers) | Protocol 4 | Priority 4 | — | VP-12 | *(no dedicated FP; shares FP-3 framework)* | `Validation/VP_12_ClinicalCrossSpeciesConvergence.py` | ⚠ Old matrix named VP file as `Clinical_CrossSpecies_Convergence_Protocol4.py` — **stale; missing `VP_12_` prefix** |
@@ -119,7 +119,7 @@ The following discrepancies were found between the user-supplied matrix and the 
 
 | Row | Original File Name in Matrix | Actual File on Disk | Error Type |
 | ---- | ------------------------------ | ------------------- | ---------- |
-| APGI-P1 | `FP_09_TemporalDynamics_SequenceSensitivity.py` | `Falsification/FP_09_NeuralSignaturesP3bHEP.py` | Wrong name — file does not exist |
+| APGI-P1 | `FP_09_NeuralSignaturesP3bHEP.py` | `Falsification/FP_09_NeuralSignaturesP3bHEP.py` | Wrong name — file does not exist |
 | APGI-P2 | `CausalManipulations_TMS_Pharmacological_...py` | `Validation/VP_10_CausalManipulationsPriority2.py` | Truncated legacy name — missing `VP_10_` prefix |
 | APGI-P4 | `Clinical_CrossSpecies_Convergence_Protocol4.py` | `Validation/VP_12_ClinicalCrossSpeciesConvergence.py` | Missing `VP_12_` prefix |
 | APGI-P5 | "To be developed" (VP listed as MISSING) | `Validation/VP_14_FMRIAnticipationExperience.py` + `VP_15_FMRIAnticipationVmPFC.py` | Both files exist — **false negative** |
@@ -160,8 +160,8 @@ All current Falsification and Validation scripts already follow this pattern. Th
 `FP_ALL_Aggregator.py` and `VP_ALL_Aggregator.py` do not follow the `NN` numbering convention. Consider renaming to:
 
 ```text
-FP_00_ALL_Aggregator.py   # prefix 00 = meta/aggregator tier
-VP_00_ALL_Aggregator.py
+FP_00_AllAggregator.py   # prefix 00 = meta/aggregator tier
+VP_00_AllAggregator.py
 ```
 
 This keeps them sortable with ls and avoids confusion with `FP_12_*.py`.
@@ -273,13 +273,11 @@ Keep this matrix as the **single source of truth** for protocol-to-file mapping.
 | P4.b | DMN to PCI r>0.50; DMN to HEP r<0.20 | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | Either correlation outside range |
 | P4.c | Cold pressor increases PCI >10% in MCS, not VS | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | No differential response |
 | P4.d | Baseline PCI+HEP predicts 6-month recovery ΔR²>0.10 | FP-9 / `FP_09_NeuralSignaturesP3bHEP.py` | ΔR² <0.05 |
-| P5.a | vmPFC to SCR anticipatory correlation r>0.40 | FP-5 / `FP_05_EvolutionaryPlausibility.py` | r <0.25 |
+| P5.a | vmPFC to SCR anticipatory correlation r>0.40 | VP-14 / `VP_14_FMRIAnticipationExperience.py` | r <0.25 |
 | P5.b | vmPFC uncorrelated with posterior insula (r<0.20) | FP-5 / `FP_05_EvolutionaryPlausibility.py` | r >0.30 |
 | fp10a_mcmc | Bayesian MCMC: Gelman–Rubin R̂ ≤1.01 (convergence) | FP-10 / `FP_10_BayesianEstimationMCMC.py` | R̂ >1.01 |
 | fp10b_bf | BF₁₀ ≥3 for APGI vs StandardPP / GWT | FP-10 / `FP_10_BayesianEstimationMCMC.py` | BF₁₀ <3 |
 | fp10c_mae | APGI ≥20% lower MAE than alternatives | FP-10 / `FP_10_BayesianEstimationMCMC.py` | MAE reduction <20% |
 | fp10_scaling | Cross-species scaling: allometric exponents within ±2 SD | FP-12 / `FP_12_CrossSpeciesScaling.py` | Exponents >2 SD from expectation |
 
-**FP-10 note:** FP-10 is internally split into FP10a (Bayesian MCMC) and FP10b (Cross-Species Scaling via FP-12). Both must pass; either failure falsifies FP-10.
-
----
+**FP-10 note:** FP-10 note: FP-10 covers Bayesian MCMC estimation only. Cross-species scaling is an independent protocol (FP-12 / APGI-X04-XSP) and its pass/fail status is evaluated separately by FP-03.

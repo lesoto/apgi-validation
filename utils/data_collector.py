@@ -525,11 +525,7 @@ class DataCollector:
                     raise ValueError(f"Invalid table name: {table}")
 
                 cursor.execute(
-                    """
-                    SELECT * FROM {table} 
-                    WHERE timestamp >= ?
-                    ORDER BY timestamp DESC
-                """,
+                    f"SELECT * FROM {table} WHERE timestamp >= ? ORDER BY timestamp DESC",
                     (cutoff_time.isoformat(),),
                 )
 

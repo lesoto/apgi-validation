@@ -2058,7 +2058,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         "V8.2": {
             "description": "Parameter Correlation Predictions",
             "threshold": "Observed inter-parameter correlations match predictions: Π_i-HEP r ≥ 0.45, θ₀-β r ≥ 0.40, max intercorrelation ≤ 0.50",
-            "test": "Pearson correlation with Fisher's z; multiple comparison correction",
+            "test": "Pearson correlation with Fisher's z; multiple comparison correction, α = 0.05",
             "effect_size": "r ≥ 0.40 for predicted correlations; ≤0.50 for unpredicted",
             "alternative": "Falsified if any predicted r < 0.30 OR any unpredicted r > 0.60 OR multiple comparison p ≥ 0.01",
         },

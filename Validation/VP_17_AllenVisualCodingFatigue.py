@@ -33,6 +33,25 @@ This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
+EMPIRICAL DATA SETUP
+--------------------
+This protocol is designed to run against Allen Brain Observatory NWB files.
+To enable real-data mode:
+
+1. Install the Allen SDK:
+       pip install allensdk
+
+2. Download a Visual Coding – Neuropixels or 2-photon session:
+       from allensdk.brain_observatory.ecephys.ecephys_project_cache import EcephysProjectCache
+       cache = EcephysProjectCache.from_warehouse(manifest="./allen_cache/manifest.json")
+       sessions = cache.get_session_table()
+
+3. Place the resulting .nwb files in a directory and pass the path via
+   `load_or_generate_data(data_path=<path>)`. Without a valid path the
+   protocol falls back to fully synthetic data (current default).
+
+Dataset URL: https://portal.brain-map.org/circuits-behavior/visual-coding-neuropixels
+
 FALSIFICATION_CRITERIA
 ----------------------
 If fatigue effects do not produce the predicted threshold elevation (>10% increase)

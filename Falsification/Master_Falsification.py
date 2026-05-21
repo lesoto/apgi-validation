@@ -704,7 +704,16 @@ class APGIMasterFalsifier:
         """
         results: Dict[str, Dict[str, Any]] = {}
 
-        for protocol_name in protocols:
+        # FP-03 depends on all other FP results to perform meta-level consistency checks.
+        # Ensure FP-03 always runs last within the requested batch so prerequisite results
+        # are available in self.protocol_results when FP-03 executes.
+        if "FP-03" in protocols and protocols.index("FP-03") != len(protocols) - 1:
+            ordered = [p for p in protocols if p != "FP-03"] + ["FP-03"]
+            logger.info("FP-03 reordered to run last (requires other FP results as prerequisites).")
+        else:
+            ordered = list(protocols)
+
+        for protocol_name in ordered:
             if protocol_name not in self.available_protocols:
                 logger.warning(f"Unknown falsification protocol: {protocol_name}")
                 results[protocol_name] = {
@@ -723,6 +732,13 @@ class APGIMasterFalsifier:
                         protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
                     # Set n_replicates=5 for FP-05 as per specification
                     protocol_kwargs.setdefault("n_replicates", 5)
+
+                # FP-03 prerequisite injection: pass accumulated results so FP-03
+                # can perform cross-protocol consistency checks.
+                if protocol_name == "FP-03":
+                    if "prerequisite_results" not in protocol_kwargs:
+                        protocol_kwargs["prerequisite_results"] = dict(self.protocol_results)
+                        protocol_kwargs["prerequisite_results"].update(results)
 
                 # CRIT-04 FIX: Inject APGIAgent for FP-08
                 if protocol_name == "FP-08":

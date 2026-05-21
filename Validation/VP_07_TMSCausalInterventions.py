@@ -15,6 +15,13 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
+STRUCTURAL DEBT: This protocol conflates two distinct concerns — (1) causal
+pharmacological/TMS intervention mechanics (P2.a–P2.c / F3.x) and (2) fMRI
+vmPFC/insula dissociation imaging (P5a–P5d). A future refactor should split this
+into VP-7a (Mathematical Consistency / causal interventions) and VP-7b (fMRI
+Dissociation), analogous to the VP-14/VP-22 split already made for P5x imaging.
+P5a–P5d checks have been moved exclusively to VP-22_FMRIAnticipationExperience.
+
 FALSIFICATION_CRITERIA
 ----------------------
 If interventions do not produce the predicted directional changes in APGI
@@ -1514,23 +1521,6 @@ class InterventionFalsificationChecker:
                 "description": "Placebo effects larger than active intervention",
                 "threshold": None,
             },
-            # Framework Paper P5a–P5d: vmPFC/insula fMRI dissociation
-            "P5a": {
-                "description": "vmPFC TMS reduces PCI but NOT HEP",
-                "threshold": None,
-            },
-            "P5b": {
-                "description": "Anticipation vs. experience BOLD analysis shows dissociation",
-                "threshold": None,
-            },
-            "P5c": {
-                "description": "High IA × insula TMS interaction (strongest effect for high-Πⁱ individuals)",
-                "threshold": None,
-            },
-            "P5d": {
-                "description": "Double-dissociation confirmed (interaction significant)",
-                "threshold": 0.05,
-            },
         }
 
     def check_F3_1(
@@ -1649,221 +1639,6 @@ class InterventionFalsificationChecker:
             "z_score": float(z),
             "p_value": float(p_value),
             "active_superior": difference > 0 and p_value < 0.05,
-        }
-
-    def check_P5a(
-        self,
-        vmPFC_PCI_reduction: float,
-        vmPFC_HEP_change: float,
-        vmPFC_PCI_se: float,
-        vmPFC_HEP_se: float,
-    ) -> Tuple[bool, Dict]:
-        """
-        P5a: vmPFC TMS reduces PCI but NOT HEP
-
-        Framework Paper P5a prediction: vmPFC TMS selectively reduces precision-weighted
-        confidence (PCI) without affecting interoceptive precision (HEP).
-
-        Args:
-            vmPFC_PCI_reduction: Reduction in PCI after vmPFC TMS
-            vmPFC_HEP_change: Change in HEP after vmPFC TMS
-            vmPFC_PCI_se: Standard error of PCI reduction
-            vmPFC_HEP_se: Standard error of HEP change
-
-        Returns:
-            Tuple of (falsified, details)
-        """
-        # PCI should be significantly reduced
-        pci_significant = vmPFC_PCI_reduction > 0 and (vmPFC_PCI_reduction / (vmPFC_PCI_se + 1e-10) > 1.96)
-
-        # HEP should NOT be significantly reduced (or change should be minimal)
-        hep_not_reduced = abs(vmPFC_HEP_change) < 0.1 or (abs(vmPFC_HEP_change / (vmPFC_HEP_se + 1e-10)) < 1.96)
-
-        falsified = not (pci_significant and hep_not_reduced)
-
-        return falsified, {
-            "pci_reduction": float(vmPFC_PCI_reduction),
-            "pci_se": float(vmPFC_PCI_se),
-            "pci_significant": pci_significant,
-            "hep_change": float(vmPFC_HEP_change),
-            "hep_se": float(vmPFC_HEP_se),
-            "hep_not_reduced": hep_not_reduced,
-            "dissociation_confirmed": pci_significant and hep_not_reduced,
-        }
-
-    def check_P5b(
-        self,
-        anticipation_bold: np.ndarray,
-        experience_bold: np.ndarray,
-        vmPFC_activation: np.ndarray,
-        insula_activation: np.ndarray,
-    ) -> Tuple[bool, Dict]:
-        """
-        P5b: Anticipation vs. experience BOLD analysis shows dissociation
-
-        Framework Paper P5b prediction: vmPFC shows stronger activation during
-        anticipation, while insula shows stronger activation during experience.
-
-        Args:
-            anticipation_bold: BOLD signal during anticipation phase
-            experience_bold: BOLD signal during experience phase
-            vmPFC_activation: vmPFC ROI activation
-            insula_activation: Insula ROI activation
-
-        Returns:
-            Tuple of (falsified, details)
-        """
-        # vmPFC should be more active during anticipation
-        vmPFC_anticipation = np.mean(vmPFC_activation)
-        vmPFC_experience = np.mean(experience_bold)
-        vmPFC_anticipation_dominant = vmPFC_anticipation > vmPFC_experience
-
-        # Insula should be more active during experience
-        insula_anticipation = np.mean(anticipation_bold)
-        insula_experience = np.mean(insula_activation)
-        insula_experience_dominant = insula_experience > insula_anticipation
-
-        # Test the dissociation pattern
-        from scipy import stats
-
-        # Paired t-test for vmPFC
-        vmPFC_t, vmPFC_p = stats.ttest_rel(vmPFC_activation, experience_bold)
-
-        # Paired t-test for insula
-        insula_t, insula_p = stats.ttest_rel(anticipation_bold, insula_activation)
-
-        # Interaction test (2x2 ANOVA would be ideal, using t-test difference)
-        dissociation_pattern = (
-            vmPFC_anticipation_dominant and insula_experience_dominant and vmPFC_p < 0.05 and insula_p < 0.05
-        )
-
-        falsified = not dissociation_pattern
-
-        return falsified, {
-            "vmPFC_anticipation_mean": float(vmPFC_anticipation),
-            "vmPFC_experience_mean": float(vmPFC_experience),
-            "insula_anticipation_mean": float(insula_anticipation),
-            "insula_experience_mean": float(insula_experience),
-            "vmPFC_t_stat": float(vmPFC_t),
-            "vmPFC_p_value": float(vmPFC_p),
-            "insula_t_stat": float(insula_t),
-            "insula_p_value": float(insula_p),
-            "dissociation_pattern": dissociation_pattern,
-        }
-
-    def check_P5c(
-        self,
-        insula_PCI_change: float,
-        insula_HEP_reduction: float,
-        insula_PCI_se: float,
-        insula_HEP_se: float,
-    ) -> Tuple[bool, Dict]:
-        """
-        P5c: Insula TMS reduces HEP but NOT PCI
-
-        Framework Paper P5c prediction: Insula TMS selectively reduces interoceptive
-        precision (HEP) without affecting exteroceptive precision (PCI).
-
-        Args:
-            insula_PCI_change: Change in PCI after insula TMS
-            insula_HEP_reduction: Reduction in HEP after insula TMS
-            insula_PCI_se: Standard error of PCI change
-            insula_HEP_se: Standard error of HEP reduction
-
-        Returns:
-            Tuple of (falsified, details)
-        """
-        # HEP should be significantly reduced
-        hep_significant = insula_HEP_reduction > 0 and (insula_HEP_reduction / (insula_HEP_se + 1e-10) > 1.96)
-
-        # PCI should NOT be significantly reduced (double-dissociation check)
-        pci_not_reduced = abs(insula_PCI_change) < 0.1 or (abs(insula_PCI_change / (insula_PCI_se + 1e-10)) < 1.96)
-
-        falsified = not (hep_significant and pci_not_reduced)
-
-        return falsified, {
-            "hep_reduction": float(insula_HEP_reduction),
-            "hep_se": float(insula_HEP_se),
-            "hep_significant": hep_significant,
-            "pci_change": float(insula_PCI_change),
-            "pci_se": float(insula_PCI_se),
-            "pci_not_reduced": pci_not_reduced,
-            "dissociation_confirmed": hep_significant and pci_not_reduced,
-        }
-
-    def check_P5d(
-        self,
-        vmPFC_PCI_reduction: float,
-        vmPFC_HEP_change: float,
-        insula_PCI_change: float,
-        insula_HEP_reduction: float,
-    ) -> Tuple[bool, Dict]:
-        """
-        P5d: Double-dissociation confirmed (interaction significant)
-
-        """
-        # Calculate interaction effect size
-        # High IA individuals: vmPFC effect enhanced, insula effect diminished
-        vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
-        insula_effect = insula_PCI_change - insula_HEP_reduction
-
-        # Interaction should be positive (vmPFC > insula)
-        interaction_effect = vmPFC_effect - insula_effect
-
-        # Test significance (simplified - in practice would use mixed-effects model)
-        interaction_significant = abs(interaction_effect) > 0.2
-
-        falsified = not interaction_significant
-
-        return falsified, {
-            "vmPFC_PCI_reduction": float(vmPFC_PCI_reduction),
-            "vmPFC_HEP_change": float(vmPFC_HEP_change),
-            "insula_PCI_change": float(insula_PCI_change),
-            "insula_HEP_reduction": float(insula_HEP_reduction),
-            "vmPFC_effect": float(vmPFC_effect),
-            "insula_effect": float(insula_effect),
-            "interaction_effect": float(interaction_effect),
-            "interaction_significant": interaction_significant,
-            "high_IA_interaction_confirmed": interaction_significant,
-        }
-
-    def check_P5c_high_IA_interaction(
-        self,
-        vmPFC_PCI_reduction: float,
-        vmPFC_HEP_change: float,
-        insula_PCI_change: float,
-        insula_HEP_reduction: float,
-    ) -> Tuple[bool, Dict]:
-        """
-        P5c: High IA interaction check
-
-        Framework Paper P5c prediction: High-Πⁱ individuals should show stronger
-        interaction effects between vmPFC and insula TMS, where high-Πⁱ individuals
-        experience enhanced vmPFC effects while insula TMS effects are diminished.
-        """
-        # Calculate interaction effect size
-        # High IA individuals: vmPFC effect enhanced, insula effect diminished
-        vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
-        insula_effect = insula_PCI_change - insula_HEP_reduction
-
-        # Interaction should be positive (vmPFC > insula)
-        interaction_effect = vmPFC_effect - insula_effect
-
-        # Test significance (simplified - in practice would use mixed-effects model)
-        interaction_significant = abs(interaction_effect) > 0.2
-
-        falsified = not interaction_significant
-
-        return falsified, {
-            "vmPFC_PCI_reduction": float(vmPFC_PCI_reduction),
-            "vmPFC_HEP_change": float(vmPFC_HEP_change),
-            "insula_PCI_change": float(insula_PCI_change),
-            "insula_HEP_reduction": float(insula_HEP_reduction),
-            "vmPFC_effect": float(vmPFC_effect),
-            "insula_effect": float(insula_effect),
-            "interaction_effect": float(interaction_effect),
-            "interaction_significant": interaction_significant,
-            "high_IA_interaction_confirmed": interaction_significant,
         }
 
     def double_dissociation_anova(

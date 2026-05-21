@@ -96,22 +96,24 @@ if "ARVIZ_HOME" not in os.environ:
 # Bayesian modeling imports (robust to environments where ArviZ can't write cache).
 pm = None
 az = None
-HAS_PYMC3 = False
+HAS_PYMC = False
 
 try:
-    import pymc3 as pm  # type: ignore
+    import pymc as pm  # type: ignore  # PyMC v4/v5 (pinned: pymc>=5.0.0)
 
-    HAS_PYMC3 = True
+    HAS_PYMC = True
 except ImportError:
     try:
-        import pymc as pm  # type: ignore
+        import pymc3 as pm  # type: ignore  # deprecated fallback for legacy envs
 
-        HAS_PYMC3 = True
-        logger.info("Using PyMC v4 instead of PyMC3")
+        HAS_PYMC = True
+        logger.warning("Falling back to deprecated pymc3; upgrade to pymc>=5.0.0")
     except ImportError as e:
         pm = None
-        HAS_PYMC3 = False
+        HAS_PYMC = False
         logger.warning(f"PyMC unavailable/failed to import: {e}")
+
+HAS_PYMC3 = HAS_PYMC  # backwards-compat alias used in downstream checks
 
 try:
     import arviz as az  # type: ignore
@@ -331,16 +333,17 @@ def attempt_imports():
         OSError,
         PermissionError,
     ) as exc:
-        # VP-11 Fix: Fallback to pymc3 if pymc not available
+        # Deprecated pymc3 fallback — only reached in legacy environments
         try:
             import arviz as _az
-            import pymc3 as _pm
+            import pymc3 as _pm  # type: ignore
 
             pm = _pm
             az = _az
             HAS_PYMC = True
             HAS_ARVIZ = True
             LAST_IMPORT_ERROR = None
+            logger.warning("Using deprecated pymc3 fallback; upgrade to pymc>=5.0.0")
             logger.debug("PyMC3/ArviZ imports successful - NUTS sampler available")
         except (
             ImportError,

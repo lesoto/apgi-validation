@@ -510,6 +510,32 @@ def run_validation(
                 "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
                 "reason": "CRIT-05 FIX: Empirical fMRI validation not implemented",
             },
+            # P5e–P5h: vmPFC developmental trajectory predictions (Paper 3, Hypothesis 3).
+            # These stubs reserve the prediction IDs; empirical implementation is pending.
+            "P5e": {
+                "passed": None,
+                "actual": "STUB",
+                "threshold": "vmPFC maturation index increases monotonically from childhood to adulthood",
+                "validation_status": "STUB_PENDING_EMPIRICAL",
+            },
+            "P5f": {
+                "passed": None,
+                "actual": "STUB",
+                "threshold": "Anticipatory insula onset latency decreases with age (τ_ant ∝ 1/maturation_factor)",
+                "validation_status": "STUB_PENDING_EMPIRICAL",
+            },
+            "P5g": {
+                "passed": None,
+                "actual": "STUB",
+                "threshold": "vmPFC–insula resting-state FC correlates with maturation index r ≥ 0.45",
+                "validation_status": "STUB_PENDING_EMPIRICAL",
+            },
+            "P5h": {
+                "passed": None,
+                "actual": "STUB",
+                "threshold": "Post-insula experience-phase dominance strengthens with age (interaction p < 0.05)",
+                "validation_status": "STUB_PENDING_EMPIRICAL",
+            },
         },
         "criteria": {},
         "data_source": None,

@@ -2548,21 +2548,24 @@ class FalsificationChecker:
                 "threshold": 0.5,
                 "comparison": "greater_than",
             },
-            "P5": {
+            "VP4.P5": {
                 "description": "Mutual information increase >= 1 bit with precision cueing",
                 "threshold": 1.0,
                 "comparison": "greater_than_or_equal",
+                "falsification_threshold": "MI increase < 0.5 bits (below chance-level precision cueing)",
             },
-            "P6": {
+            "VP4.P6": {
                 "description": "Information transmission rate must remain within biologically plausible bounds while staying above a minimum meaningful integration rate",
                 "threshold": 40.0,  # F4_MI_MAX_BITS_S
                 "mi_lower_bound": FMI_MIN_BITS_S,
                 "comparison": "less_than",
+                "falsification_threshold": "Rate > 100 bits/s after training or < FMI_MIN_BITS_S",
             },
-            "P7": {
+            "VP4.P7": {
                 "description": "Neyman-Pearson optimal threshold: deviation <= 2 SD",
                 "threshold": 2.0,
                 "comparison": "less_than_or_equal",
+                "falsification_threshold": "Deviation > 3 SD from Neyman-Pearson optimal",
             },
             "V4.Met": {
                 "description": "Metabolic efficiency: reward/cost ratio > 1.5",
@@ -2705,14 +2708,14 @@ class FalsificationChecker:
 
         # P5: Mutual Information
         mi_increase = results_df.get("mi_increase", pd.Series([0.0])).mean()
-        p5_pass = mi_increase >= self.criteria["P5"]["threshold"]
+        p5_pass = mi_increase >= self.criteria["VP4.P5"]["threshold"]
         report["passed_criteria" if p5_pass else "falsified_criteria"].append(  # type: ignore[assignment]
             {
-                "code": "P5",
-                "description": self.criteria["P5"]["description"],
+                "code": "VP4.P5",
+                "description": self.criteria["VP4.P5"]["description"],
                 "falsified": not p5_pass,
                 "value": float(mi_increase),
-                "threshold": self.criteria["P5"]["threshold"],
+                "threshold": self.criteria["VP4.P5"]["threshold"],
             }
         )
 
@@ -2720,33 +2723,33 @@ class FalsificationChecker:
         trans_rate = results_df.get("transmission_rate", pd.Series([TRANSFER_ENTROPY_THRESHOLD])).mean()
         mi_values = results_df.get("mi_S_theta", pd.Series([10.0]))
         mi_mean = mi_values.mean()
-        mi_lower_bound = self.criteria["P6"]["mi_lower_bound"]
-        mi_acceptable = mi_lower_bound <= mi_mean <= self.criteria["P6"]["threshold"]
+        mi_lower_bound = self.criteria["VP4.P6"]["mi_lower_bound"]
+        mi_acceptable = mi_lower_bound <= mi_mean <= self.criteria["VP4.P6"]["threshold"]
 
-        p6_pass_rate = trans_rate <= self.criteria["P6"]["threshold"] and mi_acceptable
+        p6_pass_rate = trans_rate <= self.criteria["VP4.P6"]["threshold"] and mi_acceptable
         report["passed_criteria" if p6_pass_rate else "falsified_criteria"].append(  # type: ignore[assignment]
             {
-                "code": "P6",
-                "description": self.criteria["P6"]["description"],
+                "code": "VP4.P6",
+                "description": self.criteria["VP4.P6"]["description"],
                 "falsified": not p6_pass_rate,
                 "value": float(trans_rate),
                 "mi_value": float(mi_mean),
                 "mi_lower_bound": mi_lower_bound,
                 "mi_acceptable": bool(mi_acceptable),
-                "threshold": self.criteria["P6"]["threshold"],
+                "threshold": self.criteria["VP4.P6"]["threshold"],
             }
         )
 
         # P7: Neyman-Pearson
         np_dev = results_df.get("neyman_pearson_dev", pd.Series([0.5])).mean()
-        p7_pass = np_dev <= self.criteria["P7"]["threshold"]
+        p7_pass = np_dev <= self.criteria["VP4.P7"]["threshold"]
         report["passed_criteria" if p7_pass else "falsified_criteria"].append(
             {
-                "code": "P7",
-                "description": self.criteria["P7"]["description"],
+                "code": "VP4.P7",
+                "description": self.criteria["VP4.P7"]["description"],
                 "falsified": not p7_pass,
                 "value": float(np_dev),
-                "threshold": self.criteria["P7"]["threshold"],
+                "threshold": self.criteria["VP4.P7"]["threshold"],
             }
         )
 

@@ -1,7 +1,7 @@
 """
 APGI Framework-Level Validation Aggregator (VP-ALL)
 
-Implements comprehensive aggregation of results from all 14 validation protocols (VP-1 to VP-14).
+Implements comprehensive aggregation of results from all 22 validation protocols (VP-1 to VP-22).
 Requires all validation protocol files to have produced JSON result files or returned
 named prediction results.
 
@@ -810,6 +810,7 @@ def run_end_to_end_validation_pipeline(
     output_dir: Optional[Union[str, Path]] = None,
     min_primary_rate: float = 0.8,
     min_overall_rate: float = 0.7,
+    falsification_results: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run complete end-to-end validation pipeline across all protocols.
 
@@ -821,10 +822,32 @@ def run_end_to_end_validation_pipeline(
         output_dir: Directory to save intermediate JSON results
         min_primary_rate: Minimum pass rate for primary validations
         min_overall_rate: Minimum overall pass rate
+        falsification_results: Optional dict of FP results from Master_Falsification.
+            Used to enforce gate F8.2 (FIM rank-deficiency): if FP-08 F8.2 is flagged,
+            VP-08 and VP-11 are skipped because their statistics depend on a valid FIM.
 
     Returns:
         Complete pipeline results with execution status and validation report
     """
+    # Gate F8.2: FIM rank-deficiency check — must pass before VP-08 and VP-11 run.
+    # If FP-08's F8.2 criterion is falsified, results from VP-08 (psychophysical
+    # threshold) and VP-11 (MCMC cultural neuroscience) cannot be trusted.
+    _F8_2_GATED_PROTOCOLS = {
+        "Validation.VP_08_PsychophysicalThresholdEstimation",
+        "Validation.VP_11_MCMCCulturalNeurosciencePriority3",
+    }
+    _f8_2_gate_blocked = False
+    if falsification_results:
+        fp08 = falsification_results.get("FP-08", {})
+        f8_2 = fp08.get("criteria", {}).get("F8.2", fp08.get("F8.2", {}))
+        if f8_2.get("falsified", False):
+            _f8_2_gate_blocked = True
+            import logging as _logging
+
+            _logging.getLogger(__name__).warning(
+                "Gate F8.2 BLOCKED: FP-08 reports FIM rank-deficiency. "
+                "VP-08 and VP-11 will be skipped — their statistics are invalid under rank-deficient FIM."
+            )
     import importlib
     from datetime import datetime
 
@@ -858,12 +881,25 @@ def run_end_to_end_validation_pipeline(
             "Validation.VP_13_EpistemicArchitecture",
             "Validation.VP_14_FMRIAnticipationExperience",
             "Validation.VP_15_FMRIAnticipationVmPFC",
+            "Validation.VP_16_MetabolicATPGroundTruth",
+            "Validation.VP_17_AllenVisualCodingFatigue",
+            "Validation.VP_18_EEGMicrostateGFPP3b",
+            "Validation.VP_19_InformationErasureMVPA",
+            "Validation.VP_20_EmpiricalIEEG",
+            "Validation.VP_21_FreeEnergyPredictionError",
+            "Validation.VP_22_FMRIAnticipationExperience",
         ]
 
     protocol_outputs = []
 
     # Phase 1: Execute all protocols
     for module_path in protocol_modules:
+        if _f8_2_gate_blocked and module_path in _F8_2_GATED_PROTOCOLS:
+            pipeline_results["protocols_failed"].append(
+                {"module": module_path, "reason": "Skipped: Gate F8.2 (FIM rank-deficiency) blocked this protocol"}
+            )
+            continue
+
         try:
             module = importlib.import_module(module_path)
             if hasattr(module, "run_protocol_main"):

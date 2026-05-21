@@ -974,7 +974,7 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 70)
     print("NOTE: This is a template. Full implementation requires:")
-    print("  1. MCMC sampler (PyMC3, Stan, or custom)")
+    print("  1. MCMC sampler (PyMC (v5+), Stan, or custom)")
     print("  2. Bootstrap resampling procedure")
     print("  3. Cross-validation data splitting")
     print("  4. Integration with existing ParameterEstimator class")

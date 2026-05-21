@@ -32,6 +32,12 @@ advantage >2 points, or if the Standard 6 compliance score falls below 12/15,
 or if mathematical solutions do not match numerical simulations (error > 15%),
 then the APGI evolutionary plausibility claim is falsified. This would indicate
 that APGI architectures are not evolutionarily plausible or mathematically consistent.
+
+VP-22 CONSOLIDATION NOTE
+-------------------------
+Predictions P5a–P5d (vmPFC/insula fMRI anticipation vs. experience dissociation)
+are exclusively owned by VP_22_FMRIAnticipationExperience.py. VP-05 does not
+generate, test, or claim those predictions.
 """
 
 import copy
@@ -1278,7 +1284,10 @@ class EvolutionaryOptimizer:
         self, best_genome: AgentGenome, perturbations: List[float] = None
     ) -> Dict[str, Any]:
         """
-        V5.4: Test adversarial robustness by mutating best genome and measuring fitness retention.
+        V5.4 [RESERVED — not registered in aggregator NAMED_PREDICTIONS; do not add
+        unless VP-05 scope is formally extended to include adversarial robustness checks].
+
+        Test adversarial robustness by mutating best genome and measuring fitness retention.
 
         For perturbation in [0.1, 0.2, 0.4]: mutate best genome; measure fitness retention;
         pass if retention > 0.80

@@ -40,7 +40,6 @@ except ImportError:
 
 # Import the actual master falsifier
 from Falsification.Master_Falsification import APGIMasterFalsifier, master_logger
-from utils.config_manager import _load_env_file
 
 # Expose module-level logger for test compatibility
 logger = master_logger
@@ -283,73 +282,72 @@ class APGIMasterValidator(metaclass=ABCMeta):
 
         return weighted_score / total_weight if total_weight > 0 else 0.0
 
-    def generate_master_report(self) -> Any:
+    def generate_master_report(self) -> Dict[str, Any]:
         """
         Generate a comprehensive master validation report.
 
         Returns:
-            Master report object containing aggregated results
+            dict with keys: overall_decision, falsification_status, protocol_results,
+            total_protocols, passed_protocols, success_rate, weighted_score,
+            completed_protocols, pending_protocols.
         """
-
-        # Create a mock report object that uses weighted scoring from falsifier
-        class MockReport:
-            def __init__(self, parent, total_override=None):
-                self.total_protocols = total_override if total_override is not None else len(parent.PROTOCOL_TIERS)
-                self.passed_protocols = 0
-                self.success_rate = 0.0
-                self.weighted_score = 0.0
-                self.completed_protocols = 0
-                self.pending_protocols = 0
-                self.protocol_results = parent.protocol_results
-                self.PROTOCOL_TIERS = parent.PROTOCOL_TIERS
-                self.overall_decision = "FAIL: Insufficient validation support"
-
-            def _load_environment(self, env_file: Optional[str] = None):
-                """Load environment variables from .env file"""
-                env_to_load = env_file or ".env"
-                try:
-                    if load_dotenv:
-                        env_vars = load_dotenv(env_to_load)
-                    else:
-                        env_vars = _load_env_file(env_to_load)  # type: ignore[assignment]
-                    return env_vars
-                except FileNotFoundError:
-                    master_logger.warning(f"Environment file {env_to_load} not found.")
-                    return {}
-
         # Calculate passed protocols based on available results
         passed_count = 0
         for result in self.protocol_results.values():
             if self._is_protocol_passed(result):
                 passed_count += 1
 
-        # Check if we should override total count for tests
-        total_override = None
+        # Total protocol count
         if self._protocol_results_override is not None:
-            total_override = len(self._protocol_results_override)
+            total_protocols = len(self._protocol_results_override)
         elif len(self.protocol_results) > 0 and all(k.startswith("Protocol-") for k in self.protocol_results.keys()):
-            total_override = len(self.protocol_results)
-
-        report = MockReport(self, total_override=total_override)
-        report.completed_protocols = len(self.protocol_results)
-        report.pending_protocols = max(report.total_protocols - report.completed_protocols, 0)
-        report.passed_protocols = passed_count
-        report.success_rate = passed_count / report.total_protocols if report.total_protocols > 0 else 0.0
-
-        report.weighted_score = self._calculate_weighted_score(self.protocol_results)
-
-        # Determine overall decision based on WEIGHTED score (not simple pass rate)
-        # This matches the test expectations for weighted scoring
-        if report.total_protocols == 0:
-            report.overall_decision = "No protocols run"
-        elif report.weighted_score >= 0.8:
-            report.overall_decision = "PASS: Strong validation support"
-        elif report.weighted_score >= 0.4:
-            report.overall_decision = "MARGINAL: Moderate validation support"
+            total_protocols = len(self.protocol_results)
         else:
-            report.overall_decision = "FAIL: Insufficient validation support"
+            total_protocols = len(self.PROTOCOL_TIERS)
 
-        return report
+        completed = len(self.protocol_results)
+        pending = max(total_protocols - completed, 0)
+        success_rate = passed_count / total_protocols if total_protocols > 0 else 0.0
+        weighted_score = self._calculate_weighted_score(self.protocol_results)
+
+        # Build falsification_status grouped by tier
+        tier_results: Dict[str, list] = {"primary": [], "secondary": [], "tertiary": []}
+        for protocol_name, result in self.protocol_results.items():
+            protocol_id = self._extract_protocol_id(protocol_name)
+            if protocol_id is None:
+                continue
+            tier = self.PROTOCOL_TIERS.get(protocol_id, "tertiary")
+            if tier not in tier_results:
+                tier_results[tier] = []
+            tier_results[tier].append(
+                {
+                    "protocol": protocol_id,
+                    "passed": bool(self._is_protocol_passed(result)),
+                    "result": result if isinstance(result, dict) else {},
+                }
+            )
+
+        # Determine overall decision based on weighted score
+        if total_protocols == 0:
+            overall_decision = "No protocols run"
+        elif weighted_score >= 0.8:
+            overall_decision = "PASS: Strong validation support"
+        elif weighted_score >= 0.4:
+            overall_decision = "MARGINAL: Moderate validation support"
+        else:
+            overall_decision = "FAIL: Insufficient validation support"
+
+        return {
+            "overall_decision": overall_decision,
+            "falsification_status": tier_results,
+            "protocol_results": dict(self.protocol_results),
+            "total_protocols": total_protocols,
+            "passed_protocols": passed_count,
+            "success_rate": success_rate,
+            "weighted_score": weighted_score,
+            "completed_protocols": completed,
+            "pending_protocols": pending,
+        }
 
     def get_available_protocols(self) -> List[str]:
         """
