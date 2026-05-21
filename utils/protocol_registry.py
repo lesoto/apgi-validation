@@ -495,6 +495,13 @@ def _initialize_registry():
             "Variational free energy and prediction error validation",
             ["VP21", "FreeEnergy", "PredictionError"],
         ),
+        (
+            "VP-22",
+            "VP_22_FMRIAnticipationExperience.py",
+            "Enhanced fMRI Anticipation vs Experience (APGI-P05 linked)",
+            "Enhanced anticipation-versus-experience validation; linked to APGI-P05",
+            ["VP22", "fMRI-Anticipation-Enhanced", "SomaticMarker-fMRI"],
+        ),
     ]
 
     for canon_id, filename, title, description, aliases in _vp_entries:

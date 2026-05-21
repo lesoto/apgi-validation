@@ -1,0 +1,106 @@
+{
+  "protocol_id": "VP-11",
+  "title": "MCMC Cultural Neuroscience \u2014 Priority 3",
+  "paper": "APGI Validation Suite",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-21",
+  "description": "MCMC-based cultural neuroscience testing",
+  "prediction_cluster": "VP-11",
+  "prediction_cluster_label": "MCMC Cultural Neuroscience \u2014 Priority 3",
+  "sub_predictions": [
+    {
+      "id": "VP11a",
+      "claim": "MCMC Cultural Neuroscience \u2014 Priority 3 reproduces its primary APGI effect under app-managed execution",
+      "key_measurement_equation": "support_metric = observed_effect - predefined_failure_threshold",
+      "confirming_evidence": "Primary analysis supports the expected effect for VP-11.",
+      "falsifying_evidence": "Primary effect fails to meet the registered support threshold or reverses direction."
+    },
+    {
+      "id": "VP11b",
+      "claim": "Protocol outcome remains stable across internal controls, sensitivity checks, or reruns",
+      "confirming_evidence": "Robustness checks preserve the main conclusion for: MCMC-based cultural neuroscience testing",
+      "falsifying_evidence": "Conclusion disappears under reasonable controls, QC filters, or sensitivity analyses."
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery.",
+  "participants": {
+    "n_target": 1,
+    "n_minimum": 1,
+    "inclusion_criteria": [
+      "Validated simulation environment or benchmark dataset is available",
+      "Protocol dependencies resolve successfully in the APGI application"
+    ],
+    "exclusion_criteria": [
+      "Missing runtime dependencies required for deterministic execution",
+      "Failed integrity checks on benchmark inputs or generated outputs"
+    ]
+  },
+  "apparatus": {
+    "execution_environment": "APGI desktop application and local project runtime",
+    "runtime_module": "VP_11_MCMCCulturalNeurosciencePriority3",
+    "category": "Validation"
+  },
+  "trial_structure": {
+    "target": {
+      "type": "Simulation batch or offline benchmark pass",
+      "duration_ms": 0
+    },
+    "response": "Programmatic score, fit statistic, or falsification decision",
+    "session_structure": "Executed as a deterministic software pipeline inside the APGI app"
+  },
+  "blocks": {
+    "practice_trials": 0,
+    "experimental_blocks": 1,
+    "total_experimental_trials": 1,
+    "notes": "Single orchestrated software run; internal loops are managed by the runtime protocol."
+  },
+  "dependent_variables": [
+    "Primary support metric for MCMC Cultural Neuroscience \u2014 Priority 3",
+    "Protocol-level pass/fail outcome for: MCMC-based cultural neuroscience testing",
+    "Reproducibility or robustness statistic across runs/conditions"
+  ],
+  "primary_hypothesis": "MCMC Cultural Neuroscience \u2014 Priority 3 will reproduce the protocol-specific APGI effect described as: MCMC-based cultural neuroscience testing.",
+  "primary_analysis": "Execute the linked runtime protocol in the app, collect standardized prediction outputs, and evaluate the primary support metric against the registered pass/fail threshold.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "n_required": 1,
+    "software": "APGI app integration spec",
+    "based_on": "Runtime protocol thresholds and standardized integration requirements"
+  },
+  "pre_registration": {
+    "platform": "Internal",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-21"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "runtime_protocol": "VP_11_MCMCCulturalNeurosciencePriority3"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "APP-2026-VP-11",
+    "approval_date": "2026-05-21",
+    "exempt_reason": "Software-only execution using simulated or previously collected data."
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "This integration spec standardizes app discovery and does not replace the linked runtime implementation."
+  ],
+  "aliases": [
+    "VP_11",
+    "VP_11_MCMCCulturalNeurosciencePriority3",
+    "VP11",
+    "MCMC-Cultural",
+    "CulturalNeuroscience"
+  ],
+  "runtime_module": "VP_11_MCMCCulturalNeurosciencePriority3",
+  "source_file": "Validation/VP_11_MCMCCulturalNeurosciencePriority3.py",
+  "integration_target": "allprotocols",
+  "linked_protocols": []
+}

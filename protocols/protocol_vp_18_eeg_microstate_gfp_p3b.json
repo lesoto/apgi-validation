@@ -1,0 +1,108 @@
+{
+  "protocol_id": "VP-18",
+  "title": "EEG Microstate GFP P3b",
+  "paper": "APGI Validation Suite",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-21",
+  "description": "EEG microstate and global field power P3b analysis",
+  "prediction_cluster": "VP-18",
+  "prediction_cluster_label": "EEG Microstate GFP P3b",
+  "sub_predictions": [
+    {
+      "id": "VP18a",
+      "claim": "EEG Microstate GFP P3b reproduces its primary APGI effect under app-managed execution",
+      "key_measurement_equation": "support_metric = observed_effect - predefined_failure_threshold",
+      "confirming_evidence": "Primary analysis supports the expected effect for VP-18.",
+      "falsifying_evidence": "Primary effect fails to meet the registered support threshold or reverses direction."
+    },
+    {
+      "id": "VP18b",
+      "claim": "Protocol outcome remains stable across internal controls, sensitivity checks, or reruns",
+      "confirming_evidence": "Robustness checks preserve the main conclusion for: EEG microstate and global field power P3b analysis",
+      "falsifying_evidence": "Conclusion disappears under reasonable controls, QC filters, or sensitivity analyses."
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery.",
+  "participants": {
+    "n_target": 40,
+    "n_minimum": 24,
+    "inclusion_criteria": [
+      "Adults 18-65 years or age-appropriate dataset participants",
+      "Adequate task compliance or public-dataset quality metrics",
+      "No protocol-specific exclusion criteria triggered at screening or QC"
+    ],
+    "exclusion_criteria": [
+      "Incomplete acquisition, excessive artifact, or failed quality control",
+      "Contraindications specific to the acquisition modality or intervention",
+      "Withdrawal of consent or unusable archival metadata"
+    ]
+  },
+  "apparatus": {
+    "execution_environment": "APGI desktop application and local project runtime",
+    "runtime_module": "VP_18_EEGMicrostateGFPP3b",
+    "category": "Validation"
+  },
+  "trial_structure": {
+    "target": {
+      "type": "Task-specific stimulus, intervention, or observational epoch",
+      "duration_ms": 1000
+    },
+    "response": "Task response, physiological recording, or derived dataset metric",
+    "session_structure": "App-integrated execution mirrors the linked VP/FP runtime pipeline"
+  },
+  "blocks": {
+    "practice_trials": 10,
+    "experimental_blocks": 4,
+    "total_experimental_trials": 160,
+    "notes": "Exact block structure is delegated to the linked runtime protocol implementation."
+  },
+  "dependent_variables": [
+    "Primary support metric for EEG Microstate GFP P3b",
+    "Protocol-level pass/fail outcome for: EEG microstate and global field power P3b analysis",
+    "Reproducibility or robustness statistic across runs/conditions"
+  ],
+  "primary_hypothesis": "EEG Microstate GFP P3b will reproduce the protocol-specific APGI effect described as: EEG microstate and global field power P3b analysis.",
+  "primary_analysis": "Execute the linked runtime protocol in the app, collect standardized prediction outputs, and evaluate the primary support metric against the registered pass/fail threshold.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "n_required": 24,
+    "software": "APGI app integration spec",
+    "based_on": "Runtime protocol thresholds and standardized integration requirements"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-21"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "runtime_protocol": "VP_18_EEGMicrostateGFPP3b"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "APP-2026-VP-18",
+    "approval_date": "2026-05-21",
+    "exempt_reason": "If archival/public data are used, analysis proceeds under local exemption or prior approval."
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "This integration spec standardizes app discovery and does not replace the linked runtime implementation."
+  ],
+  "aliases": [
+    "VP_18",
+    "VP_18_EEGMicrostateGFPP3b",
+    "VP18",
+    "EEG-Microstate",
+    "GFP-P3b"
+  ],
+  "runtime_module": "VP_18_EEGMicrostateGFPP3b",
+  "source_file": "Validation/VP_18_EEGMicrostateGFPP3b.py",
+  "integration_target": "allprotocols",
+  "linked_protocols": []
+}

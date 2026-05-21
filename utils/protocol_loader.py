@@ -83,24 +83,50 @@ class ProtocolSpec:
         return self._raw
 
 
+def _iter_protocol_files() -> List[Path]:
+    """Return all protocol JSON files in the protocols directory."""
+    if not _PROTOCOLS_DIR.exists():
+        return []
+    return sorted(_PROTOCOLS_DIR.glob("protocol_*.json"))
+
+
 def _find_protocol_file(protocol_id: str) -> Optional[Path]:
-    """Resolve an APGI protocol ID (e.g. 'APGI-P01') to its JSON file."""
+    """Resolve a protocol ID to its JSON file."""
     if not _PROTOCOLS_DIR.exists():
         return None
-    num_str = protocol_id.split("P")[-1]
-    try:
-        num = int(num_str)
-    except ValueError:
-        return None
-    for path in _PROTOCOLS_DIR.glob("protocol_*.json"):
-        stem = path.stem  # e.g. "protocol_1_eeg_interoceptive_gating"
-        parts = stem.split("_")
-        if len(parts) >= 2:
-            try:
-                if int(parts[1]) == num:
-                    return path
-            except ValueError:
-                continue
+
+    normalized_id = protocol_id.strip()
+
+    # Fast path for the legacy APGI-P## naming convention.
+    if normalized_id.startswith("APGI-P"):
+        num_str = normalized_id.split("P")[-1]
+        try:
+            num = int(num_str)
+        except ValueError:
+            num = None
+        if num is not None:
+            for path in _iter_protocol_files():
+                stem = path.stem  # e.g. "protocol_1_eeg_interoceptive_gating"
+                parts = stem.split("_")
+                if len(parts) >= 2:
+                    try:
+                        if int(parts[1]) == num:
+                            return path
+                    except ValueError:
+                        continue
+
+    # Generic path for VP/FP/app integration: match the embedded protocol_id.
+    for path in _iter_protocol_files():
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:  # nosec B110
+            continue
+        if data.get("protocol_id") == normalized_id:
+            return path
+        aliases = data.get("aliases", [])
+        if isinstance(aliases, list) and normalized_id in aliases:
+            return path
     return None
 
 
@@ -122,9 +148,7 @@ def load_protocol_file(path: Path) -> ProtocolSpec:
 def load_all_protocols() -> Dict[str, ProtocolSpec]:
     """Load all protocol specs from the protocols/ directory, keyed by protocol_id."""
     specs: Dict[str, ProtocolSpec] = {}
-    if not _PROTOCOLS_DIR.exists():
-        return specs
-    for path in sorted(_PROTOCOLS_DIR.glob("protocol_*.json")):
+    for path in _iter_protocol_files():
         try:
             spec = load_protocol_file(path)
             specs[spec.protocol_id] = spec
