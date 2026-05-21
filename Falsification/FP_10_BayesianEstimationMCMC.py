@@ -1220,11 +1220,13 @@ def run_mcmc_bayesian_estimation(
             )
             pi_e = pm.HalfNormal("pi_e", sigma=priors["pi_e"]["params"]["sigma"])
             pi_i = pm.HalfNormal("pi_i", sigma=priors["pi_i"]["params"]["sigma"])
-            beta = pm.Normal(
-                "beta",
+            beta_s = pm.Normal(
+                "beta_s",
                 mu=priors["beta"]["params"]["mu"],
                 sigma=priors["beta"]["params"]["sigma"],
             )
+            # alpha = ignition sigmoid sharpness (NOT somatic bias weight)
+            # See MathematicalConsistencyChecker parameter bounds: alpha ∈ [0.1, 10.0] 1/nats
             alpha = pm.HalfNormal(
                 "alpha",
                 sigma=priors["alpha"]["params"]["sigma"],
@@ -1232,7 +1234,7 @@ def run_mcmc_bayesian_estimation(
 
             # Define likelihood using APGI psychometric function
             # Expected detection probabilities
-            p_detection = apgi_psychometric_function(stimulus_data, theta_0, pi_e, pi_i, beta, alpha)
+            p_detection = apgi_psychometric_function(stimulus_data, theta_0, pi_e, pi_i, beta_s, alpha)
 
             # Bernoulli likelihood for binary responses
             # Note: Named variable required for pm.sample_posterior_predictive

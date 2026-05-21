@@ -1246,6 +1246,8 @@ def run_falsification() -> Dict[str, Any]:
         "P2.b": results["criteria"].get("F2.2", {}),
     }
 
+    results["summary"]["total"] = results["summary"]["passed"] + results["summary"]["failed"]
+
     # Add mandatory fields for integration
     results["status"] = "success" if results["summary"]["passed"] > 0 else "failed"
     results["errors"] = []
@@ -1438,7 +1440,7 @@ def check_falsification(
     results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-2",
         "criteria": {},
-        "summary": {"passed": 0, "failed": 0, "total": 25},
+        "summary": {"passed": 0, "failed": 0, "total": 0},
     }
 
     # Validate key input arrays for statistical tests

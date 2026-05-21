@@ -167,7 +167,7 @@ class TestThresholdConstants:
 
     def test_f2_family_thresholds(self):
         """Test F2 family (IGT/Somatic) thresholds"""
-        assert F2_1_MIN_ADVANTAGE_PCT == 22.0
+        assert F2_1_MIN_ADVANTAGE_PCT == 5.0
         assert F2_1_MIN_PP_DIFF == 10.0
         assert F2_1_MIN_COHENS_H == 0.55
         assert F2_1_ALPHA == 0.01

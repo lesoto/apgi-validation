@@ -164,12 +164,17 @@ class MathematicalConsistencyChecker:
                 "Interoceptive precision baseline",
                 "Body state prediction confidence",
             ),
-            "beta": ParameterBounds(
+            # Somatic bias weight (β_s): interoceptive modulation of Πⁱ_eff
+            # Range [0.0, 2.0], units: dimensionless
+            # Equation: Πⁱ_eff = Πⁱ * (1 + β_s · sigmoid(M − M₀))
+            # Do not confuse with α (ignition sharpness) or γ_V/γ_A (M̂ weights).
+            "beta_s": ParameterBounds(
                 0.0,
                 2.0,
                 "dimensionless",
-                "Somatic bias weight",
-                "Interoceptive modulation strength",
+                "Somatic bias weight β_s",
+                "Strength of somatic marker modulation on Πⁱ_eff. "
+                "Distinct from α (ignition sharpness, range [0.1, 10.0])."
             ),
             # Time constants
             "tau_S": ParameterBounds(
@@ -190,6 +195,9 @@ class MathematicalConsistencyChecker:
             "tau_A": ParameterBounds(0.1, 30.0, "seconds", "Arousal time", "LC-NA response speed"),
             # Threshold and noise parameters
             "theta_0": ParameterBounds(0.1, 2.0, "nats", "Baseline threshold", "Ignition barrier at rest"),
+            # Ignition sigmoid sharpness (α): steepness of P_ignition curve
+            # Range [0.1, 10.0], units: 1/nats
+            # Equation: P_ignition = σ(α · (Sₜ − θₜ))
             "alpha": ParameterBounds(
                 0.1,
                 10.0,
@@ -251,7 +259,20 @@ class MathematicalConsistencyChecker:
             # Core state variables
             "S": symbols("S"),  # Accumulated surprise
             "theta": symbols("theta"),  # Dynamic threshold
-            "M": symbols("M"),  # Somatic marker
+            "B_t": symbols("B_t"),  # Ignition event (binary): B_t = 1 iff S_t > θ_t
+            # Computational proxy: Heaviside(S_t − θ_t)
+            # EEG proxy: P3b amplitude ≥ 0.3 µV (Protocol 1, F9.1)
+            # TMS proxy: PCI ≥ 0.31 (Protocols 2, 4)
+            # iEEG proxy: Hartigan dip p < 0.05 (Protocol 6, P6a)
+            "M": symbols("M"),  # Somatic marker scalar (M): used in time-evolution equation
+            # dM/dt = (tanh(β_M · εⁱ) − M) / τ_M + C
+            # This is the scalar approximation. Full bilinear form:
+            # M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)  [see JSON P03, P05]
+            # Use M for mathematical consistency checks; M̂ for
+            # protocol-level predictions P3c, P5a, F2.3, F2.4
+            "M_hat": symbols("M_hat"),  # Full somatic marker (M̂): bilinear context-action form
+            # M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)
+            # γ_V ∈ [0.3, 0.8], γ_A ∈ [0.1, 0.5]
             "A": symbols("A"),  # Arousal
             # Precision variables
             "Pi_e": symbols("Pi_e"),  # Exteroceptive precision

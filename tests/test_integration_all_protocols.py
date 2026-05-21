@@ -52,36 +52,8 @@ if sys.version_info >= (3, 14):
         if hasattr(np, "_core") and hasattr(np._core, "fromnumeric"):
             np._core.fromnumeric._wrapreduction = _safe_wrapreduction
 
-        # Wrap the multiply ufunc
-        class SafeUFunc:
-            def __init__(self, ufunc):
-                self.ufunc = ufunc
-
-            def __call__(self, *args, **kwargs):
-                try:
-                    return self.ufunc(*args, **kwargs)
-                except ValueError as e:
-                    if "zero-size array to reduction operation" in str(e):
-                        # Handle zero-size arrays by returning appropriate result
-                        for arg in args:
-                            if hasattr(arg, "size") and arg.size == 0:
-                                return np.array([], dtype=getattr(arg, "dtype", float))
-                    raise
-
-            def reduce(self, *args, **kwargs):
-                try:
-                    return self.ufunc.reduce(*args, **kwargs)
-                except ValueError as e:
-                    if "zero-size array to reduction operation" in str(e):
-                        # Handle zero-size arrays by returning appropriate result
-                        for arg in args:
-                            if hasattr(arg, "size") and arg.size == 0:
-                                return np.array([], dtype=getattr(arg, "dtype", float))
-                    raise
-
-        # Wrap the multiply ufunc
-        _original_multiply = np.multiply
-        np.multiply = SafeUFunc(_original_multiply)  # type: ignore[assignment]
+        # NOTE: Do not replace np.multiply (ufunc) — SciPy expects a real ufunc here.
+        # The SafeUFunc wrapper was removed because it caused AttributeError: 'SafeUFunc' object has no attribute 'nin'
 
     except ImportError:
         pass  # NumPy not available

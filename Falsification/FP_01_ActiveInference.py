@@ -3184,7 +3184,7 @@ def check_falsification(
     f2_5_pass = (
         mean_apgi_time <= F2_5_MAX_TRIALS
         and trial_advantage >= 10
-        and (p_value < 0.01 if len(apgi_time) > 1 else True)
+        and (p_value < 0.01 if len(apgi_time) > 1 else False)
         and hazard_ratio >= 1.65  # HR threshold per specification
     )
 
@@ -3233,8 +3233,8 @@ def check_falsification(
     # Falsification: Advantage < 18% OR d < 0.60
     f3_1_pass = (
         mean_advantage >= F3_1_MIN_ADVANTAGE_PCT / 100
-        and (cohens_d >= F3_1_MIN_COHENS_D if len(perf_data) > 1 else True)
-        and (p_value_one_tailed < 0.01 if len(perf_data) > 1 else True)
+        and (cohens_d >= F3_1_MIN_COHENS_D if len(perf_data) > 1 else False)
+        and (p_value_one_tailed < 0.01 if len(perf_data) > 1 else False)
     )
 
     results["criteria"]["F3.1"] = {
@@ -3277,8 +3277,8 @@ def check_falsification(
     # Falsification: Advantage < 28% OR η² < 0.20
     f3_2_pass = (
         mean_intero >= F3_2_MIN_INTERO_ADVANTAGE_PCT / 100
-        and (eta_squared >= 0.20 if len(intero_data) > 1 else True)
-        and (p_value_one_tailed < 0.01 if len(intero_data) > 1 else True)
+        and (eta_squared >= 0.20 if len(intero_data) > 1 else False)
+        and (p_value_one_tailed < 0.01 if len(intero_data) > 1 else False)
     )
 
     results["criteria"]["F3.2"] = {
@@ -3318,8 +3318,8 @@ def check_falsification(
     # Falsification: Reduction < 25% OR d < 0.75
     f3_3_pass = (
         mean_reduction >= F3_3_MIN_REDUCTION_PCT / 100
-        and (cohens_d >= F3_3_MIN_COHENS_D if len(thresh_data) > 1 else True)
-        and (p_value_one_tailed < 0.01 if len(thresh_data) > 1 else True)
+        and (cohens_d >= F3_3_MIN_COHENS_D if len(thresh_data) > 1 else False)
+        and (p_value_one_tailed < 0.01 if len(thresh_data) > 1 else False)
     )
 
     results["criteria"]["F3.3"] = {
@@ -3358,8 +3358,8 @@ def check_falsification(
     # Falsification: Reduction < 20% OR d < 0.65
     f3_4_pass = (
         mean_reduction >= F3_4_MIN_REDUCTION_PCT / 100
-        and (cohens_d >= F3_4_MIN_COHENS_D if len(prec_data) > 1 else True)
-        and (p_value_one_tailed < 0.01 if len(prec_data) > 1 else True)
+        and (cohens_d >= F3_4_MIN_COHENS_D if len(prec_data) > 1 else False)
+        and (p_value_one_tailed < 0.01 if len(prec_data) > 1 else False)
     )
 
     results["criteria"]["F3.4"] = {
@@ -3447,7 +3447,7 @@ def check_falsification(
     f3_6_pass = (
         mean_trials <= F3_6_MAX_TRIALS
         and hazard_ratio >= F3_6_MIN_HAZARD_RATIO
-        and (p_value_one_tailed < 0.01 if len(trial_data) > 1 else True)
+        and (p_value_one_tailed < 0.01 if len(trial_data) > 1 else False)
     )
 
     results["criteria"]["F3.6"] = {
@@ -3744,7 +3744,7 @@ def check_falsification(
         mean_ltcn_window >= F6_2_LTCN_MIN_WINDOW_MS
         and ratio >= F6_2_MIN_INTEGRATION_RATIO
         and r_squared >= F6_2_MIN_CURVE_FIT_R2
-        and (p_value < 0.01 if len(ltcn_window_data) > 1 else True)
+        and (p_value < 0.01 if len(ltcn_window_data) > 1 else False)
     )
 
     results["criteria"]["F6.2"] = {
@@ -3872,7 +3872,7 @@ def check_falsification(
     add_ons = int(rnn_add_ons_needed) if isinstance(rnn_add_ons_needed, (int, float)) else 2
 
     # Falsification: < 2 add-ons needed OR performance gap < 15%
-    f6_6_pass = add_ons >= 2 and mean_gap >= 15.0 and (p_value_one_tailed < 0.01 if len(perf_gap_data) > 1 else True)
+    f6_6_pass = add_ons >= 2 and mean_gap >= 15.0 and (p_value_one_tailed < 0.01 if len(perf_gap_data) > 1 else False)
 
     results["criteria"]["F6.6"] = {
         "passed": f6_6_pass,

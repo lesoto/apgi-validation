@@ -173,6 +173,28 @@ F1_5_PERMUTATION_ALPHA = F1_5_PERMUTATION_ALPHA_PAPER_SPEC
 F1_6_MIN_LOW_AROUSAL_SLOPE: float = 1.3  # mean_low_arousal ≥ 1.3 threshold
 
 # ---------------------------------------------------------------------------
+# Alpha (ignition sigmoid sharpness): unified bounds specification
+# Canonical source for theoretical range, Bayesian estimation clip, qualitative
+# interpretation bands, and falsification lower bound.
+# ---------------------------------------------------------------------------
+ALPHA_UNIFIED_BOUNDS = {
+    "population_range": [0.1, 10.0],  # Full theoretical range (parameter_bounds)
+    "estimation_prior_clip": [2.0, 8.0],  # PyMC posterior clip (BayesianModelComparison)
+    "interpretation": {
+        "shallow": [0.1, 0.5],  # Graded ignition — inconsistent with APGI bistability
+        "moderate": [0.5, 1.5],  # Typical ignition
+        "steep": [1.5, 3.0],  # Threshold-like ignition — consistent with APGI
+        "very_steep": [3.0, 10.0],  # Digital-like — confirms bistability claim (P6a)
+    },
+    "falsification_lower_bound": 1.0,  # α < 1.0 contradicts all-or-none ignition claim
+}
+
+ALPHA_POPULATION_RANGE = ALPHA_UNIFIED_BOUNDS["population_range"]
+ALPHA_ESTIMATION_PRIOR_CLIP = ALPHA_UNIFIED_BOUNDS["estimation_prior_clip"]
+ALPHA_INTERPRETATION_BANDS = ALPHA_UNIFIED_BOUNDS["interpretation"]
+ALPHA_FALSIFICATION_LOWER_BOUND = ALPHA_UNIFIED_BOUNDS["falsification_lower_bound"]
+
+# ---------------------------------------------------------------------------
 # F2.3 – vmPFC-Like Anticipatory Bias (RT advantage)
 # RT advantage expected across a *distribution* of trials; collecting a
 # single scalar and passing it to ttest_1samp is degenerate (NaN p-value).

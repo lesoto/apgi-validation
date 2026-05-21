@@ -57,6 +57,128 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 logger.setLevel(logging.INFO)
 
 
+# ── APGI Design System ────────────────────────────────────────────────────────
+
+
+def apply_apgi_theme(root):
+    """Apply unified APGI theme to tkinter application."""
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    bg = "#f8f9fa"
+    fg = "#212529"
+
+    style.configure("TFrame", background=bg)
+    style.configure("TLabel", background=bg, foreground=fg, font=("Noto Sans", 10))
+    style.configure(
+        "Header.TLabel",
+        font=("Noto Sans", 12, "bold"),
+        background=bg,
+        foreground=fg,
+    )
+    style.configure("TLabelframe", background=bg, bordercolor="#dee2e6")
+    style.configure(
+        "TLabelframe.Label",
+        background=bg,
+        foreground="#6c757d",
+        font=("Noto Sans", 9, "bold"),
+    )
+    style.configure("Card.TFrame", background="#ffffff", borderwidth=1, relief="solid")
+    style.configure("TButton", padding=6, background="#e9ecef", font=("Noto Sans", 10))
+    style.map(
+        "TButton",
+        background=[("active", "#dee2e6"), ("disabled", "#f1f3f5")],
+        foreground=[("disabled", "#adb5bd")],
+    )
+    style.configure(
+        "Primary.TButton",
+        background="#155724",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Secondary.TButton",
+        background="#2874a6",
+        foreground="white",
+        font=("Noto Sans", 10),
+        padding=6,
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Danger.TButton",
+        background="#721c24",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Horizontal.TProgressbar",
+        background="#2874a6",
+        troughcolor="#dee2e6",
+        borderwidth=0,
+    )
+    style.configure("TCombobox", font=("Noto Sans", 10))
+
+    root.configure(background=bg)
+    return style
+
+
+class APGICard(ttk.Frame):
+    """Standardized information card for APGI applications."""
+
+    def __init__(self, parent, title, value, subtitle="", **kwargs):
+        super().__init__(parent, style="Card.TFrame", **kwargs)
+
+        container = ttk.Frame(self, padding=15, style="Card.TFrame")
+        container.pack(fill="both", expand=True)
+
+        ttk.Label(
+            container,
+            text=title.upper(),
+            font=("Noto Sans", 11, "bold"),
+            background="#ffffff",
+            foreground="#212529",
+        ).pack(anchor="w")
+
+        ttk.Label(
+            container,
+            text=value,
+            font=("Noto Sans Mono", 11),
+            background="#ffffff",
+            foreground="#2874a6",
+            wraplength=600,
+        ).pack(anchor="w", pady=(4, 8))
+
+        if subtitle:
+            ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(0, 6))
+            ttk.Label(
+                container,
+                text=subtitle,
+                font=("Noto Sans", 9, "italic"),
+                background="#ffffff",
+                foreground="#6c757d",
+                wraplength=600,
+            ).pack(anchor="w")
+
+
+# ── Main Application ──────────────────────────────────────────────────────────
+
+
 class ProtocolRunnerGUI:
     """GUI for running APGI falsification protocols with progress tracking."""
 
@@ -66,10 +188,11 @@ class ProtocolRunnerGUI:
         self.gui_queue = queue.Queue()
 
         if not self.headless:
+            apply_apgi_theme(self.root)
             self._process_gui_queue()
             self.root.title("APGI Framework-Level Falsification Aggregator (FP-ALL)")
-            self.root.geometry("800x600")
-            self.root.minsize(640, 480)  # Prevent resizing below usable size
+            self.root.geometry("960x700")
+            self.root.minsize(720, 520)
             self._create_menu_bar()
             self._bind_shortcuts()
 
@@ -588,10 +711,8 @@ class ProtocolRunnerGUI:
 
     def _on_closing(self):
         """Handle window close event with proper thread cleanup."""
-        # Stop the running thread if it exists
         if self.running_thread and self.running_thread.is_alive():
             self.stop_event.set()
-            # Join thread with timeout to prevent blocking
             self.running_thread.join(timeout=2.0)
             if self.running_thread.is_alive():
                 logging.warning("Thread did not stop cleanly on exit")
@@ -602,7 +723,6 @@ class ProtocolRunnerGUI:
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
-        # File menu
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(
@@ -618,6 +738,7 @@ class ProtocolRunnerGUI:
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=view_menu)
         view_menu.add_command(label="Clear Console", command=self.clear_console, accelerator="Ctrl+L")
+        view_menu.add_command(label="Toggle Console", command=self._toggle_console)
 
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
@@ -639,159 +760,170 @@ class ProtocolRunnerGUI:
             "APGI Falsification GUI\nProtocol Runner Interface\nVersion 1.3.0",
         )
 
+    # ── UI Construction ───────────────────────────────────────────────────────
+
     def setup_ui(self):
-        """Setup the user interface."""
+        """Set up the application interface following APGI design standards."""
+        _BLUE = "#2874a6"
+        _BG = "#f8f9fa"
 
-        # Main container
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # ── Row 0: Metric bar ─────────────────────────────────────────────────
+        metric_bar = tk.Frame(self.root, bg=_BLUE, pady=8, padx=15)
+        metric_bar.grid(row=0, column=0, columnspan=2, sticky="ew")
+        metric_bar.columnconfigure(1, weight=1)
 
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        tk.Label(
+            metric_bar,
+            text="APGI FALSIFICATION PROTOCOLS",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 13, "bold"),
+        ).grid(row=0, column=0, sticky="w")
 
-        # Title
-        title_label = ttk.Label(main_frame, text="APGI Falsification Protocols", font=("Arial", 16, "bold"))
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        self.status_var = tk.StringVar(value="ℹ  Ready")
+        self.status_label = tk.Label(
+            metric_bar,
+            textvariable=self.status_var,
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 10),
+        )
+        self.status_label.grid(row=0, column=1, padx=(20, 15), sticky="e")
 
-        # Create notebook for tabs
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-
-        # Protocols tab
-        protocols_frame = ttk.Frame(self.notebook)
-        self.notebook.add(protocols_frame, text="Protocols")
-        self.setup_protocols_tab(protocols_frame)
-
-        # Parameters tab
-        params_frame = ttk.Frame(self.notebook)
-        self.notebook.add(params_frame, text="Parameters")
-        self.setup_parameters_tab(params_frame)
-
-        # Output console
-        console_frame = ttk.LabelFrame(main_frame, text="Output Console", padding="10")
-        console_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        self.output_console = scrolledtext.ScrolledText(console_frame, height=15, width=80)
-        self.output_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        console_frame.columnconfigure(0, weight=1)
-        console_frame.rowconfigure(0, weight=1)
-
-        # Status bar and clear console button frame
-        status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
-        status_frame.columnconfigure(1, weight=1)
-
-        # Status bar
-        self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
-
-        # Progress bar
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress_bar = ttk.Progressbar(
-            status_frame,
+            metric_bar,
             variable=self.progress_var,
             maximum=100.0,
             mode="determinate",
-            length=300,
+            length=180,
         )
-        self.progress_bar.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress_bar.grid(row=0, column=2, sticky="e")
 
-        # Control buttons
-        button_frame = ttk.Frame(status_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        # ── Root grid weights ─────────────────────────────────────────────────
+        self.root.columnconfigure(0, weight=0, minsize=210)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(0, weight=0)
+        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=0)
+        self.root.rowconfigure(3, weight=0)
 
-        clear_btn = ttk.Button(button_frame, text="Clear Console", command=self.clear_console)
-        clear_btn.pack(side=tk.LEFT, padx=(0, 10))
+        # ── Row 1, Col 0: Sidebar ─────────────────────────────────────────────
+        sidebar = tk.Frame(self.root, bg="#ffffff", width=210, bd=0)
+        sidebar.grid(row=1, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.columnconfigure(0, weight=1)
+        sidebar.rowconfigure(1, weight=1)
 
-        self.stop_btn = ttk.Button(button_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED)
-        self.stop_btn.pack(side=tk.LEFT)
+        # Sidebar section header
+        tk.Label(
+            sidebar,
+            text="PROTOCOLS",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            pady=5,
+        ).grid(row=0, column=0, columnspan=2, sticky="ew")
 
-        # Configure tab order for keyboard navigation
-        self._setup_tab_order()
+        # Protocol listbox
+        lb_frame = tk.Frame(sidebar, bg="#ffffff")
+        lb_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        lb_frame.columnconfigure(0, weight=1)
+        lb_frame.rowconfigure(0, weight=1)
 
-    def setup_protocols_tab(self, parent_frame):
-        """Setup the protocols selection tab."""
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(0, weight=1)
-
-        # Protocol buttons frame
-        button_frame = ttk.LabelFrame(parent_frame, text="Select Protocol", padding="10")
-        button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-
-        # Create 6 buttons in 2x3 grid
-        for i, (protocol_name, protocol_info) in enumerate(self.protocols.items()):
-            row = i // 3
-            col = i % 3
-
-            btn = ttk.Button(
-                button_frame,
-                text=protocol_name.split(": ")[1],
-                command=lambda info=protocol_info, name=protocol_name: (self.select_protocol(name, info)),
-            )
-            btn.grid(row=row, column=col, padx=5, pady=5, sticky=(tk.W, tk.E))
-
-            # Add tooltip
-            self.create_tooltip(btn, protocol_info["description"])
-
-        # Configure button grid weights
-        for col in range(3):
-            button_frame.columnconfigure(col, weight=1)
-
-        # Selected protocol display
-        selected_frame = ttk.LabelFrame(parent_frame, text="Selected Protocol", padding="10")
-        selected_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
-
-        self.selected_protocol_label = ttk.Label(
-            selected_frame, text="No protocol selected", font=("Arial", 10, "bold")
+        self.protocol_listbox = tk.Listbox(
+            lb_frame,
+            font=("Noto Sans", 9),
+            bg="#ffffff",
+            fg="#212529",
+            selectbackground=_BLUE,
+            selectforeground="white",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightcolor="#dee2e6",
+            highlightbackground="#dee2e6",
+            activestyle="none",
+            cursor="hand2",
         )
-        self.selected_protocol_label.pack()
+        lb_scroll = ttk.Scrollbar(lb_frame, orient="vertical", command=self.protocol_listbox.yview)
+        self.protocol_listbox.configure(yscrollcommand=lb_scroll.set)
+        self.protocol_listbox.grid(row=0, column=0, sticky="nsew")
+        lb_scroll.grid(row=0, column=1, sticky="ns")
 
-        # Run buttons frame
-        run_buttons_frame = ttk.Frame(parent_frame)
-        run_buttons_frame.grid(row=2, column=0, pady=(10, 0))
+        for name in self.protocols:
+            short = name.split(": ", 1)[1] if ": " in name else name
+            self.protocol_listbox.insert(tk.END, short)
 
-        # Run selected button
+        self.protocol_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
+
+        # Sidebar action buttons
+        btn_area = tk.Frame(sidebar, bg="#ffffff", pady=8, padx=8)
+        btn_area.grid(row=2, column=0, columnspan=2, sticky="ew")
+        btn_area.columnconfigure(0, weight=1)
+
         self.run_selected_button = ttk.Button(
-            run_buttons_frame,
-            text="Run Selected Protocol",
+            btn_area,
+            text="▶  Run Selected",
             command=self.run_selected_protocol,
+            style="Primary.TButton",
             state=tk.DISABLED,
         )
-        self.run_selected_button.pack(side=tk.LEFT, padx=(0, 5))
+        self.run_selected_button.grid(row=0, column=0, sticky="ew", pady=(0, 4))
 
-        # Run all button
         self.run_all_button = ttk.Button(
-            run_buttons_frame,
-            text="Run All Protocols",
+            btn_area,
+            text="Run All",
             command=self.run_all_protocols,
+            style="Secondary.TButton",
         )
-        self.run_all_button.pack(side=tk.LEFT, padx=(5, 0))
+        self.run_all_button.grid(row=1, column=0, sticky="ew", pady=(0, 4))
 
-    def setup_parameters_tab(self, parent_frame):
-        """Setup the parameters configuration tab."""
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(1, weight=1)
+        self.stop_btn = ttk.Button(
+            btn_area,
+            text="■  Stop",
+            command=self.stop_protocol,
+            style="Danger.TButton",
+            state=tk.DISABLED,
+        )
+        self.stop_btn.grid(row=2, column=0, sticky="ew", pady=(0, 8))
 
-        # Protocol selector
-        selector_frame = ttk.Frame(parent_frame)
-        selector_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        ttk.Separator(btn_area, orient="horizontal").grid(row=3, column=0, sticky="ew", pady=(0, 6))
 
-        ttk.Label(selector_frame, text="Configure parameters for:").pack(side=tk.LEFT)
-        self.protocol_selector = ttk.Combobox(selector_frame, values=list(self.protocols.keys()), state="readonly")
-        self.protocol_selector.pack(side=tk.LEFT, padx=(10, 0))
+        ttk.Button(btn_area, text="Clear Console", command=self.clear_console).grid(row=4, column=0, sticky="ew")
+
+        # Right border divider between sidebar and workspace
+        tk.Frame(self.root, bg="#dee2e6", width=1).grid(row=1, column=0, sticky="nse")
+
+        # ── Row 1, Col 1: Workspace ───────────────────────────────────────────
+        workspace = ttk.Frame(self.root, padding=(15, 10, 15, 10))
+        workspace.grid(row=1, column=1, sticky="nsew")
+        workspace.columnconfigure(0, weight=1)
+        workspace.rowconfigure(0, weight=0)
+        workspace.rowconfigure(1, weight=1)
+
+        # Protocol info card (row 0)
+        self._card_area = ttk.Frame(workspace)
+        self._card_area.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self._card_area.columnconfigure(0, weight=1)
+        self._show_workspace_empty_state()
+
+        # Parameters section (row 1)
+        params_lf = ttk.LabelFrame(workspace, text="PARAMETERS", padding=(10, 6))
+        params_lf.grid(row=1, column=0, sticky="nsew")
+        params_lf.columnconfigure(0, weight=1)
+        params_lf.rowconfigure(0, weight=1)
+
+        # Hidden combobox — not shown in layout but keeps save_parameters() working
+        self.protocol_selector = ttk.Combobox(params_lf, values=list(self.protocols.keys()), state="readonly")
         self.protocol_selector.bind("<<ComboboxSelected>>", self.on_protocol_selected)
 
-        # Parameters frame
-        self.params_frame = ttk.LabelFrame(parent_frame, text="Parameters", padding="10")
-        self.params_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Scrollable params canvas
+        self.params_frame = ttk.Frame(params_lf)
+        self.params_frame.grid(row=0, column=0, sticky="nsew")
+        self.params_frame.columnconfigure(0, weight=1)
+        self.params_frame.rowconfigure(0, weight=1)
 
-        # Scrollable frame for parameters
-        self.params_canvas = tk.Canvas(self.params_frame, height=300)
+        self.params_canvas = tk.Canvas(self.params_frame, bg=_BG, highlightthickness=0, height=150)
         self.params_scrollbar = ttk.Scrollbar(self.params_frame, orient="vertical", command=self.params_canvas.yview)
         self.params_scrollable_frame = ttk.Frame(self.params_canvas)
 
@@ -799,27 +931,149 @@ class ProtocolRunnerGUI:
             "<Configure>",
             lambda e: self.params_canvas.configure(scrollregion=self.params_canvas.bbox("all")),
         )
-
         self.params_canvas.create_window((0, 0), window=self.params_scrollable_frame, anchor="nw")
         self.params_canvas.configure(yscrollcommand=self.params_scrollbar.set)
-
         self.params_canvas.pack(side="left", fill="both", expand=True)
         self.params_scrollbar.pack(side="right", fill="y")
 
-        # Control buttons
-        control_frame = ttk.Frame(parent_frame)
-        control_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+        # Initial placeholder shown before any protocol is selected
+        ttk.Label(
+            self.params_scrollable_frame,
+            text="Select a protocol from the sidebar to configure parameters.",
+            foreground="#6c757d",
+            font=("Noto Sans", 10),
+        ).grid(row=0, column=0, padx=20, pady=20)
 
-        ttk.Button(control_frame, text="Load Defaults", command=self.load_default_parameters).pack(
-            side=tk.LEFT, padx=(0, 10)
+        # Parameter control buttons
+        params_ctrl = ttk.Frame(params_lf)
+        params_ctrl.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+
+        ttk.Button(params_ctrl, text="Load Defaults", command=self.load_default_parameters).pack(
+            side=tk.LEFT, padx=(0, 8)
         )
-        ttk.Button(control_frame, text="Save Parameters", command=self.save_parameters).pack(side=tk.LEFT)
+        ttk.Button(
+            params_ctrl,
+            text="Save Parameters",
+            command=self.save_parameters,
+            style="Secondary.TButton",
+        ).pack(side=tk.LEFT)
+
+        # ── Row 2: Console toggle header ──────────────────────────────────────
+        self._console_visible = True
+        console_header = tk.Frame(self.root, bg="#dee2e6", pady=3)
+        console_header.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+        self._console_toggle_btn = tk.Button(
+            console_header,
+            text="▼  OUTPUT CONSOLE",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            command=self._toggle_console,
+            activebackground="#dee2e6",
+            activeforeground="#495057",
+            bd=0,
+        )
+        self._console_toggle_btn.pack(side="left", padx=10)
+
+        # ── Row 3: Console body ───────────────────────────────────────────────
+        self._console_frame = ttk.Frame(self.root, padding=(10, 0, 10, 8))
+        self._console_frame.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self._console_frame.columnconfigure(0, weight=1)
+        self._console_frame.rowconfigure(0, weight=1)
+
+        self.output_console = scrolledtext.ScrolledText(
+            self._console_frame,
+            height=9,
+            font=("Noto Sans Mono", 9),
+            bg="#212529",
+            fg="#f8f9fa",
+            insertbackground="#f8f9fa",
+            relief="flat",
+            borderwidth=0,
+        )
+        self.output_console.grid(row=0, column=0, sticky="nsew")
+
+        self._setup_tab_order()
+
+    def _show_workspace_empty_state(self):
+        """Show empty state placeholder in the workspace card area."""
+        for w in self._card_area.winfo_children():
+            w.destroy()
+
+        outer = tk.Frame(self._card_area, bg="#f8f9fa", pady=10)
+        outer.pack(fill="x")
+
+        canvas = tk.Canvas(
+            outer,
+            width=160,
+            height=70,
+            bg="#f8f9fa",
+            highlightbackground="#e9ecef",
+            highlightthickness=2,
+        )
+        canvas.pack(side="left", padx=(0, 15))
+        canvas.create_text(
+            80, 35, text="No Protocol\nSelected", fill="#adb5bd", font=("Noto Sans", 10), justify="center"
+        )
+
+        ttk.Label(
+            outer,
+            text="No active hypotheses found.\nInitialize a new simulation environment to begin.",
+            font=("Noto Sans", 10),
+            foreground="#6c757d",
+            wraplength=340,
+            justify="left",
+        ).pack(side="left", anchor="w")
+
+    def _update_protocol_card(self, protocol_name, protocol_info):
+        """Replace the workspace card with the selected protocol's details."""
+        for w in self._card_area.winfo_children():
+            w.destroy()
+
+        APGICard(
+            self._card_area,
+            title=protocol_name,
+            value=protocol_info.get("file", ""),
+            subtitle=protocol_info.get("description", ""),
+        ).pack(fill="x")
+
+    def _on_listbox_select(self, event):
+        """Handle protocol selection from the sidebar listbox."""
+        sel = self.protocol_listbox.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        names = list(self.protocols.keys())
+        if idx >= len(names):
+            return
+        name = names[idx]
+        info = self.protocols[name]
+        self.select_protocol(name, info)
+        self.protocol_selector.set(name)
+        self.display_protocol_parameters(name)
+
+    def _toggle_console(self):
+        """Toggle visibility of the output console."""
+        if self._console_visible:
+            self._console_frame.grid_remove()
+            self._console_toggle_btn.config(text="▶  OUTPUT CONSOLE")
+            self._console_visible = False
+        else:
+            self._console_frame.grid()
+            self._console_toggle_btn.config(text="▼  OUTPUT CONSOLE")
+            self._console_visible = True
+
+    # ── Protocol Selection & Parameters ──────────────────────────────────────
 
     def select_protocol(self, protocol_name, protocol_info):
         """Select a protocol for running."""
         self.selected_protocol = protocol_name
-        self.selected_protocol_label.config(text=f"Selected: {protocol_name}")
         self.run_selected_button.config(state=tk.NORMAL)
+        if not self.headless:
+            self._update_protocol_card(protocol_name, protocol_info)
         self.log_message(f"Selected protocol: {protocol_name}")
 
     def on_protocol_selected(self, event):
@@ -830,7 +1084,6 @@ class ProtocolRunnerGUI:
 
     def display_protocol_parameters(self, protocol_name):
         """Display parameter controls for the selected protocol."""
-        # Clear existing parameters
         for widget in self.params_scrollable_frame.winfo_children():
             widget.destroy()
 
@@ -842,16 +1095,13 @@ class ProtocolRunnerGUI:
             ).pack()
             return
 
-        # Create parameter controls
         row = 0
         self.parameter_widgets = {}
 
         for param_name, param_config in protocol_info["parameters"].items():
-            # Parameter label
             label = ttk.Label(self.params_scrollable_frame, text=f"{param_name}:")
             label.grid(row=row, column=0, sticky=tk.W, padx=(0, 10), pady=2)
 
-            # Create appropriate widget based on type
             if param_config["type"] == "float":
                 var = tk.DoubleVar(value=param_config["default"])
                 widget = tk.Spinbox(
@@ -891,16 +1141,10 @@ class ProtocolRunnerGUI:
                 widget = ttk.Entry(self.params_scrollable_frame, textvariable=var, width=17)
 
             widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
-
-            # Description tooltip
             self.create_tooltip(widget, param_config.get("description", ""))
-
-            # Store widget reference
             self.parameter_widgets[param_name] = {"var": var, "widget": widget}
-
             row += 1
 
-        # Configure grid weights
         self.params_scrollable_frame.columnconfigure(1, weight=1)
 
     def load_default_parameters(self):
@@ -918,9 +1162,7 @@ class ProtocolRunnerGUI:
             messagebox.showwarning("No Selection", "Please select a protocol first.")
             return
 
-        # First, update parameter values from widgets if they exist
         if hasattr(self, "parameter_widgets") and self.parameter_widgets:
-            # Get current values from widgets
             for param_name, widget_info in self.parameter_widgets.items():
                 try:
                     value = widget_info["var"].get()
@@ -929,7 +1171,6 @@ class ProtocolRunnerGUI:
                     messagebox.showerror("Update Error", f"Error updating {param_name}: {e}")
                     return
 
-        # Validate parameter values
         validation_errors = []
         protocol_info = self.protocols[selected]
 
@@ -937,7 +1178,6 @@ class ProtocolRunnerGUI:
             for param_name, param_config in protocol_info["parameters"].items():
                 current_value = self.parameter_values[selected].get(param_name)
 
-                # Type-specific validation
                 if param_config["type"] == "float":
                     try:
                         value = float(current_value)
@@ -959,10 +1199,8 @@ class ProtocolRunnerGUI:
                         validation_errors.append(f"{param_name}: Invalid integer value '{current_value}'")
 
                 elif param_config["type"] == "str":
-                    # String validation - check if it's a valid format
                     if param_name == "surprise_range":
                         try:
-                            # Parse [min, max] format using JSON
                             import json
 
                             value_list = json.loads(current_value)
@@ -978,11 +1216,9 @@ class ProtocolRunnerGUI:
             )
             return
 
-        # Save to file
         try:
             import json
 
-            # Use absolute path based on project root
             project_root = Path(__file__).parent
             config_dir = project_root / "config"
             config_dir.mkdir(parents=True, exist_ok=True)
@@ -991,11 +1227,11 @@ class ProtocolRunnerGUI:
             with open(config_file, "w", encoding="utf-8") as f:
                 json.dump(self.parameter_values[selected], f, indent=2)
 
-            messagebox.showinfo("Success", f"Parameters saved to {config_file}")
+            messagebox.showinfo("✔ Success", f"Parameters saved to {config_file}")
             self.log_message(f"Parameters saved for {selected}")
 
         except Exception as e:
-            messagebox.showerror("Save Error", f"Failed to save parameters: {e}")
+            messagebox.showerror("✖ Save Error", f"Failed to save parameters: {e}")
             self.log_message(f"Error saving parameters: {e}")
             return
 
@@ -1005,9 +1241,10 @@ class ProtocolRunnerGUI:
         if selected:
             self.display_protocol_parameters(selected)
 
+    # ── Protocol Execution ────────────────────────────────────────────────────
+
     def run_all_protocols(self):
         """Run all protocols sequentially with default parameters."""
-        # Confirm with user
         protocol_count = len(self.protocols)
         if not messagebox.askyesno(
             "Confirm Run All",
@@ -1017,7 +1254,6 @@ class ProtocolRunnerGUI:
         ):
             return
 
-        # Run protocols in a separate thread
         def run_all_thread():
             total = len(self.protocols)
             for idx, (protocol_name, protocol_info) in enumerate(self.protocols.items(), 1):
@@ -1029,11 +1265,8 @@ class ProtocolRunnerGUI:
                 self.log_message(f"Running {protocol_name} ({idx}/{total})")
                 self.log_message(f"{'=' * 60}")
 
-                # Use default parameters
                 protocol_info_with_params = protocol_info.copy()
                 protocol_info_with_params["configured_params"] = {}
-
-                # Run synchronously in this thread
                 self._run_single_protocol(protocol_info_with_params)
 
             self.log_message(f"\n{'=' * 60}")
@@ -1042,10 +1275,12 @@ class ProtocolRunnerGUI:
             self.set_status("Ready")
             self.gui_queue.put(lambda: self.run_all_button.config(state=tk.NORMAL))
             self.gui_queue.put(lambda: self.stop_btn.config(state=tk.DISABLED))
+            self.gui_queue.put(lambda: self.protocol_listbox.config(state=tk.NORMAL))
 
         self.stop_event.clear()
         self.run_all_button.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
+        self.protocol_listbox.config(state=tk.DISABLED)
         self.set_status("Running all protocols...")
 
         thread = threading.Thread(target=run_all_thread)
@@ -1055,12 +1290,10 @@ class ProtocolRunnerGUI:
     def _run_single_protocol(self, protocol_info):
         """Run a single protocol synchronously (for use in run_all)."""
         try:
-            # Ensure project root is in sys.path for imports
             project_root = os.path.dirname(os.path.abspath(__file__))
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
 
-            # Load the protocol module
             file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
 
             _fp_f = Path(file_path)
@@ -1070,18 +1303,14 @@ class ProtocolRunnerGUI:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            # Get configured parameters
             configured_params = protocol_info.get("configured_params", {})
 
-            # Protocol 13 – Framework Aggregator: special entry point
             if protocol_info["class"] == "FalsificationAggregator":
                 result = self._handle_framework_aggregator(module)
 
             else:
-                # Get the main class for all other protocols
                 cls = getattr(module, protocol_info["class"])
 
-                # Robust protocol execution logic
                 result = {}
                 if protocol_info["class"] == "NetworkComparisonExperiment":
                     config = {
@@ -1093,7 +1322,8 @@ class ProtocolRunnerGUI:
                     }
                     instance = cls(config)
                     result = instance.run_full_experiment()
-                    self.log_message(f"  Result: {type(result)}")
+                    status = result.get("status", "completed") if isinstance(result, dict) else "completed"
+                    self.log_message(f"  Result: {status}")
 
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
                     run_func = getattr(module, "run_falsification", None)
@@ -1166,8 +1396,12 @@ class ProtocolRunnerGUI:
                         self.log_message("  WARNING: No standard execution method found. Result will be empty.")
                         result = {"status": "Incomplete", "warning": "No runner found"}
 
-            # FIX: Actually save the result instead of an empty dict
-            self.log_message("  Protocol completed successfully")
+            protocol_status = self._extract_result_status(result)
+            if self._is_successful_result(result):
+                self.log_message("  Protocol completed successfully")
+            else:
+                self.log_message(f"  Protocol completed with status: {protocol_status}")
+            self._save_results(result, protocol_info["file"])
 
         except Exception as e:
             self.log_message(f"  ERROR: {str(e)}")
@@ -1176,14 +1410,12 @@ class ProtocolRunnerGUI:
     def run_headless(self):
         """Run all protocols in headless mode."""
         self.log_message("Running in HEADLESS mode")
-        # Initialize default parameters if not loaded
         if not self.parameter_values:
             self.load_default_parameters()
 
         total = len(self.protocols)
         for idx, (protocol_name, protocol_info) in enumerate(self.protocols.items(), 1):
             self.log_message(f"\n[{idx}/{total}] Running {protocol_name}...")
-            # Use default parameters for headless run
             protocol_info_with_params = protocol_info.copy()
             protocol_info_with_params["configured_params"] = {}
             self._run_single_protocol(protocol_info_with_params)
@@ -1200,7 +1432,6 @@ class ProtocolRunnerGUI:
 
         protocol_info = self.protocols[self.selected_protocol]
 
-        # Get configured parameters from widgets
         params = {}
         if hasattr(self, "parameter_widgets"):
             for param_name, widget_info in self.parameter_widgets.items():
@@ -1208,29 +1439,32 @@ class ProtocolRunnerGUI:
                     value = widget_info["var"].get()
                     params[param_name] = value
                 except Exception as e:
-                    # Use default value if widget access fails
                     logger.warning(f"Failed to get value for parameter {param_name}: {e}")
                     continue
 
-        # Merge with protocol info
         protocol_info_with_params = protocol_info.copy()
         protocol_info_with_params["configured_params"] = params
 
         self.run_protocol(protocol_info_with_params)
 
+    # ── Tooltip ───────────────────────────────────────────────────────────────
+
     def create_tooltip(self, widget, text):
-        """Create tooltip for widget"""
+        """Create a styled tooltip for a widget."""
 
         def on_enter(event):
             tooltip = tk.Toplevel()
             tooltip.wm_overrideredirect(True)
-            tooltip.wm_geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
+            tooltip.wm_geometry(f"+{event.x_root + 12}+{event.y_root + 12}")
             label = tk.Label(
                 tooltip,
                 text=text,
-                background="lightyellow",
-                relief=tk.SOLID,
-                borderwidth=1,
+                background="#212529",
+                foreground="#f8f9fa",
+                font=("Noto Sans", 9),
+                relief=tk.FLAT,
+                padx=8,
+                pady=4,
             )
             label.pack()
             widget.tooltip = tooltip
@@ -1243,6 +1477,8 @@ class ProtocolRunnerGUI:
         widget.bind("<Enter>", on_enter)
         widget.bind("<Leave>", on_leave)
 
+    # ── Utility Methods ───────────────────────────────────────────────────────
+
     def clear_console(self):
         """Clear the console output."""
         if hasattr(self, "output_console"):
@@ -1250,20 +1486,16 @@ class ProtocolRunnerGUI:
 
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""
-        # This will be called after UI setup to configure tab navigation
-        # Store widgets that will be created during setup
         self._tab_widgets: List[tk.Widget] = []  # type: ignore
 
     def _finalize_tab_order(self) -> None:
         """Finalize tab order after all widgets are created."""
         if hasattr(self, "_tab_widgets"):
-            # Set up tab navigation for collected widgets
             for i, widget in enumerate(self._tab_widgets):
                 if widget and hasattr(widget, "bind"):
                     next_widget = self._tab_widgets[(i + 1) % len(self._tab_widgets)]
                     prev_widget = self._tab_widgets[(i - 1) % len(self._tab_widgets)]
 
-                    # Bind Tab to move to next widget
                     def make_tab_handler(nw: tk.Widget) -> Callable[[Any], None]:
                         def handler(e: Any) -> None:
                             self._focus_widget(nw)
@@ -1272,7 +1504,6 @@ class ProtocolRunnerGUI:
 
                     widget.bind("<Tab>", make_tab_handler(next_widget))
 
-                    # Bind Shift+Tab to move to previous widget
                     def make_shift_tab_handler(pw: tk.Widget) -> Callable[[Any], None]:
                         def handler(e: Any) -> None:
                             self._focus_widget(pw)
@@ -1289,29 +1520,39 @@ class ProtocolRunnerGUI:
             elif hasattr(widget, "select"):
                 widget.select()
         except tk.TclError:
-            # Widget might be disabled or not focusable
             pass
 
     def stop_protocol(self):
-        """Stop the currently running protocol if any"""
+        """Stop the currently running protocol if any."""
         if self.stop_event:
             self.stop_event.set()
             self.log_message("Stop signal sent to protocol...")
             self.set_status("Stopping...")
 
     def set_status(self, message):
-        """Set status bar message (thread-safe)"""
+        """Set status bar message with WCAG icon (thread-safe)."""
         if self.headless:
             print(f"STATUS: {message}")
             return
 
         def _update():
-            self.status_var.set(message)
+            msg_lower = message.lower()
+            if "error" in msg_lower:
+                icon, color = "✖", "#ffcdd2"
+            elif "stop" in msg_lower:
+                icon, color = "⚠", "#fff3cd"
+            elif "running" in msg_lower or "loading" in msg_lower:
+                icon, color = "⟳", "white"
+            else:
+                icon, color = "ℹ", "white"
+            self.status_var.set(f"{icon}  {message}")
+            if hasattr(self, "status_label"):
+                self.status_label.configure(fg=color)
 
         self.gui_queue.put(_update)
 
     def log_message(self, message):
-        """Add message to output console (thread-safe)"""
+        """Add message to output console (thread-safe)."""
         if self.headless:
             print(message)
             return
@@ -1320,38 +1561,31 @@ class ProtocolRunnerGUI:
             self.output_console.insert(tk.END, message + "\n")
             self.output_console.see(tk.END)
 
-            # Limit the number of lines to prevent memory issues
             max_lines = 1000
             lines = self.output_console.get("1.0", tk.END).splitlines()
             if len(lines) > max_lines:
-                # Keep only the last max_lines lines
                 self.output_console.delete("1.0", tk.END)
                 self.output_console.insert(tk.END, "\n".join(lines[-max_lines:]) + "\n")
 
         self.gui_queue.put(_update)
 
     def run_protocol(self, protocol_info):
-        """Run selected protocol in separate thread"""
+        """Run selected protocol in separate thread."""
 
         def protocol_thread():
             try:
                 self.set_status(f"Running {protocol_info['file']}...")
                 self.log_message(f"=== Running {protocol_info['file']} ===")
 
-                # Ensure project root is in sys.path for imports
                 project_root = os.path.dirname(os.path.abspath(__file__))
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
 
-                # Load the protocol module
                 file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
 
-                # Validate file path to prevent path traversal
-                # Check for path traversal attempts
                 if ".." in protocol_info["file"] or protocol_info["file"].startswith("/"):
                     raise ValueError(f"Invalid protocol path: {protocol_info['file']} (contains path traversal)")
 
-                # Resolve and validate it's within project directory
                 try:
                     Path(file_path).resolve().relative_to(Path(os.path.dirname(__file__)).resolve())
                 except ValueError:
@@ -1365,23 +1599,17 @@ class ProtocolRunnerGUI:
                 spec.loader.exec_module(module)
                 self.module = module
 
-                # Handle protocol based on class with configured parameters
                 configured_params = protocol_info.get("configured_params", {})
 
-                # Validate numeric parameters
                 validated_params = {}
                 for key, value in configured_params.items():
                     try:
-                        # Try to convert to float
                         num_value = float(value)
-                        # Add basic range validation
                         if "dim" in key or "n_" in key:
-                            # Dimensions and counts should be positive integers
                             if num_value <= 0 or num_value != int(num_value):
                                 raise ValueError(f"{key} must be a positive integer")
                             validated_params[key] = int(num_value)
                         elif "lr" in key:
-                            # Learning rates should be positive and reasonable
                             if num_value <= 0 or num_value > 1.0:
                                 raise ValueError(f"{key} must be between 0 and 1")
                             validated_params[key] = num_value
@@ -1389,13 +1617,10 @@ class ProtocolRunnerGUI:
                             validated_params[key] = num_value
                     except (ValueError, TypeError) as e:
                         self.log_message(f"Warning: Invalid value for {key}: {value}. Error: {e}. Using default.")
-                        # Don't add invalid params to validated_params
 
                 if protocol_info["class"] == "FalsificationAggregator":
-                    # Framework aggregator: no class instantiation needed
                     results = self._handle_framework_aggregator(module)
                 else:
-                    # All other protocols: resolve class then dispatch
                     cls = getattr(module, protocol_info["class"])
                     if protocol_info["class"] == "NetworkComparisonExperiment":
                         results = self._handle_network_comparison(cls, validated_params)
@@ -1404,7 +1629,6 @@ class ProtocolRunnerGUI:
                     elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
                         results = self._handle_iowa_gambling(cls, module, validated_params)
                     elif hasattr(module, "run_falsification"):
-                        # Fallback to module-level run_falsification
                         self.log_message("Running run_falsification from module scope...")
                         results = module.run_falsification()
                     elif hasattr(cls, "run_full_experiment"):
@@ -1416,10 +1640,13 @@ class ProtocolRunnerGUI:
                     else:
                         results = self._handle_default(cls, module, validated_params)
 
-                # Save results to file
                 self._save_results(results, protocol_info["file"])
 
-                self.log_message("=== Protocol completed successfully ===")
+                protocol_status = self._extract_result_status(results)
+                if self._is_successful_result(results):
+                    self.log_message("=== Protocol completed successfully ===")
+                else:
+                    self.log_message(f"=== Protocol completed with status: {protocol_status} ===")
                 self.set_status("Ready")
                 self.gui_queue.put(lambda: self.stop_btn.config(state=tk.DISABLED))
 
@@ -1434,17 +1661,16 @@ class ProtocolRunnerGUI:
             ) as e:
                 error_msg = f"Error running {protocol_info['file']}: {str(e)}"
                 logger.warning(error_msg)
-                self.gui_queue.put(lambda: messagebox.showerror("Error", error_msg))
+                self.gui_queue.put(lambda: messagebox.showerror("✖ Error", error_msg))
                 self.set_status("Error")
                 self.gui_queue.put(lambda: self.stop_btn.config(state=tk.DISABLED))
             except Exception as e:
                 logger.error(f"Unexpected error in {protocol_info['file']}: {str(e)}")
                 error_message = f"Unexpected error: {str(e)}"
-                self.gui_queue.put(lambda: messagebox.showerror("Error", error_message))
+                self.gui_queue.put(lambda: messagebox.showerror("✖ Error", error_message))
                 self.set_status("Error")
                 self.gui_queue.put(lambda: self.stop_btn.config(state=tk.DISABLED))
 
-        # Run in separate thread to avoid blocking GUI
         self.stop_event.clear()
         self.running_thread = None
         thread = threading.Thread(target=protocol_thread)
@@ -1452,6 +1678,8 @@ class ProtocolRunnerGUI:
         self.running_thread = thread
         self.stop_btn.config(state=tk.NORMAL)
         thread.start()
+
+    # ── Protocol Handlers (unchanged) ─────────────────────────────────────────
 
     def _handle_framework_aggregator(self, module):
         """Handle FP_ALL_Aggregator: collect saved result files and run aggregation."""
@@ -1466,7 +1694,6 @@ class ProtocolRunnerGUI:
 
         run_fn = getattr(module, "run_framework_falsification", None)
         if run_fn is None:
-            # Fall back to class method
             aggregator_cls = getattr(module, "FalsificationAggregator")
             agg = aggregator_cls()
             if result_files:
@@ -1501,18 +1728,17 @@ class ProtocolRunnerGUI:
         result = instance.run_full_experiment()
         self.log_message("Network Comparison Experiment completed")
         self.log_message(f"Results: {type(result)}")
+        return result
 
     def _handle_apgi_agent(self, cls, module, params):
         """Run the full falsification protocol for APGI agent with configured parameters."""
         try:
-            # Import the run_falsification function
             run_func = getattr(module, "run_falsification", None)
             if run_func:
-                # Run the full protocol
                 result = run_func()
                 self.log_message(f"APGI Agent falsification completed: {result}")
+                return result
             else:
-                # Fallback to old behavior with configured parameters
                 config = {
                     "lr_extero": params.get("lr_extero", 0.01),
                     "lr_intero": params.get("lr_intero", 0.01),
@@ -1542,27 +1768,24 @@ class ProtocolRunnerGUI:
     def _handle_iowa_gambling(self, cls, module, params):
         """Run the full falsification protocol for Iowa Gambling Task with configured parameters."""
         try:
-            # Import the run_falsification function
             run_func = getattr(module, "run_falsification", None)
             if run_func:
-                # Run the full protocol
                 result = run_func()
                 self.log_message(f"Iowa Gambling Task falsification completed: {result}")
+                return result
             else:
-                # Fallback to old behavior with configured parameters
                 n_trials = params.get("n_trials", 100)
                 env = cls(n_trials=n_trials)
                 self.log_message("Iowa Gambling Task Environment created (fallback)")
 
-                # Run demo trials
                 n_demo_trials = min(5, n_trials)
                 total_reward = 0
                 for trial in range(n_demo_trials):
-                    action = 0  # Always pick deck A for demo
+                    action = 0
                     reward, intero_cost, obs, done = env.step(action)
                     total_reward += reward
                     self.log_message(
-                        f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, " f"InteroCost={intero_cost:.2f}"
+                        f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}"
                     )
 
                 self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
@@ -1578,18 +1801,15 @@ class ProtocolRunnerGUI:
         """Handle protocols with run_full_experiment method using configured parameters."""
         result = {}
         try:
-            # Try to pass parameters to constructor if they match expected signature
             try:
                 instance = cls(**params)
             except (TypeError, ValueError) as e:
-                # These are expected when parameters don't match constructor signature
                 logger.warning(f"Parameter mismatch for {cls.__name__}: {e}")
-                instance = cls()  # Create instance with defaults
+                instance = cls()
                 self.log_message("Warning: Could not apply configured parameters, using defaults")
             except Exception as e:
-                # Log unexpected errors but don't suppress them
                 logger.warning(f"Unexpected error in application: {e}")
-                instance = cls()  # Create instance with defaults
+                instance = cls()
                 self.log_message("Warning: Could not apply configured parameters, using defaults")
 
             result = instance.run_full_experiment()
@@ -1608,14 +1828,13 @@ class ProtocolRunnerGUI:
         """Handle phase transition analysis with configured parameters."""
         surprise_system = module.SurpriseIgnitionSystem()
 
-        # Apply configured parameters to surprise system if possible
         for param_name, value in params.items():
             if hasattr(surprise_system, param_name):
                 try:
                     setattr(surprise_system, param_name, value)
                 except Exception as e:  # noqa: F841
                     logger.warning(f"Failed to set parameter {param_name}: {e}")
-                    continue  # Skip parameters that can't be set
+                    continue
 
         instance = cls(surprise_system)
         result = instance.run_phase_transition_analysis()
@@ -1624,6 +1843,7 @@ class ProtocolRunnerGUI:
 
     def _handle_evolution(self, cls, params):
         """Handle evolutionary protocols with configured parameters."""
+        result = None
         try:
             config = {
                 "population_size": params.get("population_size", 50),
@@ -1647,17 +1867,71 @@ class ProtocolRunnerGUI:
         ) as e:
             self.log_message(f"Error in evolution: {str(e)}")
             self.log_message("EvolutionaryAPGIEmergence instance creation failed")
+        return result
+
+    def _extract_result_status(self, results):
+        """Best-effort status extraction across legacy and standardized payloads."""
+        if results is None:
+            return "error"
+
+        if not isinstance(results, dict):
+            return "success"
+
+        for key in ("status", "outcome", "result"):
+            value = results.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+        summary = results.get("summary")
+        if isinstance(summary, dict):
+            failed = summary.get("failed")
+            passed = summary.get("passed")
+            if isinstance(failed, int) and failed > 0:
+                return "failed"
+            if isinstance(passed, int):
+                return "success" if passed > 0 else "failed"
+
+        passed_flag = results.get("passed")
+        if isinstance(passed_flag, bool):
+            return "success" if passed_flag else "failed"
+
+        named_predictions = {}
+        if isinstance(results.get("named_predictions"), dict):
+            named_predictions = results["named_predictions"]
+        elif isinstance(results.get("results"), dict) and isinstance(results["results"].get("named_predictions"), dict):
+            named_predictions = results["results"]["named_predictions"]
+
+        if named_predictions:
+            passed = sum(1 for pred in named_predictions.values() if self._prediction_passed(pred))
+            total = len(named_predictions)
+            if passed == total:
+                return "success"
+            if passed == 0:
+                return "failed"
+            return "partial"
+
+        return "success"
+
+    def _prediction_passed(self, prediction):
+        """Extract a pass/fail flag from legacy or standardized prediction payloads."""
+        if isinstance(prediction, dict):
+            return bool(prediction.get("passed", False))
+        return bool(getattr(prediction, "passed", False))
+
+    def _is_successful_result(self, results):
+        """Return True only for genuinely successful protocol outcomes."""
+        status = self._extract_result_status(results).strip().lower().replace(" ", "_")
+        return status in {"success", "completed", "passed", "synthetic_validated"}
 
     def _handle_default(self, cls, module, params):
         """Handle default protocol execution with configured parameters."""
         try:
-            instance = cls(**params)  # Create instance with parameters
+            instance = cls(**params)
             self.log_message(f"Created {cls.__name__} instance with parameters")
         except TypeError:
-            instance = cls()  # Create instance with defaults
+            instance = cls()
             self.log_message("Warning: Could not apply configured parameters, using defaults")
 
-        # Try to find any standard run method
         self.log_message(f"Attempting to run {cls.__name__}...")
         if hasattr(instance, "run_validation"):
             return instance.run_validation()
@@ -1676,52 +1950,43 @@ class ProtocolRunnerGUI:
             import uuid
             from datetime import datetime
 
-            # Create validation results directory if it doesn't exist
             project_root = Path(__file__).parent
             validation_dir = project_root / "validation_results"
             validation_dir.mkdir(parents=True, exist_ok=True)
 
-            # Generate unique filename
             unique_id = str(uuid.uuid4())[:8]
             filename = f"validation_results_{unique_id}.json"
             filepath = validation_dir / filename
 
-            # Extract named_predictions from results if present
             named_predictions = {}
             if isinstance(results, dict):
-                # Try to get named_predictions from top level
                 if "named_predictions" in results:
                     named_predictions = results["named_predictions"]
-                # Also try nested in results["results"]
                 elif "results" in results and isinstance(results["results"], dict):
                     if "named_predictions" in results["results"]:
                         named_predictions = results["results"]["named_predictions"]
 
-            # Extract bic_values from results for aggregator Condition B
             bic_values = {}
             if isinstance(results, dict):
-                # Try top level
                 if "bic_values" in results:
                     bic_values = results["bic_values"]
                 elif "model_comparison" in results:
-                    # Convert model_comparison to bic_values format
                     mc = results["model_comparison"]
                     if isinstance(mc, dict) and "apgi" in mc:
-                        bic_values = {"IGT": mc}  # Use environment name as key
+                        bic_values = {"IGT": mc}
 
-            # Build final output structure
             results_with_metadata = {
                 "metadata": {
                     "protocol_file": protocol_file,
                     "timestamp": datetime.now().isoformat(),
                     "id": unique_id,
+                    "status": self._extract_result_status(results),
                 },
                 "named_predictions": named_predictions,
                 "bic_values": bic_values,
                 "results": results,
             }
 
-            # Save to file
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(results_with_metadata, f, indent=2, default=str)
 
@@ -1745,7 +2010,7 @@ class ProtocolRunnerGUI:
         if value == "":
             return True
         try:
-            val = int(float(value))  # Allow decimal input but convert to int
+            val = int(float(value))
             return int(min_val) <= val <= int(max_val)
         except ValueError:
             return False
@@ -1767,7 +2032,6 @@ def main():
     )
     args = parser.parse_args()
 
-    # Security check for non-headless GUI mode - GUI scripts run in dev mode by default
     if not args.headless:
         try:
             from utils.security_gateway import Role, SecurityGateway
@@ -1775,26 +2039,20 @@ def main():
             gateway = SecurityGateway()
 
             if args.token:
-                # Validate token and check GUI access permissions
                 gateway.require_roles(args.token, [Role.RESEARCHER, Role.ADMIN])
             elif os.environ.get("APGI_ENFORCE_AUTH", "0") == "1":
                 raise SystemExit("APGI_ENFORCE_AUTH=1 is set: a --token is required to start the GUI.")
             else:
-                # Development mode: auto-generate a token so the GUI works without CLI args.
-                # Set APGI_ENFORCE_AUTH=1 in production / multi-user deployments to disable this.
                 try:
                     from utils.auth_adapter import get_auth_manager
 
                     auth_manager = get_auth_manager()
-                    dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)  # 24 hour expiry
+                    dev_token = auth_manager.generate_token("dev_user", Role.RESEARCHER, 24)
                     print("Development mode: Generated token (valid 24 hours)")
                     args.token = dev_token
                 except Exception as e:
-                    # If token generation fails, continue without authentication
-                    # This allows GUI to work even if auth system has issues
                     print(f"Note: Running without authentication ({e})")
         except ImportError:
-            # Security gateway not available - allow GUI to run without authentication
             pass
         except PermissionError as e:
             print(f"Authentication failed: {e}")

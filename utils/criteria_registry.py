@@ -10,6 +10,120 @@ from typing import Any, Dict
 # CORE FALSIFICATION CRITERIA (F1.1–F6.2)
 # =============================================================================
 
+# =============================================================================
+# CANONICAL PROXY MAPPING: Theoretical constructs → Empirical measures
+# This table is the authoritative cross-reference between APGI symbols and
+# the experimental measures used in each protocol.
+# =============================================================================
+
+CONSTRUCT_PROXY_MAP = {
+    "B_t": {
+        "description": "Ignition event (binary): B_t = 1 iff S_t > θ_t",
+        "computational": "Heaviside(S_t - theta_t); see algorithmic_verification.py",
+        "proxies": {
+            "P1_EEG": {"measure": "P3b amplitude", "threshold": "≥ 0.3 µV", "criterion": "F9.1"},
+            "P2_TMS": {"measure": "PCI", "threshold": "≥ 0.31", "criterion": "P2.a"},
+            "P4_DoC": {"measure": "PCI", "threshold": "≥ 0.31", "criterion": "P4.a"},
+            "P6_iEEG": {"measure": "Hartigan dip p", "threshold": "< 0.05", "criterion": "P6a"},
+        },
+    },
+    "Pi_i": {
+        "description": "Interoceptive precision (baseline)",
+        "proxies": {
+            "P1_EEG": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "trial-by-trial, r > 0.4 with P3b",
+                "criterion": "P1a",
+            },
+            "P2_TMS": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "≥ 30% reduction under insula TMS",
+                "criterion": "P2.b",
+            },
+            "P4_DoC": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "d > 0.5 MCS vs VS/UWS",
+                "criterion": "P4b",
+            },
+        },
+        "proxy_equation": "HEP_amplitude ∝ Pi_i_eff (monotonic, not linear; calibration required per session)",
+    },
+    "Pi_e": {
+        "description": "Exteroceptive precision",
+        "proxies": {
+            "P3_sim": {"measure": "Gabor contrast level", "threshold": "0.02–0.32 cpd range", "criterion": "P3a"},
+        },
+        "note": "Pi_e is manipulated as stimulus contrast in P1/P6; it is not measured independently. "
+        "Must be added to Protocol Table P1 hypothesis column.",
+    },
+    "S_t": {
+        "description": "Accumulated surprise: dS/dt = -S/τ_S + Πᵉ|εᵉ| + β_s·Πⁱ|εⁱ|",
+        "proxies": {
+            "P1_EEG": {
+                "measure": "N2 amplitude (200–300 ms) or pre-P3b negativity",
+                "threshold": "not yet formally registered",
+                "criterion": "MISSING — see TODO below",
+            },
+            "P6_iEEG": {
+                "measure": "Pre-ignition high-gamma envelope",
+                "threshold": "AC1 increase Kendall τ > 0.3",
+                "criterion": "P6c",
+            },
+        },
+        "todo": "P1 and P4 have no registered empirical proxy for S_t. "
+        "Add N2/pre-P3b negativity as S_t proxy to NAMED_PREDICTIONS and F-criteria.",
+    },
+    "M_hat": {
+        "description": "Somatic marker: M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
+        "scalar_alias": "M (used in sympy dict — scalar approximation only)",
+        "full_form": "bilinear: M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
+        "proxies": {
+            "P3_sim": {
+                "measure": "Agent M̂ signal (simulated)",
+                "threshold": "leads B_t by ≥1 trial in ≥75% events",
+                "criterion": "P3c",
+            },
+            "P5_fMRI": {
+                "measure": "vmPFC BOLD (anticipation phase)",
+                "threshold": "PPI coupling r > 0.4 vs posterior insula",
+                "criterion": "P5.a",
+            },
+        },
+    },
+}
+# =============================================================================
+# PROXY CALIBRATION SPECIFICATIONS
+# Quantitative relationship between empirical measure and theoretical construct.
+# All protocols MUST import from here; never assert proxy relationships inline.
+# =============================================================================
+
+PROXY_CALIBRATION = {
+    "HEP_to_Pi_i": {
+        "functional_form": "monotonic_positive",
+        "specification": "HEP amplitude (µV, 250–400 ms, Cz) is a rank-order proxy for Πⁱ_eff. "
+                         "No linear scaling assumed. Operationalised as: high Πⁱ ↔ HEP > median "
+                         "within-session; low Πⁱ ↔ HEP ≤ median. Trial-by-trial mixed-effects "
+                         "regression (P3b ~ HEP_amplitude + RMSSD + random slopes) is the primary "
+                         "calibration procedure. Session-level z-scoring required before cross-session comparison.",
+        "minimum_r_for_proxy_validity": 0.30,  # HEP–P3b r must exceed this to use HEP as Πⁱ proxy
+        "falsification": "HEP–P3b r < 0.20 invalidates HEP as Πⁱ proxy for that session (P1c criterion)",
+        "references": ["Garfinkel et al. (2014)", "Canales-Johnson et al. (2020)"],
+    },
+    "PCI_to_B_t": {
+        "functional_form": "threshold_dichotomous",
+        "specification": "PCI ≥ 0.31 is treated as B_t = 1 (ignition present); PCI < 0.31 as B_t = 0. "
+                         "Threshold sourced from Casarotto et al. (2016) 100% specificity cutoff. "
+                         "Within-protocol comparisons use continuous PCI; the 0.31 cutoff applies "
+                         "only to clinical DoC classification (Protocol 4) and consciousness level "
+                         "assignment. Do NOT use 0.31 as a threshold in TMS or iEEG Protocol 2/6 "
+                         "comparisons — use within-condition delta-PCI instead.",
+        "pci_consciousness_threshold": 0.31,
+        "delta_pci_minimum_effect": 0.05,  # Minimum meaningful PCI change within condition
+        "falsification": "PCI change < 0.05 following insula TMS does not constitute threshold shift (P2a)",
+        "references": ["Casarotto et al. (2016)", "Comolatti et al. (2019)"],
+    },
+}
+
 FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     # F1.1: Threshold Ignition Emergence
     "F1.1": {
@@ -114,7 +228,9 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     "F2.3": {
         "type": "FAL",
         "name": "vmPFC-Like Anticipatory Bias",
-        "description": "Reaction time advantage for advantageous decks",
+        "description": "vmPFC-Like Anticipatory Bias — operationalized via M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a), NOT scalar M. "
+        "Test uses vmPFC BOLD as M̂ proxy during anticipation phase (P5a). "
+        "Falsified if vmPFC correlates with outcome-phase εⁱ rather than anticipation-phase M̂.",
         "test_type": "ttest",
         "threshold": "RT advantage ≥ 50ms, β ≥ 25ms, R² ≥ 0.18",
         "falsification_threshold": "RT advantage < 25ms",
@@ -127,7 +243,9 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     "F2.4": {
         "type": "FAL",
         "name": "Precision vs Error Magnitude",
-        "description": "Neural precision should scale with prediction error magnitude",
+        "description": "Precision-Weighted Integration via M̂ (Not Error Magnitude). "
+        "M̂ modulates Πⁱ_eff = Πⁱ · exp(β_s · M̂), not raw |εⁱ|. "
+        "Uses full bilinear form M̂(c,a); scalar M is insufficient for this criterion.",
         "test_type": "regression",
         "threshold": "β ≥ 0.40, R² ≥ 0.20",
         "falsification_threshold": "β < 0.20 OR R² < 0.10",

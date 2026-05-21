@@ -111,15 +111,11 @@ class SecureKeyManager:
                 # If both decryption and base64 decode fail, raise ValueError
                 raise ValueError(f"Invalid key format in {key_file.name}: {decode_error}")
         except Exception as decrypt_error:
-            # If decryption fails, it might be due to master key mismatch
-            # In test scenarios, we should regenerate the key
-            self.logger.warning(
-                f"Failed to decrypt {key_file.name} with current master key: {decrypt_error}. "
-                f"This can happen when the master key changes. Regenerating key."
-            )
             # Remove the corrupted/old key file and force regeneration
             key_file.unlink(missing_ok=True)
-            raise ValueError(f"Key file {key_file.name} could not be decrypted with current master key")
+            raise ValueError(
+                f"Key file {key_file.name} could not be decrypted with current master key"
+            ) from decrypt_error
 
     def _generate_and_save_key(self, key_file: Path) -> str:
         """
