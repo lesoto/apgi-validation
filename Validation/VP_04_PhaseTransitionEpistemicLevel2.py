@@ -2749,10 +2749,15 @@ class FalsificationChecker:
                 "description": self.criteria["VP4.P6"]["description"],
                 "falsified": not p6_pass_rate,
                 "value": float(trans_rate),
+                # threshold_type and operator clarify this is a *maximum* (value must be ≤ threshold).
+                # Without these fields "Value: 34.3 / Threshold: 40.0" reads as a minimum-to-exceed
+                # criterion, which is semantically wrong.
+                "threshold": self.criteria["VP4.P6"]["threshold"],
+                "threshold_type": "upper_bound",
+                "operator": "<=",
                 "mi_value": float(mi_mean),
                 "mi_lower_bound": mi_lower_bound,
                 "mi_acceptable": bool(mi_acceptable),
-                "threshold": self.criteria["VP4.P6"]["threshold"],
             }
         )
 
@@ -3616,9 +3621,12 @@ def run_validation(**kwargs) -> Dict[str, Any]:
         VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD  # Imported at module level
         VP04_MI_THRESHOLD = FMI_MIN_BITS_S  # Imported at module level
 
-        # Assert consistency between VP-04 and centralized FP-04 thresholds
+        # Assert VP-04 threshold validity against centralized FP-04 thresholds.
+        # Note: VP04_MI_THRESHOLD is a *lower bound* (FMI_MIN_BITS_S) while
+        # F4_MI_THRESHOLD is an *upper bound* (F4_MI_MAX_BITS_S).  The check
+        # VP04_MI ≤ F4_MI verifies a valid range ordering, NOT equality.
         te_consistent = abs(VP04_TE_THRESHOLD - F4_TE_THRESHOLD) < 0.001
-        mi_consistent = VP04_MI_THRESHOLD <= F4_MI_THRESHOLD
+        mi_range_valid = VP04_MI_THRESHOLD <= F4_MI_THRESHOLD
 
         if not te_consistent:
             raise ValueError(
@@ -3628,16 +3636,25 @@ def run_validation(**kwargs) -> Dict[str, Any]:
                 f"valid phase transition analysis."
             )
 
-        if not mi_consistent:
+        if not mi_range_valid:
             raise ValueError(
-                f"VP-04 MI threshold {VP04_MI_THRESHOLD} exceeds "
-                f"FP-04 threshold {F4_MI_THRESHOLD}. "
-                f"Threshold values must be consistent across modules for "
-                f"valid phase transition analysis."
+                f"VP-04 MI lower-bound {VP04_MI_THRESHOLD} exceeds "
+                f"FP-04 MI upper-bound {F4_MI_THRESHOLD}. "
+                f"Lower bound must be less than upper bound for a valid range."
+            )
+
+        # Warn if the two MI bounds differ by more than two orders of magnitude,
+        # which likely indicates a unit mismatch rather than a deliberate design.
+        mi_ratio = F4_MI_THRESHOLD / max(VP04_MI_THRESHOLD, 1e-9)
+        if mi_ratio > 100:
+            logger.warning(
+                f"VP-04 MI lower-bound ({VP04_MI_THRESHOLD}) and FP-04 MI upper-bound "
+                f"({F4_MI_THRESHOLD}) differ by a factor of {mi_ratio:.0f}. "
+                f"Verify these thresholds are expressed in the same units."
             )
 
         logger.info(
-            f"Threshold consistency check passed: "
+            f"Threshold range-order check passed (VP04 MI-min ≤ FP04 MI-max): "
             f"TE={VP04_TE_THRESHOLD} (vs FP-04: {F4_TE_THRESHOLD}), "
             f"MI={VP04_MI_THRESHOLD} (vs FP-04: {F4_MI_THRESHOLD})"
         )

@@ -3285,8 +3285,14 @@ def check_falsification(
 
 
 def run_protocol(config=None):
-    """Legacy compatibility entry point."""
-    return run_falsification()
+    """Entry point used by FP-03 _run_protocol_module; returns a ProtocolResult.
+
+    Delegates to run_protocol_main() so FP_ALL_Aggregator receives a
+    standardized ProtocolResult instead of the raw {"status": ..., "results": ...}
+    dict that run_falsification() returns, which caused 'No named_predictions
+    found in payload' extraction errors.
+    """
+    return run_protocol_main(config)
 
 
 # FIX: Add standardized ProtocolResult wrapper for FP-06

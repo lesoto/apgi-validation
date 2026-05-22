@@ -1,54 +1,95 @@
 {
   "apgi_validation_metadata": {
-    "version": "2.0",
-    "last_updated": "2026-05-21",
-    "schema_notes": "Benchmarks use typed objects with value + unit + role fields. Falsification thresholds are directional bounds. Primary vs. behavioral_tier markers establish hierarchy for multi-operationalisation predictions.",
+    "version": "3.0",
+    "last_updated": "2026-05-22",
+    "schema_notes": "Ground truth: APGI_Protocols_Enhanced.docx (6_APGI_Protocols). Benchmarks use typed objects with value + unit + role fields. Falsification thresholds are directional bounds. Primary vs. behavioral_tier markers establish hierarchy for multi-operationalisation predictions. All numeric thresholds match protocol narrative exactly; no values invented beyond what the protocol document specifies.",
+
     "protocols": {
 
       "P01": {
         "id": "EEG_Interoceptive_Precision_Gating",
         "vp_mapping": "VP-8",
         "status": "pending_data_collection",
-        "sample_size": { "n_participants": 36, "design": "within_subject_3x2" },
-        "design": {
-          "type": "factorial_3x2",
-          "conditions": ["interoceptive_focus", "exteroceptive_focus", "dual_task_control"],
-          "stimuli": "Gabor_50pct_threshold_adaptive_staircase"
+        "sample_size": {
+          "n_participants": 36,
+          "range": [32, 40],
+          "design": "within_subject_3x2",
+          "power_analysis": "within_subjects_ANOVA_3_conditions_alpha_0.05_power_0.80_r_0.5_Bonferroni"
         },
+        "design": {
+          "type": "factorial_3x2_counterbalanced",
+          "conditions": [
+            { "id": "interoceptive_focus", "description": "attend_heartbeat_while_detecting_visual_stimuli_pulse_oximetry_sync" },
+            { "id": "exteroceptive_focus", "description": "attend_visual_clarity_matched_attentional_load" },
+            { "id": "dual_task_control", "description": "count_tones_while_detecting_visual_stimuli_attention_division" }
+          ],
+          "stimuli": "Gabor_50pct_threshold_individually_calibrated_adaptive_staircase"
+        },
+        "dependent_variables": [
+          {
+            "name": "VAN",
+            "window_ms": [150, 250],
+            "theoretical_role": "pre_conscious_precision_signature",
+            "dissociation_target": "Recurrent_Processing_Theory_which_relies_on_VAN_as_primary_criterion"
+          },
+          {
+            "name": "P3b",
+            "window_ms": [300, 600],
+            "theoretical_role": "ignition_index_primary_DV"
+          },
+          {
+            "name": "HEP",
+            "window_ms": [250, 400],
+            "reference": "post_R_wave",
+            "theoretical_role": "interoceptive_precision_proxy_Pi_i"
+          },
+          {
+            "name": "baseline_interoceptive_accuracy",
+            "measure": "heartbeat_detection_task",
+            "reference": "Garfinkel_et_al_2014"
+          }
+        ],
         "benchmarks": {
           "P1a_P3b_amplitude_shift": {
-            "value": [2.0, 3.0], "unit": "microvolts",
+            "value": [2.0, 3.0],
+            "unit": "microvolts",
             "role": "primary_confirming",
-            "note": "Values below 1.0 uV are non-confirming even if p < 0.05"
+            "minimum_confirming_uV": 1.0,
+            "note": "Values below 1.0 uV are non-confirming even if p < 0.05 — prevents trivially small effects inflating validation score"
           },
           "P1a_cohens_d": {
-            "value": [0.5, 0.7], "unit": "cohens_d",
+            "value": [0.5, 0.7],
+            "unit": "cohens_d",
             "minimum_confirming_d": 0.2,
+            "reference": "Sel_et_al_2017_d_0.63",
             "role": "primary_confirming"
           },
           "P1b_HEP_P3b_correlation": {
-            "value": 0.4, "operator": "greater_than", "unit": "pearson_r",
+            "value": 0.4,
+            "operator": "greater_than",
+            "unit": "pearson_r",
             "covariate_control": "pupil_diameter",
-            "role": "primary_confirming"
+            "role": "primary_confirming",
+            "note": "HEP must predict P3b change beyond general arousal with pupil diameter controlled"
           },
           "P1c_trait_interaction": {
-            "eta_squared": [0.08, 0.12], "unit": "eta_squared",
-            "operationalisation": "categorical_ANOVA_top_tertile_interoceptive_accuracy",
-            "note": "NOT reducible to HRV covariate control — requires tertile × condition interaction term",
+            "eta_squared": [0.08, 0.12],
+            "unit": "eta_squared",
+            "operationalisation": "categorical_ANOVA_top_tertile_interoceptive_accuracy_x_condition",
+            "factor_structure": "accuracy_tertile_between_subjects_x_condition_within_subjects",
+            "note": "NOT reducible to HRV covariate control — requires tertile x condition interaction term; covariate test only shows effect is not caused by HRV, does not test that trait sensitivity scales the threshold",
             "role": "primary_confirming"
           }
         },
-        "dependent_variables": [
-          { "name": "VAN", "window_ms": [150, 250],
-            "theoretical_role": "pre_conscious_precision_signature_dissociates_from_RPT" },
-          { "name": "P3b", "window_ms": [300, 600],
-            "theoretical_role": "ignition_index" },
-          { "name": "HEP", "window_ms": [250, 400], "reference": "post_R_wave",
-            "theoretical_role": "interoceptive_precision_proxy" }
-        ],
+        "control_analyses": {
+          "arousal_confounds": ["pupil_diameter_covariate", "alpha_power_covariate"],
+          "attention_confounds": "performance_on_attention_check_trials",
+          "individual_differences": "random_slopes_for_participants_in_mixed_effects_model"
+        },
         "falsification_thresholds": {
           "HEP_P3b_r_below": 0.2,
           "P3b_delta_uV_below": 1.0,
+          "cohens_d_below": 0.2,
           "P3b_uniform_across_conditions_p_above": 0.1,
           "exteroceptive_P3b_geq_interoceptive": true
         }
@@ -58,49 +99,90 @@
         "id": "TMS_Anterior_Insular_Frontoparietal_Gating",
         "vp_mapping": "VP-7",
         "status": "pending_data_collection",
-        "sample_size": { "n_participants": 24, "design": "within_subject_4_site" },
+        "sample_size": {
+          "n_participants": 24,
+          "design": "within_subject_4_site_neuronavigated"
+        },
         "neuronavigation_targets": [
-          { "site": "dlPFC", "BA": 46, "hemisphere": "left",
-            "mechanistic_role": "workspace_node" },
-          { "site": "PPC", "BA": 7, "hemisphere": "bilateral",
-            "mechanistic_role": "workspace_node" },
-          { "site": "aINS", "localisation": "fMRI_functional_localizer",
+          {
+            "site": "dlPFC",
+            "BA": 46,
+            "hemisphere": "left",
+            "mechanistic_role": "workspace_node",
+            "expected_effect": "reduces_PCI_spares_HEP"
+          },
+          {
+            "site": "PPC",
+            "BA": 7,
+            "hemisphere": "bilateral",
+            "mechanistic_role": "workspace_node",
+            "expected_effect": "reduces_PCI_spares_HEP"
+          },
+          {
+            "site": "aINS",
+            "localisation": "fMRI_functional_localizer_stereotactic_coordinates",
             "mechanistic_role": "precision_integrator_Pi_i",
-            "note": "Anterior insula targeted as integrator of Pi_i — NOT posterior insula (raw error generator epsilon_i)" },
-          { "site": "vertex", "mechanistic_role": "sham_control" }
+            "expected_effect": "reduces_both_PCI_and_HEP",
+            "note": "Anterior insula targeted as Pi_i integrator — mechanistically distinct from posterior insula (raw epsilon_i generator); targeting pINS instead would test the error generator not the precision weighter"
+          },
+          {
+            "site": "vertex",
+            "mechanistic_role": "sham_control",
+            "expected_effect": "no_significant_PCI_or_HEP_change"
+          }
         ],
+        "excluded_targets": {
+          "MD_thalamus": "excluded_as_primary_target — non-invasive_TMS_cannot_reach_without_significant_cortical_confounding; remains_theoretical_bottleneck_node"
+        },
         "tms_parameters": {
           "intensity_pct_RMT": 110,
+          "safety_ceiling_pct_RMT": [80, 90],
           "pulse_type": "monophasic",
           "SOA_ms": 100,
-          "coil": "70mm_figure_eight"
+          "coil": "70mm_figure_eight",
+          "pulse_timing": "100ms_pre_stimulus",
+          "safety_protocol": "standard_TMS_screening_realtime_EEG_monitoring"
         },
         "benchmarks": {
           "P2a_dlPFC_PPC_PCI_reduction": {
-            "value": [0.15, 0.25], "unit": "proportion",
+            "value": [0.15, 0.25],
+            "unit": "proportion",
             "specificity_control": "vertex_PCI_reduction_max_0.05",
+            "null_result_required": "dlPFC_and_PPC_TMS_must_NOT_reduce_HEP",
             "role": "primary_confirming"
           },
           "P2b_aINS_PCI_reduction": {
-            "value": 0.20, "unit": "proportion",
+            "value": 0.20,
+            "unit": "proportion",
             "role": "primary_confirming"
           },
           "P2b_aINS_HEP_reduction": {
-            "value": 0.30, "unit": "proportion",
-            "dissociation_control": "dlPFC_TMS_must_spare_HEP",
+            "value": 0.30,
+            "unit": "proportion",
+            "dissociation_control": "dlPFC_TMS_must_spare_HEP_to_confirm_double_dissociation",
+            "role": "primary_confirming"
+          },
+          "P2b_amplitude_dissociation": {
+            "description": "aINS_TMS_reduces_both_PCI_and_HEP; dlPFC_TMS_reduces_PCI_only",
+            "operationalisation": "amplitude_based_NOT_coupling_based",
             "role": "primary_confirming"
           },
           "P2c_baseline_accuracy_x_TMS_site_interaction": {
-            "cohens_d": [0.6, 0.9], "unit": "cohens_d",
-            "operationalisation": "Baseline_Interoceptive_Accuracy x TMS_Site ANOVA interaction",
+            "cohens_d": [0.6, 0.9],
+            "unit": "cohens_d",
+            "operationalisation": "Baseline_Interoceptive_Accuracy_x_TMS_Site_ANOVA_interaction_on_PCI",
             "specificity": "interaction_absent_for_dlPFC_and_PPC_sites",
+            "direction": "high_Pi_i_individuals_show_larger_PCI_decrease_following_aINS_TMS",
             "role": "primary_confirming"
           }
         },
         "falsification_thresholds": {
-          "PCI_sham_reduction_max": 0.05,
+          "PCI_sham_vertex_reduction_max": 0.05,
           "dlPFC_TMS_HEP_reduction_max": 0.10,
-          "aINS_PCI_no_change_threshold": 0.05
+          "aINS_TMS_PCI_reduction_below_falsifies": 0.05,
+          "aINS_TMS_PCI_without_HEP_reduction_falsifies": true,
+          "uniform_PCI_reduction_all_sites_falsifies": true,
+          "PPC_or_dlPFC_TMS_reduces_HEP_falsifies": true
         }
       },
 
@@ -108,42 +190,79 @@
         "id": "Active_Inference_Agent_Simulations",
         "vp_mapping": "VP-3",
         "status": "validated",
-        "sample_size": { "n_simulations_per_condition": 1000, "random_seeds": 1000 },
+        "sample_size": {
+          "n_simulations_per_condition": 1000,
+          "random_seeds": 1000,
+          "pilot_trials": 10000,
+          "note": "Pilot simulations confirm stable convergence within 200 trials for all agent types"
+        },
+        "agent_architecture": {
+          "generative_models": "hierarchical_3_level_interoceptive_and_exteroceptive_separate",
+          "precision_weighting": "dynamic_Pi_e_and_Pi_i_updated_online",
+          "somatic_marker_learning": "M_c_a_updates_via_reward_prediction_errors",
+          "global_workspace": "ignition_equation_S_t_greater_theta_t",
+          "threshold_adaptation": "theta_t+1 = theta_t + eta(C_metabolic - V_information)"
+        },
         "environment": "IGT_Volatile_Foraging_Homeostatic",
+        "task_environments": [
+          "Iowa_Gambling_Task_variant_physiological_penalties_interoceptive_costs",
+          "volatile_foraging_shifting_reward_statistics_varying_homeostatic_costs",
+          "threat_reward_tradeoffs_high_reward_aversive_interoceptive_consequences"
+        ],
         "volatility_schedule": [0.1, 0.3, 0.6, 0.3, 0.1],
+        "comparison_null_models": {
+          "GNWT_only": {
+            "description": "ignition_without_somatic_markers_or_precision_weighting",
+            "expected_convergence_trials": { "value": [100, 120], "unit": "trials" }
+          },
+          "Pure_PP": {
+            "description": "no_global_ignition_layer_continuous_processing",
+            "expected_convergence_trials": { "value": 150, "operator": "greater_than", "unit": "trials" }
+          }
+        },
         "benchmarks": {
           "P3a_APGI_convergence_trials": {
-            "value": [50, 80], "unit": "trials",
-            "human_benchmark": "Bechara_1997_IGT",
-            "note": "Temporal constraint is non-negotiable for Functional Isomorphism — reward ratio alone is insufficient",
+            "value": [50, 80],
+            "unit": "trials",
+            "human_benchmark": "Bechara_1997_IGT_60_80_trials",
+            "reward_advantage_pct": [15, 25],
+            "note": "Temporal constraint is NON-NEGOTIABLE for Functional Isomorphism — reward ratio alone (e.g. >1.15 at p<0.05) is insufficient; APGI must reach criterion within the human performance window",
             "role": "primary_confirming"
           },
-          "P3b_interoceptive_trigger_ratio": {
-            "value": [0.70, 0.85], "unit": "proportion",
-            "criterion": "Pi_i * |z_i| > Pi_e * |z_e| at ignition event",
-            "operationalisation": "triggering_condition_NOT_post_ignition_entropy",
+          "P3b_interoceptive_trigger_composition": {
+            "value": [0.70, 0.85],
+            "unit": "proportion_of_ignition_events",
+            "criterion": "Pi_i_times_abs_z_i_greater_than_Pi_e_times_abs_z_e_at_ignition_event",
+            "operationalisation": "triggering_condition_NOT_post_ignition_action_entropy",
+            "note": "Post-ignition action entropy supports computational advantage claim but does not validate somatic suppression mechanism — only the triggering condition tests the core APGI claim",
             "role": "primary_confirming"
           },
           "P3c_strategy_shift_logistic_regression": {
             "model": "P(strategy_change) ~ ignition + |epsilon| + controls",
             "ignition_coefficient_p_value_max": 0.01,
-            "note": "Ignition term must survive |epsilon| covariate — pre-registered model, not post-hoc",
+            "requirement": "ignition_term_survives_epsilon_covariate_control",
+            "note": "Pre-registered model specification — not post-hoc; bare p-value without model string is insufficient for pre-registration compliance",
             "role": "primary_confirming"
           },
           "P3d_volatility_adaptation_speedup": {
-            "value": [0.20, 0.30], "unit": "proportion_faster_than_GNWT_only",
+            "value": [0.20, 0.30],
+            "unit": "proportion_faster_than_GNWT_only",
+            "measurement": "trials_to_criterion_after_contingency_shifts_in_volatile_foraging",
+            "mechanism": "somatic_markers_provide_rapid_value_updates",
             "role": "secondary_confirming"
           }
         },
-        "comparison_null_models": {
-          "GNWT_only_convergence_trials": { "value": [100, 120], "unit": "trials" },
-          "Pure_PP_convergence_trials": { "value": 150, "operator": "greater_than", "unit": "trials" }
+        "model_comparison": {
+          "primary": "Bayesian_Information_Criterion_BIC_fit_to_human_data",
+          "secondary": "cross_validation_held_out_trials",
+          "sensitivity": "parameter_range_analysis_alpha_beta_theta_baseline"
         },
         "falsification_thresholds": {
           "min_performance_advantage_pct": 0.05,
           "APGI_max_convergence_trials": 80,
-          "interoceptive_trigger_ratio_below": 0.60,
-          "ignition_strategy_shift_p_above": 0.30
+          "interoceptive_trigger_ratio_below_falsifies": 0.60,
+          "ignition_strategy_shift_p_above_falsifies": 0.30,
+          "Pure_PP_outperforms_APGI_falsifies": true
         }
       },
 
@@ -152,46 +271,77 @@
         "vp_mapping": "VP-4",
         "status": "pending_ethics_approval",
         "sample_size": {
-          "VS_UWS": 30, "MCS": 30, "EMCS": 20, "healthy_controls": 30
+          "VS_UWS": 30,
+          "MCS": 30,
+          "EMCS": 20,
+          "healthy_controls": 30,
+          "total": 110
         },
-        "primary_measures": ["PCI_TMS_EEG", "HEP_amplitude", "alpha_reactivity"],
-        "secondary_measures": ["DMN_connectivity_rsfMRI", "CRS_R", "6_month_outcome"],
+        "primary_measures": [
+          { "name": "PCI", "method": "TMS_EEG", "theoretical_role": "ignition_capacity_theta_t_proxy" },
+          { "name": "HEP_amplitude", "theoretical_role": "interoceptive_precision_Pi_i_proxy" },
+          { "name": "alpha_reactivity", "theoretical_role": "thalamocortical_responsiveness" }
+        ],
+        "secondary_measures": [
+          { "name": "DMN_connectivity", "method": "resting_state_fMRI" },
+          { "name": "CRS_R", "method": "behavioral_assessment" },
+          { "name": "6_month_outcome", "method": "CRS_R_follow_up" }
+        ],
         "benchmarks": {
           "P4a_joint_prediction_AUC": {
-            "combined_PCI_HEP": { "value": 0.80, "operator": "greater_than" },
-            "PCI_alone": { "value": 0.70, "operator": "approximately" },
-            "HEP_alone": { "value": 0.65, "operator": "approximately" },
-            "model": "ordinal_logistic_regression_consciousness_level ~ PCI + HEP + PCI:HEP + age + etiology",
+            "model": "ordinal_logistic_regression_Consciousness_level ~ PCI + HEP + PCI:HEP + age + etiology",
+            "combined_PCI_HEP_AUC": { "value": 0.80, "operator": "greater_than" },
+            "PCI_alone_AUC": { "value": 0.70, "operator": "approximately" },
+            "HEP_alone_AUC": { "value": 0.65, "operator": "approximately" },
+            "interpretation": "both_ignition_capacity_and_interoceptive_precision_are_necessary_components",
             "role": "primary_confirming"
           },
           "P4b_DMN_PCI_correlation": {
-            "value": 0.5, "operator": "greater_than", "unit": "pearson_r",
-            "specificity_control": "DMN_must_not_predict_HEP",
+            "value": 0.5,
+            "operator": "greater_than",
+            "unit": "pearson_r",
+            "specificity_control": "DMN_must_NOT_predict_HEP — establishes_dissociable_neural_systems",
+            "interpretation": "coherent_self_model_DMN_supports_global_workspace_function",
             "role": "primary_confirming"
           },
           "P4c_MCS_PCI_increase": {
-            "value": 0.10, "operator": "greater_than", "unit": "proportion",
-            "perturbations": ["cold_pressor_30s_4C", "controlled_breathlessness_45s"],
+            "value": 0.10,
+            "operator": "greater_than",
+            "unit": "proportion",
+            "perturbations": [
+              { "type": "cold_pressor", "protocol": "hand_in_4C_water_30s" },
+              { "type": "controlled_breathlessness", "protocol": "increased_dead_space_45s" }
+            ],
+            "measurement_windows": ["pre_intervention", "during_plus_30s", "post_plus_5min", "post_plus_30min"],
             "sustained_minutes": [5, 30],
-            "specificity_control": "interoceptive_perturbation_exceeds_matched_non_interoceptive",
             "VS_expected_change": "non_significant",
             "HEP_PCI_change_correlation_min": 0.4,
+            "specificity_control": "interoceptive_perturbation_exceeds_matched_non_interoceptive_sensory_input_of_equivalent_arousal",
+            "arousal_control": "auditory_stimuli_matched_for_startle_response",
             "role": "primary_confirming"
           },
           "P4d_outcome_prediction_R2": {
+            "model": "multiple_regression_CRS_R_6month ~ PCI_baseline + HEP_baseline + covariates",
             "target_delta_R2": [0.10, 0.15],
             "combined_R2_target": [0.40, 0.45],
-            "baseline_clinical_R2": 0.30,
+            "baseline_clinical_standard_R2": 0.30,
+            "reference": "Stender_et_al_2014",
             "conservative_delta_R2": 0.05,
-            "model": "multiple_regression_CRS_R_6month ~ PCI_baseline + HEP_baseline + covariates",
-            "role": "secondary_confirming",
-            "note": "Speculative — requires pilot validation before pre-registration"
+            "note": "Speculative — requires pilot validation before pre-registration; conservative estimate ΔR²=0.05 still provides clinical value by reducing prognostic uncertainty",
+            "role": "secondary_confirming"
           }
+        },
+        "ethical_considerations": {
+          "consent": "full_informed_consent_from_legally_authorized_representatives",
+          "monitoring": "continuous_monitoring_during_interventions",
+          "stopping_criteria": "pre_specified_adverse_event_stopping_rules",
+          "oversight": "independent_Data_Safety_Monitoring_Board"
         },
         "falsification_thresholds": {
           "PCI_HEP_cross_level_correlation_below": 0.2,
-          "MCS_PCI_response_to_interoceptive_stim_below": 0.05,
-          "DMN_predicts_HEP_better_than_PCI": true
+          "MCS_PCI_response_to_interoceptive_stim_proportion_below": 0.05,
+          "uniform_PCI_response_across_VS_MCS_EMCS_falsifies": true,
+          "DMN_predicts_HEP_better_than_PCI_falsifies": true
         }
       },
 
@@ -199,48 +349,86 @@
         "id": "fMRI_Anticipation_vs_Experience",
         "vp_mapping": "VP-5",
         "status": "pending_data_collection",
-        "sample_size": { "n_participants": 32, "design": "event_related_fMRI" },
-        "outcome_substrate": {
-          "high_risk": "visceral_electric_shock_2_4mA",
-          "low_risk": "mild_vibration",
-          "note": "Visceral stressor mandatory — monetary outcomes alone fail to test allostatic epsilon_i"
+        "sample_size": {
+          "n_participants": 32,
+          "design": "event_related_fMRI"
         },
-        "preprocessing": "fMRIPrep_23.2_ICA_AROMA_FD_scrubbing_0.5mm",
-        "SCR_pipeline": "Ledalab_phasic_1_5s_threshold_0.05uS",
+        "task_design": {
+          "high_risk_deck": {
+            "outcome": "visceral_electric_shock_2_4mA",
+            "reward": "high_monetary",
+            "note": "Visceral stressor mandatory — monetary outcomes alone test abstract reward-prediction error not allostatic epsilon_i; different precision-weighting system; fails to distinguish APGI from standard RL"
+          },
+          "low_risk_deck": {
+            "outcome": "mild_vibration",
+            "reward": "low_monetary"
+          },
+          "trial_timing_s": {
+            "decision_anticipation_phase": 4,
+            "outcome_experience_phase": 2,
+            "ITI_jittered_s": [6, 10]
+          },
+          "pain_threshold_calibration": "individual_thresholds_calibrated_pre_scan"
+        },
+        "roi_targets": ["vmPFC", "amygdala", "anterior_insula", "posterior_insula", "ACC"],
+        "secondary_measures": [
+          { "name": "SCR", "analysis": "anticipatory_peaks_during_decisions" },
+          { "name": "subjective_anxiety_ratings", "scale": "1_to_7", "phase": "anticipation" }
+        ],
+        "preprocessing": {
+          "fmri_pipeline": "fMRIPrep_23.2_ICA_AROMA_FD_scrubbing_0.5mm",
+          "physiological_noise_removal": "RETROICOR",
+          "ROI_masks": "AAL2"
+        },
+        "SCR_pipeline": "Ledalab_phasic_window_1_5s_threshold_0.05uS",
         "benchmarks": {
-          "P5a_vmPFC_SCR_anticipatory_coupling": {
+          "P5a_vmPFC_amygdala_SCR_anticipatory_coupling": {
             "pearson_r_min": 0.4,
-            "temporal_sequence": "vmPFC_peaks_1_2s_then_SCR_2_3s",
+            "roi_source": "vmPFC_and_amygdala_beta_weights_high_risk_greater_than_low_risk",
+            "temporal_sequence": "vmPFC_peaks_1_2s_into_decision_then_SCR_2_3s_later",
+            "interpretation": "M_c_a_in_vmPFC_modulates_Pi_i_via_insula_projections",
             "role": "primary_confirming"
           },
-          "P5b_vmPFC_pINS_dissociation": {
+          "P5b_vmPFC_pINS_experience_dissociation": {
             "null_r_max": 0.2,
             "phase": "experience_outcome_delivery",
-            "interpretation": "vmPFC_represents_M_not_raw_epsilon_i",
+            "comparison": "vmPFC_decision_phase_vs_posterior_insula_outcome_phase",
+            "interpretation": "vmPFC_represents_learned_M_c_a_NOT_raw_sensory_error_epsilon_i",
             "role": "primary_confirming"
           },
           "P5b_pINS_pain_intensity_control": {
             "pearson_r_min": 0.5,
-            "note": "CONFIRMING criterion for P5b — validates pINS as active epsilon_i generator",
+            "phase": "experience_outcome_delivery",
+            "note": "CONFIRMING control criterion for P5b — validates posterior insula as active epsilon_i generator; NOT a falsification bound",
             "role": "confirming_control"
           },
           "P5c_trait_beta_PPI_coupling": {
             "direction": "positive",
-            "operationalisation": "vmPFC_seed_PPI_high_risk_decisions",
-            "individual_differences": "anxiety_scores_predict_vmPFC_aINS_coupling",
-            "note": "No pre-registered r threshold — directional individual-differences prediction only; do not impose arbitrary r cutoff",
+            "operationalisation": "vmPFC_seed_PPI_during_high_risk_decisions",
+            "predictor": "anticipatory_anxiety_ratings_1_7_scale",
+            "outcome": "vmPFC_to_aINS_functional_connectivity_strength",
+            "individual_differences": "high_anxiety_individuals_show_stronger_vmPFC_aINS_coupling",
+            "interpretation": "trait_differences_in_beta_somatic_influence_gain_clinical_biotyping",
+            "note": "No pre-registered r threshold — directional individual-differences prediction only; imposing arbitrary r cutoff would be a fabricated benchmark; framing is clinical-biotyping NOT context-sensitivity-or-valence-contrast",
             "role": "primary_confirming"
           },
-          "P5d_interoceptive_learning_curve": {
-            "criterion": "steeper_vmPFC_learning_curve_pain_vs_monetary",
-            "model": "parametric_modulation_trial_x_outcome_history",
+          "P5d_interoceptive_learning_acceleration": {
+            "criterion": "steeper_vmPFC_learning_curve_for_pain_vs_monetary_only_outcomes",
+            "model": "parametric_modulation_trial_number_x_outcome_history",
+            "mechanism": "interoceptive_salience_accelerates_somatic_marker_formation",
             "role": "secondary_confirming"
           }
         },
+        "control_analyses": {
+          "motion_correction": "RETROICOR_physiological_noise_removal",
+          "pain_threshold": "individual_calibration_pre_scan",
+          "speed_accuracy": "trial_by_trial_RT_regressors"
+        },
         "falsification_thresholds": {
-          "vmPFC_pINS_experience_correlation_above": 0.2,
-          "anticipatory_vmPFC_modulation_absent": true,
-          "SCR_vmPFC_decoupled_r_below": 0.1
+          "vmPFC_pINS_experience_correlation_above_falsifies": 0.2,
+          "anticipatory_vmPFC_modulation_absent_falsifies": true,
+          "SCR_vmPFC_decoupled_r_below_falsifies": 0.1,
+          "no_PPI_difference_high_vs_low_anxiety_falsifies": true
         }
       },
 
@@ -248,43 +436,81 @@
         "id": "icEEG_All_or_None_Ignition_Dynamics",
         "vp_mapping": "VP-12",
         "status": "pending_patient_recruitment",
-        "sample_size": { "n_patients": [8, 15], "note": "electrode_placement_clinically_determined" },
-        "electrode_coverage": ["frontoparietal_dlPFC_PPC", "anterior_insula", "thalamus_if_available"],
+        "sample_size": {
+          "n_patients": [8, 15],
+          "minimum_coverage_requirement": "minimum_2_patients_with_bilateral_frontoparietal_and_anterior_insula_coverage_before_mechanistic_conclusions",
+          "note": "electrode_placement_clinically_determined_not_experimentally_designed"
+        },
+        "population": "epilepsy_patients_with_implanted_electrodes_during_clinical_monitoring",
+        "electrode_coverage": [
+          { "region": "frontoparietal_dlPFC_PPC", "role": "primary_ignition_measure" },
+          { "region": "anterior_insula", "role": "precision_integrator" },
+          { "region": "thalamus", "availability": "when_clinically_available" },
+          { "region": "occipital_early_visual", "role": "graded_response_control" }
+        ],
+        "trial_structure_ms": {
+          "fixation": 500,
+          "stimulus": 50,
+          "delay": 1000,
+          "response": "detection_seen_unseen_plus_confidence_1_4",
+          "ITI_jittered": 2000
+        },
         "stimuli": {
           "type": "graded_visual_luminance",
-          "range_pct": [0, 100], "steps_pct": 10,
-          "threshold_procedure": "QUEST_adaptive",
+          "range_pct": [0, 100],
+          "steps_pct": 10,
+          "threshold_procedure": "QUEST_adaptive_individual_calibration",
           "verification": "photodiode_TTL"
+        },
+        "primary_measures": [
+          "single_unit_firing_rates_frontoparietal_neurons",
+          "LFP_beta_gamma_power_and_phase_coherence",
+          "reaction_time_response_latency"
+        ],
+        "data_quality": {
+          "interictal_spike_exclusion": true,
+          "within_subject_analysis_priority": true,
+          "surface_EEG_healthy_control_comparison": "qualitative_validation"
         },
         "benchmarks": {
           "P6a_bimodal_firing_distribution": {
-            "test": "Hartigan_dip_test",
+            "primary_test": "Hartigan_dip_test",
             "p_value_max": 0.05,
+            "secondary_test": "likelihood_ratio_test_2_component_Gaussian_vs_unimodal",
+            "likelihood_ratio_p_max": 0.05,
             "low_mode_Hz": [5, 10],
             "high_mode_Hz": [40, 60],
-            "regional_specificity_control": "occipital_Hartigan_p_min_0.2",
+            "interpretation": "bistable_attractor_dynamics_ignited_vs_non_ignited_states",
+            "regional_specificity_control": {
+              "site": "occipital_early_visual_electrodes",
+              "expected": "unimodal_luminance_linear_Hartigan_p_min_0.2"
+            },
             "role": "primary_confirming"
           },
           "P6b_transition_velocity": {
             "middle_percentile_dwell_time_max": 0.15,
             "percentile_range": [40, 60],
             "unit": "proportion_trial_duration",
-            "note": "Bimodality alone insufficient — transition velocity (dwell time) is the non-negotiable mechanistic constraint",
+            "note": "Bimodality alone is insufficient — a system can have bimodal distribution with slow sticky transitions that violate the ignition requirement; dwell-time tests transition velocity which is the non-negotiable mechanistic constraint for phase-transition claim",
+            "regional_specificity": "Hartigan_dip_non_significant_for_occipital_p_above_0.2",
             "role": "primary_confirming"
           },
           "P6c_critical_slowing_RT": {
             "test": "quadratic_fit_RT_vs_detection_probability",
+            "model": "RT ~ detection_probability + detection_probability_squared",
             "positive_quadratic_p_max": 0.01,
             "slowest_at_detection_pct": [40, 60],
             "tier": "behavioral",
+            "note": "Behavioral tier — provides cross-lab replicability for researchers without intracranial access",
             "role": "secondary_confirming"
           },
           "P6c_critical_slowing_AC1": {
-            "test": "autocorrelation_pre_ignition_window",
+            "test": "autocorrelation_AC1_of_S_t_proxy_pre_ignition_window",
             "window_ms": 500,
+            "window_reference": "pre_ignition_event",
             "Kendall_tau_min": 0.3,
             "tier": "electrophysiological_primary",
-            "note": "AC1 is the primary bifurcation criterion for icEEG — RT is the behavioral tier for non-intracranial replication",
+            "note": "AC1 is the primary bifurcation criterion for icEEG — more direct dynamical signature of saddle-node bifurcation than RT alone",
             "role": "primary_confirming"
           },
           "P6d_frontoparietal_coherence": {
@@ -292,25 +518,38 @@
             "pearson_r_min": 0.4,
             "peak_window_ms": [200, 400],
             "reference": "post_stimulus",
-            "trial_level": "trial_by_trial_point_biserial",
+            "trial_level": "trial_by_trial_point_biserial_coherence_vs_detection",
             "GWT_adversarial_benchmark": true,
+            "note": "Links to Global Neuronal Workspace Theory benchmark; enables adversarial APGI-vs-GWT comparison",
             "role": "primary_confirming"
           },
           "P6_advanced_DFA": {
-            "metric": "detrended_fluctuation_analysis_alpha_exponent",
+            "metric": "detrended_fluctuation_analysis_alpha_exponent_pre_ignition_gamma",
             "seen_trials_target": [0.9, 1.1],
             "unseen_trials_max": 0.7,
-            "reference": "He_et_al_2010_scale_free_dynamics",
-            "falsification": "DFA_exponents_not_different_seen_vs_unseen_p_above_0.05_permutation",
+            "reference": "He_et_al_2010_scale_free_dynamics_perceptual_threshold",
+            "falsification": "DFA_exponents_not_different_seen_vs_unseen_p_above_0.05_permutation_test",
             "role": "advanced_exploratory"
           }
         },
         "falsification_thresholds": {
-          "bimodality_absent_frontoparietal_p_above": 0.2,
+          "bimodality_absent_frontoparietal_Hartigan_p_above": 0.2,
+          "likelihood_ratio_test_non_significant_p_above": 0.05,
           "stable_intermediate_dwell_time_above": 0.30,
-          "RT_minimum_at_threshold": true,
+          "RT_minimum_at_threshold_not_maximum_falsifies": true,
           "AC1_no_preignition_increase_tau_below": 0.1,
           "coherence_unrelated_to_detection_r_below": 0.2
+        },
+        "limitations": {
+          "sample_size": "small_8_15_patients_with_appropriate_coverage",
+          "clinical_variability": "electrode_placement_determined_by_clinical_needs",
+          "generalizability": "epilepsy_patients_may_have_altered_attractor_dynamics",
+          "mitigation": [
+            "within_subject_analyses_prioritised",
+            "interictal_spike_exclusion",
+            "surface_EEG_healthy_control_comparison_for_qualitative_validation",
+            "minimum_2_patients_bilateral_frontoparietal_plus_aINS_before_mechanistic_conclusions"
+          ]
         }
       }
 

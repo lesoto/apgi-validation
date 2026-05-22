@@ -4277,9 +4277,13 @@ def check_falsification(
         },
     }
 
+    # Compute passed first so status can reflect the actual outcome.
+    # Previously "status" was hardcoded "success" even when passed=False,
+    # making ✓ completion messages misleading.
+    passed_overall = all(p["passed"] for p in named_predictions.values() if p["passed"] is not None)
     return {
-        "passed": all(p["passed"] for p in named_predictions.values() if p["passed"] is not None),
-        "status": "success",
+        "passed": passed_overall,
+        "status": "passed" if passed_overall else "failed",
         "results": results,
         "named_predictions": named_predictions,
     }

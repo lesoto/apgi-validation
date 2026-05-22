@@ -521,11 +521,12 @@ class DataCollector:
                 cursor = conn.cursor()
 
                 # Validate table name to prevent SQL injection
-                if not table.replace("_", "").isalnum():
-                    raise ValueError(f"Invalid table name: {table}")
+                allowed_tables = ["validation_results", "benchmark_results", "simulation_data"]
+                if table not in allowed_tables:
+                    raise ValueError(f"Invalid table name: {table}. Allowed: {allowed_tables}")
 
                 cursor.execute(
-                    f"SELECT * FROM {table} WHERE timestamp >= ? ORDER BY timestamp DESC",
+                    f"SELECT * FROM {table} WHERE timestamp >= ? ORDER BY timestamp DESC",  # nosec B608
                     (cutoff_time.isoformat(),),
                 )
 

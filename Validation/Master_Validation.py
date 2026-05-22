@@ -154,7 +154,7 @@ class APGIMasterValidator(metaclass=ABCMeta):
         _ProtocolResult: Optional[Type[Any]] = None
         try:
             from utils.protocol_schema import ProtocolResult as _ProtocolResult
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
         if _ProtocolResult is not None and isinstance(result, _ProtocolResult):

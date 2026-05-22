@@ -580,7 +580,7 @@ def _emit_info(message: str) -> None:
         try:
             log_info(message)
             return
-        except Exception:
+        except Exception:  # nosec B110
             pass
     print(message)
 

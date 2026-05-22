@@ -120,7 +120,7 @@ def _find_protocol_file(protocol_id: str) -> Optional[Path]:
         try:
             with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
-        except Exception:  # nosec B110
+        except Exception:  # nosec B110,B112
             continue
         if data.get("protocol_id") == normalized_id:
             return path

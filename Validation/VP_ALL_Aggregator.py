@@ -1068,19 +1068,34 @@ def run_cross_protocol_consistency_checks(
 def run_validation(**kwargs) -> Dict[str, Any]:
     """Entry point for validation protocol."""
     aggregator = ValidationAggregator()
-    results_dir = Path(__file__).parent.parent / "data_repository" / "processed_data"
+    repo_root = Path(__file__).parent.parent
 
+    # Primary location: data_repository/processed_data (canonical store)
+    results_dir = repo_root / "data_repository" / "processed_data"
+    json_files: list[Path] = []
     if results_dir.exists():
         json_files = list(results_dir.glob("*.json"))
-        print(f"\nFound {len(json_files)} result files in {results_dir}")
-        if json_files:
-            results = aggregator.aggregate_results([str(f) for f in json_files])
-            print("\nAggregation complete. Use aggregator.run_full_analysis() for full report.")
-            return results
-    else:
-        print(f"\nNo results directory found at {results_dir}")
-        print("Run individual validation protocols first to generate JSON results.")
-        return {"status": "error", "message": "No results found"}
+
+    # Fallback: many protocols write result files directly to the repo root
+    # (e.g. protocol3_results.json, protocol8_results.json …).  Include those
+    # so VP-ALL does not silently aggregate zero files while individual protocols
+    # have already produced valid output.
+    root_result_files = [f for f in repo_root.glob("protocol*_results.json") if f not in json_files]
+    json_files = json_files + root_result_files
+
+    if json_files:
+        print(
+            f"\nFound {len(json_files)} result file(s) "
+            f"({len(json_files) - len(root_result_files)} in processed_data, "
+            f"{len(root_result_files)} in repo root)"
+        )
+        results = aggregator.aggregate_results([str(f) for f in json_files])
+        print("\nAggregation complete. Use aggregator.run_full_analysis() for full report.")
+        return results
+
+    print(f"\nNo result files found in {results_dir} or {repo_root} (protocol*_results.json).")
+    print("Run individual validation protocols first to generate JSON results.")
+    return {"status": "error", "message": "No results found"}
 
 
 if __name__ == "__main__":

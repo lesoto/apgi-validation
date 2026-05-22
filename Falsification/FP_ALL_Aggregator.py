@@ -468,6 +468,28 @@ def _extract_named_predictions(data: dict) -> dict:
     if isinstance(nested, dict) and isinstance(nested.get("named_predictions"), dict):
         return nested["named_predictions"]
 
+    # Format 2.5: Criteria nested inside {"status":..., "results": {"criteria": {...}, "F6.x": ...}}
+    # This handles run_falsification()-style wrappers that store criteria one level deep.
+    _f_patterns = tuple(f"F{i}." for i in range(1, 13))
+    if isinstance(nested, dict):
+        nested_criteria = nested.get("criteria", {})
+        if isinstance(nested_criteria, dict):
+            nc_extracted = {
+                crit_id.replace("F", "P"): {
+                    "passed": crit_result.get("passed", False),
+                    "value": crit_result.get("value"),
+                    "description": crit_result.get("description", ""),
+                }
+                for crit_id, crit_result in nested_criteria.items()
+                if crit_id.startswith(_f_patterns) and isinstance(crit_result, dict)
+            }
+            if nc_extracted:
+                return nc_extracted
+        # Also check top-level F*.* keys inside results (e.g. {"F6.1": {...}, "F6.2": {...}})
+        nc_direct = {k: v for k, v in nested.items() if k.startswith(_f_patterns) and isinstance(v, dict)}
+        if nc_direct:
+            return nc_direct
+
     # FIXED: Format 3 - Extract from criteria if named_predictions not available
     criteria = data.get("criteria", {})
     if isinstance(criteria, dict):

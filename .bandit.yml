@@ -2,7 +2,7 @@
 # Excludes test files from assert warnings (B101) as they are standard pytest practice
 
 skips:
-  # Skip assert warnings in test files - standard pytest practice
+  # Skip assert warnings globally - standard pytest practice
   - 'B101'
   # Skip hardcoded password false positives - these are intentional nosec comments
   - 'B105'

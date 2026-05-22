@@ -976,7 +976,14 @@ class APGIPsychophysicalEstimator:
                 "df1": 1,
                 "df_within": int(df_within_pi),
             },
-            "P1_2_passed": bool(eta_sq_pi >= 0.06 and p_pi_interaction < 0.05),
+            # P1.2 gate matches the printed target "Cohen's d = 0.25-0.45":
+            # η²_p ≥ 0.06 and p < 0.05 are necessary but not sufficient —
+            # d must also fall within the stated benchmark range.
+            # Using a slightly wider upper guard (0.65) to tolerate simulation noise
+            # while still catching obviously inflated synthetic effects (e.g. d > 1).
+            "P1_2_passed": bool(
+                eta_sq_pi >= 0.06 and p_pi_interaction < 0.05 and 0.25 <= abs(cohens_d_pi_interaction) <= 0.65
+            ),
         }
         results["arousal_analysis"]["cohens_d_pi_interaction"] = cohens_d_pi_interaction
 
@@ -995,7 +1002,12 @@ class APGIPsychophysicalEstimator:
             eta_sq_ia = 0.0
             cohens_d_ia_arousal = 0.0
 
-        results["arousal_analysis"]["P1_3_passed"] = bool(not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05)
+        # P1.3 gate: η²_p ≥ 0.06 and p < 0.05 are necessary; additionally cap d ≤ 1.0
+        # to reject obviously synthetic inflation (e.g. d = 1.564 reported as PASS).
+        # The lower bound d ≥ 0.20 ensures a minimum meaningful effect is present.
+        results["arousal_analysis"]["P1_3_passed"] = bool(
+            not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05 and 0.20 <= abs(cohens_d_ia_arousal) <= 1.0
+        )
         results["arousal_analysis"]["cohens_d_ia_arousal"] = float(cohens_d_ia_arousal)
         results["arousal_analysis"]["p_ia"] = float(p_ia)
         results["arousal_analysis"]["eta_sq_ia"] = float(eta_sq_ia)

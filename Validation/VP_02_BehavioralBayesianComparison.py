@@ -1207,7 +1207,8 @@ def test_P1_3(df: pd.DataFrame) -> Dict[str, Any]:
     bf_pass, bf_status = _bayes_factor_pass(bayesian_result)
 
     # Use Holm-Bonferroni for more power while maintaining FWER control
-    passed = (d > 0.25) and holm_pass and (bf_pass is True or bf_pass is None)  # Pass if BF unavailable
+    # Gate matches printed target: d > 0.30 (was erroneously 0.25)
+    passed = (d > 0.30) and holm_pass and (bf_pass is True or bf_pass is None)  # Pass if BF unavailable
 
     return {
         "passed": bool(passed),
@@ -1293,9 +1294,15 @@ def test_P1_2_x_P1_3_interaction(df: pd.DataFrame) -> Dict[str, Any]:
     bayesian_result = bayesian_ttest_ind(low_ia_benefit, high_ia_benefit, alternative="two-sided")
     bf_pass, bf_status = _bayes_factor_pass(bayesian_result)
 
-    # Interaction passed if d in 0.30-0.60 range and significant with BF10 ≥ 3 (if available)
+    # Interaction passed only when all printed targets are met:
+    #   d = 0.30–0.50  (was incorrectly 0.25–0.65)
+    #   η²_p > 0.06    (was never enforced despite being printed as a target)
+    #   Holm-adjusted p significant
     passed = (
-        (0.25 <= d_interaction <= 0.65) and holm_pass and (bf_pass is True or bf_pass is None)
+        (0.30 <= d_interaction <= 0.50)
+        and (interaction_anova["eta_squared"] > 0.06)
+        and holm_pass
+        and (bf_pass is True or bf_pass is None)
     )  # Pass if BF unavailable
 
     return {

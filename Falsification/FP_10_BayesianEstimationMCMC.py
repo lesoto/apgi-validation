@@ -1156,6 +1156,32 @@ def run_mcmc_bayesian_estimation_np(
             "convergence_pass": convergence_pass,
             "convergence_threshold": r_hat_threshold,  # Fix 3: Use configurable threshold
         },
+        # The PyMC path adds "model_evidence" and "trace"; the NumPy fallback
+        # cannot compute LOO evidence and has no ArviZ trace object.  Provide
+        # stub keys with None values so the Bayes-factor caller code (which does
+        # apgi_results["model_evidence"]["log_evidence"]) does not KeyError.
+        "model_evidence": {
+            "log_evidence": None,
+            "evidence_type": "NUMPY_FALLBACK",
+            "evidence_error": "NumPy M-H fallback does not support LOO model evidence",
+        },
+        "trace": None,  # No ArviZ InferenceData in the NumPy path
+        "posterior_predictive": {
+            "ppc_p_value": None,
+            "ppc_acceptable": True,  # Conservative: do not penalise the fallback path
+        },
+        "divergence_diagnostics": {
+            "divergences": 0,
+            "divergence_pass": True,
+            "max_tree_depth": None,
+        },
+        "sampling_info": {
+            "n_samples": n_samples,
+            "n_chains": n_chains,
+            "burn_in": burn_in,
+            "target_accept": None,
+            "total_posterior_samples": n_samples * n_chains,
+        },
     }
 
 
@@ -2178,8 +2204,8 @@ def run_complete_mcmc_analysis(
                 stimulus_data, response_data, n_samples // 2, n_chains, burn_in
             )
 
-            # APGI model evidence
-            apgi_evidence = apgi_results["model_evidence"]["log_evidence"]
+            # APGI model evidence — use .get() in case a fallback path omits the key
+            apgi_evidence = apgi_results.get("model_evidence", {}).get("log_evidence")
             if apgi_evidence is not None:
                 evidence_dict["APGI"] = apgi_evidence
 
@@ -2210,24 +2236,37 @@ def run_complete_mcmc_analysis(
                 logger.warning("Insufficient evidence values for Bayes factor comparison")
 
             # F10.MAE: Posterior predictive MAE comparison
-            try:
-                mae_results = compare_models_mae(
-                    apgi_results["trace"],
-                    alternative_results,
-                    stim_val,
-                    resp_val,
-                )
-                complete_results["mae_comparison"] = mae_results
+            # apgi_results["trace"] is None in the NumPy-fallback path;
+            # skip MAE comparison rather than raise a KeyError / TypeError.
+            apgi_trace = apgi_results.get("trace")
+            if apgi_trace is not None:
+                try:
+                    mae_results = compare_models_mae(
+                        apgi_trace,
+                        alternative_results,
+                        stim_val,
+                        resp_val,
+                    )
+                    complete_results["mae_comparison"] = mae_results
+                    complete_results["f10_criteria"]["F10.MAE"] = {
+                        "passed": mae_results.get("f10_mae_passed", False),
+                        "threshold": 20.0,
+                        "description": "≥20% lower MAE in APGI vs alternatives",
+                        "details": mae_results.get("mae_comparison", {}),
+                    }
+                    logger.info("MAE comparison completed")
+                except Exception as mae_error:
+                    logger.warning(f"Error in MAE comparison: {mae_error}")
+                    complete_results["mae_error"] = str(mae_error)
+            else:
+                logger.warning("Skipping MAE comparison: no ArviZ trace (NumPy fallback path)")
+                complete_results["mae_comparison"] = None
                 complete_results["f10_criteria"]["F10.MAE"] = {
-                    "passed": mae_results.get("f10_mae_passed", False),
+                    "passed": False,
                     "threshold": 20.0,
-                    "description": "≥20% lower MAE in APGI vs alternatives",
-                    "details": mae_results.get("mae_comparison", {}),
+                    "description": "MAE comparison unavailable (NumPy fallback, no trace)",
+                    "details": {},
                 }
-                logger.info("MAE comparison completed")
-            except Exception as mae_error:
-                logger.warning(f"Error in MAE comparison: {mae_error}")
-                complete_results["mae_error"] = str(mae_error)
 
         except Exception as e:
             logger.warning(f"Error in Bayes factor computation: {e}")
