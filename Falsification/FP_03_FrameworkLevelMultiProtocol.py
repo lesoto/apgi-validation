@@ -3803,6 +3803,117 @@ def validate_framework_consistency(results: Dict[str, Dict[str, Any]], tolerance
     return validator.validate_consistency(protocol_results, tolerance)
 
 
+def check_tiered_falsification(protocol_outcomes: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Tiered falsification evaluation per the APGI scientific validity assessment.
+
+    Tier 1 (Blocking): Any single failure falsifies APGI immediately.
+      - P1_HEP_P3B: HEP-P3b correlation r < 0.2 with N=60 and 80% power
+      - P6_BISTABILITY: No bistability observed (Hartigan's dip p > 0.10)
+      - VP3_COMPUTATIONAL_ADVANTAGE: No computational advantage over GWT
+
+    Tier 2 (Supporting): ≥3 failures required to falsify.
+      - P2_TMS, P3_CONVERGENCE, VP4_PHASE_TRANSITION, VP9_NEURAL_SIGNATURES
+      - Additional falsification: ALL Tier 2 protocols show weak effects (d < 0.3)
+        despite statistical significance.
+
+    Tier 3 (Extensions): Failures alone do not falsify core APGI.
+      - VP5_EVOLUTIONARY, VP11_CULTURAL, VP12_CLINICAL
+
+    Args:
+        protocol_outcomes: Dict mapping protocol IDs to outcome dicts.
+          Each outcome must contain a boolean 'passed' key and optionally
+          'effect_size' (Cohen's d) for Tier 2 weak-effect check.
+
+    Returns:
+        Dict with:
+          - 'framework_falsified': bool
+          - 'falsification_reason': str | None
+          - 'tier1_failures': list of failed Tier 1 protocol IDs
+          - 'tier2_failures': list of failed Tier 2 protocol IDs
+          - 'tier2_all_weak': bool (all Tier 2 effects d < 0.3)
+          - 'tier3_failures': list of failed Tier 3 protocol IDs (informational)
+    """
+    try:
+        from utils.falsification_thresholds import (
+            FP3_BISTABILITY_DIP_P_MAX,
+            FP3_HEP_P3B_MIN_CORRELATION,
+            FP3_TIER1_PROTOCOLS,
+            FP3_TIER2_MAX_FAILURES,
+            FP3_TIER2_PROTOCOLS,
+            FP3_TIER2_WEAK_EFFECT_COHENS_D,
+            FP3_TIER3_PROTOCOLS,
+        )
+    except ImportError:
+        # Fallback to inline defaults if import fails
+        FP3_TIER1_PROTOCOLS = ["P1_HEP_P3B", "P6_BISTABILITY", "VP3_COMPUTATIONAL_ADVANTAGE"]
+        FP3_TIER2_PROTOCOLS = ["P2_TMS", "P3_CONVERGENCE", "VP4_PHASE_TRANSITION", "VP9_NEURAL_SIGNATURES"]
+        FP3_TIER3_PROTOCOLS = ["VP5_EVOLUTIONARY", "VP11_CULTURAL", "VP12_CLINICAL"]
+        FP3_TIER2_MAX_FAILURES = 2
+        FP3_TIER2_WEAK_EFFECT_COHENS_D = 0.30
+        FP3_HEP_P3B_MIN_CORRELATION = 0.20
+        FP3_BISTABILITY_DIP_P_MAX = 0.10
+
+    def _protocol_passed(protocol_id: str) -> bool:
+        outcome = protocol_outcomes.get(protocol_id, {})
+        if isinstance(outcome, bool):
+            return outcome
+        return bool(outcome.get("passed", True))
+
+    def _protocol_effect_size(protocol_id: str) -> float:
+        outcome = protocol_outcomes.get(protocol_id, {})
+        if isinstance(outcome, dict):
+            return float(outcome.get("effect_size", float("inf")))
+        return float("inf")
+
+    # --- Tier 1: Blocking protocols ---
+    tier1_failures = [pid for pid in FP3_TIER1_PROTOCOLS if not _protocol_passed(pid)]
+
+    # --- Tier 2: Supporting protocols ---
+    tier2_failures = [pid for pid in FP3_TIER2_PROTOCOLS if not _protocol_passed(pid)]
+
+    # All Tier 2 weak-effect check: every present Tier 2 protocol has d < threshold
+    tier2_present = [pid for pid in FP3_TIER2_PROTOCOLS if pid in protocol_outcomes]
+    tier2_all_weak = bool(
+        tier2_present and all(_protocol_effect_size(pid) < FP3_TIER2_WEAK_EFFECT_COHENS_D for pid in tier2_present)
+    )
+
+    # --- Tier 3: Extension protocols (informational only) ---
+    tier3_failures = [pid for pid in FP3_TIER3_PROTOCOLS if not _protocol_passed(pid)]
+
+    # Determine overall falsification
+    falsification_reason: str | None = None
+    if tier1_failures:
+        falsification_reason = f"Tier 1 blocking protocol(s) failed: {tier1_failures}"
+    elif len(tier2_failures) > FP3_TIER2_MAX_FAILURES:
+        falsification_reason = (
+            f"{len(tier2_failures)} Tier 2 supporting protocols failed "
+            f"(threshold: >{FP3_TIER2_MAX_FAILURES}): {tier2_failures}"
+        )
+    elif tier2_all_weak:
+        falsification_reason = (
+            f"All Tier 2 protocols show weak effects (d < {FP3_TIER2_WEAK_EFFECT_COHENS_D}) "
+            "despite statistical significance — systematic insensitivity."
+        )
+
+    return {
+        "framework_falsified": falsification_reason is not None,
+        "falsification_reason": falsification_reason,
+        "tier1_failures": tier1_failures,
+        "tier2_failures": tier2_failures,
+        "tier2_all_weak": tier2_all_weak,
+        "tier3_failures": tier3_failures,
+        "thresholds": {
+            "tier1_protocols": FP3_TIER1_PROTOCOLS,
+            "tier2_protocols": FP3_TIER2_PROTOCOLS,
+            "tier2_max_failures_allowed": FP3_TIER2_MAX_FAILURES,
+            "tier2_weak_effect_d": FP3_TIER2_WEAK_EFFECT_COHENS_D,
+            "hep_p3b_min_r": FP3_HEP_P3B_MIN_CORRELATION,
+            "bistability_dip_p_max": FP3_BISTABILITY_DIP_P_MAX,
+        },
+    }
+
+
 __all__ = [
     "ProtocolConfig",
     "ProtocolResult",
@@ -3810,6 +3921,7 @@ __all__ = [
     "FrameworkValidator",
     "run_multi_protocol_framework",
     "validate_framework_consistency",
+    "check_tiered_falsification",
     "AgentComparisonExperiment",
     "StandardPPAgent",
     "GWTOnlyAgent",

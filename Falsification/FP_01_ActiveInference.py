@@ -4,6 +4,23 @@ Falsification Protocol 1: Active Inference Validation
 
 Implements F1.1-F1.6 falsification criteria for APGI framework.
 
+CONSOLIDATION NOTE (Scientific Validity Assessment)
+----------------------------------------------------
+This protocol substantially overlaps with VP-03 (Active Inference Agent Simulations).
+Per the validity assessment, FP-01 and VP-03 test the same computational claim
+(APGI agent convergence advantage in the Iowa Gambling Task) and should be
+interpreted as complementary rather than independent.
+
+KEY DISTINCTION:
+  - VP-03: Validates computational advantage (convergence ≤80 trials, human-like)
+  - FP-01: Specifies falsification conditions (no advantage → APGI disconfirmed)
+
+Both protocols share the same effect size thresholds. Results should be
+reported jointly under CVP-2 (Computational Advantage) in final manuscripts.
+Falsification threshold: If APGI shows no advantage over GWT in ≥2 of 3
+discriminating environments (volatile foraging, threat-reward trade-off, IGT),
+APGI's architectural claims are disconfirmed.
+
 LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
 Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
 Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.

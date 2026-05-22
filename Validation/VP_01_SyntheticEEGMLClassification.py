@@ -16,14 +16,30 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-FALSIFICATION_CRITERIA
-----------------------
-If synthetic APGI data does NOT show improved ML classification compared to
-non-APGI baselines (classification accuracy improvement < 15%, feature importance
-for precision-weighting < 0.2, or cross-validation performance not significantly
-better than chance, p > 0.05), then the APGI computational advantage claim is
-falsified. This would indicate that precision-weighted integration does not
-produce discriminable neural signatures as predicted by the framework.
+FALSIFICATION_CRITERIA (Updated per Scientific Validity Assessment)
+----------------------------------------------------------------------
+VP-01 implements a COMPARATIVE discriminability test, not merely a self-validation:
+
+SUCCESS CRITERION (APGI wins):
+  - APGI synthetic data yields ML classification AUC ≤ 60% (chance-level:
+    classifier cannot distinguish APGI-generated from real neural data)
+  - Competitor model (GWT, PP, IIT) synthetic data yields AUC ≥ 70%
+    (competitors ARE distinguishable from real neural data)
+  - This demonstrates APGI has special generative fidelity, not shared by alternatives
+
+FALSIFICATION:
+  - If APGI synthetic data is as distinguishable as competitor models
+    (APGI AUC ≥ 70%), APGI has no special generative advantage.
+  - Without competitor comparison, passing this test is uninformative —
+    many wrong models can generate realistic-looking noise.
+
+PREVIOUS CRITERION (retained for backward compatibility):
+  Classification accuracy improvement < 15% or feature importance for
+  precision-weighting < 0.2 disconfirms precision-weighted integration.
+
+AUC thresholds: VP1_APGI_MAX_DISCRIMINABILITY_AUC = 0.60,
+               VP1_COMPETITOR_MIN_DISCRIMINABILITY_AUC = 0.70
+CV strategy: 5-fold cross-validation (VP1_ML_CV_FOLDS = 5)
 
 """
 

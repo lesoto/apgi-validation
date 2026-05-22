@@ -2531,7 +2531,9 @@ Interpretation:
                     # Brief wait for clean exit (reduced from 5s to 0.5s)
                     self.validation_thread.join(timeout=0.5)
                     if self.validation_thread.is_alive():
-                        logging.debug("Validation thread did not stop cleanly within timeout (daemon thread will die with process)")
+                        logging.debug(
+                            "Validation thread did not stop cleanly within timeout (daemon thread will die with process)"
+                        )
                         # Don't block - the thread is daemon and will die with process
                     else:
                         logging.info("Validation thread stopped successfully")

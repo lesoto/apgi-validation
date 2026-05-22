@@ -10,14 +10,27 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-FALSIFICATION_CRITERIA
-----------------------
-If phase transition detection fails to identify critical slowing signatures
-(sensitivity < 0.8, specificity < 0.8), or if the power analysis shows insufficient
-statistical power (power < 0.8), or if the phase boundary predictions deviate
->20% from theoretical expectations, then the APGI phase transition epistemic
-architecture claim is falsified. This would indicate that APGI does not
-exhibit predicted phase transition dynamics.
+FALSIFICATION_CRITERIA (Updated per Scientific Validity Assessment)
+----------------------------------------------------------------------
+FP-04 implements the falsification side of VP-04's two sub-protocols.
+
+SUB-PROTOCOL A FALSIFICATION: Information-Theoretic Phase Transition
+  If phase transition detection fails to identify critical slowing signatures
+  (sensitivity < 0.8, specificity < 0.8), or if the power analysis shows
+  insufficient statistical power (power < 0.8), or if phase boundary predictions
+  deviate >20% from theoretical expectations.
+  NOTE: This is not APGI-specific — standard GWT would also pass/fail this test.
+
+SUB-PROTOCOL B FALSIFICATION: Adaptive Threshold Hysteresis (BLOCKING)
+  APGI is falsified if the ignition threshold does NOT adapt across load conditions:
+  - If T_high-load / T_low-load < 5% (GWT prediction holds): APGI disconfirmed
+  - This is the APGI-specific, distinguishing falsification criterion
+  - Standard GWT predicts fixed threshold; APGI predicts ≥15% elevation
+  - Thresholds: VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT = 15.0%
+                VP4_FIXED_THRESHOLD_MAX_DIFF_PCT = 5.0%
+
+  Implementation: AdaptiveThresholdHysteresisTest in VP_04_PhaseTransitionEpistemicLevel2.py
+  Cross-reference: VP-04 Sub-Protocol B (shared test infrastructure)
 """
 
 import csv

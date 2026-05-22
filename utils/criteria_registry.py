@@ -101,10 +101,10 @@ PROXY_CALIBRATION = {
     "HEP_to_Pi_i": {
         "functional_form": "monotonic_positive",
         "specification": "HEP amplitude (µV, 250–400 ms, Cz) is a rank-order proxy for Πⁱ_eff. "
-                         "No linear scaling assumed. Operationalised as: high Πⁱ ↔ HEP > median "
-                         "within-session; low Πⁱ ↔ HEP ≤ median. Trial-by-trial mixed-effects "
-                         "regression (P3b ~ HEP_amplitude + RMSSD + random slopes) is the primary "
-                         "calibration procedure. Session-level z-scoring required before cross-session comparison.",
+        "No linear scaling assumed. Operationalised as: high Πⁱ ↔ HEP > median "
+        "within-session; low Πⁱ ↔ HEP ≤ median. Trial-by-trial mixed-effects "
+        "regression (P3b ~ HEP_amplitude + RMSSD + random slopes) is the primary "
+        "calibration procedure. Session-level z-scoring required before cross-session comparison.",
         "minimum_r_for_proxy_validity": 0.30,  # HEP–P3b r must exceed this to use HEP as Πⁱ proxy
         "falsification": "HEP–P3b r < 0.20 invalidates HEP as Πⁱ proxy for that session (P1c criterion)",
         "references": ["Garfinkel et al. (2014)", "Canales-Johnson et al. (2020)"],
@@ -112,11 +112,11 @@ PROXY_CALIBRATION = {
     "PCI_to_B_t": {
         "functional_form": "threshold_dichotomous",
         "specification": "PCI ≥ 0.31 is treated as B_t = 1 (ignition present); PCI < 0.31 as B_t = 0. "
-                         "Threshold sourced from Casarotto et al. (2016) 100% specificity cutoff. "
-                         "Within-protocol comparisons use continuous PCI; the 0.31 cutoff applies "
-                         "only to clinical DoC classification (Protocol 4) and consciousness level "
-                         "assignment. Do NOT use 0.31 as a threshold in TMS or iEEG Protocol 2/6 "
-                         "comparisons — use within-condition delta-PCI instead.",
+        "Threshold sourced from Casarotto et al. (2016) 100% specificity cutoff. "
+        "Within-protocol comparisons use continuous PCI; the 0.31 cutoff applies "
+        "only to clinical DoC classification (Protocol 4) and consciousness level "
+        "assignment. Do NOT use 0.31 as a threshold in TMS or iEEG Protocol 2/6 "
+        "comparisons — use within-condition delta-PCI instead.",
         "pci_consciousness_threshold": 0.31,
         "delta_pci_minimum_effect": 0.05,  # Minimum meaningful PCI change within condition
         "falsification": "PCI change < 0.05 following insula TMS does not constitute threshold shift (P2a)",

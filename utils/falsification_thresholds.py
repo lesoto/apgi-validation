@@ -604,6 +604,54 @@ DEPRESSION_HYPERCONNECTIVITY_STRONG: float = 0.40  # d ≈ 0.8; strong effect (u
 # Note: ≥50% threshold is 2-3× meta-analytic estimates; retain as "exceptional" tier only
 
 # ---------------------------------------------------------------------------
+# VP-04 Adaptive Threshold Dynamics (Hysteresis Test)
+# Report recommendation: T_high-load > T_low-load by ≥15% (Cohen's d ≥ 0.6)
+# GWT prediction: threshold constant across load conditions (< 5% difference)
+# Citation: Dehaene & Changeux (2011) Neuron; adaptive threshold reflects
+# allostatic metabolic gating, distinguishing APGI from fixed-threshold GWT.
+# ---------------------------------------------------------------------------
+VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT: float = 15.0  # ≥15% elevation under high ignition load
+VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN: float = 0.60  # d ≥ 0.6 for load effect
+VP4_ADAPTIVE_THRESHOLD_HYSTERESIS_ALPHA: float = 0.01  # p < 0.01 for staircase asymmetry
+VP4_FIXED_THRESHOLD_MAX_DIFF_PCT: float = 5.0  # GWT prediction: <5% difference
+
+# ---------------------------------------------------------------------------
+# FP-03 Tiered Falsification Structure
+# Tier 1: any single blocking protocol failure → APGI falsified
+# Tier 2: ≥3 supporting protocol failures → APGI falsified
+# Tier 3: extension protocol failures alone do not falsify core
+# ---------------------------------------------------------------------------
+FP3_TIER1_PROTOCOLS: list = ["P1_HEP_P3B", "P6_BISTABILITY", "VP3_COMPUTATIONAL_ADVANTAGE"]
+FP3_TIER2_PROTOCOLS: list = ["P2_TMS", "P3_CONVERGENCE", "VP4_PHASE_TRANSITION", "VP9_NEURAL_SIGNATURES"]
+FP3_TIER3_PROTOCOLS: list = ["VP5_EVOLUTIONARY", "VP11_CULTURAL", "VP12_CLINICAL"]
+FP3_TIER2_MAX_FAILURES: int = 2  # Falsified if > this many Tier 2 protocols fail (i.e., ≥3)
+FP3_TIER2_WEAK_EFFECT_COHENS_D: float = 0.30  # All Tier 2 d < 0.3 → falsified despite significance
+FP3_HEP_P3B_MIN_CORRELATION: float = 0.20  # r < 0.2 with N=60 and 80% power → Tier 1 falsification
+FP3_P3B_AMPLITUDE_MIN_COHENS_D: float = 0.20  # d < 0.2 interoceptive vs. exteroceptive → weak effect
+FP3_BISTABILITY_DIP_P_MAX: float = 0.10  # Hartigan's dip test p > 0.10 → bistability absent
+
+# ---------------------------------------------------------------------------
+# FP-05 Agent-Based Evolutionary Simulation
+# Report recommendation: APGI dominates ≥70% of population by generation 5,000
+# in volatile/embodied environments; may not dominate in stable/abstract.
+# ---------------------------------------------------------------------------
+FP5_MIN_APGI_DOMINANCE_PCT: float = 70.0  # ≥70% population share by generation 5,000
+FP5_TARGET_GENERATION: int = 5000  # Generation at which dominance is assessed
+FP5_VOLATILE_ENV_ADVANTAGE_MIN_PCT: float = 20.0  # ≥20% advantage in volatile environments
+FP5_MIN_POPULATION_SIZE: int = 1000  # Minimum population for statistically valid simulation
+FP5_MIN_GENERATIONS: int = 10000  # Total generations to run
+FP5_MIN_ENVIRONMENTS_SHOWING_ADVANTAGE: int = 2  # ≥2 of 3 environment types must show advantage
+
+# ---------------------------------------------------------------------------
+# VP-01 Competitor Comparison Discriminability Thresholds
+# APGI synthetic data should be chance-level discriminable (AUC ≤ 60%)
+# while competitor models (GWT, PP, IIT) remain distinguishable (AUC ≥ 70%).
+# ---------------------------------------------------------------------------
+VP1_APGI_MAX_DISCRIMINABILITY_AUC: float = 0.60  # APGI ≤60% AUC (chance-like)
+VP1_COMPETITOR_MIN_DISCRIMINABILITY_AUC: float = 0.70  # GWT/PP/IIT ≥70% AUC (distinguishable)
+VP1_ML_CV_FOLDS: int = 5  # 5-fold cross-validation standard
+
+# ---------------------------------------------------------------------------
 DEFAULT_ALPHA: float = 0.05  # default significance level
 BONFERRONI_ALPHA_6: float = 0.008  # Bonferroni-corrected (6 tests)
 ALPHA_PER_TEST_BONFERRONI: float = 0.008  # Bonferroni-corrected alpha per test
@@ -699,6 +747,21 @@ THRESHOLD_REGISTRY = {
     "V2.3_SOMATIC_EFFECT_D": V2_3_MIN_SOMATIC_EFFECT_D,
     "V2.3_CONTRIBUTION_PCT": V2_3_MIN_CONTRIBUTION_PCT,
     "V2.3_ALPHA": V2_3_ALPHA,
+    # VP-04 Adaptive Threshold Dynamics
+    "VP4_ADAPTIVE_THRESHOLD_LOAD_PCT": VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT,
+    "VP4_ADAPTIVE_THRESHOLD_COHENS_D": VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN,
+    "VP4_FIXED_THRESHOLD_MAX_DIFF_PCT": VP4_FIXED_THRESHOLD_MAX_DIFF_PCT,
+    # FP-03 Tiered Falsification
+    "FP3_TIER2_MAX_FAILURES": FP3_TIER2_MAX_FAILURES,
+    "FP3_HEP_P3B_MIN_CORR": FP3_HEP_P3B_MIN_CORRELATION,
+    "FP3_P3B_MIN_COHENS_D": FP3_P3B_AMPLITUDE_MIN_COHENS_D,
+    "FP3_BISTABILITY_DIP_P_MAX": FP3_BISTABILITY_DIP_P_MAX,
+    # FP-05 Evolutionary Simulation
+    "FP5_MIN_APGI_DOMINANCE_PCT": FP5_MIN_APGI_DOMINANCE_PCT,
+    "FP5_VOLATILE_ADVANTAGE_PCT": FP5_VOLATILE_ENV_ADVANTAGE_MIN_PCT,
+    # VP-01 Competitor Discriminability
+    "VP1_APGI_MAX_AUC": VP1_APGI_MAX_DISCRIMINABILITY_AUC,
+    "VP1_COMPETITOR_MIN_AUC": VP1_COMPETITOR_MIN_DISCRIMINABILITY_AUC,
 }
 
 

@@ -1889,6 +1889,68 @@ def compare_models_mae(
     return results
 
 
+def _run_alternative_models_numpy(
+    stimulus_data: np.ndarray,
+    response_data: np.ndarray,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    BIC-based Bayes factor approximation when PyMC is unavailable.
+
+    Uses MLE via scipy.optimize + Raftery's BIC approximation:
+        log(BF_10) ≈ (BIC_null − BIC_alt) / 2
+    which gives a log-evidence proxy for each model without MCMC.
+    """
+    from scipy.optimize import minimize
+    from scipy.special import expit
+
+    def neg_log_lik_standard_pp(params, x, y):
+        theta_0, log_pi_i = params
+        pi_i = np.exp(log_pi_i)
+        p = expit((x - theta_0) * pi_i)
+        p = np.clip(p, 1e-9, 1 - 1e-9)
+        return -np.sum(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    def neg_log_lik_gwt_only(params, x, y):
+        theta_0, log_alpha = params
+        alpha = np.exp(log_alpha)
+        eff_thresh = theta_0 / (1.0 + alpha * x)
+        p = expit(x - eff_thresh)
+        p = np.clip(p, 1e-9, 1 - 1e-9)
+        return -np.sum(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    n = len(response_data)
+    results: Dict[str, Dict[str, Any]] = {}
+
+    for model_name, neg_ll_fn, k, x0 in [
+        ("StandardPP", neg_log_lik_standard_pp, 2, [0.5, 0.0]),
+        ("GWTOnly", neg_log_lik_gwt_only, 2, [0.6, -0.7]),
+    ]:
+        try:
+            opt = minimize(
+                neg_ll_fn,
+                x0,
+                args=(stimulus_data, response_data),
+                method="Nelder-Mead",
+                options={"xatol": 1e-6, "fatol": 1e-6, "maxiter": 5000},
+            )
+            nll = opt.fun
+            bic = k * np.log(n) + 2 * nll
+            # log_evidence proxy: -BIC/2  (Raftery 1995 approximation)
+            log_evidence = -bic / 2.0
+            results[model_name] = {
+                "log_evidence": float(log_evidence),
+                "bic": float(bic),
+                "mle_params": opt.x.tolist(),
+                "model_type": model_name,
+                "method": "numpy_mle_bic_approximation",
+            }
+        except Exception as e:
+            logger.warning(f"Numpy MLE fallback failed for {model_name}: {e}")
+            results[model_name] = {"log_evidence": None, "error": str(e)}
+
+    return results
+
+
 def run_alternative_models(
     stimulus_data: np.ndarray,
     response_data: np.ndarray,
@@ -1910,7 +1972,7 @@ def run_alternative_models(
         Dictionary with results from alternative models
     """
     if not HAS_PYMC:
-        raise ImportError("PyMC is required for alternative model estimation")
+        return _run_alternative_models_numpy(stimulus_data, response_data)
 
     logger.info("Running alternative models for comparison")
 

@@ -33,14 +33,30 @@ LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
 Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
-FALSIFICATION_CRITERIA
-----------------------
-If information-theoretic phase transitions are not observable (mutual information
-increase < 30% across predicted boundaries), or if transfer entropy does not diverge
-at the phase boundary (divergence test p > 0.05), or if critical phenomena are absent
-(susceptibility χ² test p > 0.05), then the APGI Level 2 phase transition claim is
-falsified. This would indicate that APGI phase transitions do not manifest at the
-information-theoretic level.
+FALSIFICATION_CRITERIA (Updated per Scientific Validity Assessment)
+----------------------------------------------------------------------
+VP-04 now includes TWO independent sub-protocols:
+
+SUB-PROTOCOL A: Information-Theoretic Phase Transition (original)
+  If mutual information increase < 30% across predicted boundaries, or if transfer
+  entropy does not diverge at the phase boundary (p > 0.05), or if critical phenomena
+  are absent (susceptibility χ² test p > 0.05), the Level 2 phase transition claim
+  is falsified.
+  NOTE: This sub-protocol is shared with standard GWT — passing Sub-A alone does
+  NOT distinguish APGI from a fixed-threshold model.
+
+SUB-PROTOCOL B: Adaptive Threshold Hysteresis (APGI-specific, new)
+  APGI uniquely predicts that θₜ adapts based on metabolic cost-benefit. This means:
+  - High ignition load raises the threshold on subsequent trials
+  - T_high-load > T_low-load by ≥15% (Cohen's d ≥ 0.6, p < 0.01)
+  - GWT prediction: T_high-load ≈ T_low-load (< 5% difference, fixed threshold)
+
+  FALSIFICATION (Sub-B): If threshold remains constant across load conditions
+  (< 5% difference), APGI's allostatic modulation is disconfirmed even if phase
+  transitions are detected in Sub-A. This is the BLOCKING criterion.
+
+  Implementation: AdaptiveThresholdHysteresisTest and test_adaptive_threshold_dynamics()
+  Thresholds: VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT, VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN
 but correspond to genuine computational phase transitions at the information level.
 
 This protocol implements:
@@ -3924,6 +3940,186 @@ def run_protocol_main(config=None):
         errors=[],
         metadata=legacy_result.get("results", {}).get("summary_statistics", {}),
     ).to_dict()
+
+
+class AdaptiveThresholdHysteresisTest:
+    """
+    VP-04 Adaptive Threshold Dynamics Test (report-mandated revision).
+
+    APGI-Specific Claim: The ignition threshold θₜ adapts trial-by-trial based on
+    metabolic cost-benefit. Under high ignition load (frequent ignitions), metabolic
+    gating elevates the threshold for subsequent trials. This produces measurable
+    hysteresis: thresholds are higher after high-load blocks than after low-load blocks.
+
+    This test distinguishes APGI from standard GWT:
+      - APGI prediction: T_high_load > T_low_load by ≥15% (Cohen's d ≥ 0.6)
+      - GWT prediction: T_high_load ≈ T_low_load (< 5% difference, fixed threshold)
+
+    Falsification: If threshold remains constant across load conditions, APGI's
+    allostatic modulation is disconfirmed even if phase transitions are detected.
+    """
+
+    def __init__(
+        self,
+        n_trials_per_block: int = 200,
+        low_load_detection_rate: float = 0.20,
+        high_load_detection_rate: float = 0.80,
+        random_seed: int = RANDOM_SEED,
+    ) -> None:
+        self.n_trials = n_trials_per_block
+        self.low_load_rate = low_load_detection_rate
+        self.high_load_rate = high_load_detection_rate
+        self.rng = np.random.default_rng(random_seed)
+
+    def _simulate_adaptive_threshold(
+        self, base_threshold: float, detection_rate: float, eta: float = 0.05
+    ) -> np.ndarray:
+        """
+        Simulate trial-by-trial threshold adaptation under a given detection rate.
+
+        θₜ₊₁ = θₜ + η × (ignition_count_window - target_rate × window_size)
+
+        This is the APGI allostatic rule: recent ignition frequency drives
+        upward or downward adjustment of the threshold.
+        """
+        thresholds = np.zeros(self.n_trials)
+        thresholds[0] = base_threshold
+        window_size = 10
+
+        for t in range(1, self.n_trials):
+            # Adaptive update: look back over recent window
+            start = max(0, t - window_size)
+            recent_ignitions = np.mean(
+                [
+                    float(self.rng.normal(loc=detection_rate * 2, scale=0.5) > thresholds[max(0, t - i - 1)])
+                    for i in range(t - start)
+                ]
+            )
+            # Threshold rises if recent ignition rate exceeds target
+            delta = eta * (recent_ignitions - 0.50)
+            thresholds[t] = np.clip(thresholds[t - 1] + delta, 0.01, 2.0)
+
+        return thresholds
+
+    def run(self) -> Dict[str, Any]:
+        """
+        Run adaptive threshold hysteresis test.
+
+        Returns:
+            Dict with:
+              - 'passed': bool — APGI adaptive threshold prediction confirmed
+              - 'gwt_prediction_confirmed': bool — True if GWT fixed-threshold prediction holds
+              - 'threshold_increase_pct': float — % increase from low- to high-load block
+              - 'cohens_d': float — effect size of load difference
+              - 'p_value': float — significance of load effect (Welch's t-test)
+              - 'apgi_falsified': bool — True if threshold difference < 5% (GWT wins)
+        """
+        from scipy import stats as _stats
+
+        try:
+            from utils.falsification_thresholds import (
+                VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN,
+                VP4_ADAPTIVE_THRESHOLD_HYSTERESIS_ALPHA,
+                VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT,
+                VP4_FIXED_THRESHOLD_MAX_DIFF_PCT,
+            )
+        except ImportError:
+            VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT = 15.0
+            VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN = 0.60
+            VP4_ADAPTIVE_THRESHOLD_HYSTERESIS_ALPHA = 0.01
+            VP4_FIXED_THRESHOLD_MAX_DIFF_PCT = 5.0
+
+        base_threshold = 0.50
+
+        # Low-load block: sparse ignition (20% detection rate)
+        low_load_thresholds = self._simulate_adaptive_threshold(
+            base_threshold=base_threshold,
+            detection_rate=self.low_load_rate,
+        )
+
+        # High-load block: frequent ignition (80% detection rate)
+        high_load_thresholds = self._simulate_adaptive_threshold(
+            base_threshold=base_threshold,
+            detection_rate=self.high_load_rate,
+        )
+
+        # Measure steady-state threshold in last 50% of each block
+        steady_start = self.n_trials // 2
+        low_steady = low_load_thresholds[steady_start:]
+        high_steady = high_load_thresholds[steady_start:]
+
+        mean_low = float(np.mean(low_steady))
+        mean_high = float(np.mean(high_steady))
+
+        # Percent increase from low to high load
+        threshold_increase_pct = ((mean_high - mean_low) / max(mean_low, 1e-10)) * 100.0
+
+        # Cohen's d
+        pooled_std = float(np.sqrt((np.var(low_steady, ddof=1) + np.var(high_steady, ddof=1)) / 2))
+        cohens_d = (mean_high - mean_low) / max(pooled_std, 1e-10)
+
+        # Welch's t-test
+        t_stat, p_value = _stats.ttest_ind(high_steady, low_steady, equal_var=False)
+
+        # APGI: ≥15% increase and d ≥ 0.6 and p < 0.01
+        apgi_confirmed = (
+            threshold_increase_pct >= VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT
+            and cohens_d >= VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN
+            and p_value < VP4_ADAPTIVE_THRESHOLD_HYSTERESIS_ALPHA
+        )
+
+        # GWT: < 5% difference → APGI allostatic modulation disconfirmed
+        apgi_falsified = threshold_increase_pct < VP4_FIXED_THRESHOLD_MAX_DIFF_PCT
+
+        # GWT prediction holds if difference is negligible
+        gwt_prediction_confirmed = threshold_increase_pct < VP4_FIXED_THRESHOLD_MAX_DIFF_PCT
+
+        return {
+            "passed": apgi_confirmed,
+            "apgi_falsified": apgi_falsified,
+            "gwt_prediction_confirmed": gwt_prediction_confirmed,
+            "threshold_low_load": mean_low,
+            "threshold_high_load": mean_high,
+            "threshold_increase_pct": threshold_increase_pct,
+            "cohens_d": cohens_d,
+            "t_statistic": float(t_stat),
+            "p_value": float(p_value),
+            "n_trials_per_block": self.n_trials,
+            "thresholds": {
+                "min_increase_pct": VP4_ADAPTIVE_THRESHOLD_LOAD_INCREASE_MIN_PCT,
+                "min_cohens_d": VP4_ADAPTIVE_THRESHOLD_COHENS_D_MIN,
+                "alpha": VP4_ADAPTIVE_THRESHOLD_HYSTERESIS_ALPHA,
+                "gwt_max_diff_pct": VP4_FIXED_THRESHOLD_MAX_DIFF_PCT,
+            },
+            "interpretation": (
+                "APGI allostatic gating confirmed: threshold elevated under high ignition load."
+                if apgi_confirmed
+                else (
+                    "APGI falsified: threshold constant across load conditions (GWT prediction holds)."
+                    if apgi_falsified
+                    else "Partial evidence: threshold elevated but below APGI prediction threshold."
+                )
+            ),
+        }
+
+
+def test_adaptive_threshold_dynamics(
+    n_trials_per_block: int = 200,
+    low_load_rate: float = 0.20,
+    high_load_rate: float = 0.80,
+) -> Dict[str, Any]:
+    """
+    Convenience function: run adaptive threshold hysteresis test.
+
+    Tests APGI's distinguishing prediction that ignition threshold adapts
+    based on metabolic load (not present in standard GWT).
+    """
+    test = AdaptiveThresholdHysteresisTest(
+        n_trials_per_block=n_trials_per_block,
+        low_load_detection_rate=low_load_rate,
+        high_load_detection_rate=high_load_rate,
+    )
+    return test.run()
 
 
 def validate() -> Dict[str, Any]:

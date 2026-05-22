@@ -370,8 +370,8 @@ NAMED_PREDICTIONS = {
     "P1.S_t": "Pre-P3b negativity (200–300 ms, N2/CNV) reflects S_t accumulation: amplitude scales with Πⁱ·|εⁱ| input (r > 0.35 with HEP)",
     "P6.S_t": "Pre-ignition high-gamma AC1 increase (Kendall τ > 0.3) reflects S_t approaching θₜ (P6c bifurcation criterion)",
     "P6.alpha": "Ignition sharpness α (sigmoid steepness) ≥ 2.0 in frontoparietal iEEG "
-                "(fitted from P3b–surprisal sigmoidal curve; distinguishes threshold-like "
-                "from graded ignition; falsified if α < 1.0 indicating continuous response)",
+    "(fitted from P3b–surprisal sigmoidal curve; distinguishes threshold-like "
+    "from graded ignition; falsified if α < 1.0 indicating continuous response)",
 }
 
 # Fix for Protocol 3: Add missing predictions from FP-01 and FP-02 for synthesis

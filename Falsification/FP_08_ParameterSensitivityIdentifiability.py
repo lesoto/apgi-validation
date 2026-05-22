@@ -8,6 +8,20 @@ This protocol implements comprehensive parameter sensitivity analysis for APGI.
 Per specification, F8.SA (Sobol analysis) requires a live APGIAgent instance -
 synthetic oracles are not permitted for parameter sensitivity validation.
 
+CONSOLIDATION NOTE (Scientific Validity Assessment)
+----------------------------------------------------
+FP-08 overlaps substantially with VP-08 (Psychophysical Threshold Estimation &
+Parameter Sensitivity). Both test parameter robustness and identifiability.
+
+For manuscript purposes, these should be merged under VP-08 with the following
+robustness criterion (per validity assessment):
+
+  Monte Carlo simulation (N=10,000) varying each parameter ±30%:
+    - Core qualitative predictions must hold in ≥90% of parameter combinations
+    - Posterior coefficient of variation CV < 0.3 for θ₀, Πⁱ
+    - If core predictions fail in >30% of plausible parameter combinations,
+      APGI is overfitted to a narrow regime without biological justification
+
 Dependencies:
 - Requires APGIAgent from VP_03_ActiveInferenceAgentSimulations
 - Execution order: VP-03 must run before FP-08
@@ -3004,6 +3018,14 @@ def run_falsification(seed: Optional[int] = None, agent_instance: Optional[Any] 
     np.random.seed(seed if seed is not None else APGI_GLOBAL_SEED)
 
     logger.info("Running FP-08 Parameter Sensitivity Falsification Protocol...")
+
+    # Auto-create an APGIAgent when none is supplied and the import succeeded.
+    if agent_instance is None and HAS_APPI_AGENT:
+        try:
+            agent_instance = create_apgi_agent(config={})
+            logger.info("CRIT-04 FIX: Auto-created APGIAgent for F8.SA validation")
+        except Exception as _agent_err:
+            logger.warning(f"CRIT-04 FIX: Could not auto-create APGIAgent: {_agent_err}")
 
     # CRIT-04 FIX: Use FP08Runner with dependency injection if agent provided
     if agent_instance is not None:

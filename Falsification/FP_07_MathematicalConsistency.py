@@ -5,6 +5,24 @@ Falsification Protocol 7: Mathematical Consistency Checks
 This protocol implements mathematical consistency checks for APGI equations.
 Implement FP-7 mathematical consistency with sympy.
 
+CONSOLIDATION NOTE (Scientific Validity Assessment)
+----------------------------------------------------
+FP-07 implements the same mathematical consistency tests as VP-07A (mathematical
+consistency sub-component of VP-07). These are analytical, not empirical, tests.
+Both protocols should be treated as a single "VP-7A: Mathematical Consistency
+Validation" in manuscripts.
+
+The empirical component (TMS causal interventions) belongs in VP-07B / Protocol P2,
+which is an empirical protocol testing biological substrate and should be
+reported separately in Paper 2.
+
+FALSIFICATION CRITERIA (VP-7A equivalent):
+  - Parameter identifiability: Fisher Information Matrix condition number κ < 100
+  - Dynamical stability: all parameter combinations in plausible range yield
+    stable fixed points (eigenvalues Re(λ) < 0)
+  - If large parameter regions yield non-identifiable or unstable dynamics,
+    APGI is not a coherent model and is disconfirmed at the analytical level.
+
 Four Canonical APGI Equations Tested:
 -------------------------------------
 1. Surprise Accumulation ODE (Paper Eq. 1):
@@ -174,7 +192,7 @@ class MathematicalConsistencyChecker:
                 "dimensionless",
                 "Somatic bias weight β_s",
                 "Strength of somatic marker modulation on Πⁱ_eff. "
-                "Distinct from α (ignition sharpness, range [0.1, 10.0])."
+                "Distinct from α (ignition sharpness, range [0.1, 10.0]).",
             ),
             # Time constants
             "tau_S": ParameterBounds(
@@ -247,6 +265,9 @@ class MathematicalConsistencyChecker:
                 "Overall body sensitivity",
             ),
         }
+        # Alias "beta" → "beta_s" so code using the shorter symbolic name can
+        # look up bounds without needing to know the full "beta_s" key.
+        bounds["beta"] = bounds["beta_s"]
         return bounds
 
     def _initialize_symbols(self) -> Dict[str, Any]:
