@@ -31,7 +31,6 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
@@ -93,18 +92,32 @@ NO_ANTICIPATION_COUPLING_MAX = 0.15
 ROIS = ("vmPFC", "anterior_insula", "posterior_insula", "somatosensory_cortex", "amygdala")
 
 
-@dataclass
 class Protocol5Config:
     """Configuration for APGI-P05 simulation and validation."""
 
-    n_subjects: int = 36
-    alpha: float = PRIMARY_ALPHA
-    min_beta: float = MIN_BETA
-    precision_match_tolerance: float = PRECISION_MATCH_TOLERANCE
-    min_anticipatory_coupling: float = V15_ANTICIPATORY_CORRELATION_MIN
-    no_anticipation_coupling_max: float = NO_ANTICIPATION_COUPLING_MAX
-    identifiability_fim_max: float = IDENTIFIABILITY_FIM_MAX
-    random_seed: int = RANDOM_SEED
+    def __init__(
+        self,
+        n_subjects: int = 36,
+        alpha: float = PRIMARY_ALPHA,
+        min_beta: float = MIN_BETA,
+        precision_match_tolerance: float = PRECISION_MATCH_TOLERANCE,
+        min_anticipatory_coupling: float = V15_ANTICIPATORY_CORRELATION_MIN,
+        no_anticipation_coupling_max: float = NO_ANTICIPATION_COUPLING_MAX,
+        identifiability_fim_max: float = IDENTIFIABILITY_FIM_MAX,
+        random_seed: int = RANDOM_SEED,
+    ):
+        self.n_subjects = n_subjects
+        self.alpha = alpha
+        self.min_beta = min_beta
+        self.precision_match_tolerance = precision_match_tolerance
+        self.min_anticipatory_coupling = min_anticipatory_coupling
+        self.no_anticipation_coupling_max = no_anticipation_coupling_max
+        self.identifiability_fim_max = identifiability_fim_max
+        self.random_seed = random_seed
+
+    def __str__(self) -> str:
+        """Safe string representation."""
+        return f"Protocol5Config(n_subjects={self.n_subjects}, alpha={self.alpha})"
 
 
 def _safe_pearsonr(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
@@ -522,6 +535,7 @@ def run_protocol_main(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
     status = "success" if result.get("passed") else "failed"
     completion = 100
 
+    result_metadata = result.get("metadata") or {}
     return ProtocolResult(
         protocol_id="VP_22_FMRIAnticipationExperience",
         timestamp=datetime.now().isoformat(),
@@ -536,14 +550,16 @@ def run_protocol_main(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
             "falsification_status": result.get("falsification_status"),
             "rois": result.get("rois", []),
             "assumptions": result.get("assumptions", {}),
-            "critical_falsification": result.get("metadata", {}).get("critical_falsification", False),
+            "critical_falsification": result_metadata.get("critical_falsification", False),
         },
     ).to_dict()
 
 
 def _convert_to_serializable(obj: Any) -> Any:
     """Convert numpy types and other non-serializable objects to JSON-serializable types."""
-    if isinstance(obj, (np.integer, np.bool_)):
+    if obj is None:
+        return None
+    elif isinstance(obj, (np.integer, np.bool_)):
         return int(obj) if isinstance(obj, np.integer) else bool(obj)
     elif isinstance(obj, np.floating):
         return float(obj)
@@ -723,6 +739,12 @@ def main(data_path: Optional[str] = None, allow_synthetic: bool = True) -> Dict[
     result["output_files"] = {k: str(v) for k, v in output_paths.items() if v is not None}
 
     return result
+
+
+def validate() -> str:
+    """Entry point for main.py validation runner."""
+    result = run_validation()
+    return str(result)
 
 
 if __name__ == "__main__":
