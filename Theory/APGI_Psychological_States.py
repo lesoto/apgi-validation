@@ -1257,7 +1257,7 @@ def validate_all_states() -> Tuple[int, int, List[str]]:
     # Calculate passed and failed counts
     passed_count = sum(1 for checks in results.values() if all(checks.values()))
     failed_count = len(results) - passed_count
-    warnings = [f"{name}: {', '.join(checks)}" for name, checks in edge_cases]
+    warnings = [f"{name}: {', '.join(checks)}" for item in edge_cases for name, checks in item.items()]
 
     return passed_count, failed_count, warnings
 

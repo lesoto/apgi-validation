@@ -161,3 +161,68 @@ def get_apgi_parameters(protocol_id: str) -> Dict[str, Any]:
     """Return the apgi_parameters dict for a protocol, or empty dict if not found."""
     spec = load_protocol(protocol_id)
     return spec.apgi_parameters if spec is not None else {}
+
+
+def load_protocol_template() -> Dict[str, Any]:
+    """Load the master protocol template file."""
+    template_path = _PROTOCOLS_DIR / "apgi_protocol_template.json"
+    if not template_path.exists():
+        return {}
+    with open(template_path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def get_template_protocol(protocol_key: str) -> Optional[Dict[str, Any]]:
+    """Extract a specific protocol from the template by key (e.g., 'P01')."""
+    template = load_protocol_template()
+    protocols = template.get("apgi_validation_metadata", {}).get("protocols", {})
+    return protocols.get(protocol_key)
+
+
+def _convert_benchmarks_to_predictions(benchmarks: Dict[str, Any]) -> List[SubPrediction]:
+    """Convert benchmark objects to SubPrediction format."""
+    predictions = []
+    for bench_id, bench_data in benchmarks.items():
+        value = bench_data.get("value")
+        value_str = f"{value} {bench_data.get('unit', '')}" if value is not None else "N/A"
+        predictions.append(
+            SubPrediction(
+                id=bench_id,
+                claim=f"Expected value: {value_str}",
+                confirming_evidence=f"Role: {bench_data.get('role', 'unknown')}",
+                key_measurement_equation=bench_data.get("note", ""),
+            )
+        )
+    return predictions
+
+
+def template_to_protocol_spec(protocol_key: str) -> Optional[ProtocolSpec]:
+    """Convert template protocol to ProtocolSpec format."""
+    template_proto = get_template_protocol(protocol_key)
+    if not template_proto:
+        return None
+
+    # Map template fields to ProtocolSpec
+    apgi_params = {
+        "benchmarks": template_proto.get("benchmarks", {}),
+        "falsification_thresholds": template_proto.get("falsification_thresholds", {}),
+        "sample_size": template_proto.get("sample_size", {}),
+    }
+    # Add other template fields to apgi_parameters
+    for k, v in template_proto.items():
+        if k not in ["id", "status", "benchmarks", "falsification_thresholds", "sample_size"]:
+            apgi_params[k] = v
+
+    return ProtocolSpec(
+        protocol_id=f"APGI-{protocol_key}",
+        title=template_proto.get("id", ""),
+        version="2.0",
+        paper="",
+        description=f"Status: {template_proto.get('status', 'unknown')}",
+        validation_status=template_proto.get("status", "unknown"),
+        apgi_parameters=apgi_params,
+        sub_predictions=_convert_benchmarks_to_predictions(template_proto.get("benchmarks", {})),
+        primary_hypothesis="",
+        caveats=[],
+        _raw=template_proto,
+    )

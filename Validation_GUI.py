@@ -517,6 +517,13 @@ class APGIValidationGUI:
             21: "Protocol 21: Free Energy Prediction Error",
             22: "Protocol 22: fMRI Anticipation Experience (Enhanced)",
             99: "Protocol ALL: Master Aggregator (All Protocols)",
+            # Template protocols from apgi_protocol_template.json
+            101: "Template P01: EEG Interoceptive Precision Gating",
+            102: "Template P02: TMS Anterior Insular Frontoparietal Gating",
+            103: "Template P03: Active Inference Agent Simulations",
+            104: "Template P04: Disorders of Consciousness Assessment",
+            105: "Template P05: fMRI Anticipation vs Experience",
+            106: "Template P06: icEEG All or None Ignition Dynamics",
         }
 
         for i, (num, desc) in enumerate(protocols_info.items()):
@@ -1471,11 +1478,11 @@ class APGIValidationGUI:
         return {
             "cpu": {
                 "direction": ("increasing" if cpu_change > 5 else "decreasing" if cpu_change < -5 else "stable"),
-                "change": f"{cpu_change:+.1f}%",
+                "change": cpu_change,
             },
             "memory": {
                 "direction": ("increasing" if mem_change > 5 else "decreasing" if mem_change < -5 else "stable"),
-                "change": f"{mem_change:+.1f}%",
+                "change": mem_change,
             },
         }
 
@@ -1496,7 +1503,7 @@ class APGIValidationGUI:
         return {
             "success_rate": {
                 "direction": ("improving" if change > 5 else "declining" if change < -5 else "stable"),
-                "change": f"{change:+.1f}%",
+                "change": change,
             }
         }
 
@@ -2524,7 +2531,7 @@ Interpretation:
                     # Brief wait for clean exit (reduced from 5s to 0.5s)
                     self.validation_thread.join(timeout=0.5)
                     if self.validation_thread.is_alive():
-                        logging.warning("Validation thread did not stop cleanly within timeout")
+                        logging.debug("Validation thread did not stop cleanly within timeout (daemon thread will die with process)")
                         # Don't block - the thread is daemon and will die with process
                     else:
                         logging.info("Validation thread stopped successfully")

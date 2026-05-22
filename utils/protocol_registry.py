@@ -164,6 +164,81 @@ def _initialize_registry():
     )
 
     # ------------------------------------------------------------------
+    # Protocol Template (apgi_protocol_template.json)
+    # ------------------------------------------------------------------
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P01-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="EEG Interoceptive Precision Gating (Template)",
+            description="Template specification for P01 protocol with typed benchmarks",
+            priority_level="Empirical",
+            category="ExperimentalProtocol",
+            aliases=["P01-TEMPLATE", "EEG-Template"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P02-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="TMS Anterior Insular Frontoparietal Gating (Template)",
+            description="Template specification for P02 protocol with typed benchmarks",
+            priority_level="Empirical",
+            category="ExperimentalProtocol",
+            aliases=["P02-TEMPLATE", "TMS-Template"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P03-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="Active Inference Agent Simulations (Template)",
+            description="Template specification for P03 protocol with typed benchmarks",
+            priority_level="Computational",
+            category="ExperimentalProtocol",
+            aliases=["P03-TEMPLATE", "ActiveInference-Template"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P04-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="Disorders of Consciousness Assessment (Template)",
+            description="Template specification for P04 protocol with typed benchmarks",
+            priority_level="Clinical",
+            category="ExperimentalProtocol",
+            aliases=["P04-TEMPLATE", "DoC-Template"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P05-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="fMRI Anticipation vs Experience (Template)",
+            description="Template specification for P05 protocol with typed benchmarks",
+            priority_level="Empirical",
+            category="ExperimentalProtocol",
+            aliases=["P05-TEMPLATE", "fMRI-Template"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="APGI-P06-TEMPLATE",
+            filename="protocols/apgi_protocol_template.json",
+            title="icEEG All or None Ignition Dynamics (Template)",
+            description="Template specification for P06 protocol with typed benchmarks",
+            priority_level="Empirical",
+            category="ExperimentalProtocol",
+            aliases=["P06-TEMPLATE", "iEEG-Template"],
+        )
+    )
+
+    # ------------------------------------------------------------------
     # Falsification Protocols (FP_01 – FP_12)
     # ------------------------------------------------------------------
     PROTOCOL_REGISTRY.register_protocol(
