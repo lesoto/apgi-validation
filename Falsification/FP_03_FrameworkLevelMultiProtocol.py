@@ -3849,10 +3849,10 @@ def check_tiered_falsification(protocol_outcomes: Dict[str, Any]) -> Dict[str, A
         FP3_TIER1_PROTOCOLS = ["P1_HEP_P3B", "P6_BISTABILITY", "VP3_COMPUTATIONAL_ADVANTAGE"]
         FP3_TIER2_PROTOCOLS = ["P2_TMS", "P3_CONVERGENCE", "VP4_PHASE_TRANSITION", "VP9_NEURAL_SIGNATURES"]
         FP3_TIER3_PROTOCOLS = ["VP5_EVOLUTIONARY", "VP11_CULTURAL", "VP12_CLINICAL"]
-        FP3_TIER2_MAX_FAILURES = 2
+        FP3_TIER2_MAX_FAILURES = 3  # [FIX] was 2; paper allows up to 3 failures before rejection
         FP3_TIER2_WEAK_EFFECT_COHENS_D = 0.30
         FP3_HEP_P3B_MIN_CORRELATION = 0.20
-        FP3_BISTABILITY_DIP_P_MAX = 0.10
+        FP3_BISTABILITY_DIP_P_MAX = 0.05  # [FIX] was 0.10; Hartigan p < 0.05
 
     def _protocol_passed(protocol_id: str) -> bool:
         outcome = protocol_outcomes.get(protocol_id, {})

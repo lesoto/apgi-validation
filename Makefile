@@ -1,19 +1,21 @@
 # APGI Validation Framework Makefile
 # ==================================
 
-.PHONY: help clean test test-fast test-full lint threshold-lint install dev-install venv docs
+.PHONY: help clean test test-fast test-full lint threshold-lint install dev-install venv docs manifest manifest-check
 
 help:
 	@echo "Available targets:"
-	@echo "  venv         - Create virtual environment"
-	@echo "  clean        - Remove temporary files and cache directories"
-	@echo "  test         - Run test suite"
-	@echo "  test-fast    - Run fast test suite (< 5 minutes)"
-	@echo "  test-full    - Run full test suite with 100% coverage"
-	@echo "  lint         - Run linting checks"
-	@echo "  install      - Install package and dependencies"
-	@echo "  dev-install  - Install in development mode"
-	@echo "  docs         - Generate documentation"
+	@echo "  venv           - Create virtual environment"
+	@echo "  clean          - Remove temporary files and cache directories"
+	@echo "  test           - Run test suite"
+	@echo "  test-fast      - Run fast test suite (< 5 minutes)"
+	@echo "  test-full      - Run full test suite with 100% coverage"
+	@echo "  lint           - Run linting checks"
+	@echo "  manifest       - Recompute all protocol SHA-256 hashes"
+	@echo "  manifest-check - Check manifest for drift without writing (CI gate)"
+	@echo "  install        - Install package and dependencies"
+	@echo "  dev-install    - Install in development mode"
+	@echo "  docs           - Generate documentation"
 
 venv:
 	python3 -m venv .venv
@@ -48,6 +50,14 @@ lint:
 
 threshold-lint:
 	python3 utils/threshold_lint.py
+
+manifest:
+	@echo "Refreshing protocol manifest hashes..."
+	python3 -m utils.protocol_manifest --refresh
+
+manifest-check:
+	@echo "Checking protocol manifest for drift..."
+	python3 -m utils.protocol_manifest --check
 
 install: venv
 	.venv/bin/pip install .

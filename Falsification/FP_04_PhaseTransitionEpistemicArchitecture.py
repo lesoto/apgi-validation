@@ -168,7 +168,7 @@ DEFAULT_TAU_THETA = MODEL_PARAMS.tau_theta if hasattr(MODEL_PARAMS, "tau_theta")
 DEFAULT_BETA = 1.2
 
 # Clinical biomarker thresholds
-DOC_AUC_MIN = 0.75  # AUC target 0.75–0.85 for DoC classification
+DOC_AUC_MIN = 0.80  # [FIX] PROD-Protocols P4a: "AUC > 0.80"; was incorrectly 0.75
 DOC_AUC_MAX = 0.85
 BOOTSTRAP_N = 1000  # Number of bootstrap samples for CI
 BOOTSTRAP_ALPHA = 0.05  # Significance level for CI
@@ -2306,7 +2306,7 @@ class ClinicalBiomarkerFalsification:
         except ImportError:
             # Fallback to hardcoded values if import fails
             logger.warning("Could not import DOC_AUC thresholds, using fallback values")
-            DOC_AUC_MIN = 0.75
+            DOC_AUC_MIN = 0.80  # [FIX] PROD-Protocols P4a: "AUC > 0.80"
             DOC_AUC_MAX = 0.85
 
         # Validate AUC is in target range

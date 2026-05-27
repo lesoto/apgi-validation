@@ -228,21 +228,22 @@ class TestThresholdConstants:
         assert BIC_FRAMEWORK_THRESHOLD_B == 10.0
 
     def test_doc_auc_thresholds(self):
-        """Test DoC AUC thresholds"""
-        assert DOC_AUC_MIN == 0.75
+        """Test DoC AUC thresholds — PROD-Protocols P4a: 'AUC > 0.80'"""
+        assert DOC_AUC_MIN == 0.80, "DOC_AUC_MIN must be 0.80 per PROD-Protocols P4a"
         assert DOC_AUC_MAX == 0.85
 
     def test_vp2_coupling_thresholds(self):
-        """Test VP2 coupling parameters"""
-        assert VP2_DELTA_PI_COUPLING == 0.055
+        """Test VP2 coupling parameters — analytically derived 0.012 (Critchley et al. 2004)"""
+        assert VP2_DELTA_PI_COUPLING == 0.012, "VP2_DELTA_PI_COUPLING must be 0.012 (analytically derived)"
         assert VP2_AROUSAL_COUPLING_SCALE == 0.50
         assert VP2_AROUSAL_BOOST_MAX == 0.60
 
     def test_vp4_calibrated_parameters(self):
-        """Test VP4 calibrated parameters"""
+        """Test VP4 calibrated parameters — paper range [0.1, 10.0]"""
         assert VP4_CALIBRATED_TAU == 0.20
         assert VP4_CALIBRATED_THETA_0 == 0.12
-        assert VP4_CALIBRATED_ALPHA == 35.0
+        assert VP4_CALIBRATED_ALPHA == 7.5, "VP4_CALIBRATED_ALPHA must be 7.5 (within paper range [0.1, 10.0])"
+        assert VP4_CALIBRATED_ALPHA <= 10.0, "VP4_CALIBRATED_ALPHA must not exceed paper upper bound of 10.0"
 
     def test_v16_metabolic_thresholds(self):
         """Test V16 metabolic ATP thresholds"""

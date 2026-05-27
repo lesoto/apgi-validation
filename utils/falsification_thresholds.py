@@ -242,7 +242,8 @@ F2_4_MIN_BETA_INTERACTION: float = 0.35
 F2_4_ALPHA: float = 0.01
 
 # F2.5 — IGT Convergence
-F2_5_MAX_TRIALS: float = 55.0
+# [FIX] APGI-OSF-Preregistration P3a: "APGI convergence 50–80 trials" → upper bound is 80, not 55.
+F2_5_MAX_TRIALS: float = 80.0
 F2_5_MIN_HAZARD_RATIO: float = 1.65
 F2_5_MIN_TRIAL_ADVANTAGE: float = 12.0
 F2_5_MIN_ADVANTAGE_PCT: float = 70.0  # % advantageous selections for IGT convergence
@@ -302,8 +303,12 @@ NULL_BOOTSTRAP_N: int = 1000  # bootstrap samples for null distribution
 
 F4_MI_MAX_BITS_S: float = 40.0  # Maximum MI in bits/s for bandwidth constraint
 FMI_MIN_BITS_S: float = 0.5  # Minimum mutual information in bits/s
-F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto
+F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto (computational proxy)
 F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
+# [FIX] Protocol 6 explicitly mandates Kendall τ > 0.30 for pre-ignition AC1 monotone increase.
+# F4_CRITICAL_SLOWING_MIN_RATIO is a computational proxy; this constant is the paper-mandated statistic.
+# VP-20 must map to F4_CRITICAL_SLOWING_KENDALL_TAU_MIN, not just the ratio.
+F4_CRITICAL_SLOWING_KENDALL_TAU_MIN: float = 0.30  # Kendall τ > 0.30; Protocol 6 primary statistic
 F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
 TRANSFER_ENTROPY_THRESHOLD: float = 0.1  # Alias, aligned with F4_TE_THRESHOLD
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
@@ -315,12 +320,14 @@ F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect s
 # is ever used for the ignition sigmoid. Investigate source before changing.
 VP4_CALIBRATED_TAU: float = 0.20
 VP4_CALIBRATED_THETA_0: float = 0.12
-VP4_CALIBRATED_ALPHA: float = 35.0  # WARNING: outside paper range [2.5, 7.5] — see [MEDIUM-1]
-assert VP4_CALIBRATED_ALPHA <= 50.0, (  # soft guard; tight guard once source is identified
-    f"VP4_CALIBRATED_ALPHA={VP4_CALIBRATED_ALPHA} is outside theoretical paper range "
-    f"[{ALPHA_UNIFIED_BOUNDS['population_range'][0]}, "
-    f"{ALPHA_UNIFIED_BOUNDS['population_range'][1]}]. "
-    "This value must be investigated and corrected before publication runs."
+# [FIX] Was 35.0 (4.7× paper upper bound of 10.0).  Corrected to 7.5 per PROD-Protocols
+# ALPHA_UNIFIED_BOUNDS: population_range = [0.1, 10.0]; recommended calibration value 7.5.
+# The old value of 35.0 broke the assertion guard AND contradicted the paper spec.
+VP4_CALIBRATED_ALPHA: float = 7.5  # Paper range [0.1, 10.0]; recommended 7.5
+assert VP4_CALIBRATED_ALPHA <= 10.0, (  # hard guard — paper population range upper bound
+    f"VP4_CALIBRATED_ALPHA={VP4_CALIBRATED_ALPHA} exceeds paper population range upper bound "
+    f"({ALPHA_UNIFIED_BOUNDS['population_range'][1]}). "
+    "Values above 10.0 contradict ALPHA_UNIFIED_BOUNDS and must not be used in publication runs."
 )
 
 # VP-04 Adaptive Threshold Dynamics (Hysteresis Test)
@@ -510,20 +517,23 @@ P2_A_MIN_THRESHOLD_SHIFT_LOG: float = get_threshold(
     P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC, P2_A_MIN_THRESHOLD_SHIFT_LOG_SIMULATION
 )
 
-P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC: float = 35.0
-P2_B_MIN_HEP_REDUCTION_PCT_SIMULATION: float = 30.0
+# [FIX] PROD-Protocols P2b: "HEP reduced ~30%" — paper spec was incorrectly set to 35.0.
+P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC: float = 30.0
+P2_B_MIN_HEP_REDUCTION_PCT_SIMULATION: float = 25.0
 P2_B_MIN_HEP_REDUCTION_PCT: float = get_threshold(
     P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC, P2_B_MIN_HEP_REDUCTION_PCT_SIMULATION
 )
 
-P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC: float = 25.0
-P2_B_MIN_PCI_REDUCTION_PCT_SIMULATION: float = 20.0
+# [FIX] PROD-Protocols P2b: "PCI reduced ~20%" — paper spec was incorrectly set to 25.0.
+P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC: float = 20.0
+P2_B_MIN_PCI_REDUCTION_PCT_SIMULATION: float = 15.0
 P2_B_MIN_PCI_REDUCTION_PCT: float = get_threshold(
     P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC, P2_B_MIN_PCI_REDUCTION_PCT_SIMULATION
 )
 
-P2_C_MIN_ETA_SQ_PAPER_SPEC: float = 0.12
-P2_C_MIN_ETA_SQ_SIMULATION: float = 0.10
+# [FIX] PROD-Protocols P2c: "η² ≥ 0.10" — paper spec was incorrectly set to 0.12.
+P2_C_MIN_ETA_SQ_PAPER_SPEC: float = 0.10
+P2_C_MIN_ETA_SQ_SIMULATION: float = 0.08
 P2_C_MIN_ETA_SQ: float = get_threshold(P2_C_MIN_ETA_SQ_PAPER_SPEC, P2_C_MIN_ETA_SQ_SIMULATION)
 
 # VP-10 compatibility aliases
@@ -688,8 +698,13 @@ V19_N_PERMUTATIONS: int = 500
 V19_POST_IGNITION_SUPPRESSION_BINS: int = 3  # consecutive below-chance bins required
 
 # V20 — Empirical iEEG (VP-20, linked to Protocol 6 / P6a + P6c)
-# P6a: GMM bimodality
-V20_HG_BIMODALITY_COEFF_MIN: float = 0.55  # bimodality coefficient ≥ 0.55
+# P6a: Bimodality — paper uses Hartigan's Dip Test (p < 0.05), NOT a bimodality coefficient.
+# [FIX] Replaced V20_HG_BIMODALITY_COEFF_MIN (0.55, bimodality coefficient — wrong statistic)
+#        with V20_DIP_TEST_P_MAX pointing to FP3_BISTABILITY_DIP_P_MAX as single source of truth.
+V20_DIP_TEST_P_MAX: float = 0.05  # Hartigan dip test p < 0.05 (P6a); matches FP3_BISTABILITY_DIP_P_MAX
+# DEPRECATED: V20_HG_BIMODALITY_COEFF_MIN used the wrong statistic (bimodality coefficient).
+# Kept for backward compatibility with VP_20_EmpiricalIEEG.py; migrate to V20_DIP_TEST_P_MAX.
+V20_HG_BIMODALITY_COEFF_MIN: float = 0.55  # DEPRECATED — use V20_DIP_TEST_P_MAX instead
 V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50  # Cohen's d ≥ 0.50
 
 # P6c: Critical slowing
@@ -800,7 +815,10 @@ RANDOM_SEED: int = 42  # global reproducibility seed
 FP3_TIER1_PROTOCOLS: list = ["P1_HEP_P3B", "P6_BISTABILITY", "VP3_COMPUTATIONAL_ADVANTAGE"]
 FP3_TIER2_PROTOCOLS: list = ["P2_TMS", "P3_CONVERGENCE", "VP4_PHASE_TRANSITION", "VP9_NEURAL_SIGNATURES"]
 FP3_TIER3_PROTOCOLS: list = ["VP5_EVOLUTIONARY", "VP11_CULTURAL", "VP12_CLINICAL"]
-FP3_TIER2_MAX_FAILURES: int = 2  # Falsified if > this many Tier 2 protocols fail (i.e., ≥3)
+# [FIX] APGI-Empirical-Validation Master Matrix: "4 or more of 6 core claims → Framework rejection"
+# → framework is falsified when ≥ 4 protocols fail, which means up to 3 failures are allowed.
+# Previous value of 2 was too strict (implied falsification at ≥3 failures).
+FP3_TIER2_MAX_FAILURES: int = 3  # Falsified if > this many Tier 2 protocols fail (i.e., ≥4)
 FP3_TIER2_WEAK_EFFECT_COHENS_D: float = 0.30  # All Tier 2 d < 0.30 → falsified despite significance
 FP3_HEP_P3B_MIN_CORRELATION: float = 0.20  # r < 0.20 with N=60 and 80% power → Tier 1 falsification
 FP3_P3B_AMPLITUDE_MIN_COHENS_D: float = 0.20  # d < 0.20 interoceptive vs exteroceptive → weak effect
@@ -849,7 +867,12 @@ P0_C_AINS_BOLD_R_MIN: float = 0.30
 
 P1_N_TARGET: int = 40
 P1_N_MIN: int = 32
-P1_ALPHA_BONFERRONI: float = 0.017  # 3 primary tests → α/3
+P1_ALPHA_BONFERRONI: float = 0.017  # 3 primary tests → α/3 (Bonferroni-corrected)
+# [FIX] P1 Alpha handling: paper mandates Bonferroni α = 0.017 across all 3 P1 tests.
+# Previous code used global 0.01; these aliases make the per-test alpha explicit.
+P1_A_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — HEP–P3b correlation test
+P1_B_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — precision gating partial correlation
+P1_C_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — arousal×interoception interaction
 P1_A_COHENS_D_MIN: float = 0.50
 P1_A_COHENS_D_FAL_MAX: float = 0.20 # Falsification if d < 0.20
 P1_B_PARTIAL_R_MIN: float = 0.25    # r(HEP-P3b | pupil) survival threshold
@@ -903,8 +926,10 @@ BONFERRONI_ALPHA_6: float = 0.008  # Bonferroni-corrected (6 tests)
 ALPHA_PER_TEST_BONFERRONI: float = 0.008
 
 GENERIC_MIN_R2: float = 0.70
-GENERIC_MIN_AUC: float = 0.70  # General; DoC range is 0.75–0.85
-DOC_AUC_MIN: float = 0.75
+GENERIC_MIN_AUC: float = 0.70  # General; DoC range is 0.80–0.85
+# [FIX] PROD-Protocols P4a: "AUC > 0.80" (primary confirmatory threshold).
+# Previous value 0.75 was below the paper's primary threshold; 0.80 is correct.
+DOC_AUC_MIN: float = 0.80
 DOC_AUC_MAX: float = 0.85
 GENERIC_MIN_CORR: float = 0.30
 GENERIC_MIN_COHENS_D: float = 0.70  # [LOW-3] matches module constant (was 0.71 in registry)
@@ -1045,6 +1070,82 @@ THRESHOLD_REGISTRY = {
     "GENERIC_MEDIUM_COHENS_D": GENERIC_MEDIUM_COHENS_D,
     "GENERIC_BINARY_THRESHOLD": GENERIC_BINARY_DECISION_THRESHOLD,
     "LIQUID_IGNITION_THRESHOLD": LIQUID_IGNITION_DETECTION_THRESHOLD,
+    # DOC AUC (P4a primary confirmatory threshold) [FIX]
+    "DOC_AUC_MIN": DOC_AUC_MIN,
+    "DOC_AUC_MAX": DOC_AUC_MAX,
+    # F4 — critical slowing Kendall τ [FIX: structural — new constant]
+    "F4_CRITICAL_SLOWING_KENDALL_TAU_MIN": F4_CRITICAL_SLOWING_KENDALL_TAU_MIN,
+    "F4_CRITICAL_SLOWING_MIN_RATIO": F4_CRITICAL_SLOWING_MIN_RATIO,
+    # V20 bimodality — dip test replaces bimodality coefficient [FIX]
+    "V20_DIP_TEST_P_MAX": V20_DIP_TEST_P_MAX,
+    # V22 — fMRI Anticipation (Protocol 5) — previously missing
+    "V22_1_ANTICIPATORY_COUPLING_R": V22_1_MIN_ANTICIPATORY_COUPLING_R,
+    "V22_1_ALPHA": V22_1_ALPHA,
+    "V22_2_MAX_VMPFC_PE_R": V22_2_MAX_VMPFC_PE_R,
+    "V22_2_ALPHA": V22_2_ALPHA,
+    "V22_3_VALENCE_ALPHA": V22_3_VALENCE_ALPHA,
+    "V22_3_CONTRAST_ALPHA": V22_3_CONTRAST_ALPHA,
+    "V22_4_NO_ANTICIPATION_COUPLING_MAX": V22_4_NO_ANTICIPATION_COUPLING_MAX,
+    "V22_4_ALPHA": V22_4_ALPHA,
+    # P0 — Pilot Study thresholds — previously missing
+    "P0_N_TARGET": P0_N_TARGET,
+    "P0_POWER": P0_POWER,
+    "P0_ALPHA": P0_ALPHA,
+    "P0_A_R_MIN": P0_A_R_MIN,
+    "P0_A_FAL_R_MAX": P0_A_FAL_R_MAX,
+    "P0_B_HEP_INCREASE_PCT_MIN": P0_B_HEP_INCREASE_PCT_MIN,
+    "P0_B_COHENS_D_MIN": P0_B_COHENS_D_MIN,
+    "P0_B_BF10_MIN": P0_B_BF10_MIN,
+    "P0_C_AINS_BOLD_R_MIN": P0_C_AINS_BOLD_R_MIN,
+    # P1 — EEG Protocol thresholds — previously missing
+    "P1_N_TARGET": P1_N_TARGET,
+    "P1_N_MIN": P1_N_MIN,
+    "P1_ALPHA_BONFERRONI": P1_ALPHA_BONFERRONI,
+    "P1_A_ALPHA": P1_A_ALPHA,
+    "P1_B_ALPHA": P1_B_ALPHA,
+    "P1_C_ALPHA": P1_C_ALPHA,
+    "P1_A_COHENS_D_MIN": P1_A_COHENS_D_MIN,
+    "P1_A_COHENS_D_FAL_MAX": P1_A_COHENS_D_FAL_MAX,
+    "P1_B_PARTIAL_R_MIN": P1_B_PARTIAL_R_MIN,
+    "P1_C_ETA_SQ_MIN": P1_C_ETA_SQ_MIN,
+    "P1_C_ETA_SQ_FAL_MAX": P1_C_ETA_SQ_FAL_MAX,
+    # P2 — TMS Protocol additional thresholds — previously missing
+    "P2_N_TARGET": P2_N_TARGET,
+    "P2_N_MIN": P2_N_MIN,
+    "P2_B_EQUIV_ROPE_LOW": P2_B_EQUIV_ROPE_LOW,
+    "P2_B_EQUIV_ROPE_HIGH": P2_B_EQUIV_ROPE_HIGH,
+    "P2_B_EQUIV_BF01_MIN": P2_B_EQUIV_BF01_MIN,
+    "P2_POWER": P2_POWER,
+    # P3 — Computational Protocol thresholds — previously missing
+    "P3_N_SEEDS": P3_N_SEEDS,
+    "P3_BIC_DELTA_MIN": P3_BIC_DELTA_MIN,
+    "P3_FIM_OFFDIAG_MAX": P3_FIM_OFFDIAG_MAX,
+    "P3_CP3A_CALIBRATION_TOL": P3_CP3A_CALIBRATION_TOL,
+    # P4 — Disorders of Consciousness thresholds — previously missing
+    "P4_N_TOTAL": P4_N_TOTAL,
+    "P4_N_EMCS": P4_N_EMCS,
+    "P4_DELTA_R2_MIN": P4_DELTA_R2_MIN,
+    "P4_INTER_RATER_KAPPA_MIN": P4_INTER_RATER_KAPPA_MIN,
+    "P4_MICE_IMPUTATIONS_MIN": P4_MICE_IMPUTATIONS_MIN,
+    "P4_MICE_IMPUTATIONS_MAX": P4_MICE_IMPUTATIONS_MAX,
+    # P5 — fMRI Protocol thresholds — previously missing
+    "P5_N_TARGET": P5_N_TARGET,
+    "P5_N_MIN": P5_N_MIN,
+    "P5_POWER": P5_POWER,
+    "P5_FIM_OFFDIAG_MAX": P5_FIM_OFFDIAG_MAX,
+    # P6 — iEEG Protocol thresholds — previously missing
+    "P6_N_TARGET": P6_N_TARGET,
+    "P6_N_MIN": P6_N_MIN,
+    "P6_CE_BF10_MIN": P6_CE_BF10_MIN,
+    "P6_B_DWELL_TIME_MAX_PCT": P6_B_DWELL_TIME_MAX_PCT,
+    "P6_D_COHERENCE_R_MIN": P6_D_COHERENCE_R_MIN,
+    "P6_COHERENCE_PEAK_MS_MIN": P6_COHERENCE_PEAK_MS_MIN,
+    "P6_COHERENCE_PEAK_MS_MAX": P6_COHERENCE_PEAK_MS_MAX,
+    # Cross-protocol / framework gate thresholds — previously missing
+    "ALPHA_PRIMARY_GONOGO": ALPHA_PRIMARY_GONOGO,
+    "ALPHA_SECONDARY": ALPHA_SECONDARY,
+    "CROSS_PROTOCOL_BY_FDR_Q": CROSS_PROTOCOL_BY_FDR_Q,
+    "FRAMEWORK_REJECTION_MIN_FAILURES": FRAMEWORK_REJECTION_MIN_FAILURES,
 }
 
 
