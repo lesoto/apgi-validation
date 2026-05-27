@@ -137,6 +137,19 @@ NAMED_PREDICTIONS = {
     "V21.1": "MMN amplitude declines monotonically over 30-min task (R² ≥ 0.60, slope < 0)",
     "V21.2": "HEP deviation declines monotonically over 30-min task (R² ≥ 0.50, slope < 0)",
     "V21.3": "Ignition events spike PE ≥ 1.20× and resolve below pre-ignition baseline",
+    # VP-7a: Mathematical Consistency — SymPy symbolic verification (RESOLVES VP-7 STRUCTURAL DEBT)
+    # These are binary proof checks, not statistical thresholds.
+    "V7a.1": "∂P/∂S_t > 0 symbolically for all S_t (ignition monotone — proven, not sampled)",
+    "V7a.2": "P → 0 as S_t → −∞ and P → 1 as S_t → +∞ (ignition boundaries exact)",
+    "V7a.3": "∂Π_eff/∂M > 0 for M ∈ [−2,+2] (soma-bias excitatory — symbolic proof)",
+    "V7a.4": "Π_eff(M=0) = Π_base exactly (baseline identity — zero residual)",
+    "V7a.5": "dθ/dt = 0 ↔ θ* = S_t uniquely (one fixed point — bistability precondition)",
+    # VP-22: fMRI Anticipation vs. Experience (Somatic Marker) — APGI-P05 canonical
+    # Sub-predictions P5a–P5d with hardcoded rejection thresholds in Protocol5Config.
+    "V22.1": "P5a: vmPFC–posterior_insula anticipatory coupling r ≥ 0.40, p < 0.01",
+    "V22.2": "P5b: vmPFC does NOT significantly track primary interoceptive prediction error (critical falsification gate)",
+    "V22.3": "P5c: vmPFC somatic marker effect is valence-specific, not sensory-contrast-driven (p < 0.01)",
+    "V22.4": "P5d: Removing anticipation collapses vmPFC–posterior_insula coupling to < 0.15 (paired p < 0.01)",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -231,11 +244,18 @@ PREDICTION_TO_PROTOCOL = {
     "V21.1": "VP_21_FreeEnergyPredictionError",
     "V21.2": "VP_21_FreeEnergyPredictionError",
     "V21.3": "VP_21_FreeEnergyPredictionError",
-    # VP-22: fMRI Anticipation vs. Experience (Somatic Marker) — enhanced P05
-    "V22.a": "VP_22_FMRIAnticipationExperience",
-    "V22.b": "VP_22_FMRIAnticipationExperience",
-    "V22.c": "VP_22_FMRIAnticipationExperience",
-    "V22.d": "VP_22_FMRIAnticipationExperience",
+    # VP-7a: Mathematical Consistency (SymPy) — resolves VP-7 Structural Debt
+    "V7a.1": "VP_07a_MathematicalConsistency",
+    "V7a.2": "VP_07a_MathematicalConsistency",
+    "V7a.3": "VP_07a_MathematicalConsistency",
+    "V7a.4": "VP_07a_MathematicalConsistency",
+    "V7a.5": "VP_07a_MathematicalConsistency",
+    # VP-22: fMRI Anticipation vs. Experience (Somatic Marker) — P05 canonical (COMPLETE)
+    # Keys renamed from V22.a–d → V22.1–4 to match NAMED_PREDICTIONS and paper numbering.
+    "V22.1": "VP_22_FMRIAnticipationExperience",
+    "V22.2": "VP_22_FMRIAnticipationExperience",
+    "V22.3": "VP_22_FMRIAnticipationExperience",
+    "V22.4": "VP_22_FMRIAnticipationExperience",
 }
 
 # Protocol tier classification
@@ -246,7 +266,8 @@ PROTOCOL_TIERS = {
     "VP_04_PhaseTransitionEpistemicLevel2": "secondary",
     "VP_05_EvolutionaryEmergence": "tertiary",
     "VP_06_LiquidNetworkInductiveBias": "secondary",
-    "VP_07_TMSCausalInterventions": "secondary",  # CANONICAL P2 source (VP-7)
+    "VP_07a_MathematicalConsistency": "primary",   # VP-7a: SymPy symbolic proofs (resolves VP-7 Structural Debt)
+    "VP_07_TMSCausalInterventions": "secondary",   # VP-7b: CANONICAL P2 TMS source
     "VP_08_PsychophysicalThresholdEstimation": "secondary",
     "VP_09_NeuralSignaturesEmpiricalPriority1": "tertiary",
     "VP_10_CausalManipulationsPriority2": "tertiary",  # SUPPLEMENTARY to VP-7
@@ -261,7 +282,7 @@ PROTOCOL_TIERS = {
     "VP_19_InformationErasureMVPA": "secondary",
     "VP_20_EmpiricalIEEG": "secondary",
     "VP_21_FreeEnergyPredictionError": "secondary",
-    "VP_22_FMRIAnticipationExperience": "tertiary",  # enhanced P05; companion to VP-14/VP-15
+    "VP_22_FMRIAnticipationExperience": "secondary",  # P05 canonical (COMPLETE); companion absorbs VP-14/VP-15 fMRI dissociation
 }
 
 # VP-07 / VP-10 Boundary Clarification

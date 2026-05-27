@@ -2,6 +2,19 @@
 APGI Protocol 14: fMRI Anticipation & Experience Validation
 ============================================================
 
+DEPRECATION STATUS: SUPERSEDED BY VP-22 (NOT IN CANONICAL PAPER REGISTRY)
+--------------------------------------------------------------------------
+VP-14 is a simulation-only precursor to VP-22 (VP_22_FMRIAnticipationExperience.py).
+VP-22 is now the CANONICAL implementation of APGI Protocol 5 (P5a–P5d somatic
+marker / fMRI anticipation vs. experience) and is classified as secondary-tier.
+
+VP-14 is retained for reference and regression testing of the BOLD-simulation
+pipeline, but its V14.x predictions are NOT counted in the canonical tally.
+New work should target VP-22.
+
+Canonical replacement: VP_22_FMRIAnticipationExperience.py
+--------------------------------------------------------------------------
+
 Status: SIMULATION-VALIDATED, AWAITING EMPIRICAL CONFIRMATION
 Note: This protocol uses double-gamma HRF convolution over synthetic S(t) and M(t)
 time series to validate the computational pipeline. Final empirical confirmation

@@ -3,6 +3,17 @@
 VP-17: Allen Visual Coding Fatigue Analysis
 ============================================
 
+DEPRECATION STATUS: EXTENDED — FATIGUE PREDICTIONS OUTSIDE CANONICAL REGISTRY
+------------------------------------------------------------------------------
+VP-17 covers P11 fatigue threshold dynamics using Allen Brain Atlas data
+structure (simulated).  Fatigue benchmarks (P3b decay, threshold elevation)
+are handled at the theoretical level in:
+    Theory/APGI_Fractal_Threshold_Dynamics.py  (threshold dynamics, canonical)
+
+V17.x predictions are NOT counted in the canonical 14-prediction tally.
+VP-17 provides supplementary empirical coverage; PASS/FAIL is informational.
+------------------------------------------------------------------------------
+
 Validation Protocol 17 from the APGI Empirical Credibility Roadmap.
 Analyzes fatigue effects on visual coding using Allen Institute data structure.
 

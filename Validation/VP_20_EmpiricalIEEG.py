@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 """
-VP-01 Empirical: Intracranial EEG Pipeline — BIDS-iEEG Format
+VP-20 Empirical: Intracranial EEG Pipeline — BIDS-iEEG Format
 ==============================================================
+
+DEPRECATION STATUS: EXTENDED — EMPIRICAL IEEG OUTSIDE CANONICAL REGISTRY
+------------------------------------------------------------------------
+VP-20 is a real-data extension of VP-1 (reservoir dynamics) targeting public
+MNI Open iEEG / OpenNeuro BIDS datasets.  Since real iEEG cannot run in code,
+VP-20 operates in synthetic pre-registration mode.
+
+Canonical P6a / P6c source: VP_01_SyntheticEEGMLClassification.py (synthetic),
+plus the standalone Empirical Roadmap programs.  V20.x predictions are NOT
+counted in the canonical 14-prediction tally.
+------------------------------------------------------------------------
 
 Extends VP_01 (synthetic reservoir dynamics) with a real-data layer that
 accepts public MNI Open iEEG / OpenNeuro datasets in BIDS-iEEG format.

@@ -3,6 +3,14 @@
 VP-19: Information Erasure Protocol — MVPA Decoding of Non-Selected Representations
 =====================================================================================
 
+DEPRECATION STATUS: EXTENDED — MVPA-LEVEL P8 OUTSIDE CANONICAL REGISTRY
+------------------------------------------------------------------------
+VP-19 provides an MVPA layer on top of VP-4's mutual-information check for P8.
+The canonical P8 falsification test is in VP-4 (VP_04_PhaseTransitionEpistemicLevel2.py).
+VP-19 is a supplementary extension; V19.x predictions are NOT counted in the
+canonical 14-prediction tally.
+------------------------------------------------------------------------
+
 Extends the informational analysis in VP_04 with a stimulus-pair MVPA decoding layer
 that directly tests Prediction P8: post-ignition active suppression of non-selected
 stimulus representations.

@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 """
-VP-FE-Proxy: Free Energy Approximation via Dual-Channel PE Tracking
-====================================================================
+VP-21 / VP-FE-Proxy: Free Energy Approximation via Dual-Channel PE Tracking
+============================================================================
+
+DEPRECATION STATUS: EXTENDED — FEP BRIDGE IS SPECULATIVE (NOT IN CANONICAL REGISTRY)
+--------------------------------------------------------------------------------------
+VP-21 implements a Level 3 → Level 2 proxy chain (MMN + HEP as PE trackers).
+The FEP–APGI bridge is explicitly flagged as speculative/conjecture in the framework
+documents; the ALPHA_FEP calibration constant is undefined (see falsification_thresholds.py).
+
+V21.x predictions are NOT counted in the canonical 14-prediction tally.
+ALPHA_FEP must be calibrated (set to a finite value) before any quantitative VP-21
+claims can be made — call `assert_alpha_fep_calibrated()` from falsification_thresholds.py.
+--------------------------------------------------------------------------------------
 
 Implements proximal prediction-error (PE) tracking as an operational
 approximation of variational free energy minimisation (APGI FEP framework).

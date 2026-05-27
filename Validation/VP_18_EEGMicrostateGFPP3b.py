@@ -3,6 +3,16 @@
 VP-18: EEG Microstate Energy Analysis (GFP / P3b)
 ==================================================
 
+DEPRECATION STATUS: EXTENDED — OVERLAPS WITH VP-9 (NOT IN CANONICAL REGISTRY)
+------------------------------------------------------------------------------
+VP-18 covers GFP-based P3b analysis (Protocol 1 extension).  Its scope overlaps
+substantially with VP-9 (VP_09_NeuralSignaturesEmpiricalPriority1.py), which is
+the canonical Priority-1 neural signatures protocol.
+
+V18.x predictions are NOT counted in the canonical 14-prediction tally.
+Canonical neural signature source: VP_09_NeuralSignaturesEmpiricalPriority1.py
+------------------------------------------------------------------------------
+
 Validation Protocol 18 from the APGI Empirical Credibility Roadmap.
 
 Measures Global Field Power (GFP) — the spatial standard deviation of scalp

@@ -2,6 +2,17 @@
 VP-15: fMRI vmPFC Anticipation Paradigm (STUB/Synthetic)
 ========================================================
 
+DEPRECATION STATUS: SUPERSEDED BY VP-22 (NOT IN CANONICAL PAPER REGISTRY)
+--------------------------------------------------------------------------
+VP-15 is a stub/synthetic stand-in covering the vmPFC connectivity sub-scope of
+Protocol 5.  Its scope overlaps substantially with VP-14 and is fully absorbed by
+VP-22 (VP_22_FMRIAnticipationExperience.py), which implements P5a–P5d completely
+with hardcoded rejection thresholds and is classified as secondary-tier.
+
+V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead.
+Canonical replacement: VP_22_FMRIAnticipationExperience.py
+--------------------------------------------------------------------------
+
 VP-15: vmPFC Anticipatory Activity — fMRI Paradigm
 Paper 3, Protocol 5 / Hypothesis 3: Developmental Trajectories Reflect Hierarchical Maturation
 

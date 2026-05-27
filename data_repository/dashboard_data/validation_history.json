@@ -28,5 +28,50 @@
       "file_pattern": "/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification/results/fp_02_20260521_135709.json",
       "protocol_id": "FP_02"
     }
+  },
+  {
+    "timestamp": "2026-05-24T00:09:55.883820",
+    "protocol_number": 1,
+    "protocol_name": "Falsification Protocol 1",
+    "status": "pass",
+    "execution_time": 0.0,
+    "tests_passed": 9,
+    "tests_failed": 19,
+    "error_message": null,
+    "metadata": {
+      "protocol_type": "falsification",
+      "file_pattern": "/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification/results/fp_01_20260522_191343.json",
+      "protocol_id": "FP_01"
+    }
+  },
+  {
+    "timestamp": "2026-05-24T00:09:55.883820",
+    "protocol_number": 2,
+    "protocol_name": "Falsification Protocol 2",
+    "status": "pass",
+    "execution_time": 0.0,
+    "tests_passed": 27,
+    "tests_failed": 2,
+    "error_message": null,
+    "metadata": {
+      "protocol_type": "falsification",
+      "file_pattern": "/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification/results/fp_02_20260522_191345.json",
+      "protocol_id": "FP_02"
+    }
+  },
+  {
+    "timestamp": "2026-05-24T00:09:55.883820",
+    "protocol_number": 3,
+    "protocol_name": "Falsification Protocol 3",
+    "status": "fail",
+    "execution_time": 0.0,
+    "tests_passed": 0,
+    "tests_failed": 0,
+    "error_message": null,
+    "metadata": {
+      "protocol_type": "falsification",
+      "file_pattern": "/Users/lesoto/Sites/PYTHON/apgi-validation/Falsification/results/framework_falsification_20260522_192515.json",
+      "protocol_id": "FP_03"
+    }
   }
 ]

@@ -2,6 +2,25 @@
 APGI Validation Protocol P4: Epistemic Architecture Predictions
 ==============================================================
 
+DEPRECATION STATUS: EXTENDED (NOT IN CANONICAL PAPER REGISTRY)
+---------------------------------------------------------------
+VP-13 is an extended empirical protocol that covers Paper 4's epistemic
+architecture predictions (P5–P12).  It is NOT counted in the 14-prediction
+canonical falsification tally.
+
+Reason: The Epistemic Architecture rubric (P5–P12 in the Epistemic Architecture
+paper) is evaluated through standalone Level 1 Thermodynamic Programs and the
+APGI_Thermodynamic_Program_Aggregator, not through the VP numbering system.
+Running VP-13 provides supplementary coverage; it does not replace those programs.
+
+If you need to run the canonical epistemic architecture check, use:
+    Theory/APGI_Thermodynamic_Program_Aggregator.py  (Level 1, authoritative)
+    Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py  (FP counterpart)
+
+VP-13 may still be run for additional empirical coverage, but PASS/FAIL results
+here are not propagated to the master falsification registry tally.
+---------------------------------------------------------------
+
 Complete implementation of Paper 4 Epistemic Architecture predictions (P5–P12).
 
 This protocol validates Level 1 (P9–P12) and Level 2 (P5–P8) predictions:

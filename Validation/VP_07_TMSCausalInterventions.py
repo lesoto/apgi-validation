@@ -15,12 +15,18 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-STRUCTURAL DEBT: This protocol conflates two distinct concerns — (1) causal
-pharmacological/TMS intervention mechanics (P2.a–P2.c / F3.x) and (2) fMRI
-vmPFC/insula dissociation imaging (P5a–P5d). A future refactor should split this
-into VP-7a (Mathematical Consistency / causal interventions) and VP-7b (fMRI
-Dissociation), analogous to the VP-14/VP-22 split already made for P5x imaging.
-P5a–P5d checks have been moved exclusively to VP-22_FMRIAnticipationExperience.
+STRUCTURAL DEBT RESOLVED (VP-7 split, formerly P1 priority):
+This file is now VP-7b — TMS/pharmacological empirical predictions only.
+The split has been completed as follows:
+  VP-7a (VP_07a_MathematicalConsistency.py):  SymPy symbolic verification of
+      APGI core equations (monotonicity, boundary conditions, fixed points).
+  VP-7b (this file):  TMS/pharmacological causal predictions (P2.a–P2.c / F3.x).
+  VP-22 (VP_22_FMRIAnticipationExperience.py):  fMRI dissociation / Protocol 5
+      (P5a–P5d), absorbed from the former VP-7 scope during the earlier P5 split.
+
+V7.1–V7.3 predictions remain canonical here (VP-7b) and count in the
+14-prediction falsification tally. V7a.1–V7a.5 predictions are in VP-7a
+and are classified as primary-tier (mathematical proofs).
 
 FALSIFICATION_CRITERIA
 ----------------------
