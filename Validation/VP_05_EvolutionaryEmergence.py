@@ -1049,7 +1049,7 @@ class EvolutionaryOptimizer:
     def __init__(
         self,
         population_size: int = 100,
-        n_generations: int = 500,
+        n_generations: int = 300,  # EP-13 CSV: >80% APGI components by generation 300
         mutation_rate: float = 0.1,
         crossover_rate: float = 0.7,
         tournament_size: int = 5,
@@ -2824,7 +2824,7 @@ def plot_environmental_gradient_results(results: Dict[str, Any]) -> None:
 def run_ensemble_evolution(
     n_seeds: int = 5,
     population_size: int = 100,
-    n_generations: int = 500,
+    n_generations: int = 300,  # EP-13 CSV: by generation 300
     mutation_rate: float = 0.01,
     crossover_rate: float = 0.7,
     tournament_size: int = 5,

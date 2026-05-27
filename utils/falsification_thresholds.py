@@ -303,16 +303,18 @@ NULL_BOOTSTRAP_N: int = 1000  # bootstrap samples for null distribution
 
 F4_MI_MAX_BITS_S: float = 40.0  # Maximum MI in bits/s for bandwidth constraint
 FMI_MIN_BITS_S: float = 0.5  # Minimum mutual information in bits/s
-F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto (computational proxy)
+F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.5  # EP-12 CSV: AC ratio (near/far) > 1.5
 F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
-# [FIX] Protocol 6 explicitly mandates Kendall τ > 0.30 for pre-ignition AC1 monotone increase.
-# F4_CRITICAL_SLOWING_MIN_RATIO is a computational proxy; this constant is the paper-mandated statistic.
-# VP-20 must map to F4_CRITICAL_SLOWING_KENDALL_TAU_MIN, not just the ratio.
-F4_CRITICAL_SLOWING_KENDALL_TAU_MIN: float = 0.30  # Kendall τ > 0.30; Protocol 6 primary statistic
+# EP-12 / EP-6 (Protocol 6) mandates Kendall τ > 0.30 for pre-ignition AC1 monotone increase.
+F4_CRITICAL_SLOWING_KENDALL_TAU_MIN: float = 0.30  # Kendall τ > 0.30; EP-6 primary statistic
 F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
 TRANSFER_ENTROPY_THRESHOLD: float = 0.1  # Alias, aligned with F4_TE_THRESHOLD
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
 F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect size
+# EP-12 CSV master thresholds (take precedence over all prior values)
+F4_SUSCEPTIBILITY_MIN_RATIO: float = 2.0   # EP-12: Variance ratio (near/far threshold) > 2.0
+F4_PHI_IGNITION_RATIO_MIN: float = 2.0    # EP-12: Φ at ignition > 2× baseline
+F4_HURST_NEAR_THRESHOLD_MIN: float = 0.6  # EP-12: H near threshold > 0.6
 
 # VP-04 suite-calibrated phase transition parameters
 # [MEDIUM-1] VP4_CALIBRATED_ALPHA = 35.0 is 4.7× the paper upper bound of 10.0.
@@ -1073,9 +1075,12 @@ THRESHOLD_REGISTRY = {
     # DOC AUC (P4a primary confirmatory threshold) [FIX]
     "DOC_AUC_MIN": DOC_AUC_MIN,
     "DOC_AUC_MAX": DOC_AUC_MAX,
-    # F4 — critical slowing Kendall τ [FIX: structural — new constant]
+    # F4 — EP-12 CSV master thresholds
     "F4_CRITICAL_SLOWING_KENDALL_TAU_MIN": F4_CRITICAL_SLOWING_KENDALL_TAU_MIN,
     "F4_CRITICAL_SLOWING_MIN_RATIO": F4_CRITICAL_SLOWING_MIN_RATIO,
+    "F4_SUSCEPTIBILITY_MIN_RATIO": F4_SUSCEPTIBILITY_MIN_RATIO,
+    "F4_PHI_IGNITION_RATIO_MIN": F4_PHI_IGNITION_RATIO_MIN,
+    "F4_HURST_NEAR_THRESHOLD_MIN": F4_HURST_NEAR_THRESHOLD_MIN,
     # V20 bimodality — dip test replaces bimodality coefficient [FIX]
     "V20_DIP_TEST_P_MAX": V20_DIP_TEST_P_MAX,
     # V22 — fMRI Anticipation (Protocol 5) — previously missing

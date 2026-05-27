@@ -1,0 +1,17 @@
+{
+  "script_categories": {
+    "utilities": {
+      "description": "General utility scripts",
+      "scripts": [],
+      "timeout": 300
+    }
+  },
+  "default_settings": {
+    "timeout": 300,
+    "max_retries": 2,
+    "retry_delay": 1,
+    "enable_execution_time": true,
+    "log_level": "INFO",
+    "environment": "development"
+  }
+}

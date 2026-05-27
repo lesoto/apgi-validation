@@ -2680,6 +2680,17 @@ class FalsificationChecker:
         cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
 
         self.criteria = {
+            # F1.1 / F1.2: EP-9 CSV master — cross-model classification criteria
+            "F1.1": {
+                "description": "APGI ignition classification accuracy ≥ 85% (AUC-ROC ≥ 0.90)",
+                "threshold": 0.85,
+                "comparison": "greater_than_or_equal",
+            },
+            "F1.2": {
+                "description": "APGI/GWTOnly cross-model confusion < 20% — EP-9 CSV master",
+                "threshold": 0.20,
+                "comparison": "less_than",
+            },
             # V1.1_ML: VP-01-specific reward advantage criterion
             # NOTE: "V1.1" in the registry (criteria_registry.py) is reserved for
             # Paper Protocol 1 / VP-08 "Heartbeat Discrimination Accuracy (d' ≥ 0.30)".
@@ -2745,8 +2756,7 @@ class FalsificationChecker:
         return falsified, apgi_accuracy
 
     def check_F1_2(self, confusion_matrix: np.ndarray) -> Tuple[bool, float]:
-        """F1.2: APGI_GWT confusion > 40%"""
-        # Extract confusion between APGI  and GWTOnly
+        """F1.2: falsified when APGI/GWTOnly cross-model confusion > 20% — EP-9 CSV master."""
         apgi_to_gwt = confusion_matrix[0, 2] / confusion_matrix[0].sum()
         gwt_to_apgi = confusion_matrix[2, 0] / confusion_matrix[2].sum()
         avg_confusion = (apgi_to_gwt + gwt_to_apgi) / 2

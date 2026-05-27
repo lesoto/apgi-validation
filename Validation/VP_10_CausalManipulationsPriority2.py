@@ -63,9 +63,13 @@ except ImportError:
 try:
     from utils.falsification_thresholds import (
         P2_A_MIN_THRESHOLD_SHIFT,
+        P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC,
         P2_B_MIN_HEP_REDUCTION,
+        P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC,
         P2_B_MIN_PCI_REDUCTION,
+        P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC,
         P2_C_MIN_ETA_SQ,
+        P2_C_MIN_ETA_SQ_PAPER_SPEC,
     )
 except ImportError:
     # Fix 2: Make utils.falsification_thresholds a hard dependency
@@ -77,23 +81,38 @@ except ImportError:
         "VP-10 requires utils.falsification_thresholds. " "This is a hard dependency to ensure paper spec alignment."
     )
 
-# Fix 1: Assert that imported values match expected paper specifications
-# This ensures VP-10 (V10.a–V10.c) are distinct from VP-07 (P2.a–P2.c)
+# Fix 1: Assert that paper-spec values in falsification_thresholds match expected paper specifications.
+# Guard compares _PAPER_SPEC variants (mode-independent) so this check passes regardless of
+# whether the codebase is running in SIMULATION or PAPER_SPEC mode.
+# Expected values corrected to match falsification_thresholds.py canonical paper-spec values:
+#   P2b HEP: 30.0 (was incorrectly 35.0 in VP-10 guard)
+#   P2b PCI: 20.0 (was incorrectly 25.0 in VP-10 guard)
+#   P2c η²:  0.10 (was incorrectly 0.12 in VP-10 guard)
 _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT = 0.12
-_EXPECTED_P2_B_MIN_HEP_REDUCTION = 35.0
-_EXPECTED_P2_B_MIN_PCI_REDUCTION = 25.0
-_EXPECTED_P2_C_MIN_ETA_SQ = 0.12
+_EXPECTED_P2_B_MIN_HEP_REDUCTION = 30.0
+_EXPECTED_P2_B_MIN_PCI_REDUCTION = 20.0
+_EXPECTED_P2_C_MIN_ETA_SQ = 0.10
 
-if P2_A_MIN_THRESHOLD_SHIFT != _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT:
+if P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC != _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT:
     raise ValueError(
-        f"P2_A_MIN_THRESHOLD_SHIFT mismatch: {P2_A_MIN_THRESHOLD_SHIFT} != {_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT}"
+        f"P2_A_MIN_THRESHOLD_SHIFT paper-spec mismatch: "
+        f"{P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC} != {_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT}"
     )
-if P2_B_MIN_HEP_REDUCTION != _EXPECTED_P2_B_MIN_HEP_REDUCTION:
-    raise ValueError(f"P2_B_MIN_HEP_REDUCTION mismatch: {P2_B_MIN_HEP_REDUCTION} != {_EXPECTED_P2_B_MIN_HEP_REDUCTION}")
-if P2_B_MIN_PCI_REDUCTION != _EXPECTED_P2_B_MIN_PCI_REDUCTION:
-    raise ValueError(f"P2_B_MIN_PCI_REDUCTION mismatch: {P2_B_MIN_PCI_REDUCTION} != {_EXPECTED_P2_B_MIN_PCI_REDUCTION}")
-if P2_C_MIN_ETA_SQ != _EXPECTED_P2_C_MIN_ETA_SQ:
-    raise ValueError(f"P2_C_MIN_ETA_SQ mismatch: {P2_C_MIN_ETA_SQ} != {_EXPECTED_P2_C_MIN_ETA_SQ}")
+if P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC != _EXPECTED_P2_B_MIN_HEP_REDUCTION:
+    raise ValueError(
+        f"P2_B_MIN_HEP_REDUCTION paper-spec mismatch: "
+        f"{P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC} != {_EXPECTED_P2_B_MIN_HEP_REDUCTION}"
+    )
+if P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC != _EXPECTED_P2_B_MIN_PCI_REDUCTION:
+    raise ValueError(
+        f"P2_B_MIN_PCI_REDUCTION paper-spec mismatch: "
+        f"{P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC} != {_EXPECTED_P2_B_MIN_PCI_REDUCTION}"
+    )
+if P2_C_MIN_ETA_SQ_PAPER_SPEC != _EXPECTED_P2_C_MIN_ETA_SQ:
+    raise ValueError(
+        f"P2_C_MIN_ETA_SQ paper-spec mismatch: "
+        f"{P2_C_MIN_ETA_SQ_PAPER_SPEC} != {_EXPECTED_P2_C_MIN_ETA_SQ}"
+    )
 
 # Set random seeds
 

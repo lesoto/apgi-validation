@@ -126,6 +126,8 @@ V20_HG_BIMODALITY_COEFF_MIN: float = 0.55
 V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50
 V20_AC1_ADVANTAGE_MIN: float = 0.05
 V20_VARIANCE_ADVANTAGE_MIN: float = 0.10
+# EP-6 CSV master: AC1 Kendall τ > 0.30 in pre-ignition 500 ms window
+V20_KENDALL_TAU_MIN: float = 0.30
 
 # Try to override with centralized values if available
 try:
@@ -134,12 +136,14 @@ try:
     from utils.falsification_thresholds import V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN
     from utils.falsification_thresholds import V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN
     from utils.falsification_thresholds import V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN
+    from utils.falsification_thresholds import F4_CRITICAL_SLOWING_KENDALL_TAU_MIN as _V20_KENDALL_TAU_MIN
 
     DEFAULT_ALPHA = _DEFAULT_ALPHA
     V20_HG_BIMODALITY_COEFF_MIN = _V20_HG_BIMODALITY_COEFF_MIN
     V20_HG_OCCUPANCY_COHENS_D_MIN = _V20_HG_OCCUPANCY_COHENS_D_MIN
     V20_AC1_ADVANTAGE_MIN = _V20_AC1_ADVANTAGE_MIN
     V20_VARIANCE_ADVANTAGE_MIN = _V20_VARIANCE_ADVANTAGE_MIN
+    V20_KENDALL_TAU_MIN = _V20_KENDALL_TAU_MIN
 except ImportError:
     pass
 
@@ -773,19 +777,40 @@ class CriticalSlowingAnalyzer:
         ac1_advantage = float(np.mean(arr_ah) - np.mean(arr_am))
         var_advantage = float(np.mean(arr_vh) - np.mean(arr_vm))
 
+        # EP-6 CSV master: Kendall τ > 0.30 for monotone AC1 increase in pre-ignition window.
+        # Compute per hit-near-threshold epoch and average across epochs.
+        kendall_taus: List[float] = []
+        for ep in self.epochs:
+            if ep.condition != "hit_near_threshold":
+                continue
+            result = compute_critical_slowing(ep)
+            if len(result.ac1_timeseries) >= 3:
+                tau, _ = stats.kendalltau(
+                    np.arange(len(result.ac1_timeseries)), result.ac1_timeseries
+                )
+                if not np.isnan(tau):
+                    kendall_taus.append(float(tau))
+
+        mean_kendall_tau = float(np.mean(kendall_taus)) if kendall_taus else 0.0
+        kendall_passed = mean_kendall_tau > V20_KENDALL_TAU_MIN
+
         passed = (
             ac1_advantage >= V20_AC1_ADVANTAGE_MIN
             and p_ac1 < DEFAULT_ALPHA
             and var_advantage >= V20_VARIANCE_ADVANTAGE_MIN
             and p_var < DEFAULT_ALPHA
+            and kendall_passed
         )
 
         logger.info(
-            "P6c: AC1 advantage=%.4f (p=%.4f), Var advantage=%.4f (p=%.4f) — %s",
+            "P6c: AC1 advantage=%.4f (p=%.4f), Var advantage=%.4f (p=%.4f), "
+            "Kendall τ=%.4f (threshold>%.2f) — %s",
             ac1_advantage,
             p_ac1,
             var_advantage,
             p_var,
+            mean_kendall_tau,
+            V20_KENDALL_TAU_MIN,
             "PASS" if passed else "FAIL",
         )
         return {
@@ -797,6 +822,9 @@ class CriticalSlowingAnalyzer:
             "var_misses": arr_vm.tolist(),
             "var_pvalue": p_var,
             "var_advantage": var_advantage,
+            "kendall_tau_mean": mean_kendall_tau,
+            "kendall_tau_threshold": V20_KENDALL_TAU_MIN,
+            "kendall_tau_passed": kendall_passed,
             "passed": passed,
         }
 

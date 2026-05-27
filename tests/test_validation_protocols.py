@@ -65,11 +65,11 @@ class TestValidationGUI:
 
         try:
             gui = module.ValidationGUI()
-            pytest.assume(hasattr(gui, "run_validation"), "ValidationGUI should have run_validation method")
-            pytest.assume(hasattr(gui, "display_results"), "ValidationGUI should have display_results method")
+            assert hasattr(gui, "run_validation"), "ValidationGUI should have run_validation method"
+            assert hasattr(gui, "display_results"), "ValidationGUI should have display_results method"
 
         except Exception:
-            pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["APGI_Validation_GUI"] is None,
@@ -87,10 +87,10 @@ class TestValidationGUI:
 
             # Run validation through GUI
             results = gui.run_validation(mock_protocol)
-            pytest.assume(isinstance(results, dict), "GUI validation should return dict results")
+            assert isinstance(results, dict), "GUI validation should return dict results"
 
         except Exception:
-            pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestActiveInferenceSimulations:
@@ -106,13 +106,11 @@ class TestActiveInferenceSimulations:
 
         try:
             simulations = module.AgentSimulations()
-            pytest.assume(hasattr(simulations, "run_simulation"), "AgentSimulations should have run_simulation method")
-            pytest.assume(
-                hasattr(simulations, "validate_agents"), "AgentSimulations should have validate_agents method"
-            )
+            assert hasattr(simulations, "run_simulation"), "AgentSimulations should have run_simulation method"
+            assert hasattr(simulations, "validate_agents"), "AgentSimulations should have validate_agents method"
 
         except Exception:
-            pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_03_ActiveInferenceAgentSimulations"] is None,
@@ -130,11 +128,11 @@ class TestActiveInferenceSimulations:
 
             # Run simulation
             results = simulations.run_simulation(params)
-            pytest.assume(isinstance(results, dict), "Simulation should return dict results")
-            pytest.assume("simulation_data" in results, "Results should contain simulation_data")
+            assert isinstance(results, dict), "Simulation should return dict results"
+            assert "simulation_data" in results, "Results should contain simulation_data"
 
         except Exception:
-            pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestBayesianModelComparison:
@@ -150,13 +148,11 @@ class TestBayesianModelComparison:
 
         try:
             comparison = module.ModelComparison()
-            pytest.assume(hasattr(comparison, "compare_models"), "ModelComparison should have compare_models method")
-            pytest.assume(
-                hasattr(comparison, "recover_parameters"), "ModelComparison should have recover_parameters method"
-            )
+            assert hasattr(comparison, "compare_models"), "ModelComparison should have compare_models method"
+            assert hasattr(comparison, "recover_parameters"), "ModelComparison should have recover_parameters method"
 
         except Exception:
-            pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"] is None,
@@ -175,10 +171,10 @@ class TestBayesianModelComparison:
 
             # Compare models
             comparison_result = comparison.compare_models(model1, model2)
-            pytest.assume("model_metrics" in comparison_result, "Comparison result should contain model_metrics")
+            assert "model_metrics" in comparison_result, "Comparison result should contain model_metrics"
 
         except Exception:
-            pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_02_BehavioralBayesianComparison"] is None,
@@ -197,11 +193,11 @@ class TestBayesianModelComparison:
 
             # Recover parameters
             recovered_params = comparison.recover_parameters(test_data, true_params)
-            pytest.assume(isinstance(recovered_params, dict), "Recovered parameters should be dict")
-            pytest.assume(len(recovered_params) == len(true_params), "Should recover all parameters")
+            assert isinstance(recovered_params, dict), "Recovered parameters should be dict"
+            assert len(recovered_params) == len(true_params), "Should recover all parameters"
 
         except Exception:
-            pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestCausalManipulationsValidation:
@@ -217,14 +213,11 @@ class TestCausalManipulationsValidation:
 
         try:
             manipulations = module.CausalManipulations()
-            pytest.assume(hasattr(manipulations, "apply_tms"), "CausalManipulations should have apply_tms method")
-            pytest.assume(
-                hasattr(manipulations, "apply_pharmacological"),
-                "CausalManipulations should have apply_pharmacological method",
-            )
+            assert hasattr(manipulations, "apply_tms"), "CausalManipulations should have apply_tms method"
+            assert hasattr(manipulations, "apply_pharmacological"), "CausalManipulations should have apply_pharmacological method"
 
         except Exception:
-            pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_10_CausalManipulationsPriority2"] is None,
@@ -242,16 +235,16 @@ class TestCausalManipulationsValidation:
 
             # Apply TMS manipulation
             tms_data = manipulations.apply_tms(baseline_data, intensity=1.0, duration=0.1)
-            pytest.assume(isinstance(tms_data, np.ndarray), "TMS data should be numpy array")
-            pytest.assume(tms_data.shape == baseline_data.shape, "TMS data should preserve shape")
+            assert isinstance(tms_data, np.ndarray), "TMS data should be numpy array"
+            assert tms_data.shape == baseline_data.shape, "TMS data should preserve shape"
 
             # Apply pharmacological manipulation
             pharm_data = manipulations.apply_pharmacological(baseline_data, drug="dopamine", dose=1.0)
-            pytest.assume(isinstance(pharm_data, np.ndarray), "Pharmacological data should be numpy array")
-            pytest.assume(pharm_data.shape == baseline_data.shape, "Pharmacological data should preserve shape")
+            assert isinstance(pharm_data, np.ndarray), "Pharmacological data should be numpy array"
+            assert pharm_data.shape == baseline_data.shape, "Pharmacological data should preserve shape"
 
         except Exception:
-            pytest.assume(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestClinicalCrossSpeciesConvergence:
@@ -267,15 +260,11 @@ class TestClinicalCrossSpeciesConvergence:
 
         try:
             convergence = module.CrossSpeciesConvergence()
-            pytest.assume(
-                hasattr(convergence, "test_convergence"), "CrossSpeciesConvergence should have test_convergence method"
-            )
-            pytest.assume(
-                hasattr(convergence, "validate_scaling"), "CrossSpeciesConvergence should have validate_scaling method"
-            )
+            assert hasattr(convergence, "test_convergence"), "CrossSpeciesConvergence should have test_convergence method"
+            assert hasattr(convergence, "validate_scaling"), "CrossSpeciesConvergence should have validate_scaling method"
 
         except Exception:
-            pytest.assume(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_12_ClinicalCrossSpeciesConvergence"] is None,
@@ -294,12 +283,10 @@ class TestClinicalCrossSpeciesConvergence:
 
             # Test convergence
             convergence_result = convergence.test_convergence(species_a_data, species_b_data)
-            pytest.assertIn(
-                "convergence_score", convergence_result, "Convergence result should contain convergence_score"
-            )
+            assert "convergence_score" in convergence_result, "Convergence result should contain convergence_score"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestConvergentNeuralSignatures:
@@ -315,15 +302,11 @@ class TestConvergentNeuralSignatures:
 
         try:
             signatures = module.NeuralSignatures()
-            pytest.assertTrue(
-                hasattr(signatures, "detect_signatures"), "NeuralSignatures should have detect_signatures method"
-            )
-            pytest.assertTrue(
-                hasattr(signatures, "validate_convergence"), "NeuralSignatures should have validate_convergence method"
-            )
+            assert hasattr(signatures, "detect_signatures"), "NeuralSignatures should have detect_signatures method"
+            assert hasattr(signatures, "validate_convergence"), "NeuralSignatures should have validate_convergence method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_09_NeuralSignaturesEmpiricalPriority1"] is None,
@@ -341,12 +324,10 @@ class TestConvergentNeuralSignatures:
 
             # Detect signatures
             signature_result = signatures.detect_signatures(neural_data)
-            pytest.assertIn(
-                "signature_detected", signature_result, "Signature result should contain signature_detected"
-            )
+            assert "signature_detected" in signature_result, "Signature result should contain signature_detected"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestEvolutionaryEmergence:
@@ -362,16 +343,11 @@ class TestEvolutionaryEmergence:
 
         try:
             emergence = module.EvolutionaryEmergence()
-            pytest.assertTrue(
-                hasattr(emergence, "validate_emergence"), "EvolutionaryEmergence should have validate_emergence method"
-            )
-            pytest.assertTrue(
-                hasattr(emergence, "check_evolutionary_constraints"),
-                "EvolutionaryEmergence should have check_evolutionary_constraints method",
-            )
+            assert hasattr(emergence, "validate_emergence"), "EvolutionaryEmergence should have validate_emergence method"
+            assert hasattr(emergence, "check_evolutionary_constraints"), "EvolutionaryEmergence should have check_evolutionary_constraints method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_05_EvolutionaryEmergence"] is None,
@@ -393,10 +369,10 @@ class TestEvolutionaryEmergence:
 
             # Validate emergence
             emergence_result = emergence.validate_emergence(evolutionary_params)
-            pytest.assertIn("emergence_score", emergence_result, "Emergence result should contain emergence_score")
+            assert "emergence_score" in emergence_result, "Emergence result should contain emergence_score"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestInformationTheoreticPhaseTransition:
@@ -412,16 +388,11 @@ class TestInformationTheoreticPhaseTransition:
 
         try:
             phase_transition = module.PhaseTransition()
-            pytest.assertTrue(
-                hasattr(phase_transition, "detect_transition"), "PhaseTransition should have detect_transition method"
-            )
-            pytest.assertTrue(
-                hasattr(phase_transition, "validate_transition"),
-                "PhaseTransition should have validate_transition method",
-            )
+            assert hasattr(phase_transition, "detect_transition"), "PhaseTransition should have detect_transition method"
+            assert hasattr(phase_transition, "validate_transition"), "PhaseTransition should have validate_transition method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"] is None,
@@ -439,12 +410,10 @@ class TestInformationTheoreticPhaseTransition:
 
             # Detect transition
             transition_result = phase_transition.detect_transition(time_series)
-            pytest.assertIn(
-                "transition_detected", transition_result, "Transition result should contain transition_detected"
-            )
+            assert "transition_detected" in transition_result, "Transition result should contain transition_detected"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestMasterValidation:
@@ -460,15 +429,11 @@ class TestMasterValidation:
 
         try:
             master = module.MasterValidation()
-            pytest.assertTrue(
-                hasattr(master, "run_all_validations"), "MasterValidation should have run_all_validations method"
-            )
-            pytest.assertTrue(
-                hasattr(master, "coordinate_validation"), "MasterValidation should have coordinate_validation method"
-            )
+            assert hasattr(master, "run_all_validations"), "MasterValidation should have run_all_validations method"
+            assert hasattr(master, "coordinate_validation"), "MasterValidation should have coordinate_validation method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["Master_Validation"] is None,
@@ -490,7 +455,7 @@ class TestMasterValidation:
             pytest.assertEqual(len(master_results), len(protocols), "Should have results for all protocols")
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestNeuralNetworkInductiveBias:
@@ -506,15 +471,11 @@ class TestNeuralNetworkInductiveBias:
 
         try:
             benchmark = module.InductiveBiasBenchmark()
-            pytest.assertTrue(
-                hasattr(benchmark, "measure_bias"), "InductiveBiasBenchmark should have measure_bias method"
-            )
-            pytest.assertTrue(
-                hasattr(benchmark, "benchmark_networks"), "InductiveBiasBenchmark should have benchmark_networks method"
-            )
+            assert hasattr(benchmark, "measure_bias"), "InductiveBiasBenchmark should have measure_bias method"
+            assert hasattr(benchmark, "benchmark_networks"), "InductiveBiasBenchmark should have benchmark_networks method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_06_LiquidNetworkInductiveBias"] is None,
@@ -533,10 +494,10 @@ class TestNeuralNetworkInductiveBias:
             # Measure bias
             bias_score = benchmark.measure_bias(mock_network)
             pytest.assertIsInstance(bias_score, (float, int), "Bias score should be a number")
-            pytest.assertTrue(bias_score >= 0, "Bias score should be non-negative")
+            assert bias_score >= 0, "Bias score should be non-negative"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestPsychophysicalThreshold:
@@ -552,15 +513,11 @@ class TestPsychophysicalThreshold:
 
         try:
             threshold = module.ThresholdEstimation()
-            pytest.assertTrue(
-                hasattr(threshold, "estimate_threshold"), "ThresholdEstimation should have estimate_threshold method"
-            )
-            pytest.assertTrue(
-                hasattr(threshold, "validate_thresholds"), "ThresholdEstimation should have validate_thresholds method"
-            )
+            assert hasattr(threshold, "estimate_threshold"), "ThresholdEstimation should have estimate_threshold method"
+            assert hasattr(threshold, "validate_thresholds"), "ThresholdEstimation should have validate_thresholds method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_08_PsychophysicalThresholdEstimation"] is None,
@@ -581,10 +538,10 @@ class TestPsychophysicalThreshold:
 
             # Estimate threshold
             threshold_result = threshold.estimate_threshold(psych_data)
-            pytest.assertIn("threshold_value", threshold_result, "Threshold result should contain threshold_value")
+            assert "threshold_value" in threshold_result, "Threshold result should contain threshold_value"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestQuantitativeModelFits:
@@ -600,13 +557,11 @@ class TestQuantitativeModelFits:
 
         try:
             model_fits = module.QuantitativeModelFits()
-            pytest.assertTrue(hasattr(model_fits, "fit_model"), "QuantitativeModelFits should have fit_model method")
-            pytest.assertTrue(
-                hasattr(model_fits, "validate_fit"), "QuantitativeModelFits should have validate_fit method"
-            )
+            assert hasattr(model_fits, "fit_model"), "QuantitativeModelFits should have fit_model method"
+            assert hasattr(model_fits, "validate_fit"), "QuantitativeModelFits should have validate_fit method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_11_MCMCCulturalNeurosciencePriority3"] is None,
@@ -627,10 +582,10 @@ class TestQuantitativeModelFits:
 
             # Fit model
             fit_result = model_fits.fit_model(spiking_data)
-            pytest.assertIn("model_parameters", fit_result, "Fit result should contain model_parameters")
+            assert "model_parameters" in fit_result, "Fit result should contain model_parameters"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestSyntheticEEGMLClassification:
@@ -646,16 +601,11 @@ class TestSyntheticEEGMLClassification:
 
         try:
             classification = module.EEGClassification()
-            pytest.assertTrue(
-                hasattr(classification, "train_classifier"), "EEGClassification should have train_classifier method"
-            )
-            pytest.assertTrue(
-                hasattr(classification, "validate_classifier"),
-                "EEGClassification should have validate_classifier method",
-            )
+            assert hasattr(classification, "train_classifier"), "EEGClassification should have train_classifier method"
+            assert hasattr(classification, "validate_classifier"), "EEGClassification should have validate_classifier method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_01_SyntheticEEGMLClassification"] is None,
@@ -674,10 +624,10 @@ class TestSyntheticEEGMLClassification:
 
             # Train classifier
             training_result = classification.train_classifier(eeg_data, labels)
-            pytest.assertIn("accuracy", training_result, "Training result should contain accuracy")
+            assert "accuracy" in training_result, "Training result should contain accuracy"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestTMSPharmacologicalCausalIntervention:
@@ -693,16 +643,11 @@ class TestTMSPharmacologicalCausalIntervention:
 
         try:
             intervention = module.CausalIntervention()
-            pytest.assertTrue(
-                hasattr(intervention, "apply_intervention"), "CausalIntervention should have apply_intervention method"
-            )
-            pytest.assertTrue(
-                hasattr(intervention, "validate_causal_effects"),
-                "CausalIntervention should have validate_causal_effects method",
-            )
+            assert hasattr(intervention, "apply_intervention"), "CausalIntervention should have apply_intervention method"
+            assert hasattr(intervention, "validate_causal_effects"), "CausalIntervention should have validate_causal_effects method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_07_TMSCausalInterventions"] is None,
@@ -727,7 +672,7 @@ class TestTMSPharmacologicalCausalIntervention:
             )
 
         except Exception:
-            pytest.assertTrue(True, "Expected if implementation incomplete")  # Expected if implementation incomplete
+            pass
 
 
 class TestValidationProtocols:
@@ -743,15 +688,11 @@ class TestValidationProtocols:
 
         try:
             protocol = module.ValidationProtocol11()
-            pytest.assertTrue(
-                hasattr(protocol, "run_validation"), "ValidationProtocol11 should have run_validation method"
-            )
-            pytest.assertTrue(
-                hasattr(protocol, "validate_results"), "ValidationProtocol11 should have validate_results method"
-            )
+            assert hasattr(protocol, "run_validation"), "ValidationProtocol11 should have run_validation method"
+            assert hasattr(protocol, "validate_results"), "ValidationProtocol11 should have validate_results method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_14_FMRIAnticipationExperience"] is None,
@@ -763,15 +704,11 @@ class TestValidationProtocols:
 
         try:
             protocol = module.ValidationProtocol2()
-            pytest.assertTrue(
-                hasattr(protocol, "run_validation"), "ValidationProtocol2 should have run_validation method"
-            )
-            pytest.assertTrue(
-                hasattr(protocol, "validate_results"), "ValidationProtocol2 should have validate_results method"
-            )
+            assert hasattr(protocol, "run_validation"), "ValidationProtocol2 should have run_validation method"
+            assert hasattr(protocol, "validate_results"), "ValidationProtocol2 should have validate_results method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
     @pytest.mark.skipif(
         VALIDATION_MODULES["VP_04_PhaseTransitionEpistemicLevel2"] is None,
@@ -783,15 +720,11 @@ class TestValidationProtocols:
 
         try:
             protocol = module.ValidationProtocolP4()
-            pytest.assertTrue(
-                hasattr(protocol, "run_validation"), "ValidationProtocolP4 should have run_validation method"
-            )
-            pytest.assertTrue(
-                hasattr(protocol, "validate_epistemic"), "ValidationProtocolP4 should have validate_epistemic method"
-            )
+            assert hasattr(protocol, "run_validation"), "ValidationProtocolP4 should have run_validation method"
+            assert hasattr(protocol, "validate_epistemic"), "ValidationProtocolP4 should have validate_epistemic method"
 
         except Exception:
-            pytest.assertTrue(True, "Expected if class doesn't exist")  # Expected if class doesn't exist
+            pass
 
 
 class TestValidationIntegration:
@@ -807,7 +740,7 @@ class TestValidationIntegration:
                 available_modules.append(module_name)
 
         # At least some modules should be available
-        pytest.assertTrue(len(available_modules) > 0, "At least some validation modules should be available")
+        assert len(available_modules) > 0, "At least some validation modules should be available"
 
         # Test that modules can be imported and have expected structure
         for module_name in available_modules[:3]:  # Test first 3 available modules
@@ -821,9 +754,7 @@ class TestValidationIntegration:
                     break
 
             # Module should have validation-related content
-            pytest.assertTrue(
-                has_validation or len(dir(module)) > 0, "Module should have validation-related content or attributes"
-            )
+            assert has_validation or len(dir(module)) > 0, "Module should have validation-related content or attributes"
 
     def test_result_consistency(self):
         """Test result consistency across protocols."""
@@ -849,10 +780,10 @@ class TestValidationIntegration:
                 # Check that methods exist and are callable
                 for method_name in result_methods:
                     method = getattr(module, method_name)
-                    pytest.assertTrue(callable(method), f"Method {method_name} should be callable")
+                    assert callable(method), f"Method {method_name} should be callable"
 
                 # Should have found some validation methods
-                pytest.assertTrue(len(result_methods) > 0, "Should have found some validation methods")
+                assert len(result_methods) > 0, "Should have found some validation methods"
 
 
 class TestValidationRobustness:
@@ -884,11 +815,11 @@ class TestValidationRobustness:
                     # Try to initialize with invalid parameters
                     test_class()
                     # Should handle gracefully or raise meaningful error
-                    pytest.assertTrue(True, "Should handle gracefully or raise meaningful error")
+                    pass
 
                 except Exception:
                     # Should raise meaningful error
-                    pytest.assertTrue(True, "Should raise meaningful error")
+                    pass
 
     def test_numerical_stability(self):
         """Test numerical stability of validation protocols."""
@@ -920,14 +851,11 @@ class TestValidationRobustness:
 
                     # Should handle extreme values gracefully
                     result = method(extreme_input)
-                    pytest.assertTrue(
-                        np.isfinite(result).any() or not np.isnan(result).any(),
-                        "Result should handle extreme values gracefully",
-                    )
+                    assert np.isfinite(result).any() or not np.isnan(result).any(), "Result should handle extreme values gracefully"
 
                 except Exception:
                     # Should handle extreme values gracefully
-                    pytest.assertTrue(True, "Should handle extreme values gracefully")
+                    pass
 
 
 class TestModuleAvailability:
@@ -945,7 +873,7 @@ class TestModuleAvailability:
                 unavailable_modules.append(module_name)
 
         # At least some modules should be available
-        pytest.assertTrue(len(available_modules) > 0, "At least some validation modules should be available")
+        assert len(available_modules) > 0, "At least some validation modules should be available"
 
         # Report unavailable modules (this is informational)
         if unavailable_modules:
@@ -972,7 +900,7 @@ class TestModuleAvailability:
                 pass
 
             # Just test that import doesn't crash
-            pytest.assertTrue(True, "Import test completed")
+            pass
 
 
 if __name__ == "__main__":

@@ -105,8 +105,8 @@ PROXY_CALIBRATION = {
         "within-session; low Πⁱ ↔ HEP ≤ median. Trial-by-trial mixed-effects "
         "regression (P3b ~ HEP_amplitude + RMSSD + random slopes) is the primary "
         "calibration procedure. Session-level z-scoring required before cross-session comparison.",
-        "minimum_r_for_proxy_validity": 0.30,  # HEP–P3b r must exceed this to use HEP as Πⁱ proxy
-        "falsification": "HEP–P3b r < 0.20 invalidates HEP as Πⁱ proxy for that session (P1c criterion)",
+        "minimum_r_for_proxy_validity": 0.35,  # EP-0 CSV: HEP–Πⁱ r > 0.35 required for proxy validity
+        "falsification": "HEP–P3b r < 0.35 invalidates HEP as Πⁱ proxy for that session (EP-0 criterion)",
         "references": ["Garfinkel et al. (2014)", "Canales-Johnson et al. (2020)"],
     },
     "PCI_to_B_t": {

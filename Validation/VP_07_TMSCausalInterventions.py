@@ -75,13 +75,19 @@ if str(project_root) not in sys.path:
 from utils.falsification_thresholds import (
     V7_1_ALPHA,
     V7_1_MIN_COHENS_D,
+    V7_1_MIN_COHENS_D_PAPER_SPEC,
     V7_1_MIN_EFFECT_DURATION_MIN,
+    V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC,
     V7_1_MIN_THRESHOLD_REDUCTION_PCT,
+    V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC,
     V7_2_ALPHA,
     V7_2_MIN_COHENS_D,
     V7_2_MIN_ETA_SQUARED,
+    V7_2_MIN_ETA_SQUARED_PAPER_SPEC,
     V7_2_MIN_IGNITION_REDUCTION_PCT,
+    V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC,
     V7_2_MIN_PRECISION_INCREASE_PCT,
+    V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -189,28 +195,39 @@ _FALLBACK_V7_2_MIN_ETA_SQUARED = 0.20
 _FALLBACK_V7_2_MIN_COHENS_D = 0.40
 _FALLBACK_V7_2_ALPHA = 0.01
 
-# Fix 1: Assert that imported values match fallback values
-# This ensures paper spec alignment even if import fails
-if V7_1_MIN_THRESHOLD_REDUCTION_PCT != _FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT:
+# Fix 1: Assert that paper-spec constants in falsification_thresholds haven't drifted.
+# Guards compare _PAPER_SPEC variants (mode-independent) so they pass regardless of
+# whether the codebase is running in SIMULATION or PAPER_SPEC mode.
+if V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC != _FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT:
     raise ValueError(
-        f"V7_1_MIN_THRESHOLD_REDUCTION_PCT mismatch: {V7_1_MIN_THRESHOLD_REDUCTION_PCT} != {_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT}"
+        f"V7_1_MIN_THRESHOLD_REDUCTION_PCT paper-spec mismatch: "
+        f"{V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT}"
     )
-if V7_1_MIN_EFFECT_DURATION_MIN != _FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN:
+if V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC != _FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN:
     raise ValueError(
-        f"V7_1_MIN_EFFECT_DURATION_MIN mismatch: {V7_1_MIN_EFFECT_DURATION_MIN} != {_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN}"
+        f"V7_1_MIN_EFFECT_DURATION_MIN paper-spec mismatch: "
+        f"{V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN}"
     )
-if V7_1_MIN_COHENS_D != _FALLBACK_V7_1_MIN_COHENS_D:
-    raise ValueError(f"V7_1_MIN_COHENS_D mismatch: {V7_1_MIN_COHENS_D} != {_FALLBACK_V7_1_MIN_COHENS_D}")
-if V7_2_MIN_PRECISION_INCREASE_PCT != _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT:
+if V7_1_MIN_COHENS_D_PAPER_SPEC != _FALLBACK_V7_1_MIN_COHENS_D:
     raise ValueError(
-        f"V7_2_MIN_PRECISION_INCREASE_PCT mismatch: {V7_2_MIN_PRECISION_INCREASE_PCT} != {_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT}"
+        f"V7_1_MIN_COHENS_D paper-spec mismatch: "
+        f"{V7_1_MIN_COHENS_D_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_COHENS_D}"
     )
-if V7_2_MIN_IGNITION_REDUCTION_PCT != _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT:
+if V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC != _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT:
     raise ValueError(
-        f"V7_2_MIN_IGNITION_REDUCTION_PCT mismatch: {V7_2_MIN_IGNITION_REDUCTION_PCT} != {_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT}"
+        f"V7_2_MIN_PRECISION_INCREASE_PCT paper-spec mismatch: "
+        f"{V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT}"
     )
-if V7_2_MIN_ETA_SQUARED != _FALLBACK_V7_2_MIN_ETA_SQUARED:
-    raise ValueError(f"V7_2_MIN_ETA_SQUARED mismatch: {V7_2_MIN_ETA_SQUARED} != {_FALLBACK_V7_2_MIN_ETA_SQUARED}")
+if V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC != _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT:
+    raise ValueError(
+        f"V7_2_MIN_IGNITION_REDUCTION_PCT paper-spec mismatch: "
+        f"{V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT}"
+    )
+if V7_2_MIN_ETA_SQUARED_PAPER_SPEC != _FALLBACK_V7_2_MIN_ETA_SQUARED:
+    raise ValueError(
+        f"V7_2_MIN_ETA_SQUARED paper-spec mismatch: "
+        f"{V7_2_MIN_ETA_SQUARED_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_ETA_SQUARED}"
+    )
 if V7_2_MIN_COHENS_D != _FALLBACK_V7_2_MIN_COHENS_D:
     raise ValueError(f"V7_2_MIN_COHENS_D mismatch: {V7_2_MIN_COHENS_D} != {_FALLBACK_V7_2_MIN_COHENS_D}")
 
@@ -439,7 +456,7 @@ class TMSInterventions:
 
     # MNI coordinates for TMS sites (Huang et al., 2019)
     # Standard stereotactic coordinates for neuronavigation
-    DLPFC_MNI = (-46, 36, 20)  # Left dorsolateral prefrontal cortex
+    DLPFC_MNI = (-44, 36, 20)  # Left dorsolateral prefrontal cortex — EP-2 CSV master
     INSULA_MNI = (-38, 4, -8)  # Left anterior insula
     V1_MNI = (0, -90, 10)  # Primary visual cortex (midline)
     VERTEX_MNI = (0, 0, 80)  # Vertex (control site, top of head)
@@ -452,7 +469,7 @@ class TMSInterventions:
         Target: Increases external precision (Pi_e) via top-down attention
         Mechanism: Enhances sensory gain control
 
-        MNI coordinates: (-46, 36, 20) per Huang et al. (2019)
+        MNI coordinates: (-44, 36, 20) per EP-2 CSV master (BA 46)
         """
         return InterventionEffect(
             name="dlPFC_TMS",
