@@ -148,15 +148,136 @@ protocol_files = [
 ]
 
 
+# ── APGI Design System ────────────────────────────────────────────────────────
+
+
+def apply_apgi_theme(root: tk.Tk) -> ttk.Style:
+    """Apply unified APGI theme to the tkinter application."""
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    bg = "#f8f9fa"
+    fg = "#212529"
+
+    style.configure("TFrame", background=bg)
+    style.configure("TLabel", background=bg, foreground=fg, font=("Noto Sans", 10))
+    style.configure("Header.TLabel", font=("Noto Sans", 12, "bold"), background=bg, foreground=fg)
+    style.configure("TLabelframe", background=bg, bordercolor="#dee2e6")
+    style.configure(
+        "TLabelframe.Label",
+        background=bg,
+        foreground="#6c757d",
+        font=("Noto Sans", 9, "bold"),
+    )
+    style.configure("Card.TFrame", background="#ffffff", borderwidth=1, relief="solid")
+    style.configure("TButton", padding=6, background="#e9ecef", font=("Noto Sans", 10))
+    style.map(
+        "TButton",
+        background=[("active", "#dee2e6"), ("disabled", "#f1f3f5")],
+        foreground=[("disabled", "#adb5bd")],
+    )
+    style.configure(
+        "Primary.TButton",
+        background="#155724",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Secondary.TButton",
+        background="#2874a6",
+        foreground="white",
+        font=("Noto Sans", 10),
+        padding=6,
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Danger.TButton",
+        background="#721c24",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Horizontal.TProgressbar",
+        background="#2874a6",
+        troughcolor="#dee2e6",
+        borderwidth=0,
+    )
+    style.configure("TCombobox", font=("Noto Sans", 10))
+    style.configure("TNotebook", background=bg, borderwidth=0)
+    style.configure("TNotebook.Tab", font=("Noto Sans", 9), padding=(8, 4))
+    style.map("TNotebook.Tab", background=[("selected", "#ffffff")], foreground=[("selected", "#212529")])
+
+    root.configure(background=bg)
+    return style
+
+
+class APGICard(ttk.Frame):
+    """Standardized information card for APGI applications."""
+
+    def __init__(self, parent: tk.Widget, title: str, value: str, subtitle: str = "", **kwargs: Any) -> None:
+        super().__init__(parent, style="Card.TFrame", **kwargs)
+
+        container = ttk.Frame(self, padding=15, style="Card.TFrame")
+        container.pack(fill="both", expand=True)
+
+        ttk.Label(
+            container,
+            text=title.upper(),
+            font=("Noto Sans", 11, "bold"),
+            background="#ffffff",
+            foreground="#212529",
+        ).pack(anchor="w")
+
+        ttk.Label(
+            container,
+            text=value,
+            font=("Noto Sans Mono", 11),
+            background="#ffffff",
+            foreground="#2874a6",
+            wraplength=600,
+        ).pack(anchor="w", pady=(4, 8))
+
+        if subtitle:
+            ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(0, 6))
+            ttk.Label(
+                container,
+                text=subtitle,
+                font=("Noto Sans", 9, "italic"),
+                background="#ffffff",
+                foreground="#6c757d",
+                wraplength=600,
+            ).pack(anchor="w")
+
+
+# ── Main Application ──────────────────────────────────────────────────────────
+
+
 class APGIValidationGUI:
     """GUI for running APGI validation protocols with real-time progress tracking."""
 
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("APGI Validation Protocol Runner")
-        self.root.geometry("800x600")
-        self.root.minsize(800, 600)  # Prevent resizing below usable size
+        self.root.geometry("960x720")
+        self.root.minsize(720, 520)
 
+        apply_apgi_theme(self.root)
         self._create_menu_bar()
 
         # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
@@ -384,15 +505,18 @@ class APGIValidationGUI:
         self.root.after(500, self._process_gui_updates)  # Check every 500ms
 
     def _ensure_ui_consistency(self) -> None:
-        """Ensure UI state is consistent with running status"""
+        """Ensure UI state is consistent with running status."""
         try:
-            # Check if widgets exist before accessing
             if hasattr(self, "run_button") and hasattr(self, "stop_button"):
                 if self.is_running:
                     self.run_button.config(state=tk.DISABLED)
+                    if hasattr(self, "run_all_btn"):
+                        self.run_all_btn.config(state=tk.DISABLED)
                     self.stop_button.config(state=tk.NORMAL)
                 else:
                     self.run_button.config(state=tk.NORMAL)
+                    if hasattr(self, "run_all_btn"):
+                        self.run_all_btn.config(state=tk.NORMAL)
                     self.stop_button.config(state=tk.DISABLED)
         except Exception as e:
             logging.error(f"Error ensuring UI consistency: {e}")
@@ -454,161 +578,251 @@ class APGIValidationGUI:
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
-        """Create all GUI widgets with tabbed interface"""
+        """Create all GUI widgets following the APGI three-zone layout."""
 
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky="nsew")
+        _BLUE = "#2874a6"
+        _BG = "#f8f9fa"
 
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(1, weight=1)
+        # ── Row 0: Metric bar ─────────────────────────────────────────────
+        metric_bar = tk.Frame(self.root, bg=_BLUE, pady=8, padx=15)
+        metric_bar.grid(row=0, column=0, columnspan=2, sticky="ew")
+        metric_bar.columnconfigure(1, weight=1)
 
-        # Title
-        title_label = ttk.Label(
-            main_frame,
-            text="APGI Validation Protocol Runner",
-            font=("Arial", 16, "bold"),
+        tk.Label(
+            metric_bar,
+            text="APGI VALIDATION PROTOCOLS",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 13, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+
+        self.status_label = tk.Label(
+            metric_bar,
+            text="ℹ  Ready",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 10),
         )
-        title_label.grid(row=0, column=0, pady=(0, 20))
+        self.status_label.grid(row=0, column=1, padx=(20, 15), sticky="e")
 
-        # Create notebook for tabs
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=1, column=0, sticky="nsew")
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(
+            metric_bar,
+            variable=self.progress_var,
+            maximum=100.0,
+            mode="determinate",
+            length=180,
+        )
+        self.progress_bar.grid(row=0, column=2, sticky="e")
 
-        # Validation Tab
-        validation_frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(validation_frame, text="Validation")
+        # ── Root grid weights ─────────────────────────────────────────────
+        self.root.columnconfigure(0, weight=0, minsize=215)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(0, weight=0)
+        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=0)
+        self.root.rowconfigure(3, weight=0, minsize=150)
 
-        # Configure validation tab grid
-        validation_frame.columnconfigure(1, weight=1)
-        validation_frame.rowconfigure(3, weight=1)
+        # ── Row 1, Col 0: Sidebar ─────────────────────────────────────────
+        sidebar = tk.Frame(self.root, bg="#ffffff", width=215, bd=0)
+        sidebar.grid(row=1, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.columnconfigure(0, weight=1)
+        sidebar.rowconfigure(1, weight=1)
 
-        # Protocol selection frame
-        protocol_frame = ttk.LabelFrame(validation_frame, text="Protocol Selection", padding="10")
-        protocol_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
-        protocol_frame.columnconfigure(0, weight=1)
+        tk.Label(
+            sidebar,
+            text="PROTOCOLS",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            pady=5,
+        ).grid(row=0, column=0, columnspan=2, sticky="ew")
 
-        # Protocol checkboxes
-        self.protocol_vars = {}
+        lb_frame = tk.Frame(sidebar, bg="#ffffff")
+        lb_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        lb_frame.columnconfigure(0, weight=1)
+        lb_frame.rowconfigure(0, weight=1)
+
+        self.protocol_listbox = tk.Listbox(
+            lb_frame,
+            font=("Noto Sans", 9),
+            bg="#ffffff",
+            fg="#212529",
+            selectbackground=_BLUE,
+            selectforeground="white",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightcolor="#dee2e6",
+            highlightbackground="#dee2e6",
+            activestyle="none",
+            cursor="hand2",
+            selectmode=tk.MULTIPLE,
+        )
+        lb_scroll = ttk.Scrollbar(lb_frame, orient="vertical", command=self.protocol_listbox.yview)
+        self.protocol_listbox.configure(yscrollcommand=lb_scroll.set)
+        self.protocol_listbox.grid(row=0, column=0, sticky="nsew")
+        lb_scroll.grid(row=0, column=1, sticky="ns")
+
+        # Populate protocol list with BooleanVar tracking
         protocols_info = {
-            1: "Protocol 1: Primary Test (Synthetic EEG ML)",
-            2: "Protocol 2: Secondary Test (Behavioral Bayesian)",
-            3: "Protocol 3: Primary Test (Active Inference Agent)",
-            4: "Protocol 4: Secondary Test (Phase Transition)",
-            5: "Protocol 5: Tertiary Test (Evolutionary Emergence)",
-            6: "Protocol 6: Tertiary Test (Liquid Network)",
-            7: "Protocol 7: Tertiary Test (TMS Causal)",
-            8: "Protocol 8: Secondary Test (Psychophysical Threshold)",
-            9: "Protocol 9: Primary Test (Neural Signatures)",
-            10: "Protocol 10: Priority 2 (Causal Manipulations)",
-            11: "Protocol 11: Priority 3 (MCMC Cultural Neuroscience)",
-            12: "Protocol 12: Clinical/Cross-Species Convergence",
-            13: "Protocol 13: P5-P12 Epistemic Architecture",
-            14: "Protocol 14: Priority 1 (fMRI Anticipation Experience)",
-            15: "Protocol 15: Priority 1 (fMRI Anticipation vmPFC)",
-            16: "Protocol 16: Metabolic ATP Ground-Truth (iATPSnFR2)",
-            17: "Protocol 17: Allen Visual Coding Fatigue",
-            18: "Protocol 18: EEG Microstate GFP P3b",
-            19: "Protocol 19: Information Erasure MVPA",
-            20: "Protocol 20: Empirical iEEG",
-            21: "Protocol 21: Free Energy Prediction Error",
-            22: "Protocol 22: fMRI Anticipation Experience (Enhanced)",
-            99: "Protocol ALL: Master Aggregator (All Protocols)",
-            # Template protocols from apgi_protocol_template.json
-            101: "Template P01: EEG Interoceptive Precision Gating",
-            102: "Template P02: TMS Anterior Insular Frontoparietal Gating",
-            103: "Template P03: Active Inference Agent Simulations",
-            104: "Template P04: Disorders of Consciousness Assessment",
-            105: "Template P05: fMRI Anticipation vs Experience",
-            106: "Template P06: icEEG All or None Ignition Dynamics",
+            1: "P01: Synthetic EEG ML",
+            2: "P02: Behavioral Bayesian",
+            3: "P03: Active Inference Agent",
+            4: "P04: Phase Transition",
+            5: "P05: Evolutionary Emergence",
+            6: "P06: Liquid Network",
+            7: "P07: TMS Causal",
+            8: "P08: Psychophysical Threshold",
+            9: "P09: Neural Signatures",
+            10: "P10: Causal Manipulations",
+            11: "P11: MCMC Cultural Neuro",
+            12: "P12: Clinical Cross-Species",
+            13: "P13: Epistemic Architecture",
+            14: "P14: fMRI Anticipation",
+            15: "P15: fMRI vmPFC",
+            16: "P16: Metabolic ATP",
+            17: "P17: Allen Visual Coding",
+            18: "P18: EEG Microstate GFP",
+            19: "P19: Information Erasure MVPA",
+            20: "P20: Empirical iEEG",
+            21: "P21: Free Energy Pred. Error",
+            22: "P22: fMRI Anticipation (Enhanced)",
+            99: "P-ALL: Master Aggregator",
+            101: "T01: EEG Interoceptive Gating",
+            102: "T02: TMS Anterior Insular",
+            103: "T03: Active Inference Sim",
+            104: "T04: Disorders of Consciousness",
+            105: "T05: fMRI Anticipation vs Exp",
+            106: "T06: icEEG Ignition Dynamics",
         }
+        self.protocol_vars = {}
+        self._protocol_nums: List[int] = []
 
-        for i, (num, desc) in enumerate(protocols_info.items()):
+        for num, desc in protocols_info.items():
             var = tk.BooleanVar(value=True)
             self.protocol_vars[num] = var
+            self.protocol_listbox.insert(tk.END, desc)
+            self._protocol_nums.append(num)
 
-            cb = ttk.Checkbutton(protocol_frame, text=desc, variable=var)
-            cb.grid(row=i // 2, column=(i % 2) * 2, sticky=tk.W, padx=5, pady=2)
+        self.protocol_listbox.select_set(0, tk.END)
+        self.protocol_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
 
-        # Select All / Deselect All buttons frame
-        select_frame = ttk.Frame(protocol_frame)
-        select_frame.grid(
-            row=(len(protocols_info) + 1) // 2,
-            column=0,
-            columnspan=4,
-            pady=(10, 0),
+        # Sidebar action buttons
+        btn_area = tk.Frame(sidebar, bg="#ffffff", pady=8, padx=8)
+        btn_area.grid(row=2, column=0, columnspan=2, sticky="ew")
+        btn_area.columnconfigure(0, weight=1)
+
+        self.run_button = ttk.Button(
+            btn_area,
+            text="▶  Run Selected",
+            command=self.run_validation,
+            style="Primary.TButton",
+            cursor="hand2",
+        )
+        self.run_button.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+
+        self.run_all_btn = ttk.Button(
+            btn_area,
+            text="Run All",
+            command=self.run_all_scripts,
+            style="Secondary.TButton",
+            cursor="hand2",
+        )
+        self.run_all_btn.grid(row=1, column=0, sticky="ew", pady=(0, 4))
+
+        self.stop_button = ttk.Button(
+            btn_area,
+            text="■  Stop",
+            command=self.stop_validation,
+            style="Danger.TButton",
+            cursor="hand2",
+            state=tk.DISABLED,
+        )
+        self.stop_button.grid(row=2, column=0, sticky="ew", pady=(0, 8))
+
+        ttk.Separator(btn_area, orient="horizontal").grid(row=3, column=0, sticky="ew", pady=(0, 6))
+
+        ttk.Button(btn_area, text="Select All", command=self.select_all_protocols).grid(
+            row=4, column=0, sticky="ew", pady=(0, 4)
+        )
+        ttk.Button(btn_area, text="Deselect All", command=self.deselect_all_protocols).grid(
+            row=5, column=0, sticky="ew", pady=(0, 8)
         )
 
-        ttk.Button(select_frame, text="Select All", command=self.select_all_protocols).grid(row=0, column=0, padx=5)
-        ttk.Button(select_frame, text="Deselect All", command=self.deselect_all_protocols).grid(row=0, column=1, padx=5)
+        ttk.Separator(btn_area, orient="horizontal").grid(row=6, column=0, sticky="ew", pady=(0, 6))
 
-        # Control buttons frame
-        control_frame = ttk.Frame(validation_frame)
-        control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        self.save_button = ttk.Button(btn_area, text="Save Results", command=self.save_results)
+        self.save_button.grid(row=7, column=0, sticky="ew")
 
-        self.run_button = ttk.Button(control_frame, text="Run Validation", command=self.run_validation)
-        self.run_button.grid(row=0, column=0, padx=5)
+        # Sidebar right border divider
+        tk.Frame(self.root, bg="#dee2e6", width=1).grid(row=1, column=0, sticky="nse")
 
-        self.stop_button = ttk.Button(control_frame, text="Stop", command=self.stop_validation, state=tk.DISABLED)
-        self.stop_button.grid(row=0, column=1, padx=5)
+        # ── Row 1, Col 1: Workspace ───────────────────────────────────────
+        workspace = ttk.Frame(self.root, padding=(15, 10, 15, 10))
+        workspace.grid(row=1, column=1, sticky="nsew")
+        workspace.columnconfigure(0, weight=1)
+        workspace.rowconfigure(0, weight=0)
+        workspace.rowconfigure(1, weight=1)
 
-        self.save_button = ttk.Button(control_frame, text="Save Results", command=self.save_results)
-        self.save_button.grid(row=0, column=2, padx=5)
+        # Status card (row 0)
+        self._card_area = ttk.Frame(workspace)
+        self._card_area.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self._card_area.columnconfigure(0, weight=1)
+        self._show_workspace_status_card()
 
-        # Progress bar
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(validation_frame, variable=self.progress_var, maximum=100, length=400)
-        self.progress_bar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        # Notebook (row 1) — all secondary tabs
+        self.notebook = ttk.Notebook(workspace)
+        self.notebook.grid(row=1, column=0, sticky="nsew")
 
-        # Status label
-        self.status_label = ttk.Label(validation_frame, text="Ready to run validation", font=("Arial", 10))
-        self.status_label.grid(row=3, column=0, columnspan=2, pady=(0, 10))
+        # ── Validation summary tab ──
+        validation_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(validation_frame, text="Validation")
+        validation_frame.columnconfigure(0, weight=1)
+        validation_frame.rowconfigure(0, weight=1)
 
-        # Results text area
-        results_frame = ttk.LabelFrame(validation_frame, text="Validation Results", padding="10")
-        results_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
-        results_frame.columnconfigure(0, weight=1)
-        results_frame.rowconfigure(0, weight=1)
+        summary_lf = ttk.LabelFrame(validation_frame, text="SUMMARY", padding="10")
+        summary_lf.grid(row=0, column=0, sticky="nsew")
+        summary_lf.columnconfigure(0, weight=1)
 
-        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
-        self.results_text.grid(row=0, column=0, sticky="nsew")
+        self.summary_label = ttk.Label(
+            summary_lf,
+            text="No validation run yet",
+            font=("Noto Sans", 10),
+            foreground="#6c757d",
+            wraplength=500,
+            justify="left",
+        )
+        self.summary_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
 
-        # Summary frame
-        summary_frame = ttk.LabelFrame(validation_frame, text="Validation Summary", padding="10")
-        summary_frame.grid(row=5, column=0, columnspan=2, sticky="ew")
+        ttk.Button(
+            summary_lf,
+            text="Show Import Status",
+            command=self.show_import_status,
+        ).grid(row=1, column=0, sticky="w")
 
-        self.summary_label = ttk.Label(summary_frame, text="No validation run yet", font=("Arial", 10))
-        self.summary_label.grid(row=0, column=0)
-
-        # Parameter Exploration Tab
+        # ── Parameter Exploration tab ──
         exploration_frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(exploration_frame, text="Parameter Exploration")
-
+        self.notebook.add(exploration_frame, text="Parameters")
         self.create_parameter_exploration_widgets(exploration_frame)
 
-        # Settings Tab
+        # ── Settings tab ──
         settings_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(settings_frame, text="Settings")
-
         self.create_settings_widgets(settings_frame)
 
-        # Data Export Tab
+        # ── Data Export tab ──
         export_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(export_frame, text="Data Export")
-
         self.create_export_widgets(export_frame)
 
-        # Alerts Tab
+        # ── Alerts tab ──
         alerts_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(alerts_frame, text="Alerts")
-
         self.create_alerts_widgets(alerts_frame)
 
-        # Parameter configurations for validation
-        parameters = {
+        # Parameter configurations for bound enforcement
+        self.param_configs = {
             "tau_S": {
                 "label": "Surprise Time Constant (τ_S)",
                 "min": 0.1,
@@ -639,7 +853,96 @@ class APGIValidationGUI:
             },
         }
 
-        self.param_configs = parameters  # Store configs for bound enforcement
+        # ── Row 2: Console toggle header ──────────────────────────────────
+        self._console_visible = True
+        console_header = tk.Frame(self.root, bg="#dee2e6", pady=3)
+        console_header.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+        self._console_toggle_btn = tk.Button(
+            console_header,
+            text="▼  OUTPUT CONSOLE",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            command=self._toggle_console,
+            activebackground="#dee2e6",
+            activeforeground="#495057",
+            bd=0,
+        )
+        self._console_toggle_btn.pack(side="left", padx=10)
+
+        tk.Button(
+            console_header,
+            text="Clear",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9),
+            relief="flat",
+            cursor="hand2",
+            command=self.clear_output,
+            activebackground="#dee2e6",
+            bd=0,
+        ).pack(side="right", padx=10)
+
+        # ── Row 3: Console body ───────────────────────────────────────────
+        self._console_frame = ttk.Frame(self.root, padding=(10, 0, 10, 8))
+        self._console_frame.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self._console_frame.columnconfigure(0, weight=1)
+        self._console_frame.rowconfigure(0, weight=1)
+
+        self.results_text = scrolledtext.ScrolledText(
+            self._console_frame,
+            height=9,
+            font=("Noto Sans Mono", 9),
+            bg="#212529",
+            fg="#f8f9fa",
+            insertbackground="#f8f9fa",
+            relief="flat",
+            borderwidth=0,
+        )
+        self.results_text.grid(row=0, column=0, sticky="nsew")
+
+        self._setup_tab_order()
+
+    # ── Layout helpers ────────────────────────────────────────────────────────
+
+    def _show_workspace_status_card(self) -> None:
+        """Show a static info card in the workspace header area."""
+        for w in self._card_area.winfo_children():
+            w.destroy()
+        APGICard(
+            self._card_area,
+            title="Validation Suite",
+            value=f"{len(protocol_files)} Protocols Available",
+            subtitle=(
+                "Select protocols from the sidebar, then click ▶ Run Selected "
+                "or Run All. Output streams to the console below."
+            ),
+        ).pack(fill="x")
+
+    def _toggle_console(self) -> None:
+        """Toggle visibility of the output console."""
+        if self._console_visible:
+            self._console_frame.grid_remove()
+            self._console_toggle_btn.config(text="▶  OUTPUT CONSOLE")
+            self._console_visible = False
+        else:
+            self._console_frame.grid()
+            self._console_toggle_btn.config(text="▼  OUTPUT CONSOLE")
+            self._console_visible = True
+
+    def _on_listbox_select(self, event: Any = None) -> None:
+        """Sync protocol BooleanVars to the current listbox selection."""
+        selected_indices = set(self.protocol_listbox.curselection())
+        for idx, num in enumerate(self._protocol_nums):
+            if num in self.protocol_vars:
+                self.protocol_vars[num].set(idx in selected_indices)
+
+    def _setup_tab_order(self) -> None:
+        """Initialise tab-order tracking list (populated lazily)."""
+        self._tab_widgets: List[tk.Widget] = []
 
     def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
         """Create parameter exploration widgets"""
@@ -1867,10 +2170,10 @@ class APGIValidationGUI:
             # Get selected protocols with validation
             selected_protocols: List[int] = [num for num, var in self.protocol_vars.items() if var.get()]
 
-            # Validate protocol numbers
+            # Validate protocol numbers (99 = ALL aggregator; 101-106 = template protocols)
+            _EXTENDED_NUMS = frozenset({99, 101, 102, 103, 104, 105, 106})
             for protocol_num in selected_protocols:
-                if protocol_num == 99:
-                    # Protocol ALL is always valid
+                if protocol_num in _EXTENDED_NUMS:
                     continue
                 if not isinstance(protocol_num, int) or protocol_num < 1 or protocol_num > 22:
                     messagebox.showerror(
@@ -1898,6 +2201,8 @@ class APGIValidationGUI:
 
             # Make UI state changes atomically
             self.run_button.config(state=tk.DISABLED)
+            if hasattr(self, "run_all_btn"):
+                self.run_all_btn.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.NORMAL)
             self.results_text.delete(1.0, tk.END)
             self.progress_var.set(0)
@@ -2883,27 +3188,31 @@ Interpretation:
         self.stop_validation()
 
     def select_all_protocols(self) -> None:
-        """Select all protocol checkboxes."""
+        """Select all protocols."""
         for var in self.protocol_vars.values():
             var.set(True)
+        if hasattr(self, "protocol_listbox"):
+            self.protocol_listbox.select_set(0, tk.END)
         logging.info("All protocols selected")
 
     def deselect_all_protocols(self) -> None:
-        """Deselect all protocol checkboxes."""
+        """Deselect all protocols."""
         for var in self.protocol_vars.values():
             var.set(False)
+        if hasattr(self, "protocol_listbox"):
+            self.protocol_listbox.select_clear(0, tk.END)
         logging.info("All protocols deselected")
 
     def clear_output(self) -> None:
-        """Clear the output text widgets."""
+        """Clear the console and reset status indicators."""
         if hasattr(self, "results_text"):
             self.results_text.delete(1.0, tk.END)
         if hasattr(self, "param_results_text"):
             self.param_results_text.delete(1.0, tk.END)
         if hasattr(self, "summary_label"):
-            self.summary_label.config(text="No validation run yet")
+            self.summary_label.config(text="No validation run yet", foreground="#6c757d")
         if hasattr(self, "status_label"):
-            self.status_label.config(text="Ready to run validation")
+            self.status_label.config(text="ℹ  Ready")
         if hasattr(self, "progress_var"):
             self.progress_var.set(0)
 
