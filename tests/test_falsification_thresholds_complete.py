@@ -148,7 +148,14 @@ class TestThresholdConstants:
 
     def test_f5_pca_thresholds(self):
         """Test F5 PCA-related thresholds"""
-        assert F5_5_PCA_MIN_VARIANCE == 0.70
+        # F5_5_PCA_MIN_VARIANCE depends on THRESHOLD_MODE (paper spec = 0.70, simulation = 0.60)
+        # Test the paper spec and simulation variants directly
+        from utils.falsification_thresholds import (
+            F5_5_PCA_MIN_VARIANCE_PAPER_SPEC,
+            F5_5_PCA_MIN_VARIANCE_SIMULATION,
+        )
+        assert F5_5_PCA_MIN_VARIANCE_PAPER_SPEC == 0.70
+        assert F5_5_PCA_MIN_VARIANCE_SIMULATION == 0.60
         assert F5_5_PCA_FALSIFICATION_THRESHOLD == 0.60
         assert F5_5_MIN_LOADING == 0.60
 

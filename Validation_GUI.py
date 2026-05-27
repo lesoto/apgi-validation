@@ -129,13 +129,14 @@ protocol_files = [
     ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
     ("APGI_Protocol_6", "VP_06_LiquidNetworkInductiveBias.py"),
     ("APGI_Protocol_7", "VP_07_TMSCausalInterventions.py"),
+    ("APGI_Protocol_7a_MathConsistency", "VP_07a_MathematicalConsistency.py"),
     ("APGI_Protocol_8", "VP_08_PsychophysicalThresholdEstimation.py"),
     ("APGI_Protocol_9", "VP_09_NeuralSignaturesEmpiricalPriority1.py"),
     ("APGI_Protocol_10", "VP_10_CausalManipulationsPriority2.py"),
     ("APGI_Protocol_11", "VP_11_MCMCCulturalNeurosciencePriority3.py"),
     ("APGI_Protocol_12", "VP_12_ClinicalCrossSpeciesConvergence.py"),
     ("APGI_Protocol_13", "VP_13_EpistemicArchitecture.py"),
-    ("APGI_Protocol_14", "VP_14_FMRIAnticipationExperience.py"),
+    ("APGI_Protocol_14_fMRI_Anticipation", "VP_14_FMRIAnticipationExperience.py"),
     ("APGI_Protocol_15", "VP_15_FMRIAnticipationVmPFC.py"),
     ("APGI_Protocol_16", "VP_16_MetabolicATPGroundTruth.py"),
     ("APGI_Protocol_17", "VP_17_AllenVisualCodingFatigue.py"),
@@ -143,7 +144,7 @@ protocol_files = [
     ("APGI_Protocol_19", "VP_19_InformationErasureMVPA.py"),
     ("APGI_Protocol_20", "VP_20_EmpiricalIEEG.py"),
     ("APGI_Protocol_21", "VP_21_FreeEnergyPredictionError.py"),
-    ("APGI_Protocol_22", "VP_22_FMRIAnticipationExperience.py"),
+    ("APGI_Protocol_22_fMRI_Anticipation_Enhanced", "VP_22_FMRIAnticipationExperience.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
 
@@ -673,6 +674,7 @@ class APGIValidationGUI:
             5: "P05: Evolutionary Emergence",
             6: "P06: Liquid Network",
             7: "P07: TMS Causal",
+            70: "P07a: Mathematical Consistency",
             8: "P08: Psychophysical Threshold",
             9: "P09: Neural Signatures",
             10: "P10: Causal Manipulations",
@@ -689,12 +691,6 @@ class APGIValidationGUI:
             21: "P21: Free Energy Pred. Error",
             22: "P22: fMRI Anticipation (Enhanced)",
             99: "P-ALL: Master Aggregator",
-            101: "T01: EEG Interoceptive Gating",
-            102: "T02: TMS Anterior Insular",
-            103: "T03: Active Inference Sim",
-            104: "T04: Disorders of Consciousness",
-            105: "T05: fMRI Anticipation vs Exp",
-            106: "T06: icEEG Ignition Dynamics",
         }
         self.protocol_vars = {}
         self._protocol_nums: List[int] = []
@@ -2170,8 +2166,8 @@ class APGIValidationGUI:
             # Get selected protocols with validation
             selected_protocols: List[int] = [num for num, var in self.protocol_vars.items() if var.get()]
 
-            # Validate protocol numbers (99 = ALL aggregator; 101-106 = template protocols)
-            _EXTENDED_NUMS = frozenset({99, 101, 102, 103, 104, 105, 106})
+            # Validate protocol numbers (70 = VP_07a; 99 = ALL aggregator)
+            _EXTENDED_NUMS = frozenset({70, 99})
             for protocol_num in selected_protocols:
                 if protocol_num in _EXTENDED_NUMS:
                     continue
@@ -2315,36 +2311,38 @@ Interpretation:
             self.update_results(f"\n--- Protocol {protocol_num} ---\n")
             logging.info(f"Starting Protocol {protocol_num}")
 
-            # Protocol file mapping
-            protocol_files = [
-                (1, "VP_01_SyntheticEEGMLClassification.py"),
-                (2, "VP_02_BehavioralBayesianComparison.py"),
-                (3, "VP_03_ActiveInferenceAgentSimulations.py"),
-                (4, "VP_04_PhaseTransitionEpistemicLevel2.py"),
-                (5, "VP_05_EvolutionaryEmergence.py"),
-                (6, "VP_06_LiquidNetworkInductiveBias.py"),
-                (7, "VP_07_TMSCausalInterventions.py"),
-                (8, "VP_08_PsychophysicalThresholdEstimation.py"),
-                (9, "VP_09_NeuralSignaturesEmpiricalPriority1.py"),
-                (10, "VP_10_CausalManipulationsPriority2.py"),
-                (11, "VP_11_MCMCCulturalNeurosciencePriority3.py"),
-                (12, "VP_12_ClinicalCrossSpeciesConvergence.py"),
-                (13, "VP_13_EpistemicArchitecture.py"),
-                (14, "VP_14_FMRIAnticipationExperience.py"),
-                (15, "VP_15_FMRIAnticipationVmPFC.py"),
-                (16, "VP_16_MetabolicATPGroundTruth.py"),
-                (17, "VP_17_AllenVisualCodingFatigue.py"),
-                (18, "VP_18_EEGMicrostateGFPP3b.py"),
-                (19, "VP_19_InformationErasureMVPA.py"),
-                (20, "VP_20_EmpiricalIEEG.py"),
-                (21, "VP_21_FreeEnergyPredictionError.py"),
-                (22, "VP_22_FMRIAnticipationExperience.py"),
-            ]
+            # Protocol file mapping — dict-keyed so sparse numbers (70, 99) work correctly
+            protocol_file_map = {
+                1: "VP_01_SyntheticEEGMLClassification.py",
+                2: "VP_02_BehavioralBayesianComparison.py",
+                3: "VP_03_ActiveInferenceAgentSimulations.py",
+                4: "VP_04_PhaseTransitionEpistemicLevel2.py",
+                5: "VP_05_EvolutionaryEmergence.py",
+                6: "VP_06_LiquidNetworkInductiveBias.py",
+                7: "VP_07_TMSCausalInterventions.py",
+                70: "VP_07a_MathematicalConsistency.py",
+                8: "VP_08_PsychophysicalThresholdEstimation.py",
+                9: "VP_09_NeuralSignaturesEmpiricalPriority1.py",
+                10: "VP_10_CausalManipulationsPriority2.py",
+                11: "VP_11_MCMCCulturalNeurosciencePriority3.py",
+                12: "VP_12_ClinicalCrossSpeciesConvergence.py",
+                13: "VP_13_EpistemicArchitecture.py",
+                14: "VP_14_FMRIAnticipationExperience.py",
+                15: "VP_15_FMRIAnticipationVmPFC.py",
+                16: "VP_16_MetabolicATPGroundTruth.py",
+                17: "VP_17_AllenVisualCodingFatigue.py",
+                18: "VP_18_EEGMicrostateGFPP3b.py",
+                19: "VP_19_InformationErasureMVPA.py",
+                20: "VP_20_EmpiricalIEEG.py",
+                21: "VP_21_FreeEnergyPredictionError.py",
+                22: "VP_22_FMRIAnticipationExperience.py",
+                99: "VP_ALL_Aggregator.py",
+            }
 
-            if protocol_num < 1 or protocol_num > len(protocol_files):
+            if protocol_num not in protocol_file_map:
                 raise ValueError(f"Invalid protocol number: {protocol_num}")
 
-            protocol_file = protocol_files[protocol_num - 1][1]
+            protocol_file = protocol_file_map[protocol_num]
             protocol_path = Path(__file__).parent / "Validation" / protocol_file
 
             if not protocol_path.exists():

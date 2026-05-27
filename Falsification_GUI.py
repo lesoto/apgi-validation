@@ -301,10 +301,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 2: Iowa Gambling": {
+            "Protocol 2: Convergence Benchmark": {
                 "file": "Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
-                "description": "IGT variant with simulated interoceptive costs",
+                "description": "Agent comparison convergence benchmark (F3.1–F3.6); IGT environment with interoceptive costs",
                 "parameters": {
                     "n_trials": {
                         "default": 100,
@@ -336,10 +336,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 3: Agent Comparison": {
+            "Protocol 3: Framework Multi-Protocol": {
                 "file": "Falsification/FP_03_FrameworkLevelMultiProtocol.py",
                 "class": "AgentComparisonExperiment",
-                "description": "Run complete agent comparison experiment",
+                "description": "Framework-level multi-protocol runner; agent comparison experiment",
                 "parameters": {
                     "n_episodes": {
                         "default": 100,
@@ -656,10 +656,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 13: Framework Aggregator": {
+            "Protocol ALL: Framework Aggregator": {
                 "file": "Falsification/FP_ALL_Aggregator.py",
                 "class": "FalsificationAggregator",
-                "description": "Full Framework Falsification Report",
+                "description": "Full Framework Falsification Report (aggregates FP-01 through FP-12)",
                 "parameters": {},
             },
         }
