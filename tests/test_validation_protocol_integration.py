@@ -615,7 +615,7 @@ def run_comprehensive_validation_tests():
     # Test result schema consistency
     print("\n📋 Testing Result Schema Consistency...")
     schema_consistent = 0
-    common_fields = set()
+    common_fields: set[str] = set()
 
     for protocol_name in VALIDATION_PROTOCOLS[:3]:
         module = VALIDATION_MODULES[protocol_name]

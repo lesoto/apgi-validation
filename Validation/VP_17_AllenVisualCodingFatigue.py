@@ -528,15 +528,27 @@ def run_validation(data_file: Optional[str] = None, **kwargs) -> Dict[str, Any]:
     """
     Entry point for external validation runners.
 
+    DEPRECATION NOTICE: VP-17 is supplementary and its predictions are NOT counted in the canonical 14-prediction tally.
+    Fatigue benchmarks (P3b decay, threshold elevation) are handled at the theoretical level in:
+        Theory/APGI_Fractal_Threshold_Dynamics.py
+
     Args:
         data_file: Optional path to empirical data file
         **kwargs: Additional arguments (e.g., seed)
     """
-    if "seed" in kwargs:
-        np.random.seed(kwargs["seed"])
-
-    validator = QuantitativeModelValidator()
-    return validator.validate_quantitative_fits()
+    # Return supplementary status
+    return {
+        "status": "supplementary",
+        "passed": None,
+        "protocol_id": "VP-17",
+        "protocol_name": "Allen Visual Coding Fatigue Analysis [SUPPLEMENTARY]",
+        "message": (
+            "VP-17 provides supplementary empirical coverage; V17.x predictions are NOT counted "
+            "in the canonical 14-prediction tally. Fatigue benchmarks (P3b decay, threshold elevation) "
+            "are handled at the theoretical level in Theory/APGI_Fractal_Threshold_Dynamics.py. "
+            "PASS/FAIL is informational only."
+        ),
+    }
 
 
 def main():

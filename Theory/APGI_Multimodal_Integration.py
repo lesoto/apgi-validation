@@ -2309,7 +2309,7 @@ def compute_HEP_zscore(
             warnings.warn("No valid EEG epochs could be extracted")
             return np.array([])
 
-        epochs = np.array(epochs)
+        epochs = np.array(epochs)  # type: ignore[assignment]
         return epochs
 
     # 1. Detect R-peaks with enhanced validation

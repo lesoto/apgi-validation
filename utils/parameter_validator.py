@@ -11,7 +11,7 @@ class APGIParameterValidator:
     """Validator for APGI model parameters using JSON schema"""
 
     def __init__(self):
-        self.schema = {
+        self.schema: Dict[str, Any] = {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "title": "APGI Formal Model Parameters",
             "description": "Schema for APGI formal model simulation parameters",

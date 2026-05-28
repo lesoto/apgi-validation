@@ -128,7 +128,7 @@ class TestErrorHandlingPatterns:
 
             # Test with invalid parameter values
             try:
-                APGIParameters(
+                APGIParameters(  # type: ignore[call-arg]
                     Pi_e=np.inf,  # Invalid infinite precision
                     Pi_i=-1.0,  # Invalid negative precision
                     alpha=np.nan,  # Invalid NaN alpha
@@ -351,7 +351,7 @@ class TestMemoryErrors:
         try:
             # Test with arrays that are too large
             try:
-                np.zeros((1e6, 1e6))
+                np.zeros((int(1e6), int(1e6)))  # type: ignore[call-arg]
                 assert False  # Should not reach here
 
             except (MemoryError, ValueError):

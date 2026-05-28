@@ -1722,7 +1722,7 @@ class FalsificationChecker:
     """Check Protocol 5 falsification criteria"""
 
     def __init__(self):
-        self.criteria = {
+        self.criteria: Dict[str, Dict[str, Any]] = {
             "F5.1": {
                 "description": "Threshold mechanism does not reach >60% by generation 500",
                 "threshold": 0.60,
@@ -2071,7 +2071,7 @@ class FalsificationChecker:
         # F5.6
         criterion = {
             "code": "F5.6",
-            "description": self.criteria["F5.6"]["description"],
+            "description": self.criteria["F5.6"]["description"],  # type: ignore[index]
             "details": f5_6_details,
         }
 

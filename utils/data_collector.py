@@ -12,7 +12,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 try:
     import psutil
@@ -48,7 +48,7 @@ class DataCollector:
 
         # Threading controls
         self._collection_active = False
-        self._collection_thread = None
+        self._collection_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
         # Initialize database
@@ -169,7 +169,7 @@ class DataCollector:
             return
 
         try:
-            metrics = {
+            metrics: Dict[str, Union[str, float, int]] = {
                 "timestamp": datetime.now().isoformat(),
             }
 

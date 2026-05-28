@@ -23,7 +23,7 @@ import platform
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 # Platform-specific import for file locking
 if platform.system() != "Windows":
@@ -861,10 +861,10 @@ class ThreatRewardTradeoffEnvironment:
         opt = self.options[action]
 
         # Reward with variance
-        reward = np.random.normal(opt["reward"], opt["reward"] * 0.2)
+        reward = np.random.normal(cast(float, opt["reward"]), cast(float, opt["reward"]) * 0.2)
 
         # Threat response
-        threat = opt["threat"]
+        threat = cast(float, opt["threat"])
         self.threat_accumulator = self.threat_decay * self.threat_accumulator + threat
 
         # Interoceptive cost depends on both immediate threat and accumulated

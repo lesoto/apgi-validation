@@ -9,7 +9,7 @@ import json
 import threading
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     import dash
@@ -162,7 +162,7 @@ class ComprehensivePerformanceDashboard:
         self.data_lock = threading.Lock()
 
         # Background monitoring thread
-        self.monitoring_thread = None
+        self.monitoring_thread: Optional[threading.Thread] = None
         self.monitoring_active = False
 
         self._setup_layout()

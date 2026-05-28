@@ -88,12 +88,16 @@ import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import stats
 from scipy.signal import butter, filtfilt, hilbert
 from sklearn.mixture import GaussianMixture
+
+if TYPE_CHECKING:
+    import mne
+    from mne import BaseRaw as MNEBaseRaw  # noqa: F401
 
 # Matplotlib — non-interactive backend
 try:
@@ -108,10 +112,11 @@ except ImportError:
 
 # MNE-Python — optional; required for real BIDS data loading
 try:
-    import mne
+    from utils.runtime_environment import configure_runtime_environment, safe_import_mne
 
-    HAS_MNE = True
-except ImportError:  # pragma: no cover
+    configure_runtime_environment(Path(__file__).parent.parent)
+    HAS_MNE, mne = safe_import_mne()
+except Exception:  # pragma: no cover
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 
@@ -415,7 +420,7 @@ class BIDSiEEGLoader:
         )
         return all_epochs
 
-    def _read_raw(self, path: Path) -> "mne.io.BaseRaw":
+    def _read_raw(self, path: Path) -> "MNEBaseRaw":
         suffix = path.suffix.lower()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

@@ -3211,7 +3211,7 @@ def run_validation_with_cross_validation():
         print("\n" + "=" * 80)
         print("GENERATING VISUALIZATIONS")
         print("=" * 80)
-        plot_experiment_results(results, analysis, "protocol3_results_with_cv.png")
+        plot_experiment_results(results, analysis, {}, save_path="protocol3_results_with_cv.png")
 
         # Save
         print("\n" + "=" * 80)

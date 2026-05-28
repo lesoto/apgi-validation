@@ -5,6 +5,7 @@ Tests for APGI_Bayesian_Estimation_Framework.py - Bayesian modeling, model compa
 
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -845,7 +846,7 @@ class TestErrorHandling:
         framework = BayesianValidationFramework()
 
         # Test with empty data
-        empty_data = {}
+        empty_data: dict[str, Any] = {}
 
         # Mock the comprehensive_bayesian_validation to avoid timeout
         with patch.object(framework, "comprehensive_bayesian_validation") as mock_validation:

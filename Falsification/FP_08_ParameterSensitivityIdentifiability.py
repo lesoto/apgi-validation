@@ -3189,6 +3189,6 @@ def analyze_parameter_sensitivity(base_params, param_std_devs, n_levels=10, n_tr
     return analyze_oat_sensitivity(base_params, param_std_devs, n_levels, n_trials)
 
 
-def generate_sensitivity_report(base_params, param_std_devs, n_levels=10, n_trials=1000):
+def generate_sensitivity_report(base_params, param_std_devs, n_levels=10, n_trials=1000, fim_results=None):
     """Alias for generate_comprehensive_sensitivity_report for test compatibility."""
-    return generate_comprehensive_sensitivity_report(base_params, param_std_devs, n_levels, n_trials)
+    return generate_comprehensive_sensitivity_report(base_params, param_std_devs, n_levels, n_trials, fim_results or {})

@@ -210,7 +210,7 @@ class TestGUIErrorPaths:
         protocol_tiers = {1: "primary"}
 
         update_calls = []
-        gui.update_results = lambda msg: update_calls.append(msg)
+        gui.update_results = lambda message: update_calls.append(message)  # type: ignore[assignment]
 
         gui._handle_protocol_execution_error(error, 1, protocol_tiers)
 
@@ -277,7 +277,7 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        gui.update_results = capture_gui_update
+        gui.update_results = capture_gui_update  # type: ignore[assignment]
 
         error = ValueError("Test error")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
@@ -306,8 +306,8 @@ class TestGUIErrorPaths:
 
         status_calls = []
         results_calls = []
-        gui.update_status = lambda msg: status_calls.append(msg)
-        gui.update_results = lambda msg: results_calls.append(msg)
+        gui.update_status = lambda message: status_calls.append(message)  # type: ignore[assignment]
+        gui.update_results = lambda message: results_calls.append(message)  # type: ignore[assignment]
 
         error = ImportError("Critical error in multiple protocols")
         selected_protocols = [1, 2, 3]
@@ -381,7 +381,7 @@ class TestGUIErrorPaths:
         }
 
         results_calls = []
-        gui.update_results = lambda msg: results_calls.append(msg)
+        gui.update_results = lambda message: results_calls.append(message)  # type: ignore[assignment]
 
         error = IOError("Recoverable error")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
@@ -478,7 +478,7 @@ class TestGUIErrorPaths:
         }
 
         results_calls = []
-        gui.update_results = lambda msg: results_calls.append(msg)
+        gui.update_results = lambda message: results_calls.append(message)  # type: ignore[assignment]
 
         error = Exception("Complex multi-layer error")
         gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
@@ -514,7 +514,7 @@ class TestGUIErrorPaths:
         }
 
         update_calls = []
-        gui.update_results = lambda msg: update_calls.append(msg)
+        gui.update_results = lambda message: update_calls.append(message)  # type: ignore[assignment]
 
         error = TimeoutError("Protocol timeout")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})

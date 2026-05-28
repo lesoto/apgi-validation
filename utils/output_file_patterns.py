@@ -509,7 +509,7 @@ def main():
         print(f"{status_icon} {protocol_id}: {file_count} files, JSON valid: {has_json}")
 
         if status["latest_file"]:
-            print(f"    Latest: {Path(status['latest_file']).name}")
+            print(f"    Latest: {Path(str(status['latest_file'])).name}")
 
     # Update validation history
     print("\nUpdating validation history...")

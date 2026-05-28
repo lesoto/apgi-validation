@@ -143,7 +143,7 @@ class ClinicalDataAnalyzer:
         profile = self.clinical_profiles[condition]
         data = []
         for subject_id in tqdm(range(n_subjects), desc=f"Simulating {condition} subjects"):
-            pci_value = np.random.normal(profile["pci_mean"], profile["pci_std"])
+            pci_value = np.random.normal(float(profile["pci_mean"]), float(profile["pci_std"]))  # type: ignore[arg-type]
             pci_value = np.clip(pci_value, 0.0, 1.0)
             derived_measures = self._derive_measures_from_pci(pci_value, condition)
             subject_data = {
@@ -626,9 +626,9 @@ class CrossSpeciesHomologyAnalyzer:
                 "cortical_thickness": profile["cortical_thickness"],
                 "frontal_lobe_ratio": profile["frontal_lobe_ratio"],
             }
-            subject_data["theta_t"] = np.random.uniform(*profile["theta_t_range"])
-            subject_data["Pi_e"] = np.random.uniform(*profile["Pi_e_range"])
-            subject_data["ignition_latency"] = profile["ignition_latency"] + np.random.normal(0, 0.02)
+            subject_data["theta_t"] = np.random.uniform(*profile["theta_t_range"])  # type: ignore[misc]
+            subject_data["Pi_e"] = np.random.uniform(*profile["Pi_e_range"])  # type: ignore[misc]
+            subject_data["ignition_latency"] = profile["ignition_latency"] + np.random.normal(0, 0.02)  # type: ignore[operator]
             subject_data.update(self._simulate_species_measures(subject_data, species))
             data.append(subject_data)
         return pd.DataFrame(data)
@@ -885,7 +885,10 @@ class ClinicalConvergenceValidator:
             "cohens_d_p3b": float(p3b_reduction_vs_baseline),
             "eta_squared": 0.48,
             "paired_ttest_p3b_pvalue": float(
-                self.clinical_analyzer.permutation_test_paired(data["baseline_p3b"], data["propofol_p3b"])
+                self.clinical_analyzer.permutation_test_paired(
+                    np.array(data["baseline_p3b"].values),  # type: ignore[arg-type]
+                    np.array(data["propofol_p3b"].values),  # type: ignore[arg-type]
+                )
             ),
             "validation_passed": m_p3b > 50.0 and m_ign > 50.0,
         }

@@ -6,6 +6,7 @@ and missing HMAC key handling.
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -272,7 +273,7 @@ class TestBackupHMACEdgeCases:
 
     def test_empty_backup_data(self, backup_manager):
         """Test HMAC with empty backup data."""
-        empty_data = {}
+        empty_data: dict[str, Any] = {}
         backup_path = backup_manager.create_data_backup(empty_data, "empty_backup")
         assert backup_manager.verify_data_backup_integrity(backup_path) is True
 

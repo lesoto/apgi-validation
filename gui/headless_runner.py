@@ -31,9 +31,15 @@ class HeadlessRunner:
 
     def _discover_protocols(self):
         """Reuse the GUI discovery logic without tkinter."""
-        dummy = object.__new__(ScriptRunnerGUI)
-        dummy.log_message = self.log_message  # type: ignore[attr-defined]
-        return ScriptRunnerGUI._discover_protocols(dummy, self.theory_dir)
+
+        # Create a minimal mock object with just the log_message method
+        class MockGUI:
+            def log_message(self, msg):
+                self.log_message(msg)
+
+        mock = MockGUI()
+        mock.log_message = self.log_message  # type: ignore[method-assign]
+        return ScriptRunnerGUI._discover_protocols(mock, self.theory_dir)  # type: ignore[arg-type]
 
     def _execute_protocol(self, display_name, protocol_info):
         """Execute a single protocol and return (success, message)."""

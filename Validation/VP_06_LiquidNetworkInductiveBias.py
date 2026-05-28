@@ -747,7 +747,7 @@ class LSTMNetwork(nn.Module):
 
         self.value_head = nn.Linear(64, 1)
 
-        self.hidden = None
+        self.hidden: tuple[torch.Tensor, torch.Tensor] | None = None
 
     def forward(self, extero_input, intero_input, context, prev_action=None):
         batch_size = extero_input.shape[0]
@@ -2995,9 +2995,9 @@ def systematic_ablation_study(base_model, test_loader):
     baseline = results["full_model"]["accuracy"]
     component_importance = {}
 
-    for config in ablation_configs:
+    for config in ablation_configs.keys():  # type: ignore[assignment]
         if config != "full_model":
-            drop = baseline - results[config]["accuracy"]
+            drop = baseline - results[config]["accuracy"]  # type: ignore[index]
             component_importance[config.replace("no_", "")] = drop
 
     # Visualize
@@ -3101,7 +3101,7 @@ def analyze_gradient_flow(model, optimizer):
     Note: This should be called during training, not after.
     Returns gradient norms for the current backward pass.
     """
-    gradient_norms = {
+    gradient_norms: dict[str, list[float]] = {
         "extero_pathway": [],
         "intero_pathway": [],
         "workspace": [],

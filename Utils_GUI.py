@@ -453,7 +453,7 @@ class UtilsRunnerGUI:
         """
         # Main container
         main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky="nsew")
 
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
@@ -471,7 +471,7 @@ class UtilsRunnerGUI:
 
         # Scripts list frame
         list_frame = ttk.LabelFrame(main_frame, text="Available Scripts", padding="5")  # noqa: BLK100
-        list_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))  # noqa: BLK100
+        list_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))  # noqa: BLK100
 
         # Scripts listbox with scrollbar
         list_scrollbar = ttk.Scrollbar(list_frame)
@@ -487,7 +487,7 @@ class UtilsRunnerGUI:
 
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=1, column=1, sticky=(tk.W, tk.E, tk.N), padx=(0, 10))  # noqa: BLK100
+        control_frame.grid(row=1, column=1, sticky="new", padx=(0, 10))  # noqa: BLK100
 
         # Buttons
         self.run_button = ttk.Button(
@@ -538,7 +538,7 @@ class UtilsRunnerGUI:
             row=2,
             column=0,
             columnspan=3,
-            sticky=(tk.W, tk.E, tk.N, tk.S),
+            sticky="nsew",
             pady=(10, 0),
         )
 
@@ -664,8 +664,8 @@ class UtilsRunnerGUI:
                 self.TAG_INFO,
             )
             self.root.after(0, lambda: self.scripts_listbox.selection_clear(0, tk.END))  # noqa: BLK100
-            self.root.after(0, lambda idx=index: self.scripts_listbox.selection_set(idx))
-            self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))
+            self.root.after(0, lambda idx=index: self.scripts_listbox.selection_set(idx))  # type: ignore[misc, arg-type]
+            self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))  # type: ignore[misc, arg-type]
 
             # Run without waiting - truly async
             success = self.run_script(script, wait=False)
@@ -863,7 +863,7 @@ class UtilsRunnerGUI:
         return_code = None  # Track return code throughout
 
         # Use a queue for thread-safe communication on Windows and macOS
-        output_queue = queue.Queue()
+        output_queue: queue.Queue[tuple[str, str]] = queue.Queue()
         reader_thread = None
 
         # On Windows and macOS, use a separate thread for reading to avoid blocking
@@ -911,7 +911,8 @@ class UtilsRunnerGUI:
                 else:
                     # On other Unix-like systems, use select
                     try:
-                        ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                        ready_list, _, _ = select.select([process.stdout], [], [], 1.0)
+                        ready = bool(ready_list)
                     except (ValueError, select.error) as e:
                         # Handle select errors gracefully
                         logging.warning(f"Select error: {e}")

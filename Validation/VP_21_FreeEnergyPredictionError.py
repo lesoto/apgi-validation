@@ -102,11 +102,16 @@ import sys
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import stats
 from scipy.signal import butter, filtfilt
+
+if TYPE_CHECKING:
+    import mne
+    from mne import BaseRaw as MNEBaseRaw  # noqa: F401
+    from mne import Epochs as MNEEpochs  # noqa: F401
 
 try:
     import matplotlib
@@ -119,10 +124,11 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 try:
-    import mne
+    from utils.runtime_environment import configure_runtime_environment, safe_import_mne
 
-    HAS_MNE = True
-except ModuleNotFoundError:  # pragma: no cover
+    configure_runtime_environment(Path(__file__).parent.parent)
+    HAS_MNE, mne = safe_import_mne()
+except Exception:  # pragma: no cover
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 
@@ -307,8 +313,8 @@ class MMNExtractor:
 
     def extract_from_epochs(
         self,
-        standard_epochs: "mne.Epochs",
-        deviant_epochs: "mne.Epochs",
+        standard_epochs: "MNEEpochs",
+        deviant_epochs: "MNEEpochs",
     ) -> float:
         """
         Extract MMN peak from real MNE Epochs objects.
@@ -523,7 +529,7 @@ class BIDSFELoader:
         if not self.bids_root.exists():
             raise FileNotFoundError(f"BIDS root not found: {self.bids_root}")
 
-    def _read_raw(self, path: Path) -> "mne.io.BaseRaw":
+    def _read_raw(self, path: Path) -> "MNEBaseRaw":
         suffix = path.suffix.lower()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -540,7 +546,7 @@ class BIDSFELoader:
             raw.resample(self.sfreq_target, verbose=False)
         return raw
 
-    def _load_events(self, raw: "mne.io.BaseRaw", events_path: Path) -> Tuple[np.ndarray, Dict[str, int]]:
+    def _load_events(self, raw: "MNEBaseRaw", events_path: Path) -> Tuple[np.ndarray, Dict[str, int]]:
         import pandas as pd
 
         if not events_path.exists():

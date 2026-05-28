@@ -20,7 +20,7 @@ try:
 except ImportError:
     _verify_protocol = None  # type: ignore[assignment]
     _SecurityError = RuntimeError  # type: ignore[assignment,misc]
-from typing import Any, Callable, List
+from typing import Any, Callable, Dict, List
 
 # Pre-import torch to prevent circular import issues with dynamically loaded protocols
 try:
@@ -185,7 +185,7 @@ class ProtocolRunnerGUI:
     def __init__(self, root, headless=False):
         self.root = root
         self.headless = headless
-        self.gui_queue = queue.Queue()
+        self.gui_queue: queue.Queue[object] = queue.Queue()
 
         if not self.headless:
             apply_apgi_theme(self.root)
@@ -1121,13 +1121,13 @@ class ProtocolRunnerGUI:
             label.grid(row=row, column=0, sticky=tk.W, padx=(0, 10), pady=2)
 
             if param_config["type"] == "float":
-                var = tk.DoubleVar(value=param_config["default"])
+                var_float = tk.DoubleVar(value=param_config["default"])
                 widget = tk.Spinbox(
                     self.params_scrollable_frame,
                     from_=param_config["min"],
                     to=param_config["max"],
                     increment=(param_config["max"] - param_config["min"]) / 100,
-                    textvariable=var,
+                    textvariable=var_float,
                     width=15,
                     validate="key",
                     validatecommand=(
@@ -1138,13 +1138,13 @@ class ProtocolRunnerGUI:
                     ),
                 )
             elif param_config["type"] == "int":
-                var = tk.IntVar(value=param_config["default"])
+                var_int = tk.IntVar(value=param_config["default"])  # type: ignore[assignment]
                 widget = tk.Spinbox(
                     self.params_scrollable_frame,
                     from_=param_config["min"],
                     to=param_config["max"],
                     increment=1,
-                    textvariable=var,
+                    textvariable=var_int,
                     width=15,
                     validate="key",
                     validatecommand=(
@@ -1158,7 +1158,7 @@ class ProtocolRunnerGUI:
                 var = tk.StringVar(value=param_config["default"])
                 widget = ttk.Entry(self.params_scrollable_frame, textvariable=var, width=17)
 
-            widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
+            widget.grid(row=row, column=1, sticky="ew", pady=2)
             self.create_tooltip(widget, param_config.get("description", ""))
             self.parameter_widgets[param_name] = {"var": var, "widget": widget}
             row += 1
@@ -1637,7 +1637,7 @@ class ProtocolRunnerGUI:
 
                 configured_params = protocol_info.get("configured_params", {})
 
-                validated_params = {}
+                validated_params: Dict[str, Any] = {}
                 for key, value in configured_params.items():
                     try:
                         num_value = float(value)

@@ -41,7 +41,7 @@ def run_with_timeout(func, timeout_secs=30):
         TimeoutError: If function takes longer than timeout_secs
     """
     result = [None]
-    exception = [None]
+    exception: list[Exception | None] = [None]
 
     def target():
         try:

@@ -40,7 +40,7 @@ def test_error_info():
 
 
 def test_apgi_error_init():
-    err1 = APGIError("msg")
+    err1 = APGIError(message="msg")
     assert err1.message == "msg"
     assert err1.category == ErrorCategory.RUNTIME
 
@@ -57,14 +57,14 @@ def test_apgi_error_init():
 
 
 def test_apgi_error_to_dict():
-    err = APGIError("msg")
+    err = APGIError(message="msg")
     d = err.to_dict()
     assert d["message"] == "msg"
     assert "severity" in d
 
 
 def test_apgi_error_str():
-    err = APGIError("msg", severity=ErrorSeverity.CRITICAL, category=ErrorCategory.DATA)
+    err = APGIError(message="msg", severity=ErrorSeverity.CRITICAL, category=ErrorCategory.DATA)
     assert "[CRITICAL]" in str(err)
     assert "DATA" in str(err)
     assert "msg" in str(err)
@@ -144,7 +144,7 @@ def test_handle_import_error():
 
 
 def test_format_user_message():
-    err = APGIError("my message", suggestion="do this", context={"a": 1})
+    err = APGIError(message="my message", suggestion="do this", context={"a": 1})
     msg = format_user_message(err)
     assert "my message" in msg
     assert "do this" in msg

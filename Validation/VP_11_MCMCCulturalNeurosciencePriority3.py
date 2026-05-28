@@ -973,9 +973,9 @@ def compute_model_comparison(df: pd.DataFrame, seed: int = RANDOM_SEED) -> Dict[
             theta_0, pi_i, alpha = params
             if not (0.10 < theta_0 < 0.95 and 0.05 < pi_i < 3.5 and 0.5 < alpha < 25.0):
                 return np.inf
-            p = apgi_detection_probability(df["stimulus"].values, theta_0, pi_i, 0.0, alpha)
+            p = apgi_detection_probability(df["stimulus"].to_numpy(), theta_0, pi_i, 0.0, alpha)
             p = np.clip(p, 1e-9, 1 - 1e-9)
-            n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(int)
+            n, k = df["n_trials"].to_numpy().astype(int), df["n_detected"].to_numpy().astype(int)
             return float(-np.sum(k * np.log(p) + (n - k) * np.log(1 - p)))
 
         x0 = np.array([0.50, 1.20, 6.0])
@@ -2062,8 +2062,8 @@ class BayesianParameterEstimator:
         Returns:
             Dictionary with posterior estimates
         """
-        stimulus_intensities = behavioral_data["stimulus_intensity"].values
-        detections = behavioral_data["detected"].values.astype(int)
+        stimulus_intensities = behavioral_data["stimulus_intensity"].to_numpy()
+        detections = behavioral_data["detected"].to_numpy().astype(int)
 
         with pm.Model():
             # Priors for APGI parameters - aligned with paper-specified ranges
@@ -2130,8 +2130,8 @@ class BayesianParameterEstimator:
         Returns:
             Dictionary with FIM analysis results including collinearity metrics
         """
-        stimulus_intensities = behavioral_data["stimulus_intensity"].values
-        detections = behavioral_data["detected"].values
+        stimulus_intensities = behavioral_data["stimulus_intensity"].to_numpy()
+        detections = behavioral_data["detected"].to_numpy()
 
         # Get posterior estimates as reference point
         estimation_results = self.estimate_apgi_parameters(behavioral_data)
@@ -2284,8 +2284,8 @@ class BayesianParameterEstimator:
 
         for subj_id, data in multi_subject_data.items():
             n_trials = len(data)
-            all_stimulus.extend(data["stimulus_intensity"].values)
-            all_detections.extend(data["detected"].values.astype(int))
+            all_stimulus.extend(data["stimulus_intensity"].to_numpy())
+            all_detections.extend(data["detected"].to_numpy().astype(int))
             all_subject_indices.extend([subject_ids.index(subj_id)] * n_trials)
 
         all_stimulus_array = np.array(all_stimulus)
@@ -2583,8 +2583,8 @@ class ModelComparisonTable:
         Returns:
             Dictionary with formatted comparison table and metrics
         """
-        stimulus_intensities = np.array(behavioral_data["stimulus_intensity"].values)
-        detections = np.array(behavioral_data["detected"].values)
+        stimulus_intensities = np.array(behavioral_data["stimulus_intensity"].to_numpy())
+        detections = np.array(behavioral_data["detected"].to_numpy())
 
         # Fit all models
         model_metrics = {}

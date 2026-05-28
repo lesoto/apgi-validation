@@ -478,7 +478,7 @@ class TestResetRandomStateFixture:
         state2 = np.random.get_state()
 
         # States should be different (we generated random numbers)
-        assert not np.array_equal(state1[1], state2[1])
+        assert not np.array_equal(state1[1], state2[1])  # type: ignore[index]
 
 
 if __name__ == "__main__":

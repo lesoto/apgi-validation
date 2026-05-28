@@ -1,5 +1,7 @@
 """Tests for Metadata Template module - comprehensive coverage."""
 
+from typing import Any
+
 from utils.metadata_template import (
     DEFAULT_TEMPLATE,
     MetadataTemplate,
@@ -83,7 +85,7 @@ class TestValidateMetadata:
         template = MetadataTemplate()
         template.add_field("required_field", str, required=True)
 
-        data = {}
+        data: dict[str, Any] = {}
         result = validate_metadata(data, template)
         assert result["valid"] is False
         assert "missing" in result

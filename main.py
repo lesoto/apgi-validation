@@ -47,6 +47,10 @@ console = Console(
 # Global project root
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
+from utils.runtime_environment import configure_runtime_environment
+
+configure_runtime_environment(PROJECT_ROOT)
+
 # Threading lock for global configuration
 _config_lock = threading.RLock()
 
@@ -2933,14 +2937,17 @@ def falsify(
         if all_protocols:
             protocol = "all"
         if protocol:
-            protocols_to_run = []
+            protocols_to_run: list[int | str] = []
             if protocol.lower() == "all":
-                protocols_to_run = sorted(available_protocols)
+                # Include both numeric protocols and fp-all aggregator
+                protocols_to_run = sorted(available_protocols)  # type: ignore[assignment]
+                if aggregator_file.exists():
+                    protocols_to_run.append("fp-all")  # type: ignore[arg-type]
             elif protocol.lower() in {"fp-all", "all-aggregator", "aggregator"}:
                 if not aggregator_file.exists():
                     console.print("[red]Error: FP_ALL_Aggregator.py not found[/red]")
                     return
-                protocols_to_run = ["fp-all"]
+                protocols_to_run = ["fp-all"]  # type: ignore[list-item]
             else:
                 try:
                     p_num = int(protocol)
@@ -2981,7 +2988,9 @@ def falsify(
                         result = falsification_module.run_falsification()
                         console.print(f"[green]✓[/green] Protocol {p_num} completed")
                     elif hasattr(falsification_module, "run_validation"):
-                        console.print(f"[blue]Executing validation-compatible falsification tests for P{p_num}...[/blue]")
+                        console.print(
+                            f"[blue]Executing validation-compatible falsification tests for P{p_num}...[/blue]"
+                        )
                         result = falsification_module.run_validation()
                         console.print(f"[green]✓[/green] Protocol {p_num} completed")
                     elif hasattr(falsification_module, "main"):

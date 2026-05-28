@@ -402,7 +402,7 @@ class TestEmpiricalDatasetComplete:
         ]
 
         # Map protocols to datasets
-        protocol_mapping = {}
+        protocol_mapping: dict[str, list[str]] = {}
         for dataset in datasets:
             for protocol in dataset.validation_protocols:
                 if protocol not in protocol_mapping:

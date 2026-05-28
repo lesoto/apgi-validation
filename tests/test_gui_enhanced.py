@@ -620,7 +620,7 @@ class TestGUIStateTransitions:
         ui_state_machine.register_state(UIState(state_name="state_b", expected_widgets=[]))
 
         # No transition registered
-        mock_ui = {}
+        mock_ui: dict[str, Any] = {}
         success, error = ui_state_machine.test_state_transition("state_a", "unknown_trigger", mock_ui)
         assert not success
         assert "No transition found" in error

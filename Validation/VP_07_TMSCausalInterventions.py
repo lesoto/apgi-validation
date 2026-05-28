@@ -2405,7 +2405,9 @@ def interactive_power_analysis_tool():
 
     sample_sizes = {}
     for intervention, params in interventions.items():
-        sample_sizes[intervention] = compute_sample_size(**params)
+        sample_sizes[intervention] = compute_sample_size(
+            effect_size=params["effect_size"], alpha=0.05, power=0.80, test_type="two-sided", design="between"
+        )
 
     return sample_sizes
 
@@ -3200,9 +3202,9 @@ def main():
     baseline_grouped = baseline_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     baseline_params = psychometric.fit_curve(
-        baseline_grouped.index.values,
-        baseline_grouped["n_trials"].values,
-        baseline_grouped["n_seen"].values,
+        baseline_grouped.index.to_numpy(),
+        baseline_grouped["n_trials"].to_numpy(),
+        baseline_grouped["n_seen"].to_numpy(),
     )
 
     print("\nBaseline (Vertex Control):")
@@ -3215,9 +3217,9 @@ def main():
     intervention_grouped = intervention_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     intervention_params = psychometric.fit_curve(
-        intervention_grouped.index.values,
-        intervention_grouped["n_trials"].values,
-        intervention_grouped["n_seen"].values,
+        intervention_grouped.index.to_numpy(),
+        intervention_grouped["n_trials"].to_numpy(),
+        intervention_grouped["n_seen"].to_numpy(),
     )
 
     print("\nIntervention (dlPFC TMS):")

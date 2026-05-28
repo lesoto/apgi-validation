@@ -2378,8 +2378,8 @@ def run_comprehensive_simulation():
     # Iowa Gambling Task simulation proxies - tuned for F2.1 and F2.5
     # F2.1 needs >=22% advantage, >=10pp difference, h >= 0.55
     # F2.5 needs APGI <=55 trials, advantage >=12, HR >= 1.65
-    apgi_advantageous_selection = apgi_adv_selection
-    no_somatic_selection = pp_adv_selection
+    apgi_advantageous_selection = [float(x) for x in apgi_adv_selection]
+    no_somatic_selection = [float(x) for x in pp_adv_selection]
     apgi_cost_correlation = -0.65  # Stronger negative correlation for better advantage
     no_somatic_cost_correlation = 0.0
     rt_advantage_ms = 55.0  # Increased to meet >=50ms threshold

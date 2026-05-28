@@ -550,7 +550,7 @@ def transaction_tester():
 
     # Use a temporary file-based database for proper test isolation
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = tmp.name
+        db_path = Path(tmp.name)
 
     tester = DatabaseTransactionTester(db_path=db_path, max_pool_size=5)
     tester.setup_test_tables()

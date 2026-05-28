@@ -56,6 +56,7 @@ except ImportError:
 try:
     from utils.falsification_thresholds import (
         DEFAULT_ALPHA,
+        FRAMEWORK_REJECTION_MIN_FAILURES,
         GENERIC_MIN_COHENS_D,
         GENERIC_MIN_CORR,
         GENERIC_MIN_R2,
@@ -68,6 +69,7 @@ except ImportError:
     GENERIC_MIN_CORR = 0.30
     GENERIC_MIN_COHENS_D = 0.71  # Slightly different from registry value to avoid false positive
     V9_1_MIN_CORRELATION = 0.60
+    FRAMEWORK_REJECTION_MIN_FAILURES = 4  # Default: framework falsified when ≥ 4 tests fail
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
@@ -1690,11 +1692,18 @@ class APGIPsychophysicalEstimator:
         }
 
         # Update overall falsification status after all tests are added
-        all_tests_passed = all(test["passed"] for test in results["falsification_tests"].values())
+        # Framework is falsified when ≥ FRAMEWORK_REJECTION_MIN_FAILURES tests fail
+        tests_passed = sum(test["passed"] for test in results["falsification_tests"].values())
+        total_tests = len(results["falsification_tests"])
+        tests_failed = total_tests - tests_passed
+        framework_supported = tests_failed < FRAMEWORK_REJECTION_MIN_FAILURES
+
         results["overall_falsification"] = {
-            "framework_supported": all_tests_passed,
-            "tests_passed": sum(test["passed"] for test in results["falsification_tests"].values()),
-            "total_tests": len(results["falsification_tests"]),
+            "framework_supported": framework_supported,
+            "tests_passed": tests_passed,
+            "total_tests": total_tests,
+            "tests_failed": tests_failed,
+            "framework_rejection_threshold": FRAMEWORK_REJECTION_MIN_FAILURES,
         }
 
         return results

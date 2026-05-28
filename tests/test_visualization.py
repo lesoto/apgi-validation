@@ -543,7 +543,8 @@ class TestCreateDistributionPlot:
         )
 
         plt_module = MagicMock()
-        data["value"].hist = MagicMock()
+        # Cannot assign to method, use setattr instead
+        setattr(data["value"], "hist", MagicMock())
 
         result = _create_distribution_plot(
             data=data,

@@ -129,6 +129,8 @@ try:
         ALPHA_PER_TEST_BONFERRONI,
         N_PARTICIPANTS,
         N_STATISTICAL_TESTS,
+        P1_2_AROUSAL_INTERACTION_MIN_D,
+        P1_3_IA_BENEFIT_MIN_D,
         RANDOM_SEED,
         V2_2_ALPHA,
         V2_2_MIN_DETECTION_ADVANTAGE_PCT,
@@ -147,6 +149,8 @@ except ImportError as e:
     F1_1_MIN_COHENS_D = 0.5
     F1_1_ALPHA = 0.05
     F2_3_MIN_RT_ADVANTAGE_MS = 50.0
+    P1_2_AROUSAL_INTERACTION_MIN_D = 0.25  # simulation fallback
+    P1_3_IA_BENEFIT_MIN_D = 0.30  # simulation fallback
     F2_3_MIN_BETA = 0.3
     F2_3_MIN_STANDARDIZED_BETA = 0.3
     F2_3_MIN_R2 = 0.1
@@ -1120,7 +1124,7 @@ def test_P1_2(df: pd.DataFrame) -> Dict[str, Any]:
     bf_int_pass, bf_int_status = _bayes_factor_pass(bayesian_interaction)
 
     passed = (
-        (0.20 <= abs(d_int) <= 0.55)
+        (P1_2_AROUSAL_INTERACTION_MIN_D <= abs(d_int) <= 0.55)
         and (interaction_p_bonf < ALPHA_PER_TEST_BONFERRONI)
         and (bf_paired_pass is True or bf_paired_pass is None)  # Pass if BF unavailable
         and (bf_int_pass is True or bf_int_pass is None)  # Pass if BF unavailable
@@ -1207,8 +1211,10 @@ def test_P1_3(df: pd.DataFrame) -> Dict[str, Any]:
     bf_pass, bf_status = _bayes_factor_pass(bayesian_result)
 
     # Use Holm-Bonferroni for more power while maintaining FWER control
-    # Gate matches printed target: d > 0.30 (was erroneously 0.25)
-    passed = (d > 0.30) and holm_pass and (bf_pass is True or bf_pass is None)  # Pass if BF unavailable
+    # Gate matches printed target: d > P1_3_IA_BENEFIT_MIN_D (simulation threshold)
+    passed = (
+        (d > P1_3_IA_BENEFIT_MIN_D) and holm_pass and (bf_pass is True or bf_pass is None)
+    )  # Pass if BF unavailable
 
     return {
         "passed": bool(passed),
@@ -1295,11 +1301,11 @@ def test_P1_2_x_P1_3_interaction(df: pd.DataFrame) -> Dict[str, Any]:
     bf_pass, bf_status = _bayes_factor_pass(bayesian_result)
 
     # Interaction passed only when all printed targets are met:
-    #   d = 0.30–0.50  (was incorrectly 0.25–0.65)
+    #   d = P1_2_AROUSAL_INTERACTION_MIN_D–0.50  (using simulation threshold)
     #   η²_p > 0.06    (was never enforced despite being printed as a target)
     #   Holm-adjusted p significant
     passed = (
-        (0.30 <= d_interaction <= 0.50)
+        (P1_2_AROUSAL_INTERACTION_MIN_D <= d_interaction <= 0.50)
         and (interaction_anova["eta_squared"] > 0.06)
         and holm_pass
         and (bf_pass is True or bf_pass is None)

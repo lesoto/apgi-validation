@@ -9,7 +9,8 @@ import logging
 import signal
 import threading
 from contextlib import contextmanager
-from typing import Callable, Optional
+from types import FrameType  # noqa: F401
+from typing import Any, Callable, Optional, Union
 
 
 class SignalHandler:
@@ -22,7 +23,7 @@ class SignalHandler:
             shutdown_callback: Optional callback to call on shutdown
         """
         self.shutdown_callback = shutdown_callback
-        self.original_handlers: dict[signal.Signals, Callable] = {}
+        self.original_handlers: dict[signal.Signals, Union[Callable[[int, FrameType | None], Any], int]] = {}
         self._lock = threading.Lock()
         self._is_main_thread = threading.current_thread() == threading.main_thread()
 

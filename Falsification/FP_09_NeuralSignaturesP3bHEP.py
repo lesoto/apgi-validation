@@ -26,10 +26,14 @@ import logging
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from scipy import signal, stats
+
+if TYPE_CHECKING:
+    import mne
+    from mne import EpochsArray as MNEEpochsArray  # noqa: F401
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -246,12 +250,15 @@ from utils.constants import VISUAL_CONSTANTS
 
 # MNE compatibility (conditional import)
 try:
-    import mne
-    from mne import EpochsArray, create_info
-    from mne.time_frequency import psd_welch, tfr_morlet
+    from utils.runtime_environment import configure_runtime_environment, safe_import_mne
 
-    MNE_AVAILABLE = True
-except ImportError:
+    configure_runtime_environment(Path(__file__).parent.parent)
+    MNE_AVAILABLE, mne = safe_import_mne()
+    if MNE_AVAILABLE:
+        from mne import EpochsArray, create_info
+        from mne.time_frequency import psd_welch, tfr_morlet
+
+except Exception:
     MNE_AVAILABLE = False
     mne = None
 
@@ -306,7 +313,7 @@ class EEGData:
     times: np.ndarray
     metadata: Optional[Dict[str, Any]] = None
 
-    def to_mne_epochs(self) -> Optional["mne.EpochsArray"]:
+    def to_mne_epochs(self) -> Optional["MNEEpochsArray"]:
         """Convert to MNE EpochsArray if MNE is available"""
         if not MNE_AVAILABLE:
             # Return structured error result to prevent NoneType AttributeErrors
@@ -1478,7 +1485,7 @@ def frequency_specific_power_analysis(
 
 
 def mne_compatible_analysis(
-    eeg_data: Union[np.ndarray, EEGData, "mne.EpochsArray"],
+    eeg_data: Union[np.ndarray, EEGData, "MNEEpochsArray"],
     analysis_type: str = "all",
     fs: float = 1000.0,
     channels: Optional[List[str]] = None,
@@ -1490,7 +1497,7 @@ def mne_compatible_analysis(
 
     Parameters:
     -----------
-    eeg_data : Union[np.ndarray, EEGData, mne.EpochsArray]
+    eeg_data : Union[np.ndarray, EEGData, "MNEEpochsArray"]
         EEG data in various formats
     analysis_type : str
         Type of analysis to perform ('gamma', 'pac', 'p3', 'hep', 'all')

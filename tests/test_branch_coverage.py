@@ -112,11 +112,12 @@ class TestErrorHandlerBranches:
     def test_error_info_with_none_details(self):
         """Test ErrorInfo with None details and suggestions"""
         from utils.error_handler import ErrorCategory, ErrorInfo, ErrorSeverity
+        from utils.errors import ErrorCode
 
         error_info = ErrorInfo(
             category=ErrorCategory.CONFIGURATION,
             severity=ErrorSeverity.MEDIUM,
-            code="TEST_CODE",
+            code=ErrorCode.GEN_UNKNOWN,
             message="Test message",
             details=None,
             suggestions=None,
@@ -129,11 +130,12 @@ class TestErrorHandlerBranches:
     def test_apgi_error_with_error_info(self):
         """Test APGIError initialization with ErrorInfo"""
         from utils.error_handler import APGIError, ErrorCategory, ErrorInfo, ErrorSeverity
+        from utils.errors import ErrorCode
 
         error_info = ErrorInfo(
             category=ErrorCategory.VALIDATION,
             severity=ErrorSeverity.HIGH,
-            code="VALIDATION_FAILED",
+            code=ErrorCode.VAL_SCHEMA_MISMATCH,
             message="Validation failed",
         )
 

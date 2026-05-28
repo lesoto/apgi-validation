@@ -83,8 +83,10 @@ class TestIgnitionProbPerLevel:
         stimulus_levels = np.array([1.0, 2.0, 3.0])
         Pi_e = 0.8
         Pi_i = 0.2
+        theta = 0.3
+        alpha = 5.0
 
-        result = _ignition_prob_per_level(stimulus_levels, Pi_e, Pi_i)
+        result = _ignition_prob_per_level(stimulus_levels, Pi_e, Pi_i, theta, alpha)
 
         # Should return probabilities for each level
         assert result.shape == (3,)
@@ -95,13 +97,15 @@ class TestIgnitionProbPerLevel:
         from Theory.APGI_Information_Theoretic_Bandwidth import _ignition_prob_per_level
 
         stimulus_levels = np.array([1.0, 2.0, 3.0])
+        theta = 0.3
+        alpha = 5.0
 
         # Test with extreme precision values
-        result_high_precision = _ignition_prob_per_level(stimulus_levels, Pi_e=1.0, Pi_i=0.0)
+        result_high_precision = _ignition_prob_per_level(stimulus_levels, Pi_e=1.0, Pi_i=0.0, theta=theta, alpha=alpha)
         expected_high = np.array([1.0, 0.0, 0.0])  # All probability at lowest level
         np.testing.assert_allclose(result_high_precision, expected_high)
 
-        result_low_precision = _ignition_prob_per_level(stimulus_levels, Pi_e=0.0, Pi_i=1.0)
+        result_low_precision = _ignition_prob_per_level(stimulus_levels, Pi_e=0.0, Pi_i=1.0, theta=theta, alpha=alpha)
         expected_low = np.array([0.0, 0.0, 1.0])  # All probability at highest level
         np.testing.assert_allclose(result_low_precision, expected_low)
 
@@ -201,11 +205,17 @@ class TestClinicalProfile:
         from Theory.APGI_Information_Theoretic_Bandwidth import ClinicalProfile
 
         profile = ClinicalProfile(
-            label="Test Disorder", tau_S=1.0, tau_theta=0.1, tau_M=0.1, alpha=0.5, gamma_M=0.1, gamma_A=0.1, beta=0.1
+            label="Test Disorder",
+            Pi_e=1.0,
+            Pi_i=0.1,
+            theta_baseline=0.1,
+            alpha=0.5,
+            sigma_theta=0.1,
+            description="Test profile",
         )
 
         assert profile.label == "Test Disorder"
-        assert profile.tau_S == 1.0
+        assert profile.Pi_e == 1.0
         assert profile.alpha == 0.5
 
     def test_clinical_profile_validation(self):
@@ -214,7 +224,13 @@ class TestClinicalProfile:
 
         # Test valid profile
         valid_profile = ClinicalProfile(
-            label="Valid", tau_S=1.0, tau_theta=0.1, tau_M=0.1, alpha=0.5, gamma_M=0.1, gamma_A=0.1, beta=0.1
+            label="Valid",
+            Pi_e=1.0,
+            Pi_i=0.1,
+            theta_baseline=0.1,
+            alpha=0.5,
+            sigma_theta=0.1,
+            description="Valid profile",
         )
         assert valid_profile.validate_parameters()
 
@@ -256,8 +272,24 @@ class TestClinicalBandwidthMapper:
 
         # Create test profiles
         profiles = {
-            "MDD": ClinicalProfile("MDD", 1.0, 0.1, 0.1, 0.5, 0.1, 0.1, 0.1),
-            "ADHD": ClinicalProfile("ADHD", 0.8, 0.05, 0.05, 0.3, 0.05, 0.05, 0.05),
+            "MDD": ClinicalProfile(
+                label="MDD",
+                Pi_e=1.0,
+                Pi_i=0.1,
+                theta_baseline=0.1,
+                alpha=0.5,
+                sigma_theta=0.1,
+                description="Test MDD profile",
+            ),
+            "ADHD": ClinicalProfile(
+                label="ADHD",
+                Pi_e=0.8,
+                Pi_i=0.05,
+                theta_baseline=0.05,
+                alpha=0.3,
+                sigma_theta=0.05,
+                description="Test ADHD profile",
+            ),
         }
 
         result = mapper.compute_all(profiles=profiles)
@@ -274,19 +306,17 @@ class TestBandwidthConfig:
         from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthConfig
 
         config = BandwidthConfig()
-        assert hasattr(config, "n_trials")
-        assert hasattr(config, "n_stimulus_bins")
-        assert hasattr(config, "theta_range")
+        assert hasattr(config, "N_trials")
+        assert hasattr(config, "N_stimulus_bins")
 
     def test_bandwidth_config_custom(self):
         """Test BandwidthConfig with custom parameters."""
         from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthConfig
 
-        config = BandwidthConfig(n_trials=5000, n_stimulus_bins=50, theta_range=(0.05, 0.15))
+        config = BandwidthConfig(N_trials=5000, N_stimulus_bins=50)
 
-        assert config.n_trials == 5000
-        assert config.n_stimulus_bins == 50
-        assert config.theta_range == (0.05, 0.15)
+        assert config.N_trials == 5000
+        assert config.N_stimulus_bins == 50
 
 
 class TestBandwidthAnalyzer:
@@ -305,7 +335,7 @@ class TestBandwidthAnalyzer:
         """Test BandwidthAnalyzer run method."""
         from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthAnalyzer, BandwidthConfig
 
-        config = BandwidthConfig(n_trials=100)  # Small number for testing
+        config = BandwidthConfig(N_trials=100)  # Small number for testing
         analyzer = BandwidthAnalyzer(config)
 
         # Mock the internal modules to speed up testing
@@ -332,7 +362,7 @@ class TestRunBandwidthAnalysis:
 
     def test_run_bandwidth_analysis_default(self):
         """Test run_bandwidth_analysis with default config."""
-        from Theory.APGI_Information_Theoretic_Bandwidth import run_bandwidth_analysis
+        from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthConfig, run_bandwidth_analysis
 
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "test_config.json"
@@ -343,8 +373,8 @@ class TestRunBandwidthAnalysis:
             with open(config_path, "w") as f:
                 json.dump(config_data, f)
 
-            # Run analysis
-            result = run_bandwidth_analysis(str(config_path))
+            # Run analysis with BandwidthConfig object
+            result = run_bandwidth_analysis(config=BandwidthConfig(N_trials=10))
 
             # Verify result structure
             assert hasattr(result, "nominal")
@@ -355,7 +385,7 @@ class TestRunBandwidthAnalysis:
         """Test run_bandwidth_analysis with custom config."""
         from Theory.APGI_Information_Theoretic_Bandwidth import BandwidthConfig, run_bandwidth_analysis
 
-        custom_config = BandwidthConfig(n_trials=50, n_stimulus_bins=20)
+        custom_config = BandwidthConfig(N_trials=50, N_stimulus_bins=20)
 
         result = run_bandwidth_analysis(config=custom_config)
 

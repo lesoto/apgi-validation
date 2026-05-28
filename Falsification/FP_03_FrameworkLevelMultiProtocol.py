@@ -3575,17 +3575,31 @@ def run_protocol_main(config=None):
         )
 
     # Use StandardProtocolResult (Pydantic model) when schema is available
-    ResultClass = StandardProtocolResult if HAS_SCHEMA and StandardProtocolResult else ProtocolResult
-    return ResultClass(
-        protocol_id="FP_03_FrameworkLevelMultiProtocol",
-        timestamp=datetime.now().isoformat(),
-        named_predictions=named_predictions,
-        completion_percentage=85,
-        data_sources=["Multi-protocol agent comparison", "Meta-analysis"],
-        methodology="agent_simulation",
-        errors=legacy_result.get("errors", []),
-        metadata={"status": legacy_result.get("status")},
-    )
+    if HAS_SCHEMA and StandardProtocolResult:
+        return StandardProtocolResult(
+            protocol_id="FP_03_FrameworkLevelMultiProtocol",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=85,
+            data_sources=["Multi-protocol agent comparison", "Meta-analysis"],
+            methodology="agent_simulation",
+            errors=legacy_result.get("errors", []),
+            metadata={"status": legacy_result.get("status")},
+        )
+    else:
+        # Fallback to ProtocolResult with compatible arguments
+        return ProtocolResult(
+            protocol_name="FP_03_FrameworkLevelMultiProtocol",
+            success=legacy_result.get("status") == "success",
+            data={
+                "named_predictions": named_predictions,
+                "completion_percentage": 85,
+                "data_sources": ["Multi-protocol agent comparison", "Meta-analysis"],
+                "methodology": "agent_simulation",
+                "metadata": {"status": legacy_result.get("status")},
+            },
+            errors=legacy_result.get("errors", []),
+        )
 
 
 # Stubs for test compatibility

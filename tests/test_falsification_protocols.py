@@ -972,7 +972,8 @@ class TestFalsificationRobustness:
 
             if test_classes:
                 # Test first available class
-                test_class = test_classes[0]
+                test_class_name = test_classes[0]
+                test_class = getattr(module, test_class_name)
 
                 try:
                     # Try to initialize with invalid parameters

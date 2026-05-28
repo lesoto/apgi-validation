@@ -996,7 +996,7 @@ def estimate_rnn_window_from_weights(rnn_weights: Dict[str, np.ndarray], liquid_
 
 def test_liquid_network_properties(
     network_weights: Dict[str, np.ndarray],
-    liquid_params: Dict[str, float],
+    liquid_params: Dict[str, Any],
     conscious_trials: Optional[np.ndarray] = None,
     unconscious_trials: Optional[np.ndarray] = None,
     network_type: NetworkType = NetworkType.STANDARD,

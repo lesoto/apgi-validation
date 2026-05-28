@@ -374,12 +374,26 @@ def run_validation(
     """
     Run VP-15 validation with empirical or synthetic fMRI data.
 
+    DEPRECATION NOTICE: VP-15 is superseded by VP-22 (VP_22_FMRIAnticipationExperience.py).
+    V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead.
+
     Args:
         fmri_data_path: Path to empirical fMRI data (.npz or .nii/.nii.gz)
         behavior_path: Path to behavioral data (.csv)
         allow_synthetic: If True, fall back to synthetic data if empirical unavailable
     """
-    logger.info("VP-15: fMRI vmPFC Anticipation Validation")
+    # Return deprecated stub status
+    return {
+        "status": "deprecated",
+        "passed": None,
+        "protocol_id": "VP-15",
+        "protocol_name": "fMRI vmPFC Anticipation Paradigm [DEPRECATED]",
+        "message": (
+            "VP-15 is superseded by VP-22 (VP_22_FMRIAnticipationExperience.py). "
+            "V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead. "
+            "This protocol is retained for backward compatibility only."
+        ),
+    }
 
     if fmri_data_path and behavior_path:
         # EMPIRICAL mode: Process real fMRI data

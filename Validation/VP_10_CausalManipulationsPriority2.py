@@ -2351,7 +2351,7 @@ class MNEDataInterface:
 
     def __init__(self):
         self.supported_formats = [".fif", ".edf", ".bdf", ".set"]
-        self.preprocessing_pipeline = {
+        self.preprocessing_pipeline: Dict[str, Any] = {
             "filtering": {"bandpass": [1, 40], "notch": [50, 60]},
             "artifact_removal": {"eog": True, "ecg": True, "muscle": True},
             "epoching": {"tmin": -0.2, "tmax": 0.8},
@@ -2474,8 +2474,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 def validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param=5.0, surplus_s=0.5):
     """Standalone wrapper for V10.a TMS log ignition validation."""
-    config = {"significance_level": 0.01, "power_threshold": 0.8}
-    validator = CausalManipulationsValidator(config)
+    validator = CausalManipulationsValidator()
     # Convert scalars to arrays if needed
     pre_theta = np.atleast_1d(np.asarray(pre_theta, dtype=float))
     post_theta = np.atleast_1d(np.asarray(post_theta, dtype=float))
@@ -2484,8 +2483,7 @@ def validate_p2a_tms_log_ignition(pre_theta, post_theta, alpha_param=5.0, surplu
 
 def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
     """Standalone wrapper for V10.b HEP/PCI validation (insula TMS)."""
-    config = {"significance_level": 0.01, "power_threshold": 0.8}
-    validator = CausalManipulationsValidator(config)
+    validator = CausalManipulationsValidator()
     # Convert scalars to arrays if needed
     pre_hep = np.atleast_1d(np.asarray(pre_hep, dtype=float))
     post_hep = np.atleast_1d(np.asarray(post_hep, dtype=float))
@@ -2496,8 +2494,7 @@ def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
 
 def validate_p2c_high_ia_interaction(tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b):
     """Standalone wrapper for V10.c high IA interaction validation."""
-    config = {"significance_level": 0.01, "power_threshold": 0.8}
-    validator = CausalManipulationsValidator(config)
+    validator = CausalManipulationsValidator()
     # Convert to arrays if needed
     tms_drug_a = np.atleast_1d(np.asarray(tms_drug_a, dtype=float))
     tms_drug_b = np.atleast_1d(np.asarray(tms_drug_b, dtype=float))

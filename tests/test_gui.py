@@ -271,7 +271,7 @@ class TestAPGIValidationGUI:
             mock_dialog.return_value = "/tmp/test.json"
 
             # Mock the _convert_to_serializable method as well
-            gui._convert_to_serializable = Mock(return_value={"test": "data"})
+            gui._convert_to_serializable = Mock(return_value={"test": "data"})  # type: ignore[method-assign]
 
             gui.save_results()
 

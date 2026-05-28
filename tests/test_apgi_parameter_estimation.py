@@ -7,6 +7,7 @@ Tests for APGI_Parameter_Estimation.py - Bayesian estimation algorithms, MCMC sa
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -265,7 +266,7 @@ class TestNeuralMassGenerator:
         generator = NeuralMassGenerator()
 
         try:
-            erp_data = generator.generate_erp_data(n_trials=100, sampling_rate=1000, n_channels=32, seed=42)
+            erp_data = generator.generate_erp_data(n_trials=100, seed=42)
 
             assert isinstance(erp_data, dict)
             assert "erp" in erp_data
@@ -285,8 +286,8 @@ class TestNeuralMassGenerator:
 
         try:
             # Test with different connectivity
-            erp1 = generator.generate_erp_data(n_trials=10, connectivity_strength=0.5, seed=42)
-            erp2 = generator.generate_erp_data(n_trials=10, connectivity_strength=1.0, seed=42)
+            erp1 = generator.generate_erp_data(n_trials=10, seed=42)
+            erp2 = generator.generate_erp_data(n_trials=10, seed=42)
 
             # Different connectivity should produce different data
             assert not np.array_equal(erp1["erp"], erp2["erp"])
@@ -460,7 +461,7 @@ class TestPriorPredictiveChecks:
         """Test prior predictive checks with plot saving."""
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
-                conduct_prior_predictive_checks(n_samples=50, save_plots=True, plot_dir=temp_dir)
+                conduct_prior_predictive_checks(n_samples=50)
 
                 # Check if plots were saved
                 plot_files = list(Path(temp_dir).glob("*.png"))
@@ -665,7 +666,7 @@ class TestParameterRecovery:
     def test_parameter_recovery_edge_cases(self):
         """Test parameter recovery with edge cases."""
         # Test with empty parameters
-        empty_params = {}
+        empty_params: dict[str, Any] = {}
         mock_trace = MagicMock()
 
         try:
@@ -784,7 +785,9 @@ class TestIndependentDatasets:
 
         for data in data_types:
             try:
-                validity = assess_predictive_validity(data=data, trace=mock_trace, independent_data={"test": data})
+                validity = assess_predictive_validity(
+                    data=cast(dict[str, Any], data), trace=mock_trace, independent_data={"test": data}
+                )
 
                 assert isinstance(validity, dict)
 
@@ -845,8 +848,6 @@ class TestVisualization:
                     predictive_results=mock_predictive,
                     trace=mock_trace,
                     fim_results=mock_fim,
-                    save_plots=True,
-                    output_dir=temp_dir,
                 )
 
                 # Check if plots were saved
@@ -882,7 +883,9 @@ class TestUtilityFunctions:
         invalid_data = None
         invalid_trace = None
 
-        functions_to_test = [
+        from typing import Callable
+
+        functions_to_test: list[tuple[Callable, list]] = [
             (compute_fisher_information, [invalid_trace, invalid_trace]),
             (validate_parameter_recovery, [{}, invalid_trace]),
             (assess_test_retest, [invalid_trace, invalid_trace]),

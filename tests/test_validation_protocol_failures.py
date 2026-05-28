@@ -290,7 +290,7 @@ class TestValidationProtocolTimeoutHandling:
 
         # Set a short timeout for testing
         original_timeout = validator.timeout_seconds
-        validator.timeout_seconds = 0.001  # 1ms for testing
+        validator.timeout_seconds = int(0.001)  # 1ms for testing
 
         try:
             # Mock a slow protocol

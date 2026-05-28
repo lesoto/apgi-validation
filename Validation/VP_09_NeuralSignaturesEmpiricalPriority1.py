@@ -67,10 +67,13 @@ except ImportError:
 # MNE for EEG analysis
 mne: Optional[Any] = None
 try:
-    import mne  # type: ignore
-    from mne.io import read_raw_fif  # type: ignore
+    from utils.runtime_environment import configure_runtime_environment, safe_import_mne
 
-    MNE_AVAILABLE = True
+    configure_runtime_environment(Path(__file__).parent.parent)
+    MNE_AVAILABLE, mne = safe_import_mne()
+    if MNE_AVAILABLE:
+        from mne.io import read_raw_fif  # type: ignore
+
 except Exception as e:
     MNE_AVAILABLE = False
     warnings.warn(f"MNE not available/failed to import: {e}")
@@ -888,7 +891,9 @@ class APGINeuralSignaturesValidator:
         p3b_amplitudes = self.eeg_analyzer.extract_p3b_amplitude(epochs)
 
         # Fit APGI sigmoidal model
-        fit_results = self.eeg_analyzer.fit_sigmoidal_apgi_model(behavioral_df["S_proxy"].values, p3b_amplitudes)
+        fit_results = self.eeg_analyzer.fit_sigmoidal_apgi_model(
+            np.asarray(behavioral_df["S_proxy"].values).reshape(-1, 1), p3b_amplitudes  # type: ignore[union-attr]
+        )
 
         return {
             "p3b_amplitudes": p3b_amplitudes,

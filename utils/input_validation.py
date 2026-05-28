@@ -407,8 +407,8 @@ class InputValidator:
         # Use threading with non-daemon thread to somewhat limit execution time
         import threading
 
-        timeout_result = [None]
-        timeout_exception = [None]
+        timeout_result: list[Optional[re.Match[str]]] = [None]
+        timeout_exception: list[Optional[Exception]] = [None]
 
         def run_regex():
             try:

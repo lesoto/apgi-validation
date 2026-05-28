@@ -552,7 +552,7 @@ class TestPsychophysicalThreshold:
 
             # Create test psychophysical data
             psych_data = {
-                "response_times": np.random.exponential(1, 0.5, 100),
+                "response_times": np.random.exponential(scale=1.0, size=100),
                 "accuracy": np.random.beta(2, 5, 100),
             }
 
@@ -596,7 +596,7 @@ class TestQuantitativeModelFits:
 
             # Create test spiking data
             spiking_data = {
-                "spike_times": np.random.exponential(1, 0.1, 1000),
+                "spike_times": np.random.exponential(scale=1.0, size=1000),
                 "membrane_potential": np.random.randn(1000),
             }
 

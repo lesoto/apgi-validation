@@ -1502,7 +1502,7 @@ class BayesianModelComparison:
     def __init__(self):
         self.models = {}
         self.traces = {}
-        self.comparison_results = {}
+        self.comparison_results: Dict[str, Any] | pd.DataFrame = {}
 
     def add_model(self, model_class, name: str) -> None:
         """Add a model to comparison"""
@@ -1936,7 +1936,7 @@ class FalsificationChecker:
     """Check Protocol 2 falsification criteria"""
 
     def __init__(self):
-        self.criteria = {
+        self.criteria: Dict[str, Dict[str, Any]] = {
             "F2.1": {
                 "description": "APGI LOO worse than SDT/GWT by >10 points",
                 "threshold": 10.0,
@@ -2807,7 +2807,7 @@ def bayesian_model_compare(models_dict, weights="stacking"):
 
     elif weights == "pseudo-bma":
         # Pseudo-BMA weights based on WAIC
-        weight_dict = az.compare(models_dict, ic="waic", method="pseudo-bma")
+        weight_dict = az.compare(models_dict, ic="waic", method="pseudo-BMA")
         weights = weight_dict["weight"].to_dict()
 
     # Generate weighted predictions
@@ -2859,7 +2859,7 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
     Simulate data with known parameters and check if we can recover them
     Tests whether model is identifiable
     """
-    recovery_results = {
+    recovery_results: Dict[str, Dict[str, List]] = {
         "theta_0": {"true": [], "recovered": [], "error": []},
         "beta": {"true": [], "recovered": [], "error": []},
         "Pi_i": {"true": [], "recovered": [], "error": []},

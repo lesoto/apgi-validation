@@ -2752,7 +2752,11 @@ class FalsificationChecker:
     def check_F1_1(self, results_by_model: Dict[str, Dict]) -> Tuple[bool, float]:
         """F1.1: APGI ignition classification < 75%"""
         apgi_accuracy = results_by_model["APGI"]["accuracy"]
-        falsified = apgi_accuracy < self.criteria["F1.1"]["threshold"]
+        f1_1_threshold = self.criteria["F1.1"]["threshold"]  # type: ignore[index]
+        if isinstance(f1_1_threshold, (int, float)):
+            falsified = apgi_accuracy < f1_1_threshold
+        else:
+            falsified = False
         return falsified, apgi_accuracy
 
     def check_F1_2(self, confusion_matrix: np.ndarray) -> Tuple[bool, float]:
@@ -2761,13 +2765,21 @@ class FalsificationChecker:
         gwt_to_apgi = confusion_matrix[2, 0] / confusion_matrix[2].sum()
         avg_confusion = (apgi_to_gwt + gwt_to_apgi) / 2
 
-        falsified = avg_confusion > self.criteria["F1.2"]["threshold"]
+        f1_2_threshold = self.criteria["F1.2"]["threshold"]  # type: ignore[index]
+        if isinstance(f1_2_threshold, (int, float)):
+            falsified = avg_confusion > f1_2_threshold
+        else:
+            falsified = False
         return falsified, avg_confusion
 
     def check_F1_3(self, high_arousal_ignition: float, low_arousal_ignition: float) -> Tuple[bool, float]:
         """F1.3: Arousal interaction test - ignition probability difference between high and low arousal"""
         arousal_effect = high_arousal_ignition - low_arousal_ignition
-        falsified = arousal_effect < self.criteria["F1.3"]["threshold"]
+        f1_3_threshold = self.criteria["F1.3"]["threshold"]  # type: ignore[index]
+        if isinstance(f1_3_threshold, (int, float)):
+            falsified = arousal_effect < f1_3_threshold
+        else:
+            falsified = False
         return falsified, arousal_effect
 
     def check_F1_4(
@@ -3278,10 +3290,11 @@ class FalsificationChecker:
                 passed = n_clusters >= criterion.get("target_clusters", 3)
 
                 # Update cluster count in criterion if needed
-                if n_clusters < 3:
-                    criterion["target_clusters"] = n_clusters
-                else:
-                    criterion["target_clusters"] = 3
+                if isinstance(criterion, dict):
+                    if n_clusters < 3:
+                        criterion["target_clusters"] = n_clusters
+                    else:
+                        criterion["target_clusters"] = 3
                 value_str = f"{n_clusters} clusters detected"
             elif code == "V1.3":
                 # Interoceptive Precision Gradient
@@ -3305,10 +3318,10 @@ class FalsificationChecker:
 
             result = {
                 "code": code,
-                "description": criterion["description"],
+                "description": criterion["description"] if isinstance(criterion, dict) else "",
                 "falsified": not passed,
                 "value": value_str,
-                "threshold": criterion["threshold"],
+                "threshold": criterion["threshold"] if isinstance(criterion, dict) else "",
             }
 
             if passed:
@@ -3647,7 +3660,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
 
     outer_cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
 
-    results = {
+    results: Dict[str, Any] = {
         "outer_fold_scores": [],
         "hyperparameter_stability": [],
         "learning_curves": [],
@@ -3668,7 +3681,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         # Generate all parameter combinations
         from itertools import product
 
-        param_combinations = list(product(*param_grid.values()))
+        param_combinations = list(product(*param_grid.values()))  # type: ignore[arg-type]
         param_names = list(param_grid.keys())
 
         best_score = -float("inf")
@@ -3748,7 +3761,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         test_loader = DataLoader(test_dataset, batch_size=best_params["batch_size"], shuffle=False)
         test_results = evaluate_ignition_classifier(final_trained_model, test_loader, device="cpu")
 
-        results[f"fold_{fold_idx}"] = {  # type: ignore[index]
+        results[f"fold_{fold_idx}"] = {  # type: ignore[assignment]
             "best_params": best_params,
             "test_accuracy": test_results["accuracy"],
             "test_f1": test_results["f1_score"],
@@ -3762,7 +3775,7 @@ def bootstrap_confidence_intervals(predictions, labels, n_bootstrap=1000):
     """
     Bootstrap 95% CIs for all metrics
     """
-    metrics = {"accuracy": [], "f1": [], "auc": []}
+    metrics: dict[str, list[Any]] = {"accuracy": [], "f1": [], "auc": []}
 
     n_samples = len(labels)
     for _ in range(n_bootstrap):
@@ -4144,8 +4157,8 @@ def compare_models_with_statistics(results_task_1a):
                     perm_stat = 0.0
                 perm_stats.append(perm_stat)
 
-            perm_stats = np.array(perm_stats)
-            mcnemar_perm_p = np.mean(perm_stats >= mcnemar_stat)
+            perm_stats_array: np.ndarray = np.array(perm_stats)
+            mcnemar_perm_p = np.mean(perm_stats_array >= mcnemar_stat)
             mcnemar_significant = mcnemar_perm_p < alpha
 
             # DeLong's test for AUC comparison
@@ -4163,8 +4176,8 @@ def compare_models_with_statistics(results_task_1a):
                 except ValueError:
                     perm_auc_diffs.append(0.0)
 
-            perm_auc_diffs = np.array(perm_auc_diffs)
-            auc_perm_p = np.mean(np.abs(perm_auc_diffs) >= np.abs(auc_diff))
+            perm_auc_diffs_array = np.array(perm_auc_diffs)
+            auc_perm_p = np.mean(np.abs(perm_auc_diffs_array) >= np.abs(auc_diff))
             auc_significant = auc_perm_p < alpha
 
             # Store results
@@ -4232,7 +4245,7 @@ def main(progress_callback=None):
     generator = APGIDatasetGenerator(fs=1000)
     report_progress(5, "Generating synthetic dataset...")
     dataset = generator.generate_dataset(
-        n_trials_per_model=config["n_trials_per_model"],
+        n_trials_per_model=int(config["n_trials_per_model"]),
         save_path="apgi_protocol1_dataset.npz",
     )
     report_progress(15, "Dataset generation complete")
@@ -4277,9 +4290,9 @@ def main(progress_callback=None):
         print(f"  Val: {len(val_dataset)} samples, ignition: {np.bincount(val_labels)}")
         print(f"  Test: {len(test_dataset)} samples, ignition: {np.bincount(test_labels)}")
 
-        train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
-        test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=int(config["batch_size"]), shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
+        test_loader = DataLoader(test_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
 
         # Calculate class weights for imbalanced data
         class_counts = np.bincount(train_labels)
@@ -4309,7 +4322,7 @@ def main(progress_callback=None):
             ]
         )
         # Normalize weights
-        class_weights = class_weights / class_weights.sum() * 2
+        class_weights = class_weights / class_weights.sum() * 2  # type: ignore[assignment]
 
         # Train classifier
         report_progress(progress_start + 2, f"Initializing {model_name} classifier...")
@@ -4319,15 +4332,15 @@ def main(progress_callback=None):
             classifier,
             train_loader,
             val_loader,
-            epochs=config["epochs_task_1a"],
-            lr=config["learning_rate"],
-            device=config["device"],
+            epochs=int(config["epochs_task_1a"]),
+            lr=float(config["learning_rate"]),
+            device=str(config["device"]),
             class_weights=class_weights,
         )
         report_progress(progress_start + progress_per_model - 3, f"{model_name} training complete")
 
         # Evaluate on test set
-        results = evaluate_ignition_classifier(trained_model, test_loader, device=config["device"])
+        results = evaluate_ignition_classifier(trained_model, test_loader, device=str(config["device"]))
 
         results_task_1a[model_name] = results
         report_progress(progress_start + progress_per_model - 1, f"{model_name} evaluation complete")
@@ -4355,19 +4368,19 @@ def main(progress_callback=None):
     report_progress(76, "Starting Task 1B - Multi-modal model identification...")
 
     # Create multi-modal dataset
-    full_dataset = ModelIdentificationDataset(dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"])
+    full_dataset_multi: Any = ModelIdentificationDataset(dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"])
 
     # Split
-    n_total = len(full_dataset)
+    n_total = len(full_dataset_multi)
     n_train = int(0.6 * n_total)
     n_val = int(0.2 * n_total)
     n_test = n_total - n_train - n_val
 
-    train_dataset, val_dataset, test_dataset = random_split(full_dataset, [n_train, n_val, n_test])
+    train_dataset, val_dataset, test_dataset = random_split(full_dataset_multi, [n_train, n_val, n_test])
 
-    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
-    test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=int(config["batch_size"]), shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
 
     # Train model identifier
     report_progress(78, "Training multi-modal fusion network...")
@@ -4383,14 +4396,14 @@ def main(progress_callback=None):
         model_identifier,
         train_loader,
         val_loader,
-        epochs=config["epochs_task_1b"],
-        lr=config["learning_rate"],
-        device=config["device"],
+        epochs=int(config["epochs_task_1b"]),
+        lr=float(config["learning_rate"]),
+        device=str(config["device"]),
     )
     report_progress(88, "Task 1B training complete")
 
     # Evaluate
-    results_task_1b = evaluate_model_identifier(trained_identifier, test_loader, device=config["device"])
+    results_task_1b = evaluate_model_identifier(trained_identifier, test_loader, device=str(config["device"]))
     report_progress(90, "Task 1B evaluation complete")
 
     # Memory optimization
@@ -4417,7 +4430,7 @@ def main(progress_callback=None):
 
     real_data_path = config.get("real_data_path", "data_repository/apgi_real_dataset.npz")
     real_data_accuracy = 0.60
-    if os.path.exists(real_data_path):
+    if os.path.exists(str(real_data_path)):
         import logging
 
         logging.info(f"Loading real data from {real_data_path}")

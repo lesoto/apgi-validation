@@ -100,6 +100,10 @@ if str(project_root) not in sys.path:
 from utils.config_manager import ConfigManager
 from utils.constants import DEFAULT_THERMO_CONFIG, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (
+    F4_CRITICAL_SLOWING_MIN_RATIO,
+    F4_HURST_NEAR_THRESHOLD_MIN,
+    F4_PHI_IGNITION_RATIO_MIN,
+    F4_SUSCEPTIBILITY_MIN_RATIO,
     FMI_MIN_BITS_S,
     TRANSFER_ENTROPY_THRESHOLD,
     VP4_CALIBRATED_ALPHA,
@@ -2538,20 +2542,20 @@ class FalsificationChecker:
     """Check Protocol 4 falsification criteria"""
 
     def __init__(self, **kwargs):
-        self.criteria = {
+        self.criteria: Dict[str, Dict[str, Any]] = {
             "F4.1": {
                 "description": "Susceptibility ratio > 2.0 (phase transition present) — EP-12 CSV master",
-                "threshold": 2.0,
+                "threshold": F4_SUSCEPTIBILITY_MIN_RATIO,
                 "comparison": "greater_than",
             },
             "F4.2": {
                 "description": "Φ at ignition > 2.0× baseline (informationally distinct) — EP-12 CSV master",
-                "threshold": 2.0,
+                "threshold": F4_PHI_IGNITION_RATIO_MIN,
                 "comparison": "greater_than",
             },
             "F4.3": {
                 "description": "Critical slowing ratio > 1.5 (discrete transition) — EP-12 CSV master",
-                "threshold": 1.5,
+                "threshold": F4_CRITICAL_SLOWING_MIN_RATIO,
                 "comparison": "greater_than",
             },
             "F4.4": {
@@ -2561,7 +2565,7 @@ class FalsificationChecker:
             },
             "F4.5": {
                 "description": "V4.DFA: Hurst exponent H > 0.6 (long-range correlations) — EP-12 CSV master",
-                "threshold": 0.6,
+                "threshold": F4_HURST_NEAR_THRESHOLD_MIN,
                 "comparison": "greater_than",
             },
             "VP4.P5": {
@@ -3349,7 +3353,7 @@ class ClinicalDoCBiomarkerValidation:
             corr_matrix = params["correlation_matrix"]
 
             # Generate correlated samples using Cholesky decomposition
-            L = np.linalg.cholesky(corr_matrix)
+            L = np.linalg.cholesky(np.array(corr_matrix))  # type: ignore[arg-type]
             uncorrelated_samples = np.random.randn(n_per_group, 3)
             correlated_samples = uncorrelated_samples @ L.T
 

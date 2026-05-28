@@ -44,8 +44,10 @@ def serialize(obj):
     """Custom JSON serializer for non-serializable objects"""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, (datetime, np.datetime64)):
+    elif isinstance(obj, datetime):
         return obj.isoformat()
+    elif isinstance(obj, np.datetime64):
+        return obj.astype(datetime).isoformat()
     else:
         return str(obj)
 

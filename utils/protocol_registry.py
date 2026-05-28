@@ -661,8 +661,13 @@ def _initialize_registry():
     ]
 
     for entry in _vp_entries:
-        canon_id, filename, title, description, aliases, *rest = entry
-        implemented = rest[0] if rest else True
+        canon_id, filename, title, description, aliases_raw, *rest = entry  # type: ignore[misc]
+        canon_id = str(canon_id)
+        filename = str(filename)
+        title = str(title)
+        description = str(description)
+        aliases = list(aliases_raw) if isinstance(aliases_raw, list) else [str(aliases_raw)]
+        implemented = bool(rest[0]) if rest else True
         PROTOCOL_REGISTRY.register_protocol(
             ProtocolInfo(
                 canonical_id=canon_id,
