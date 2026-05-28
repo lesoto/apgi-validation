@@ -22,7 +22,6 @@ except ImportError:
     _SecurityError = RuntimeError  # type: ignore[assignment,misc]
 from typing import Any, Callable, Dict, List
 
-# Pre-import torch to prevent circular import issues with dynamically loaded protocols
 try:
     import torch
 
@@ -31,10 +30,8 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
-# Fix temp directory and cache issues for matplotlib/sklearn
 import tempfile
 
-# Set up logger
 logger = logging.getLogger(__name__)
 
 os.environ["TMPDIR"] = tempfile.gettempdir()
@@ -1198,20 +1195,20 @@ class ProtocolRunnerGUI:
 
                 if param_config["type"] == "float":
                     try:
-                        value = float(current_value)
-                        if value < param_config["min"] or value > param_config["max"]:
+                        float_value = float(current_value)
+                        if float_value < param_config["min"] or float_value > param_config["max"]:
                             validation_errors.append(
-                                f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
+                                f"{param_name}: {float_value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
                     except (ValueError, TypeError):
                         validation_errors.append(f"{param_name}: Invalid float value '{current_value}'")
 
                 elif param_config["type"] == "int":
                     try:
-                        value = int(current_value)
-                        if value < param_config["min"] or value > param_config["max"]:
+                        int_value = int(current_value)
+                        if int_value < param_config["min"] or int_value > param_config["max"]:
                             validation_errors.append(
-                                f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
+                                f"{param_name}: {int_value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
                     except (ValueError, TypeError):
                         validation_errors.append(f"{param_name}: Invalid integer value '{current_value}'")

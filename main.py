@@ -2961,7 +2961,7 @@ def falsify(
                     return
 
             all_results = {}
-            for p_num in protocols_to_run:
+            for p_num in protocols_to_run:  # type: ignore[assignment]
                 if p_num == "fp-all":
                     console.print("[blue]Running falsification aggregator FP_ALL[/blue]")
                     protocol_file = aggregator_file

@@ -370,7 +370,7 @@ class TestMemoryBenchmarks:
         for i in range(n_iterations):
             x = np.random.randn(100)
             y = np.random.randn(100)
-            equations.prediction_error(x, y)
+            equations.prediction_error(float(x[0]), float(y[0]))
 
             # Periodically check memory usage
             if i % 100 == 0:

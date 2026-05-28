@@ -1302,11 +1302,12 @@ def _compute_iit_phi(value: float, pred_id: str, all_values: list) -> float:
     return float(np.clip(phi, 0.0, 1.0))
 
 
-def run_framework_falsification(results_input) -> dict:  # noqa: F811
+def run_framework_falsification(results_input=None) -> dict:  # noqa: F811
     """Run complete framework falsification analysis.
 
     Args:
         results_input: List of JSON result files or dict of outcome dicts from all protocols.
+            If None, aggregates from any JSON result files available on disk.
 
     Returns:
         dict: Complete falsification results with conditions A and B

@@ -3681,7 +3681,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         # Generate all parameter combinations
         from itertools import product
 
-        param_combinations = list(product(*param_grid.values()))  # type: ignore[arg-type]
+        param_combinations = list(product(*param_grid.values()))  # type: ignore[arg-type, call-overload]
         param_names = list(param_grid.keys())
 
         best_score = -float("inf")
@@ -4368,7 +4368,9 @@ def main(progress_callback=None):
     report_progress(76, "Starting Task 1B - Multi-modal model identification...")
 
     # Create multi-modal dataset
-    full_dataset_multi: Any = ModelIdentificationDataset(dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"])
+    full_dataset_multi: Any = ModelIdentificationDataset(
+        dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"]
+    )
 
     # Split
     n_total = len(full_dataset_multi)

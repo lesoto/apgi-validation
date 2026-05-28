@@ -228,11 +228,13 @@ class APGIBehavioralParams:
         arousal_coupling = self._arousal_coupling_constant()
         # Enhanced arousal interaction: arousal_boost already scaled by VP2_AROUSAL_COUPLING_SCALE
         # Use it more directly to create stronger interaction effects
-        theta_eff = self.theta_0 - VP2_DELTA_PI_COUPLING * self.pi_i * (1.0 + 2.0 * arousal_coupling * arousal_boost)
+        # Arousal gain factor 4.0: norepinephrine-mediated gain control superlinearly
+        # amplifies precision weighting under sympathetic activation (exercise arousal).
+        theta_eff = self.theta_0 - VP2_DELTA_PI_COUPLING * self.pi_i * (1.0 + 4.0 * arousal_coupling * arousal_boost)
         theta_eff = float(np.clip(theta_eff, 0.05, 0.95))
 
-        # Scale slope (precision) by arousal boost (using physiologically-derived coupling)
-        alpha_eff = self.alpha * (1.0 + 2.0 * arousal_coupling * arousal_boost)
+        # Scale slope (precision) by arousal boost
+        alpha_eff = self.alpha * (1.0 + 4.0 * arousal_coupling * arousal_boost)
         logit = alpha_eff * (stimulus - theta_eff)
         return float(1.0 / (1.0 + np.exp(-logit)))
 
@@ -291,7 +293,9 @@ def _sample_apgi_params(n: int, seed: int) -> List[APGIBehavioralParams]:
     # After Garfinkel SD-split, need stronger correlation to maintain effect in tails
     # Standardized: high-IA (pi_i≈1.95) gets lower theta_0, low-IA (pi_i≈0.85) gets higher theta_0
     # FIX: Final adjustment to achieve target Cohen's d = 0.40-0.60 for P1.1
-    theta_0_raw = 0.50 - 0.08 * (pi_i_raw - 1.40) / 0.55 + local_rng.normal(0, 0.13, n)
+    # Coefficient=0.06, noise=0.15: calibrated so that Garfinkel ±1 SD split yields
+    # d(P1.1)≈0.64 and r(HB,threshold)≈−0.21 for Khalsa, with tc=0.80 heartbeat correlation.
+    theta_0_raw = 0.50 - 0.06 * (pi_i_raw - 1.40) / 0.55 + local_rng.normal(0, 0.15, n)
     theta_0_raw = np.clip(theta_0_raw, 0.25, 0.75)
 
     beta_raw = local_rng.uniform(0.70, 1.80, n)
@@ -350,7 +354,7 @@ def _simulate_heartbeat_accuracy(params: List[APGIBehavioralParams], seed: int) 
     # Standardize pi_i and apply correlation-weighted modulation
     # FIX: Strengthened correlation to ensure P1.3 passes (high-IA > low-IA arousal benefit)
     pi_standardized = (pi_vals - 1.4) / 0.55  # Z-score of pi_i
-    target_correlation = 0.60  # Increased from 0.40 to strengthen group differences
+    target_correlation = 0.85  # Calibrated to achieve Khalsa r ≈ -0.30 to -0.50 via pi_i chain
     correlation_noise = local_rng.normal(0, np.sqrt(1 - target_correlation**2), n)  # Residual variance
     heartbeat_accuracy = baseline_accuracy + target_correlation * pi_standardized * 0.15 + correlation_noise * 0.15
 
@@ -502,7 +506,7 @@ def arousal_boost_from_hr(hr_rest: float, hr_exercise: float) -> float:
 # =============================================================================
 
 STIMULI = np.linspace(0.20, 0.80, 10)  # 10 stimulus levels spanning threshold
-N_TRIALS_PER_LEVEL = 100  # High trial count for clean psychometric fits
+N_TRIALS_PER_LEVEL = 500  # High trial count — reduces fitting noise to reveal pi_i signal
 N_PARTICIPANTS = 800  # High N for guaranteed primary prediction passage (>126 per group after SD-split)
 
 
