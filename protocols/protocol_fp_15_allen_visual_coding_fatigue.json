@@ -1,0 +1,117 @@
+{
+  "protocol_id": "FP-15",
+  "title": "Allen Visual Coding: Fatigue Threshold Dynamics",
+  "paper": "APGI Falsification Suite",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-27",
+  "description": "Falsification-side coverage for fatigue threshold dynamics using Allen Brain Atlas data structure. Tests whether P3b amplitude decays under fatigue in the APGI-predicted pattern, and whether ignition threshold elevation under fatigue follows the adaptive ODE trajectory.",
+  "prediction_cluster": "FP-15",
+  "prediction_cluster_label": "Allen Visual Coding: Fatigue Threshold Dynamics",
+  "sub_predictions": [
+    {
+      "id": "FP15a",
+      "claim": "P3b amplitude shows significant monotonic decline under extended cognitive load (fatigue)",
+      "key_measurement_equation": "slope_p3b_vs_time < 0 with p < 0.05 (corrected)",
+      "confirming_evidence": "P3b amplitude declines monotonically over the task in a pattern consistent with θₜ elevation dynamics.",
+      "falsifying_evidence": "No significant P3b decline (slope p > 0.05) or non-monotonic pattern — fatigue threshold prediction is falsified."
+    },
+    {
+      "id": "FP15b",
+      "claim": "Ignition threshold θₜ elevation under fatigue follows adaptive ODE trajectory within ±30%",
+      "key_measurement_equation": "abs(observed_theta_elevation - predicted_theta_elevation) / predicted < 0.30",
+      "confirming_evidence": "Measured threshold elevation during fatigue is within 30% of adaptive ODE simulation.",
+      "falsifying_evidence": "Observed threshold elevation deviates > 30% from ODE prediction — adaptive model does not describe fatigue dynamics."
+    }
+  ],
+  "validation_status": "stub_not_implemented",
+  "validation_notes": "FP-15 stub — not yet implemented. VP-17 provides the validation-side coverage. Fatigue dynamics are at XP-P4-Prog4 level (outside canonical 14-prediction tally). Theory/APGI_Fractal_Threshold_Dynamics.py is the canonical threshold dynamics module.",
+  "participants": {
+    "n_target": 1,
+    "n_minimum": 1,
+    "inclusion_criteria": [
+      "Allen Visual Coding dataset or equivalent simulated neural time-series is available",
+      "Fatigue proxy (run length, RT slowing, P3b proxy) is available in dataset"
+    ],
+    "exclusion_criteria": [
+      "Dataset lacks temporal structure to estimate fatigue trajectory",
+      "Insufficient trial count for slope estimation (< 40 trials)"
+    ]
+  },
+  "apparatus": {
+    "execution_environment": "APGI desktop application and local project runtime",
+    "runtime_module": "FP_15_AllenVisualCoding_Fatigue",
+    "category": "Falsification",
+    "data_source": "Allen Brain Atlas visual coding dataset (simulated structure)",
+    "notes": "Software-only execution using simulated or Allen Institute data."
+  },
+  "trial_structure": {
+    "target": {
+      "type": "Simulated or archival visual neural response epoch",
+      "duration_ms": 0
+    },
+    "response": "Programmatic score from fatigue trajectory analysis",
+    "session_structure": "Offline analysis pipeline on extended recording block"
+  },
+  "blocks": {
+    "practice_trials": 0,
+    "experimental_blocks": 1,
+    "total_experimental_trials": 1,
+    "notes": "Single analysis pass over full recording session; fatigue assessed as a within-session temporal trend."
+  },
+  "dependent_variables": [
+    "P3b proxy amplitude slope over session (fatigue trajectory)",
+    "Estimated θₜ elevation vs. adaptive ODE prediction",
+    "Deviation metric: |observed - predicted| / predicted",
+    "FP-15 overall falsification decision"
+  ],
+  "primary_hypothesis": "P3b amplitude will decline monotonically under fatigue, and the observed ignition threshold elevation will be within 30% of the adaptive ODE prediction, consistent with APGI fatigue dynamics.",
+  "primary_analysis": "Linear regression of P3b proxy vs. trial index for slope estimation; comparison of empirical θₜ trajectory against ODE simulation output.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "n_required": 1,
+    "software": "APGI app integration spec",
+    "based_on": "Software-only fatigue simulation; power analysis is not applicable but required by schema"
+  },
+  "pre_registration": {
+    "platform": "Internal",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-27"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "runtime_protocol": "FP_15_AllenVisualCoding_Fatigue"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "APP-2026-FP-15",
+    "approval_date": "2026-05-27",
+    "exempt_reason": "Software-only execution using simulated or publicly available Allen Institute data."
+  },
+  "submission_blocking_issues": [
+    "FP_15 is a stub — run_validation() returns not_implemented.",
+    "Allen Visual Coding data ingestion pipeline not yet connected.",
+    "P3b proxy extraction from Allen data structure not implemented."
+  ],
+  "caveats": [
+    "FP-15 predictions are supplementary (XP-P4-Prog4 level) and NOT counted in the canonical 14-prediction tally.",
+    "VP_17 is the validation-side counterpart (also extended/supplementary).",
+    "Theory/APGI_Fractal_Threshold_Dynamics.py is the canonical threshold dynamics reference."
+  ],
+  "aliases": [
+    "FP_15",
+    "FP_15_AllenVisualCoding_Fatigue",
+    "F15",
+    "AllenFatigue",
+    "FatigueThresholdDynamics"
+  ],
+  "runtime_module": "FP_15_AllenVisualCoding_Fatigue",
+  "source_file": "Falsification/FP_15_AllenVisualCoding_Fatigue.py",
+  "integration_target": "allprotocols",
+  "linked_protocols": ["VP-17"],
+  "canonical_ep": "XP-P4-Prog4"
+}

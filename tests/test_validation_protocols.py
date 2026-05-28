@@ -214,7 +214,9 @@ class TestCausalManipulationsValidation:
         try:
             manipulations = module.CausalManipulations()
             assert hasattr(manipulations, "apply_tms"), "CausalManipulations should have apply_tms method"
-            assert hasattr(manipulations, "apply_pharmacological"), "CausalManipulations should have apply_pharmacological method"
+            assert hasattr(
+                manipulations, "apply_pharmacological"
+            ), "CausalManipulations should have apply_pharmacological method"
 
         except Exception:
             pass
@@ -260,8 +262,12 @@ class TestClinicalCrossSpeciesConvergence:
 
         try:
             convergence = module.CrossSpeciesConvergence()
-            assert hasattr(convergence, "test_convergence"), "CrossSpeciesConvergence should have test_convergence method"
-            assert hasattr(convergence, "validate_scaling"), "CrossSpeciesConvergence should have validate_scaling method"
+            assert hasattr(
+                convergence, "test_convergence"
+            ), "CrossSpeciesConvergence should have test_convergence method"
+            assert hasattr(
+                convergence, "validate_scaling"
+            ), "CrossSpeciesConvergence should have validate_scaling method"
 
         except Exception:
             pass
@@ -303,7 +309,9 @@ class TestConvergentNeuralSignatures:
         try:
             signatures = module.NeuralSignatures()
             assert hasattr(signatures, "detect_signatures"), "NeuralSignatures should have detect_signatures method"
-            assert hasattr(signatures, "validate_convergence"), "NeuralSignatures should have validate_convergence method"
+            assert hasattr(
+                signatures, "validate_convergence"
+            ), "NeuralSignatures should have validate_convergence method"
 
         except Exception:
             pass
@@ -343,8 +351,12 @@ class TestEvolutionaryEmergence:
 
         try:
             emergence = module.EvolutionaryEmergence()
-            assert hasattr(emergence, "validate_emergence"), "EvolutionaryEmergence should have validate_emergence method"
-            assert hasattr(emergence, "check_evolutionary_constraints"), "EvolutionaryEmergence should have check_evolutionary_constraints method"
+            assert hasattr(
+                emergence, "validate_emergence"
+            ), "EvolutionaryEmergence should have validate_emergence method"
+            assert hasattr(
+                emergence, "check_evolutionary_constraints"
+            ), "EvolutionaryEmergence should have check_evolutionary_constraints method"
 
         except Exception:
             pass
@@ -388,8 +400,12 @@ class TestInformationTheoreticPhaseTransition:
 
         try:
             phase_transition = module.PhaseTransition()
-            assert hasattr(phase_transition, "detect_transition"), "PhaseTransition should have detect_transition method"
-            assert hasattr(phase_transition, "validate_transition"), "PhaseTransition should have validate_transition method"
+            assert hasattr(
+                phase_transition, "detect_transition"
+            ), "PhaseTransition should have detect_transition method"
+            assert hasattr(
+                phase_transition, "validate_transition"
+            ), "PhaseTransition should have validate_transition method"
 
         except Exception:
             pass
@@ -472,7 +488,9 @@ class TestNeuralNetworkInductiveBias:
         try:
             benchmark = module.InductiveBiasBenchmark()
             assert hasattr(benchmark, "measure_bias"), "InductiveBiasBenchmark should have measure_bias method"
-            assert hasattr(benchmark, "benchmark_networks"), "InductiveBiasBenchmark should have benchmark_networks method"
+            assert hasattr(
+                benchmark, "benchmark_networks"
+            ), "InductiveBiasBenchmark should have benchmark_networks method"
 
         except Exception:
             pass
@@ -514,7 +532,9 @@ class TestPsychophysicalThreshold:
         try:
             threshold = module.ThresholdEstimation()
             assert hasattr(threshold, "estimate_threshold"), "ThresholdEstimation should have estimate_threshold method"
-            assert hasattr(threshold, "validate_thresholds"), "ThresholdEstimation should have validate_thresholds method"
+            assert hasattr(
+                threshold, "validate_thresholds"
+            ), "ThresholdEstimation should have validate_thresholds method"
 
         except Exception:
             pass
@@ -602,7 +622,9 @@ class TestSyntheticEEGMLClassification:
         try:
             classification = module.EEGClassification()
             assert hasattr(classification, "train_classifier"), "EEGClassification should have train_classifier method"
-            assert hasattr(classification, "validate_classifier"), "EEGClassification should have validate_classifier method"
+            assert hasattr(
+                classification, "validate_classifier"
+            ), "EEGClassification should have validate_classifier method"
 
         except Exception:
             pass
@@ -643,8 +665,12 @@ class TestTMSPharmacologicalCausalIntervention:
 
         try:
             intervention = module.CausalIntervention()
-            assert hasattr(intervention, "apply_intervention"), "CausalIntervention should have apply_intervention method"
-            assert hasattr(intervention, "validate_causal_effects"), "CausalIntervention should have validate_causal_effects method"
+            assert hasattr(
+                intervention, "apply_intervention"
+            ), "CausalIntervention should have apply_intervention method"
+            assert hasattr(
+                intervention, "validate_causal_effects"
+            ), "CausalIntervention should have validate_causal_effects method"
 
         except Exception:
             pass
@@ -851,7 +877,9 @@ class TestValidationRobustness:
 
                     # Should handle extreme values gracefully
                     result = method(extreme_input)
-                    assert np.isfinite(result).any() or not np.isnan(result).any(), "Result should handle extreme values gracefully"
+                    assert (
+                        np.isfinite(result).any() or not np.isnan(result).any()
+                    ), "Result should handle extreme values gracefully"
 
                 except Exception:
                     # Should handle extreme values gracefully

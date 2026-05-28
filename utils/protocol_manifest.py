@@ -205,6 +205,7 @@ def refresh_all(*, write: bool = True, verbose: bool = True) -> tuple[int, int]:
 # CLI entry-point
 # ---------------------------------------------------------------------------
 
+
 def _main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m utils.protocol_manifest",

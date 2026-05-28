@@ -1,17 +1,17 @@
 {
   "protocol_id": "FP-06",
-  "title": "Neural Network Energy Benchmark",
+  "title": "Liquid Network Energy Benchmark",
   "paper": "APGI Falsification Suite",
   "osf_url": "https://osf.io/XXXXXX",
-  "version": "1.0.0",
-  "last_updated": "2026-05-21",
-  "description": "Energy consumption benchmark for liquid/neural networks",
+  "version": "1.0.1",
+  "last_updated": "2026-05-27",
+  "description": "Energy consumption benchmark for Liquid State Machine (LSM) / liquid neural networks; tests APGI inductive-bias predictions against standard RNN baselines",
   "prediction_cluster": "FP-06",
-  "prediction_cluster_label": "Neural Network Energy Benchmark",
+  "prediction_cluster_label": "Liquid Network Energy Benchmark",
   "sub_predictions": [
     {
       "id": "FP06a",
-      "claim": "Neural Network Energy Benchmark reproduces its primary APGI effect under app-managed execution",
+      "claim": "Liquid Network Energy Benchmark reproduces its primary APGI effect under app-managed execution",
       "key_measurement_equation": "support_metric = observed_effect - predefined_failure_threshold",
       "confirming_evidence": "Primary analysis supports the expected effect for FP-06.",
       "falsifying_evidence": "Primary effect fails to meet the registered support threshold or reverses direction."
@@ -19,12 +19,12 @@
     {
       "id": "FP06b",
       "claim": "Protocol outcome remains stable across internal controls, sensitivity checks, or reruns",
-      "confirming_evidence": "Robustness checks preserve the main conclusion for: Energy consumption benchmark for liquid/neural networks",
+      "confirming_evidence": "Robustness checks preserve the main conclusion for: Energy consumption benchmark for Liquid State Machine (LSM) networks",
       "falsifying_evidence": "Conclusion disappears under reasonable controls, QC filters, or sensitivity analyses."
     }
   ],
   "validation_status": "specified",
-  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery.",
+  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery. Title corrected from 'Neural Network Energy Benchmark' to 'Liquid Network Energy Benchmark' to match FP_06_LiquidNetworkEnergyBenchmark.py (2026-05-27).",
   "participants": {
     "n_target": 1,
     "n_minimum": 1,
@@ -57,11 +57,11 @@
     "notes": "Single orchestrated software run; internal loops are managed by the runtime protocol."
   },
   "dependent_variables": [
-    "Primary support metric for Neural Network Energy Benchmark",
-    "Protocol-level pass/fail outcome for: Energy consumption benchmark for liquid/neural networks",
+    "Primary support metric for Liquid Network Energy Benchmark",
+    "Protocol-level pass/fail outcome for: Energy consumption benchmark for Liquid State Machine (LSM) networks",
     "Reproducibility or robustness statistic across runs/conditions"
   ],
-  "primary_hypothesis": "Neural Network Energy Benchmark will reproduce the protocol-specific APGI effect described as: Energy consumption benchmark for liquid/neural networks.",
+  "primary_hypothesis": "Liquid Network Energy Benchmark will reproduce the protocol-specific APGI effect described as: Energy consumption benchmark for Liquid State Machine (LSM) / liquid neural networks vs. standard RNN baselines.",
   "primary_analysis": "Execute the linked runtime protocol in the app, collect standardized prediction outputs, and evaluate the primary support metric against the registered pass/fail threshold.",
   "power_analysis": {
     "effect_size_d": 0.5,
@@ -96,8 +96,9 @@
     "FP_06",
     "FP_06_LiquidNetworkEnergyBenchmark",
     "EnergyBenchmark",
-    "NeuralEnergy",
-    "FP_06_LiquidNetworkEnergyBenchmark"
+    "LiquidNetwork",
+    "LiquidNetworkEnergy",
+    "LiquidStateMachine"
   ],
   "runtime_module": "FP_06_LiquidNetworkEnergyBenchmark",
   "source_file": "Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",

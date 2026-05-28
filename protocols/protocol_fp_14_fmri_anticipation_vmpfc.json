@@ -1,0 +1,117 @@
+{
+  "protocol_id": "FP-14",
+  "title": "fMRI Anticipation: vmPFC-like Falsification",
+  "paper": "APGI Falsification Suite",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-27",
+  "description": "Falsification-side coverage for the vmPFC anticipation predictions (EP-5). Tests P5b (vmPFC should NOT track primary interoceptive prediction error) and P5c (vmPFC effects should be valence-specific, not sensory-contrast-driven).",
+  "prediction_cluster": "FP-14",
+  "prediction_cluster_label": "fMRI Anticipation: vmPFC-like Falsification",
+  "sub_predictions": [
+    {
+      "id": "FP14a",
+      "claim": "vmPFC does NOT significantly track primary interoceptive prediction error during experience phase",
+      "key_measurement_equation": "t_vmPFC_PE < 2.5 (corrected); if t > 2.5, P5b is falsified",
+      "confirming_evidence": "vmPFC BOLD is not significantly correlated with primary interoceptive PE during the experience phase.",
+      "falsifying_evidence": "vmPFC significantly tracks primary interoceptive PE (t > 2.5, corrected) — embodied-prioritization claim is rejected."
+    },
+    {
+      "id": "FP14b",
+      "claim": "vmPFC effect is valence-specific rather than driven by sensory contrast",
+      "key_measurement_equation": "F_valence > F_sensory_contrast; if F_valence < 1.5, P5c is falsified",
+      "confirming_evidence": "vmPFC BOLD varies significantly with valence (positive vs. negative anticipation) but not with sensory contrast alone.",
+      "falsifying_evidence": "vmPFC effect is equivalent across valence conditions (F < 1.5) — valence specificity claim fails."
+    }
+  ],
+  "validation_status": "stub_not_implemented",
+  "validation_notes": "FP-14 stub — not yet implemented. Canonical EP-5 coverage: VP_22_FMRIAnticipationExperience.py. Superseded precursor: VP_15_FMRIAnticipationVmPFC.py.",
+  "participants": {
+    "n_target": 40,
+    "n_minimum": 28,
+    "inclusion_criteria": [
+      "Adults 18-45 years",
+      "No MRI contraindications",
+      "No history of cardiac or interoceptive disorders"
+    ],
+    "exclusion_criteria": [
+      "MRI contraindications (metallic implants, claustrophobia)",
+      "History of cardiac arrhythmia affecting HEP measurement",
+      "Failure to complete anticipation task (compliance < 80%)"
+    ]
+  },
+  "apparatus": {
+    "execution_environment": "APGI desktop application and local project runtime",
+    "runtime_module": "FP_14_fMRI_Anticipation_vmPFC",
+    "category": "Falsification",
+    "modalities": ["fMRI", "ECG"],
+    "roi": "vmPFC (medial prefrontal cortex, y > 0 mm in MNI space)"
+  },
+  "trial_structure": {
+    "target": {
+      "type": "fMRI anticipation epoch (valenced cue → anticipatory period → somatic event)",
+      "duration_ms": 8000
+    },
+    "response": "Valence rating (pleasant/unpleasant) and interoceptive awareness rating",
+    "session_structure": "Block design with interspersed anticipation and experience phases; counterbalanced valence"
+  },
+  "blocks": {
+    "practice_trials": 10,
+    "experimental_blocks": 4,
+    "total_experimental_trials": 120,
+    "notes": "60 anticipation trials × 2 valence conditions (positive/negative)."
+  },
+  "dependent_variables": [
+    "vmPFC BOLD correlation with interoceptive prediction error (falsification target: should be non-significant)",
+    "vmPFC BOLD valence-specificity F-statistic",
+    "vmPFC-posterior insula coupling under anticipation vs. experience",
+    "FP-14 overall falsification decision"
+  ],
+  "primary_hypothesis": "vmPFC will NOT significantly track primary interoceptive prediction error during experience, and vmPFC effects will be valence-specific rather than sensory-contrast-driven — consistent with APGI's embodied anticipatory somatic marker account.",
+  "primary_analysis": "GLM analysis of vmPFC BOLD with prediction error regressors; F-test for valence × phase interaction; vmPFC-posterior insula psychophysiological interaction (PPI) analysis.",
+  "power_analysis": {
+    "effect_size_d": 0.55,
+    "alpha": 0.05,
+    "power": 0.80,
+    "n_required": 28,
+    "software": "G*Power 3.1",
+    "based_on": "fMRI vmPFC effect size estimate from somatic marker literature (d ≈ 0.5-0.6)"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-27"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "runtime_protocol": "FP_14_fMRI_Anticipation_vmPFC"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "APP-2026-FP-14",
+    "approval_date": "2026-05-27",
+    "data_sharing": "Anonymised fMRI BIDS dataset available upon request."
+  },
+  "submission_blocking_issues": [
+    "FP_14 is a stub — run_validation() returns not_implemented.",
+    "fMRI analysis pipeline (SPM/FSL GLM) not yet connected.",
+    "Valenced anticipation paradigm code not integrated."
+  ],
+  "caveats": [
+    "FP-14 is a tertiary-tier extension of FP-09.",
+    "The canonical EP-5 implementation is VP-22, not VP-15."
+  ],
+  "aliases": [
+    "FP_14",
+    "FP_14_fMRI_Anticipation_vmPFC",
+    "F14",
+    "vmPFCAnticipation"
+  ],
+  "runtime_module": "FP_14_fMRI_Anticipation_vmPFC",
+  "source_file": "Falsification/FP_14_fMRI_Anticipation_vmPFC.py",
+  "integration_target": "allprotocols",
+  "linked_protocols": ["VP-22", "VP-15"],
+  "canonical_ep": "EP-5 partial"
+}

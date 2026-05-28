@@ -132,11 +132,11 @@ V20_KENDALL_TAU_MIN: float = 0.30
 # Try to override with centralized values if available
 try:
     from utils.falsification_thresholds import DEFAULT_ALPHA as _DEFAULT_ALPHA
+    from utils.falsification_thresholds import F4_CRITICAL_SLOWING_KENDALL_TAU_MIN as _V20_KENDALL_TAU_MIN
     from utils.falsification_thresholds import V20_AC1_ADVANTAGE_MIN as _V20_AC1_ADVANTAGE_MIN
     from utils.falsification_thresholds import V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN
     from utils.falsification_thresholds import V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN
     from utils.falsification_thresholds import V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN
-    from utils.falsification_thresholds import F4_CRITICAL_SLOWING_KENDALL_TAU_MIN as _V20_KENDALL_TAU_MIN
 
     DEFAULT_ALPHA = _DEFAULT_ALPHA
     V20_HG_BIMODALITY_COEFF_MIN = _V20_HG_BIMODALITY_COEFF_MIN
@@ -785,9 +785,7 @@ class CriticalSlowingAnalyzer:
                 continue
             result = compute_critical_slowing(ep)
             if len(result.ac1_timeseries) >= 3:
-                tau, _ = stats.kendalltau(
-                    np.arange(len(result.ac1_timeseries)), result.ac1_timeseries
-                )
+                tau, _ = stats.kendalltau(np.arange(len(result.ac1_timeseries)), result.ac1_timeseries)
                 if not np.isnan(tau):
                     kendall_taus.append(float(tau))
 
@@ -803,8 +801,7 @@ class CriticalSlowingAnalyzer:
         )
 
         logger.info(
-            "P6c: AC1 advantage=%.4f (p=%.4f), Var advantage=%.4f (p=%.4f), "
-            "Kendall τ=%.4f (threshold>%.2f) — %s",
+            "P6c: AC1 advantage=%.4f (p=%.4f), Var advantage=%.4f (p=%.4f), " "Kendall τ=%.4f (threshold>%.2f) — %s",
             ac1_advantage,
             p_ac1,
             var_advantage,

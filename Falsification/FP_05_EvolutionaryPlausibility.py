@@ -2585,7 +2585,6 @@ def check_falsification(
         theta_t=theta_t,
         tau_S=0.3,
         dt=0.05,
-        beta=1.0,
         hysteresis_min=F6_5_HYSTERESIS_MIN,
         hysteresis_max=F6_5_HYSTERESIS_MAX,
     )

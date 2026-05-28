@@ -1,17 +1,17 @@
 {
   "protocol_id": "FP-04",
-  "title": "Phase Transition & Bistability (APGI-P06 linked)",
+  "title": "Phase Transition & Epistemic Architecture (APGI-P06 linked)",
   "paper": "APGI Falsification Suite",
   "osf_url": "https://osf.io/XXXXXX",
-  "version": "1.0.0",
-  "last_updated": "2026-05-21",
-  "description": "Bistability + critical slowing + hysteresis; linked to APGI-P06 iEEG",
+  "version": "1.0.1",
+  "last_updated": "2026-05-27",
+  "description": "Phase transition dynamics and epistemic architecture validation (adaptive threshold hysteresis + critical slowing); linked to APGI-P06 iEEG",
   "prediction_cluster": "FP-04",
-  "prediction_cluster_label": "Phase Transition & Bistability (APGI-P06 linked)",
+  "prediction_cluster_label": "Phase Transition & Epistemic Architecture (APGI-P06 linked)",
   "sub_predictions": [
     {
       "id": "FP04a",
-      "claim": "Phase Transition & Bistability (APGI-P06 linked) reproduces its primary APGI effect under app-managed execution",
+      "claim": "Phase Transition & Epistemic Architecture (APGI-P06 linked) reproduces its primary APGI effect under app-managed execution",
       "key_measurement_equation": "support_metric = observed_effect - predefined_failure_threshold",
       "confirming_evidence": "Primary analysis supports the expected effect for FP-04 and remains aligned with APGI-P06.",
       "falsifying_evidence": "Primary effect fails to meet the registered support threshold or reverses direction."
@@ -19,12 +19,12 @@
     {
       "id": "FP04b",
       "claim": "Protocol outcome remains stable across internal controls, sensitivity checks, or reruns",
-      "confirming_evidence": "Robustness checks preserve the main conclusion for: Bistability + critical slowing + hysteresis; linked to APGI-P06 iEEG",
+      "confirming_evidence": "Robustness checks preserve the main conclusion for: Phase transition dynamics and epistemic architecture validation; linked to APGI-P06 iEEG",
       "falsifying_evidence": "Conclusion disappears under reasonable controls, QC filters, or sensitivity analyses."
     }
   ],
   "validation_status": "specified",
-  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery.",
+  "validation_notes": "App integration spec generated from the canonical registry entry and aligned to the runtime protocol for all-protocol discovery. Title corrected from 'Bistability' to 'Epistemic Architecture' to match FP_04_PhaseTransitionEpistemicArchitecture.py (2026-05-27).",
   "participants": {
     "n_target": 40,
     "n_minimum": 24,
@@ -59,12 +59,12 @@
     "notes": "Exact block structure is delegated to the linked runtime protocol implementation."
   },
   "dependent_variables": [
-    "Primary support metric for Phase Transition & Bistability (APGI-P06 linked)",
-    "Protocol-level pass/fail outcome for: Bistability + critical slowing + hysteresis; linked to APGI-P06 iEEG",
+    "Primary support metric for Phase Transition & Epistemic Architecture (APGI-P06 linked)",
+    "Protocol-level pass/fail outcome for: Phase transition dynamics and epistemic architecture validation; linked to APGI-P06 iEEG",
     "Reproducibility or robustness statistic across runs/conditions",
     "Consistency with linked experimental spec(s): APGI-P06"
   ],
-  "primary_hypothesis": "Phase Transition & Bistability (APGI-P06 linked) will reproduce the protocol-specific APGI effect described as: Bistability + critical slowing + hysteresis; linked to APGI-P06 iEEG.",
+  "primary_hypothesis": "Phase Transition & Epistemic Architecture (APGI-P06 linked) will reproduce the protocol-specific APGI effect described as: Phase transition dynamics and epistemic architecture validation (adaptive threshold hysteresis ≥15% elevation under cognitive load; critical slowing signatures at approach to ignition threshold).",
   "primary_analysis": "Execute the linked runtime protocol in the app, collect standardized prediction outputs, and evaluate the primary support metric against the registered pass/fail threshold.",
   "power_analysis": {
     "effect_size_d": 0.5,
@@ -93,16 +93,16 @@
   },
   "submission_blocking_issues": [],
   "caveats": [
-    "This integration spec standardizes app discovery and does not replace the linked runtime implementation."
+    "This integration spec standardizes app discovery and does not replace the linked runtime implementation.",
+    "Sub-Protocol A (information-theoretic phase transition detection) is not APGI-specific — standard GWT would also pass or fail this test. Sub-Protocol B (adaptive threshold hysteresis ≥15% under load) is the APGI-distinguishing criterion."
   ],
   "aliases": [
     "FP_04",
     "FP_04_PhaseTransitionEpistemicArchitecture",
     "F4",
     "PhaseTransition",
-    "Bistability",
-    "CriticalSlowing",
-    "FP_04_PhaseTransitionEpistemicArchitecture"
+    "EpistemicArchitecture",
+    "AdaptiveThresholdHysteresis"
   ],
   "runtime_module": "FP_04_PhaseTransitionEpistemicArchitecture",
   "source_file": "Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",

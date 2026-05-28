@@ -1025,9 +1025,7 @@ class ClinicalConvergenceValidator:
         from sklearn.linear_model import LogisticRegression
 
         lr_pci = LogisticRegression(max_iter=500).fit(pci_all.reshape(-1, 1), y)
-        lr_joint = LogisticRegression(max_iter=500).fit(
-            np.column_stack([pci_all, hep_all]), y
-        )
+        lr_joint = LogisticRegression(max_iter=500).fit(np.column_stack([pci_all, hep_all]), y)
         r2_pci = lr_pci.score(pci_all.reshape(-1, 1), y)
         r2_joint = lr_joint.score(np.column_stack([pci_all, hep_all]), y)
         delta_r2 = r2_joint - r2_pci

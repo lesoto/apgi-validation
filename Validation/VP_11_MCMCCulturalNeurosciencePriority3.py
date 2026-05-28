@@ -47,6 +47,16 @@ capture cultural and individual differences in conscious processing.
           prior-predictive sensitivity analysis: Δ group_Πⁱ ≥ 0.20 for
           ±0.5 prior shift → confirms model sensitivity to cultural priors)
 
+CANONICAL STATUS: EXTENDED PROTOCOL — XP-11 (extends EP-11)
+------------------------------------------------------------
+VP-11 is NOT in the canonical EP-0–EP-15 registry.
+It is the Priority 3 extension of EP-11 (Active Inference Agent Simulations /
+Computational Protocol 3), adding MCMC/NUTS Bayesian parameter recovery, individual
+differences (interoceptive accuracy, genetics, developmental history, cultural priors),
+and Bayes-factor model comparison not present in VP_03.
+V11.x predictions are supplementary and NOT counted in the canonical 14-prediction tally.
+The canonical active inference validation is VP_03 (EP-3 / EP-11).
+
 Tier: SECONDARY — extends core validation with rigorous Bayesian inference,
       building on Protocol 2's psychophysical results.
 

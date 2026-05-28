@@ -273,7 +273,7 @@ class TestDTO:
         from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
 
         # Define ProtocolResult to resolve forward reference
-        class ProtocolResult(BaseModel):
+        class ProtocolResult(BaseModel):  # type: ignore[misc]
             protocol_name: str
             status: str
             timestamp: str

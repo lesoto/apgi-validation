@@ -18,6 +18,20 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
+CANONICAL EP MAPPING
+--------------------
+VP-03 serves two canonical protocol roles simultaneously:
+  EP-3: Empirical — "Adaptive advantages of somatic markers in decision-making"
+      (agent performance benchmarks: IGT, Foraging, Threat-Reward environments)
+  EP-11: Computational Protocol 3 — "Active Inference Agent Simulations"
+      (algorithmic active inference with precision-weighted hierarchical inference)
+EP-3 and EP-11 are architecturally interleaved: the EP-11 agent is evaluated on
+the EP-3 empirical task battery. A clean separation would need VP-03-Empirical.py
+(EP-3 only) and VP-03-Computational.py (EP-11 only).
+T03 in the Validation_GUI sidebar redirects to this file.
+FP_01 provides the corresponding falsification-side coverage.
+VP-11 (XP-11) provides the MCMC/individual-differences extension.
+
 FALSIFICATION_CRITERIA
 ----------------------
 If APGI agents do NOT show adaptive advantages over baselines (performance

@@ -1262,7 +1262,7 @@ def validate_all_states() -> Tuple[int, int, List[str]]:
     return passed_count, failed_count, warnings
 
 
-def print_validation_report():
+def print_validation_report() -> None:
     """Print a validation report for all states"""
     passed_count, failed_count, warnings = validate_all_states()
     results: Dict[str, Dict[str, bool]] = {}

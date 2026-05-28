@@ -15,6 +15,15 @@ LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
 Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
+CANONICAL STATUS: EXTENDED PROTOCOL — XP-07 (extends EP-7)
+-----------------------------------------------------------
+VP-10 is NOT in the canonical EP-0–EP-15 registry.
+It is the Priority 2 extension of EP-7 (TMS + Pharmacological agents shifting Π and
+θₜ), adding metabolic challenge paradigms (glucose depletion → θₜ elevation) and a
+null-prediction battery not present in VP_07.
+V10.x predictions are supplementary and NOT counted in the canonical 14-prediction tally.
+The canonical pharmacological/TMS validation is VP_07 (EP-7 / EP-2).
+
 FALSIFICATION_CRITERIA
 ----------------------
 If causal manipulations do not produce the predicted directional changes in APGI
@@ -110,8 +119,7 @@ if P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC != _EXPECTED_P2_B_MIN_PCI_REDUCTION:
     )
 if P2_C_MIN_ETA_SQ_PAPER_SPEC != _EXPECTED_P2_C_MIN_ETA_SQ:
     raise ValueError(
-        f"P2_C_MIN_ETA_SQ paper-spec mismatch: "
-        f"{P2_C_MIN_ETA_SQ_PAPER_SPEC} != {_EXPECTED_P2_C_MIN_ETA_SQ}"
+        f"P2_C_MIN_ETA_SQ paper-spec mismatch: " f"{P2_C_MIN_ETA_SQ_PAPER_SPEC} != {_EXPECTED_P2_C_MIN_ETA_SQ}"
     )
 
 # Set random seeds

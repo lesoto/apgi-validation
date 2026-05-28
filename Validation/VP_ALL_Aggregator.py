@@ -266,8 +266,8 @@ PROTOCOL_TIERS = {
     "VP_04_PhaseTransitionEpistemicLevel2": "secondary",
     "VP_05_EvolutionaryEmergence": "tertiary",
     "VP_06_LiquidNetworkInductiveBias": "secondary",
-    "VP_07a_MathematicalConsistency": "primary",   # VP-7a: SymPy symbolic proofs (resolves VP-7 Structural Debt)
-    "VP_07_TMSCausalInterventions": "secondary",   # VP-7b: CANONICAL P2 TMS source
+    "VP_07a_MathematicalConsistency": "primary",  # VP-7a: SymPy symbolic proofs (resolves VP-7 Structural Debt)
+    "VP_07_TMSCausalInterventions": "secondary",  # VP-7b: CANONICAL P2 TMS source
     "VP_08_PsychophysicalThresholdEstimation": "secondary",
     "VP_09_NeuralSignaturesEmpiricalPriority1": "tertiary",
     "VP_10_CausalManipulationsPriority2": "tertiary",  # SUPPLEMENTARY to VP-7

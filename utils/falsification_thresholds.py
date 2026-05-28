@@ -75,7 +75,7 @@ CHANGE LOG (fixes applied in this version)
 
 import math
 import warnings
-from typing import Any
+from typing import Any, Dict, List
 
 try:
     import numpy as np
@@ -139,7 +139,7 @@ def assert_alpha_fep_calibrated() -> None:
 ALPHA_SIGMOID: float = 5.0  # Sigmoid steepness; used ONLY in ignition probability P(B=1|S,θ)
 ALPHA_EMA: float = 0.05  # EMA smoothing rate for variance estimation; must be in (0,1)
 
-ALPHA_UNIFIED_BOUNDS = {
+ALPHA_UNIFIED_BOUNDS: Dict[str, Any] = {
     "population_range": [0.1, 10.0],  # Full theoretical range (parameter_bounds)
     "estimation_prior_clip": [2.0, 8.0],  # PyMC posterior clip (BayesianModelComparison)
     "interpretation": {
@@ -151,10 +151,10 @@ ALPHA_UNIFIED_BOUNDS = {
     "falsification_lower_bound": 1.0,  # α < 1.0 contradicts all-or-none ignition claim
 }
 
-ALPHA_POPULATION_RANGE = ALPHA_UNIFIED_BOUNDS["population_range"]
-ALPHA_ESTIMATION_PRIOR_CLIP = ALPHA_UNIFIED_BOUNDS["estimation_prior_clip"]
-ALPHA_INTERPRETATION_BANDS = ALPHA_UNIFIED_BOUNDS["interpretation"]
-ALPHA_FALSIFICATION_LOWER_BOUND = ALPHA_UNIFIED_BOUNDS["falsification_lower_bound"]
+ALPHA_POPULATION_RANGE: List[float] = ALPHA_UNIFIED_BOUNDS["population_range"]
+ALPHA_ESTIMATION_PRIOR_CLIP: List[float] = ALPHA_UNIFIED_BOUNDS["estimation_prior_clip"]
+ALPHA_INTERPRETATION_BANDS: Dict[str, List[float]] = ALPHA_UNIFIED_BOUNDS["interpretation"]
+ALPHA_FALSIFICATION_LOWER_BOUND: float = ALPHA_UNIFIED_BOUNDS["falsification_lower_bound"]
 
 # =============================================================================
 # BETA PARAMETERS — Canonical Names (Manuscript-Aligned)
@@ -312,8 +312,8 @@ TRANSFER_ENTROPY_THRESHOLD: float = 0.1  # Alias, aligned with F4_TE_THRESHOLD
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
 F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect size
 # EP-12 CSV master thresholds (take precedence over all prior values)
-F4_SUSCEPTIBILITY_MIN_RATIO: float = 2.0   # EP-12: Variance ratio (near/far threshold) > 2.0
-F4_PHI_IGNITION_RATIO_MIN: float = 2.0    # EP-12: Φ at ignition > 2× baseline
+F4_SUSCEPTIBILITY_MIN_RATIO: float = 2.0  # EP-12: Variance ratio (near/far threshold) > 2.0
+F4_PHI_IGNITION_RATIO_MIN: float = 2.0  # EP-12: Φ at ignition > 2× baseline
 F4_HURST_NEAR_THRESHOLD_MIN: float = 0.6  # EP-12: H near threshold > 0.6
 
 # VP-04 suite-calibrated phase transition parameters
@@ -735,20 +735,20 @@ V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # ignition-window PE ≥ 1.20× pre-
 # No simulation/paper-spec duality — symbolic checks are mode-invariant.
 # =============================================================================
 # V7a.1: Ignition monotonicity — ∂P/∂S_t > 0 must hold symbolically
-V7A_1_MONOTONE_REQUIRED: bool = True   # hard: derivative must be strictly positive
+V7A_1_MONOTONE_REQUIRED: bool = True  # hard: derivative must be strictly positive
 
 # V7a.2: Ignition boundary conditions — limits at ±∞ must equal {0, 1}
-V7A_2_LOWER_LIMIT_EXPECTED: float = 0.0   # lim_{S→−∞} P = 0
-V7A_2_UPPER_LIMIT_EXPECTED: float = 1.0   # lim_{S→+∞} P = 1
+V7A_2_LOWER_LIMIT_EXPECTED: float = 0.0  # lim_{S→−∞} P = 0
+V7A_2_UPPER_LIMIT_EXPECTED: float = 1.0  # lim_{S→+∞} P = 1
 
 # V7a.3: Somatic precision monotonicity — ∂Π_eff/∂M > 0 (soma-bias excitatory)
-V7A_3_PRECISION_MONOTONE_REQUIRED: bool = True   # hard: gradient must be positive
+V7A_3_PRECISION_MONOTONE_REQUIRED: bool = True  # hard: gradient must be positive
 
 # V7a.4: Precision baseline identity — Π_eff(M=0) = Π_base exactly
-V7A_4_IDENTITY_RESIDUAL_MAX: float = 0.0   # exact zero (symbolic); no tolerance
+V7A_4_IDENTITY_RESIDUAL_MAX: float = 0.0  # exact zero (symbolic); no tolerance
 
 # V7a.5: Threshold ODE unique fixed point — exactly one equilibrium at θ* = S_t
-V7A_5_EXACTLY_ONE_EQUILIBRIUM: int = 1    # hard: solve() must return exactly 1 solution
+V7A_5_EXACTLY_ONE_EQUILIBRIUM: int = 1  # hard: solve() must return exactly 1 solution
 
 # =============================================================================
 # V22 — fMRI Anticipation vs. Experience / Protocol 5 Somatic Marker (VP-22)
@@ -761,12 +761,12 @@ V22_1_MIN_ANTICIPATORY_COUPLING_R: float = 0.40  # r ≥ 0.40 (matches V15_ANTIC
 V22_1_ALPHA: float = 0.01
 
 # V22.2 (P5b): vmPFC must NOT track primary prediction error — critical falsification
-V22_2_MAX_VMPFC_PE_R: float = 0.20    # |r| < 0.20; falsified if ≥ 0.20 with p < 0.01
+V22_2_MAX_VMPFC_PE_R: float = 0.20  # |r| < 0.20; falsified if ≥ 0.20 with p < 0.01
 V22_2_ALPHA: float = 0.01
 
 # V22.3 (P5c): vmPFC effect is valence-specific, not sensory-contrast-driven
-V22_3_VALENCE_ALPHA: float = 0.01     # valence must be significant at this level
-V22_3_CONTRAST_ALPHA: float = 0.01   # contrast must be NON-significant at this level
+V22_3_VALENCE_ALPHA: float = 0.01  # valence must be significant at this level
+V22_3_CONTRAST_ALPHA: float = 0.01  # contrast must be NON-significant at this level
 
 # V22.4 (P5d): Removing anticipation collapses vmPFC–posterior_insula coupling
 V22_4_NO_ANTICIPATION_COUPLING_MAX: float = 0.15  # coupling < 0.15 without anticipation
@@ -860,11 +860,11 @@ DEPRESSION_HYPERCONNECTIVITY_STRONG: float = 0.40  # d ≈ 0.8; strong effect
 P0_N_TARGET: int = 50
 P0_POWER: float = 0.90
 P0_ALPHA: float = 0.01
-P0_A_R_MIN: float = 0.35          # P0a success
-P0_A_FAL_R_MAX: float = 0.20      # P0a falsification
+P0_A_R_MIN: float = 0.35  # P0a success
+P0_A_FAL_R_MAX: float = 0.20  # P0a falsification
 P0_B_HEP_INCREASE_PCT_MIN: float = 15.0
 P0_B_COHENS_D_MIN: float = 0.50
-P0_B_BF10_MIN: float = 10.0       # Physostigmine arm
+P0_B_BF10_MIN: float = 10.0  # Physostigmine arm
 P0_C_AINS_BOLD_R_MIN: float = 0.30
 
 P1_N_TARGET: int = 40
@@ -876,26 +876,26 @@ P1_A_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — HEP–P3b correlation test
 P1_B_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — precision gating partial correlation
 P1_C_ALPHA: float = P1_ALPHA_BONFERRONI  # 0.017 — arousal×interoception interaction
 P1_A_COHENS_D_MIN: float = 0.50
-P1_A_COHENS_D_FAL_MAX: float = 0.20 # Falsification if d < 0.20
-P1_B_PARTIAL_R_MIN: float = 0.25    # r(HEP-P3b | pupil) survival threshold
+P1_A_COHENS_D_FAL_MAX: float = 0.20  # Falsification if d < 0.20
+P1_B_PARTIAL_R_MIN: float = 0.25  # r(HEP-P3b | pupil) survival threshold
 P1_C_ETA_SQ_MIN: float = 0.08
-P1_C_ETA_SQ_FAL_MAX: float = 0.04   # Falsification boundary
+P1_C_ETA_SQ_FAL_MAX: float = 0.04  # Falsification boundary
 
 P2_N_TARGET: int = 36
 P2_N_MIN: int = 28
 P2_B_EQUIV_ROPE_LOW: float = -0.15  # dlPFC null equivalence test
 P2_B_EQUIV_ROPE_HIGH: float = 0.15
-P2_B_EQUIV_BF01_MIN: float = 6.0    # Bayesian support for null
+P2_B_EQUIV_BF01_MIN: float = 6.0  # Bayesian support for null
 P2_POWER: float = 0.90
 
-P3_N_SEEDS: int = 1000              # N=1000 per condition
-P3_BIC_DELTA_MIN: float = 10.0      # P3.bic framework threshold
-P3_FIM_OFFDIAG_MAX: float = 0.1     # β_SM/Πᴵ identifiability gate
+P3_N_SEEDS: int = 1000  # N=1000 per condition
+P3_BIC_DELTA_MIN: float = 10.0  # P3.bic framework threshold
+P3_FIM_OFFDIAG_MAX: float = 0.1  # β_SM/Πᴵ identifiability gate
 P3_CP3A_CALIBRATION_TOL: float = 0.15  # γ_V/γ_A 95% CI tolerance
 
 P4_N_TOTAL: int = 110
-P4_N_EMCS: int = 20                 # Explicitly separated prognostic tier
-P4_DELTA_R2_MIN: float = 0.05       # Primary incremental validity threshold
+P4_N_EMCS: int = 20  # Explicitly separated prognostic tier
+P4_DELTA_R2_MIN: float = 0.05  # Primary incremental validity threshold
 P4_INTER_RATER_KAPPA_MIN: float = 0.80  # CRS-R dual-rater mandate
 P4_MICE_IMPUTATIONS_MIN: int = 20
 P4_MICE_IMPUTATIONS_MAX: int = 50
@@ -903,20 +903,20 @@ P4_MICE_IMPUTATIONS_MAX: int = 50
 P5_N_TARGET: int = 36
 P5_N_MIN: int = 26
 P5_POWER: float = 0.90
-P5_TAIL_DIRECTION: str = "two"      # Amended from one-tailed
-P5_FIM_OFFDIAG_MAX: float = 0.1     # Identifiability pre-check
+P5_TAIL_DIRECTION: str = "two"  # Amended from one-tailed
+P5_FIM_OFFDIAG_MAX: float = 0.1  # Identifiability pre-check
 
 P6_N_TARGET: int = 20
 P6_N_MIN: int = 12
-P6_CE_BF10_MIN: float = 6.0         # CE status per-subprediction threshold
+P6_CE_BF10_MIN: float = 6.0  # CE status per-subprediction threshold
 P6_B_DWELL_TIME_MAX_PCT: float = 15.0  # Intermediate state constraint
-P6_D_COHERENCE_R_MIN: float = 0.40     # Frontoparietal gamma coherence
+P6_D_COHERENCE_R_MIN: float = 0.40  # Frontoparietal gamma coherence
 P6_COHERENCE_PEAK_MS_MIN: float = 200.0
 P6_COHERENCE_PEAK_MS_MAX: float = 400.0
 
-ALPHA_PRIMARY_GONOGO: float = 0.01   # Protocols 1 & 3
-ALPHA_SECONDARY: float = 0.05        # Protocols 2, 4, 5, 6, 7, 8
-CROSS_PROTOCOL_BY_FDR_Q: float = 0.05 # Benjamini-Yekutieli framework gate
+ALPHA_PRIMARY_GONOGO: float = 0.01  # Protocols 1 & 3
+ALPHA_SECONDARY: float = 0.05  # Protocols 2, 4, 5, 6, 7, 8
+CROSS_PROTOCOL_BY_FDR_Q: float = 0.05  # Benjamini-Yekutieli framework gate
 FRAMEWORK_REJECTION_MIN_FAILURES: int = 4  # Explicit 4/6 threshold
 
 # =============================================================================
@@ -976,6 +976,7 @@ THRESHOLD_REGISTRY = {
     "F2.5_MAX_TRIALS": F2_5_MAX_TRIALS,
     "F2.5_HAZARD_RATIO": F2_5_MIN_HAZARD_RATIO,
     "F2.CARDIAC_DETECTION": F2_CARDIAC_DETECTION_ADVANTAGE_MIN,
+    "F2.CARDIAC_DETECTION_ADVANTAGE": F2_CARDIAC_DETECTION_ADVANTAGE_MIN,
     # F3 family
     "F3.1_ADVANTAGE": F3_1_MIN_ADVANTAGE_PCT,
     "F3.1_COHENS_D": F3_1_MIN_COHENS_D,

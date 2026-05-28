@@ -122,6 +122,7 @@ except (ImportError, Exception):
 
 # Protocol files for metadata
 protocol_files = [
+    ("APGI_Protocol_0_HEPProxy", "VP_00_HEPProxyValidation.py"),
     ("APGI_Protocol_1", "VP_01_SyntheticEEGMLClassification.py"),
     ("APGI_Protocol_2", "VP_02_BehavioralBayesianComparison.py"),
     ("APGI_Protocol_3", "VP_03_ActiveInferenceAgentSimulations.py"),
@@ -582,7 +583,6 @@ class APGIValidationGUI:
         """Create all GUI widgets following the APGI three-zone layout."""
 
         _BLUE = "#2874a6"
-        _BG = "#f8f9fa"
 
         # ── Row 0: Metric bar ─────────────────────────────────────────────
         metric_bar = tk.Frame(self.root, bg=_BLUE, pady=8, padx=15)
@@ -667,30 +667,42 @@ class APGIValidationGUI:
 
         # Populate protocol list with BooleanVar tracking
         protocols_info = {
-            1: "P01: Synthetic EEG ML",
-            2: "P02: Behavioral Bayesian",
-            3: "P03: Active Inference Agent",
-            4: "P04: Phase Transition",
-            5: "P05: Evolutionary Emergence",
-            6: "P06: Liquid Network",
-            7: "P07: TMS Causal",
-            70: "P07a: Mathematical Consistency",
-            8: "P08: Psychophysical Threshold",
-            9: "P09: Neural Signatures",
-            10: "P10: Causal Manipulations",
-            11: "P11: MCMC Cultural Neuro",
-            12: "P12: Clinical Cross-Species",
-            13: "P13: Epistemic Architecture",
-            14: "P14: fMRI Anticipation",
-            15: "P15: fMRI vmPFC",
-            16: "P16: Metabolic ATP",
-            17: "P17: Allen Visual Coding",
-            18: "P18: EEG Microstate GFP",
-            19: "P19: Information Erasure MVPA",
-            20: "P20: Empirical iEEG",
-            21: "P21: Free Energy Pred. Error",
-            22: "P22: fMRI Anticipation (Enhanced)",
+            # ── VP core protocols (canonical EP in brackets) ──────────────────
+            0: "P00: HEP Proxy Validation [EP-0] ⚠",  # D-09: stub — see VP_00
+            1: "P01: Synthetic EEG ML [EP-9]",
+            2: "P02: Behavioral Bayesian [EP-10]",
+            3: "P03: Active Inference [EP-3 / EP-11]",  # D-03: covers both canonical EPs
+            4: "P04: Phase Transition [EP-12]",
+            5: "P05: Evolutionary Emergence [EP-13]",
+            6: "P06: Liquid Network RNN [EP-14]",
+            7: "P07: TMS Causal [EP-2 + EP-7]",  # D-02: dual canonical role
+            70: "P07a: Math Consistency [internal/FP-07]",  # D-04: internal; see also FP-07
+            8: "P08: Psychophysical Threshold [EP-8]",
+            9: "P09: Neural Signatures [EP-0 partial]",
+            10: "P10: Causal Manipulations [XP-07: ext. EP-7]",  # D-11: extended; see VP_10
+            11: "P11: MCMC Cultural Neuro [XP-11: ext. EP-11]",  # D-11: extended; see VP_11
+            12: "P12: Clinical Cross-Species [EP-4 partial]",
+            13: "P13: Epistemic Architecture [EP-12 partial]",
+            14: "P14: fMRI Anticipation [EP-5 superseded → VP-22]",  # D-05
+            15: "P15: fMRI vmPFC [EP-5 ext.]",
+            16: "P16: Metabolic ATP [P4-Prog1]",
+            17: "P17: Allen Visual Coding [P4-Prog4 approx.]",
+            18: "P18: EEG Microstate GFP [P4-Prog2]",
+            19: "P19: Info Erasure MVPA [XP-12: ext. EP-12]",  # D-11: extended; see VP_19
+            20: "P20: Empirical iEEG [EP-6 partial]",
+            21: "P21: Free Energy Pred. Error [XP-11-FEP: ext. EP-11]",  # D-11: see VP_21
+            22: "P22: fMRI Anticipation [EP-5 canonical]",  # D-05: canonical EP-5 (VP-22)
             99: "P-ALL: Master Aggregator",
+            # ── T series: canonical EP protocols (stub / redirect) ─────────────
+            # D-01: restore canonical entries removed from sidebar
+            101: "T01 [EP-1]: EEG Interoceptive Gating ⚠",  # no file — stub
+            102: "T02 [EP-2]: TMS Anterior Insular → VP-07",  # redirects to VP_07
+            103: "T03 [EP-3/11]: Active Inference → VP-03",  # redirects to VP_03
+            104: "T04 [EP-4]: Disorders of Consciousness ⚠",  # no file — stub
+            105: "T05 [EP-5]: fMRI Anticipation vs Exp → VP-22",  # redirects to VP_22 (canonical)
+            106: "T06 [EP-6]: iEEG Ignition Dynamics → VP-20",  # redirects to VP_20
+            # ── P4 programming protocols (unimplemented entries) ──────────────
+            107: "P4-Prog3: PET Metabolic Rate Comparison ⚠",  # D-10: no file yet
         }
         self.protocol_vars = {}
         self._protocol_nums: List[int] = []
@@ -2166,8 +2178,11 @@ class APGIValidationGUI:
             # Get selected protocols with validation
             selected_protocols: List[int] = [num for num, var in self.protocol_vars.items() if var.get()]
 
-            # Validate protocol numbers (70 = VP_07a; 99 = ALL aggregator)
-            _EXTENDED_NUMS = frozenset({70, 99})
+            # Validate protocol numbers.
+            # Extended set: 0 = EP-0 stub, 70 = VP_07a, 99 = ALL aggregator,
+            # 101–106 = T-series canonical EP stubs/redirects (D-01 fix),
+            # 107 = P4-Prog3 stub (D-10).
+            _EXTENDED_NUMS = frozenset({0, 70, 99, 101, 102, 103, 104, 105, 106, 107})
             for protocol_num in selected_protocols:
                 if protocol_num in _EXTENDED_NUMS:
                     continue
@@ -2311,8 +2326,11 @@ Interpretation:
             self.update_results(f"\n--- Protocol {protocol_num} ---\n")
             logging.info(f"Starting Protocol {protocol_num}")
 
-            # Protocol file mapping — dict-keyed so sparse numbers (70, 99) work correctly
+            # Protocol file mapping — dict-keyed so sparse numbers (0, 70, 99, 101-107) work.
+            # 0 = EP-0 stub; T-series (101-106): None = unimplemented, string = redirect.
+            # 107 = P4-Prog3 stub (D-10).
             protocol_file_map = {
+                0: "VP_00_HEPProxyValidation.py",  # EP-0 stub (D-09)
                 1: "VP_01_SyntheticEEGMLClassification.py",
                 2: "VP_02_BehavioralBayesianComparison.py",
                 3: "VP_03_ActiveInferenceAgentSimulations.py",
@@ -2337,12 +2355,47 @@ Interpretation:
                 21: "VP_21_FreeEnergyPredictionError.py",
                 22: "VP_22_FMRIAnticipationExperience.py",
                 99: "VP_ALL_Aggregator.py",
+                # T-series: canonical EP entries (D-01 fix)
+                101: None,  # EP-1 stub — no implementation yet
+                102: "VP_07_TMSCausalInterventions.py",  # EP-2 redirect → VP_07
+                103: "VP_03_ActiveInferenceAgentSimulations.py",  # EP-3/11 redirect → VP_03
+                104: None,  # EP-4 stub — no implementation yet
+                105: "VP_22_FMRIAnticipationExperience.py",  # EP-5 redirect → VP_22 (canonical)
+                106: "VP_20_EmpiricalIEEG.py",  # EP-6 redirect → VP_20
+                107: None,  # P4-Prog3 stub — no file yet (D-10)
+            }
+
+            # Human-readable labels for stub protocols (None file entries)
+            _T_STUB_LABELS = {
+                101: "T01 [EP-1]: EEG Interoceptive Precision Gating",
+                104: "T04 [EP-4]: Disorders of Consciousness — Ignition Capacity + Interoceptive Precision",
+                107: "P4-Prog3: PET Metabolic Rate Comparison",
+            }
+            _T_REDIRECT_LABELS = {
+                102: ("T02 [EP-2]: TMS Anterior Insular", "VP_07"),
+                103: ("T03 [EP-3/EP-11]: Active Inference", "VP_03"),
+                105: ("T05 [EP-5]: fMRI Anticipation vs Experience", "VP_22"),
+                106: ("T06 [EP-6]: iEEG Ignition Dynamics", "VP_20"),
             }
 
             if protocol_num not in protocol_file_map:
                 raise ValueError(f"Invalid protocol number: {protocol_num}")
 
             protocol_file = protocol_file_map[protocol_num]
+
+            # Handle T-series stubs (no implementation file yet)
+            if protocol_file is None:
+                label = _T_STUB_LABELS.get(protocol_num, f"Protocol {protocol_num}")
+                self.update_results(f"⚠  {label}: not yet implemented — stub entry only.\n")
+                self.update_results("   This canonical EP has no implementation file.\n")
+                self.update_status(f"Protocol {protocol_num}: stub — skipped")
+                return
+
+            # Log T-series redirects so the user knows which VP is actually running
+            if protocol_num in _T_REDIRECT_LABELS:
+                t_label, vp_label = _T_REDIRECT_LABELS[protocol_num]
+                self.update_results(f"ℹ  {t_label}: redirecting → {vp_label}\n")
+
             protocol_path = Path(__file__).parent / "Validation" / protocol_file
 
             if not protocol_path.exists():

@@ -14,7 +14,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import test functions (aliased for readability in test methods)
 from utils.falsification_thresholds import (
     BIC_FRAMEWORK_THRESHOLD_B,
     BIC_STRONG_EVIDENCE,
@@ -45,14 +44,17 @@ from utils.falsification_thresholds import (
     F3_4_ALPHA,
     F3_6_ALPHA,
     F5_1_BINOMIAL_ALPHA,
-    F5_1_MIN_ALPHA,
+    F5_1_BINOMIAL_ALPHA_PAPER_SPEC,
+    F5_1_MIN_ALPHA_PAPER_SPEC,
     F5_1_MIN_COHENS_D,
+    F5_1_MIN_COHENS_D_PAPER_SPEC,
     F5_1_MIN_PROPORTION,
+    F5_1_MIN_PROPORTION_PAPER_SPEC,
     F5_2_BINOMIAL_ALPHA,
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_4_BINOMIAL_ALPHA,
-    F5_4_MIN_PEAK_SEPARATION,
+    F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC,
     F5_4_MIN_PROPORTION,
     F5_5_MIN_LOADING,
     F5_5_PCA_FALSIFICATION_THRESHOLD,
@@ -150,10 +152,8 @@ class TestThresholdConstants:
         """Test F5 PCA-related thresholds"""
         # F5_5_PCA_MIN_VARIANCE depends on THRESHOLD_MODE (paper spec = 0.70, simulation = 0.60)
         # Test the paper spec and simulation variants directly
-        from utils.falsification_thresholds import (
-            F5_5_PCA_MIN_VARIANCE_PAPER_SPEC,
-            F5_5_PCA_MIN_VARIANCE_SIMULATION,
-        )
+        from utils.falsification_thresholds import F5_5_PCA_MIN_VARIANCE_PAPER_SPEC, F5_5_PCA_MIN_VARIANCE_SIMULATION
+
         assert F5_5_PCA_MIN_VARIANCE_PAPER_SPEC == 0.70
         assert F5_5_PCA_MIN_VARIANCE_SIMULATION == 0.60
         assert F5_5_PCA_FALSIFICATION_THRESHOLD == 0.60
@@ -161,16 +161,16 @@ class TestThresholdConstants:
 
     def test_f5_peak_separation_thresholds(self):
         """Test F5.4 peak separation thresholds"""
-        assert F5_4_MIN_PEAK_SEPARATION == 0.12
+        assert F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC == 0.12
         assert F5_4_MIN_PROPORTION == 0.65
         assert F5_4_BINOMIAL_ALPHA == 0.01
 
     def test_f5_proportion_thresholds(self):
         """Test F5 proportion thresholds"""
-        assert F5_1_MIN_PROPORTION == 0.75
-        assert F5_1_MIN_ALPHA == 4.0
-        assert F5_1_MIN_COHENS_D == 0.50
-        assert F5_1_BINOMIAL_ALPHA == 0.01
+        assert F5_1_MIN_PROPORTION_PAPER_SPEC == 0.75
+        assert F5_1_MIN_ALPHA_PAPER_SPEC == 4.0
+        assert F5_1_MIN_COHENS_D_PAPER_SPEC == 0.50
+        assert F5_1_BINOMIAL_ALPHA_PAPER_SPEC == 0.01
 
     def test_f2_family_thresholds(self):
         """Test F2 family (IGT/Somatic) thresholds"""

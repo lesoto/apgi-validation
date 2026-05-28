@@ -86,7 +86,7 @@ except Exception:
     logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 try:
-    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+    from utils.protocol_schema import ProtocolResult  # noqa: F401
 
     HAS_SCHEMA = True
 except ImportError:
@@ -94,17 +94,9 @@ except ImportError:
 
 try:
     import sympy as sp
-    from sympy import (
-        E,
-        Eq,
-        Limit,
-        oo,
-        simplify,
-        solve,
-        symbols,
-    )
     from sympy import exp as sp_exp
     from sympy import limit as sp_limit
+    from sympy import oo, solve
 
     HAS_SYMPY = True
 except ImportError:
@@ -118,19 +110,19 @@ except ImportError:
 # The "threshold" is whether the symbolic condition holds (True) or not (False).
 # A result of False for ANY check is a hard rejection of mathematical consistency.
 
-V7A_MONOTONE_STRICT: bool = True       # ∂P/∂S_t must be STRICTLY positive (not ≥ 0)
-V7A_BOUNDARY_TOLERANCE: float = 0.0    # Limits must equal exactly 0 and 1 (symbolic)
+V7A_MONOTONE_STRICT: bool = True  # ∂P/∂S_t must be STRICTLY positive (not ≥ 0)
+V7A_BOUNDARY_TOLERANCE: float = 0.0  # Limits must equal exactly 0 and 1 (symbolic)
 V7A_PRECISION_MONOTONE_STRICT: bool = True  # ∂Π_eff/∂M must be strictly positive
 V7A_IDENTITY_TOLERANCE: float = 1e-12  # Π_eff(M=0) − Π_base must be < this (numeric)
-V7A_EQUILIBRIUM_UNIQUE: bool = True    # Must have exactly 1 unique fixed point
+V7A_EQUILIBRIUM_UNIQUE: bool = True  # Must have exactly 1 unique fixed point
 
 # Parameter bounds from paper (used to constrain symbolic checks)
-ALPHA_LOWER_BOUND: float = 1.0     # α ≥ 1.0 required for all-or-none ignition
-ALPHA_UPPER_BOUND: float = 10.0    # α ≤ 10.0 from ALPHA_UNIFIED_BOUNDS
+ALPHA_LOWER_BOUND: float = 1.0  # α ≥ 1.0 required for all-or-none ignition
+ALPHA_UPPER_BOUND: float = 10.0  # α ≤ 10.0 from ALPHA_UNIFIED_BOUNDS
 BETA_SOM_LOWER_BOUND: float = 0.3  # β_som ∈ [0.3, 0.8] (Paper 1 §Notation)
 BETA_SOM_UPPER_BOUND: float = 0.8
-PI_BASE_LOWER_BOUND: float = 0.1   # Π_base ∈ [0.1, 15] (equations.py)
-M_LOWER_BOUND: float = -2.0        # M ∈ [−2, +2] (somatic marker range)
+PI_BASE_LOWER_BOUND: float = 0.1  # Π_base ∈ [0.1, 15] (equations.py)
+M_LOWER_BOUND: float = -2.0  # M ∈ [−2, +2] (somatic marker range)
 M_UPPER_BOUND: float = 2.0
 
 RANDOM_SEED: int = 42
@@ -139,6 +131,7 @@ RANDOM_SEED: int = 42
 # =============================================================================
 # SYMBOLIC EQUATION DEFINITIONS
 # =============================================================================
+
 
 def _define_ignition_equation() -> Tuple[Any, Any, Any, Any]:
     """
@@ -191,6 +184,7 @@ def _define_threshold_ode() -> Tuple[Any, Any, Any, Any]:
 # CHECK V7a.1 — Ignition Monotonicity
 # =============================================================================
 
+
 def check_v7a1_ignition_monotonicity() -> Dict[str, Any]:
     """
     V7a.1: Verify ∂P/∂S_t > 0 for all S_t.
@@ -229,7 +223,7 @@ def check_v7a1_ignition_monotonicity() -> Dict[str, Any]:
         # cosh is always >= 1, so cosh^2 >= 1 > 0 — ask SymPy
         denom_form = 4 * sp.cosh(z) ** 2
         denom_positive = sp.ask(sp.Q.positive(denom_form))
-        numer_positive = (alpha_pos > 0)  # trivially True by assumption
+        numer_positive = alpha_pos > 0  # trivially True by assumption
 
         form_is_positive = (denom_positive is True) and bool(numer_positive)
 
@@ -254,9 +248,7 @@ def check_v7a1_ignition_monotonicity() -> Dict[str, Any]:
             "numerical_sweep_passed": bool(all_positive_numerically),
             "numerical_sample_min": float(min(sample_points)),
             "alpha_constraint": f"α > 0 required; paper falsification bound: α ≥ {ALPHA_LOWER_BOUND}",
-            "rejection_criterion": (
-                "FAIL if symbolic argument is unsound OR numerical sweep finds ∂P/∂S_t ≤ 0"
-            ),
+            "rejection_criterion": ("FAIL if symbolic argument is unsound OR numerical sweep finds ∂P/∂S_t ≤ 0"),
         }
 
     except Exception as exc:
@@ -271,6 +263,7 @@ def check_v7a1_ignition_monotonicity() -> Dict[str, Any]:
 # =============================================================================
 # CHECK V7a.2 — Ignition Boundary Conditions
 # =============================================================================
+
 
 def check_v7a2_ignition_boundaries() -> Dict[str, Any]:
     """
@@ -294,8 +287,8 @@ def check_v7a2_ignition_boundaries() -> Dict[str, Any]:
         lim_neg_inf = sp_limit(P_concrete, S_t, -oo)
         lim_pos_inf = sp_limit(P_concrete, S_t, +oo)
 
-        lower_correct = (lim_neg_inf == 0)
-        upper_correct = (lim_pos_inf == 1)
+        lower_correct = lim_neg_inf == 0
+        upper_correct = lim_pos_inf == 1
         passed = lower_correct and upper_correct
 
         return {
@@ -321,6 +314,7 @@ def check_v7a2_ignition_boundaries() -> Dict[str, Any]:
 # =============================================================================
 # CHECK V7a.3 — Somatic Marker Precision Monotonicity
 # =============================================================================
+
 
 def check_v7a3_somatic_precision_monotonicity() -> Dict[str, Any]:
     """
@@ -350,12 +344,12 @@ def check_v7a3_somatic_precision_monotonicity() -> Dict[str, Any]:
         grad_with_assump = beta_pos * Pi_pos * sp_exp(beta_pos * M_sym)
         grad_sign = sp.ask(sp.Q.positive(grad_with_assump))
 
-        is_positive = (grad_sign is True)
+        is_positive = grad_sign is True
 
         # Also verify the closed-form derivative matches expectation
         expected_derivative = beta_som * Pi_base * sp_exp(beta_som * M)
         diff_check = sp.simplify(dPi_dM_simplified - expected_derivative)
-        derivative_matches = (diff_check == 0)
+        derivative_matches = diff_check == 0
 
         passed = is_positive and derivative_matches
 
@@ -388,6 +382,7 @@ def check_v7a3_somatic_precision_monotonicity() -> Dict[str, Any]:
 # CHECK V7a.4 — Precision Baseline Identity
 # =============================================================================
 
+
 def check_v7a4_precision_baseline_identity() -> Dict[str, Any]:
     """
     V7a.4: Verify Π_eff(M=0) = Π_base (exactly).
@@ -411,7 +406,7 @@ def check_v7a4_precision_baseline_identity() -> Dict[str, Any]:
 
         # Should equal Pi_base
         difference = sp.simplify(Pi_at_zero_simplified - Pi_base)
-        passed = (difference == 0)
+        passed = difference == 0
 
         return {
             "passed": bool(passed),
@@ -435,6 +430,7 @@ def check_v7a4_precision_baseline_identity() -> Dict[str, Any]:
 # =============================================================================
 # CHECK V7a.5 — Threshold ODE Unique Fixed Point
 # =============================================================================
+
 
 def check_v7a5_threshold_equilibrium() -> Dict[str, Any]:
     """
@@ -462,9 +458,8 @@ def check_v7a5_threshold_equilibrium() -> Dict[str, Any]:
         equilibria = solve(dtheta_dt, theta_t)
 
         # Expect exactly one solution: θ* = S_t
-        has_unique_fixed_point = (len(equilibria) == 1)
-        correct_fixed_point = (len(equilibria) == 1 and
-                               sp.simplify(equilibria[0] - S_t) == 0)
+        has_unique_fixed_point = len(equilibria) == 1
+        correct_fixed_point = len(equilibria) == 1 and sp.simplify(equilibria[0] - S_t) == 0
 
         passed = has_unique_fixed_point and correct_fixed_point
 
@@ -495,6 +490,7 @@ def check_v7a5_threshold_equilibrium() -> Dict[str, Any]:
 # PARAMETER RANGE CONSISTENCY — auxiliary check (not named, no hard rejection)
 # =============================================================================
 
+
 def check_parameter_range_consistency() -> Dict[str, Any]:
     """
     Auxiliary (non-falsifying) check: verify APGI parameter bounds are mutually
@@ -504,34 +500,33 @@ def check_parameter_range_consistency() -> Dict[str, Any]:
     diagnostic information for the framework development team.
     """
     try:
-        from utils.falsification_thresholds import (
-            ALPHA_FALSIFICATION_LOWER_BOUND,
-            ALPHA_POPULATION_RANGE,
-            BETA_SM,
-            BETA_SOMATIC,
-        )
+        from utils.falsification_thresholds import ALPHA_FALSIFICATION_LOWER_BOUND, ALPHA_POPULATION_RANGE, BETA_SM
 
         checks: List[Dict[str, Any]] = []
 
         # α range consistency
         alpha_low, alpha_high = ALPHA_POPULATION_RANGE
         alpha_false_bound = ALPHA_FALSIFICATION_LOWER_BOUND
-        alpha_ok = (alpha_low <= alpha_false_bound <= alpha_high)
-        checks.append({
-            "parameter": "alpha (ignition steepness)",
-            "population_range": [alpha_low, alpha_high],
-            "falsification_bound": alpha_false_bound,
-            "consistent": alpha_ok,
-        })
+        alpha_ok = alpha_low <= alpha_false_bound <= alpha_high
+        checks.append(
+            {
+                "parameter": "alpha (ignition steepness)",
+                "population_range": [alpha_low, alpha_high],
+                "falsification_bound": alpha_false_bound,
+                "consistent": alpha_ok,
+            }
+        )
 
         # β_som sanity check
-        beta_in_range = (BETA_SOM_LOWER_BOUND <= BETA_SM <= BETA_SOM_UPPER_BOUND)
-        checks.append({
-            "parameter": "BETA_SM (somatic gain)",
-            "declared_range": [BETA_SOM_LOWER_BOUND, BETA_SOM_UPPER_BOUND],
-            "actual_value": BETA_SM,
-            "consistent": beta_in_range,
-        })
+        beta_in_range = BETA_SOM_LOWER_BOUND <= BETA_SM <= BETA_SOM_UPPER_BOUND
+        checks.append(
+            {
+                "parameter": "BETA_SM (somatic gain)",
+                "declared_range": [BETA_SOM_LOWER_BOUND, BETA_SOM_UPPER_BOUND],
+                "actual_value": BETA_SM,
+                "consistent": beta_in_range,
+            }
+        )
 
         all_consistent = all(c["consistent"] for c in checks)
 
@@ -553,6 +548,7 @@ def check_parameter_range_consistency() -> Dict[str, Any]:
 # HELPER — missing SymPy result
 # =============================================================================
 
+
 def _sympy_unavailable_result(check_id: str, claim: str) -> Dict[str, Any]:
     """Return a standardised FAIL result when SymPy is not installed."""
     return {
@@ -569,6 +565,7 @@ def _sympy_unavailable_result(check_id: str, claim: str) -> Dict[str, Any]:
 # =============================================================================
 # AGGREGATED VALIDATION RUNNER
 # =============================================================================
+
 
 def run_validation(**_: Any) -> Dict[str, Any]:
     """
@@ -622,8 +619,7 @@ def run_validation(**_: Any) -> Dict[str, Any]:
             "actual": v.get("passed", False),
             "threshold": v.get("rejection_criterion", "Binary: True=PASS, False=FAIL"),
             "claim": v.get("claim", ""),
-            **{key: val for key, val in v.items()
-               if key not in {"passed", "check", "claim", "rejection_criterion"}},
+            **{key: val for key, val in v.items() if key not in {"passed", "check", "claim", "rejection_criterion"}},
         }
         for k, v in checks.items()
     }
@@ -666,6 +662,7 @@ def validate() -> str:
 # CLI
 # =============================================================================
 
+
 def main() -> None:
     """CLI-friendly execution."""
     import argparse
@@ -682,8 +679,7 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--json-out", type=str, default=None,
-                        help="Optional path to write JSON results")
+    parser.add_argument("--json-out", type=str, default=None, help="Optional path to write JSON results")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -691,15 +687,15 @@ def main() -> None:
     result = run_validation()
 
     # Pretty-print results
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"VP-7a: Mathematical Consistency — {result['status']}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for check_id, pred in result["named_predictions"].items():
         status_icon = "✓" if pred["passed"] else "✗"
         print(f"  {status_icon} {check_id}: {pred['claim']}")
     print(f"\n{result['falsification_status']}")
-    print(f"Passed {result['n_checks_passed']}/{result['n_checks_total']} checks")
-    print(f"{'='*60}\n")
+    print(f"Passed {result['n_checks_passed']} / {result['n_checks_total']} checks")
+    print(f"{'=' * 60}\n")
 
     if args.json_out:
         out_path = Path(args.json_out)

@@ -668,8 +668,10 @@ def formal_model(
     start_time = time.time()
 
     module_info = module_loader.get_module("formal_model")
-    if not module_info:
-        error_msg = "Formal model module not found"
+    # D-06: guard against loader returning a dict with module=None on import failure
+    if not module_info or module_info.get("module") is None:
+        load_err = (module_info or {}).get("error", "module not found")
+        error_msg = f"Formal model module unavailable: {load_err}"
         console.print(f"[red]❌ Error: {error_msg}[/red]")
         apgi_logger.logger.error(error_msg)
         return
@@ -779,8 +781,11 @@ def formal_model(
                                         "warning",
                                     )
 
-                    except ImportError:
-                        console.print("[yellow]⚠️  Parameter validator not available, skipping validation[/yellow]")
+                    except (ImportError, AttributeError, RuntimeError, TypeError) as _ve:
+                        # D-06: VP_07 may be unavailable or partially broken — skip validation gracefully
+                        console.print(
+                            f"[yellow]⚠️  Parameter validator not available ({type(_ve).__name__}), skipping validation[/yellow]"
+                        )
                         console.print(f"[green]✓[/green] Loaded custom parameters from {params}")
 
                         # Update model parameters with custom values (no validation)
@@ -2558,6 +2563,15 @@ def monitor_performance(
         apgi_logger.logger.error(f"Performance monitoring error: {e}")
 
 
+# D-12: meta-files and aggregators excluded from auto-discovered protocol runs.
+# Add filenames here to prevent them being picked up by the glob-based validate command.
+_EXCLUDED_PROTOCOLS: frozenset = frozenset(
+    {
+        "VP_ALL_Aggregator.py",  # aggregator — not a standalone runnable protocol
+    }
+)
+
+
 def _list_protocols(validation_dir: Path) -> List[str]:
     """List available validation protocols.
 
@@ -2565,11 +2579,12 @@ def _list_protocols(validation_dir: Path) -> List[str]:
         validation_dir: Directory containing validation protocol files
 
     Returns:
-        List of protocol filenames matching VP_*.py pattern
+        List of protocol filenames matching VP_*.py pattern, excluding aggregators
     """
     protocols = []
     for file_path in validation_dir.glob("VP_*.py"):
-        protocols.append(file_path.name)
+        if file_path.name not in _EXCLUDED_PROTOCOLS:
+            protocols.append(file_path.name)
     return sorted(protocols)
 
 

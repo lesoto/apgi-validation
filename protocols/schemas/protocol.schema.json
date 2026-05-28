@@ -25,8 +25,8 @@
   "properties": {
     "protocol_id": {
       "type": "string",
-      "pattern": "^APGI-P[0-9]{2}$",
-      "description": "Unique protocol identifier, e.g. APGI-P01."
+      "pattern": "^(APGI-P[0-9]{2}|VP-[0-9]+[a-z]?|FP-[0-9]+)$",
+      "description": "Unique protocol identifier. Canonical EPs: APGI-P01..APGI-P15. Validation Protocols: VP-00..VP-22, VP-07a. Falsification Protocols: FP-01..FP-12."
     },
     "title": {
       "type": "string",

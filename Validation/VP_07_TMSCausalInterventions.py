@@ -28,6 +28,18 @@ V7.1–V7.3 predictions remain canonical here (VP-7b) and count in the
 14-prediction falsification tally. V7a.1–V7a.5 predictions are in VP-7a
 and are classified as primary-tier (mathematical proofs).
 
+CANONICAL EP MAPPING
+--------------------
+VP-07 (VP-7b) serves two canonical protocol roles simultaneously:
+  EP-2: Causal TMS — Anterior Insular/Thalamic gating
+      (V7.1: dlPFC TMS disrupts ignition specifically at threshold-crossing window)
+  EP-7: TMS + Pharmacological agents shifting Π and θₜ
+      (V7.2: precision-modulating drugs shift θₜ predictably; V7.3: interaction effects)
+Both EPs share the causal-intervention paradigm but address different hypotheses:
+  EP-2 targets spatial/temporal gating; EP-7 targets pharmacodynamic precision scaling.
+T02 in the Validation_GUI sidebar redirects to this file for EP-2 coverage.
+VP-10 (XP-07) provides the supplementary Priority 2 causal manipulation extension.
+
 FALSIFICATION_CRITERIA
 ----------------------
 If interventions do not produce the predicted directional changes in APGI
@@ -210,8 +222,7 @@ if V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC != _FALLBACK_V7_1_MIN_EFFECT_DURATION
     )
 if V7_1_MIN_COHENS_D_PAPER_SPEC != _FALLBACK_V7_1_MIN_COHENS_D:
     raise ValueError(
-        f"V7_1_MIN_COHENS_D paper-spec mismatch: "
-        f"{V7_1_MIN_COHENS_D_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_COHENS_D}"
+        f"V7_1_MIN_COHENS_D paper-spec mismatch: " f"{V7_1_MIN_COHENS_D_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_COHENS_D}"
     )
 if V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC != _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT:
     raise ValueError(

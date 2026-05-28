@@ -24,6 +24,15 @@ Critical falsification
 If vmPFC significantly tracks somatosensory/interoceptive primary prediction error
 instead of anticipatory somatic-marker retrieval, APGI's embodied-prioritization
 claim is rejected for this protocol.
+
+CANONICAL EP MAPPING
+--------------------
+VP-22 is the CANONICAL implementation of EP-5 (fMRI Anticipation vs. Experience).
+  EP-5: "fMRI study — Anticipation vs. Experience of somatic signals" (P5a–P5d)
+VP-14 (VP_14_FMRIAnticipationExperience.py) is the simulation-precursor that has
+been superseded by this file. VP-15 covers the vmPFC/precision extension (EP-5 ext.).
+T05 in the Validation_GUI sidebar redirects to this file.
+V22.x predictions count in the canonical 14-prediction falsification tally.
 """
 
 from __future__ import annotations
