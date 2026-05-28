@@ -249,6 +249,15 @@ class TestInitializeRegistry:
         assert PROTOCOL_REGISTRY.get_protocol("F2") is not None  # Alias for P1
         assert PROTOCOL_REGISTRY.get_protocol("MCMC") is not None  # Alias for BayesianEstimation-MCMC
 
+    def test_initialize_registry_includes_extended_protocols(self):
+        """Test that VP/FP registry includes current extended protocol surface."""
+        PROTOCOL_REGISTRY._protocols.clear()
+
+        _initialize_registry()
+
+        for protocol_id in ["VP-00", "VP-07a", "VP-ALL", "FP-13", "FP-14", "FP-15", "FP-ALL"]:
+            assert PROTOCOL_REGISTRY.get_protocol(protocol_id) is not None
+
 
 class TestConvenienceFunctions:
     """Test module-level convenience functions"""

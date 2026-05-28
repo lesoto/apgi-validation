@@ -24,5 +24,9 @@ def test_load_protocol_resolves_vp_and_fp_specs_by_runtime_alias():
 def test_load_all_protocols_includes_generated_vp_and_fp_specs():
     specs = load_all_protocols()
 
+    assert "VP-00" in specs
     assert "VP-22" in specs
     assert "FP-12" in specs
+    assert "FP-13" in specs
+    assert "FP-14" in specs
+    assert "FP-15" in specs

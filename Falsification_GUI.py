@@ -656,10 +656,28 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
+            "Protocol 13: Clinical Cross-Species": {
+                "file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
+                "class": "ClinicalCrossSpeciesProtocol",
+                "description": "Clinical cross-species convergence falsification stub",
+                "parameters": {},
+            },
+            "Protocol 14: fMRI Anticipation vmPFC": {
+                "file": "Falsification/FP_14_fMRI_Anticipation_vmPFC.py",
+                "class": None,
+                "description": "fMRI anticipation vmPFC falsification stub",
+                "parameters": {},
+            },
+            "Protocol 15: Allen Visual Coding Fatigue": {
+                "file": "Falsification/FP_15_AllenVisualCoding_Fatigue.py",
+                "class": None,
+                "description": "Allen visual coding fatigue threshold dynamics falsification stub",
+                "parameters": {},
+            },
             "Protocol ALL: Framework Aggregator": {
                 "file": "Falsification/FP_ALL_Aggregator.py",
                 "class": "FalsificationAggregator",
-                "description": "Full Framework Falsification Report (aggregates FP-01 through FP-12)",
+                "description": "Full Framework Falsification Report (aggregates FP-01 through FP-15 where available)",
                 "parameters": {},
             },
         }
@@ -1309,10 +1327,11 @@ class ProtocolRunnerGUI:
                 result = self._handle_framework_aggregator(module)
 
             else:
-                cls = getattr(module, protocol_info["class"])
+                class_name = protocol_info.get("class")
+                cls = getattr(module, class_name) if class_name else None
 
                 result = {}
-                if protocol_info["class"] == "NetworkComparisonExperiment":
+                if class_name == "NetworkComparisonExperiment":
                     config = {
                         "extero_dim": configured_params.get("extero_dim", 32),
                         "intero_dim": configured_params.get("intero_dim", 16),
@@ -1325,7 +1344,7 @@ class ProtocolRunnerGUI:
                     status = result.get("status", "completed") if isinstance(result, dict) else "completed"
                     self.log_message(f"  Result: {status}")
 
-                elif protocol_info["class"] == "APGIActiveInferenceAgent":
+                elif class_name == "APGIActiveInferenceAgent":
                     run_func = getattr(module, "run_falsification", None)
                     if run_func:
                         result = run_func()
@@ -1333,7 +1352,7 @@ class ProtocolRunnerGUI:
                     else:
                         self.log_message("  No run_falsification function found")
 
-                elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
+                elif class_name == "IowaGamblingTaskEnvironment":
                     run_func = getattr(module, "run_falsification", None)
                     if run_func:
                         result = run_func()
@@ -1350,7 +1369,7 @@ class ProtocolRunnerGUI:
                         status = "ERROR (Returned None)"
                     self.log_message(f"  Protocol completed: {status}")
 
-                elif hasattr(cls, "run_full_experiment"):
+                elif cls is not None and hasattr(cls, "run_full_experiment"):
                     self.log_message("  Running instance.run_full_experiment()...")
                     try:
                         instance = cls(**configured_params)
@@ -1360,14 +1379,14 @@ class ProtocolRunnerGUI:
                     result = instance.run_full_experiment()
                     self.log_message("  Experiment completed")
 
-                elif hasattr(cls, "run_phase_transition_analysis"):
+                elif cls is not None and hasattr(cls, "run_phase_transition_analysis"):
                     self.log_message("  Running phase transition analysis...")
                     surprise_system = module.SurpriseIgnitionSystem()
                     instance = cls(surprise_system)
                     result = instance.run_phase_transition_analysis()
                     self.log_message("  Analysis completed")
 
-                elif hasattr(cls, "run_evolution"):
+                elif cls is not None and hasattr(cls, "run_evolution"):
                     self.log_message("  Running evolutionary simulation...")
                     config = {
                         "population_size": configured_params.get("population_size", 50),
@@ -1379,7 +1398,24 @@ class ProtocolRunnerGUI:
                     result = instance.run_evolution()
                     self.log_message("  Evolution completed")
 
+                elif hasattr(module, "run_validation"):
+                    self.log_message("  Running run_validation from module scope...")
+                    result = module.run_validation()
+                    status = result.get("status", "Done") if isinstance(result, dict) else "Done"
+                    self.log_message(f"  Protocol completed: {status}")
+
                 else:
+                    if cls is None:
+                        self.log_message("  WARNING: No class or module-level runner found. Result will be empty.")
+                        result = {"status": "Incomplete", "warning": "No runner found"}
+                        protocol_status = self._extract_result_status(result)
+                        if self._is_successful_result(result):
+                            self.log_message("  Protocol completed successfully")
+                        else:
+                            self.log_message(f"  Protocol completed with status: {protocol_status}")
+                        self._save_results(result, protocol_info["file"])
+                        return
+
                     self.log_message(f"  Using generic runner for {cls.__name__}...")
                     try:
                         instance = cls(**configured_params)
@@ -1621,22 +1657,28 @@ class ProtocolRunnerGUI:
                 if protocol_info["class"] == "FalsificationAggregator":
                     results = self._handle_framework_aggregator(module)
                 else:
-                    cls = getattr(module, protocol_info["class"])
-                    if protocol_info["class"] == "NetworkComparisonExperiment":
+                    class_name = protocol_info.get("class")
+                    cls = getattr(module, class_name) if class_name else None
+                    if class_name == "NetworkComparisonExperiment":
                         results = self._handle_network_comparison(cls, validated_params)
-                    elif protocol_info["class"] == "APGIActiveInferenceAgent":
+                    elif class_name == "APGIActiveInferenceAgent":
                         results = self._handle_apgi_agent(cls, module, validated_params)
-                    elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
+                    elif class_name == "IowaGamblingTaskEnvironment":
                         results = self._handle_iowa_gambling(cls, module, validated_params)
                     elif hasattr(module, "run_falsification"):
                         self.log_message("Running run_falsification from module scope...")
                         results = module.run_falsification()
-                    elif hasattr(cls, "run_full_experiment"):
+                    elif hasattr(module, "run_validation"):
+                        self.log_message("Running run_validation from module scope...")
+                        results = module.run_validation()
+                    elif cls is not None and hasattr(cls, "run_full_experiment"):
                         results = self._handle_run_full_experiment(cls, validated_params)
-                    elif hasattr(cls, "run_phase_transition_analysis"):
+                    elif cls is not None and hasattr(cls, "run_phase_transition_analysis"):
                         results = self._handle_phase_transition(cls, module, validated_params)
-                    elif hasattr(cls, "run_evolution"):
+                    elif cls is not None and hasattr(cls, "run_evolution"):
                         results = self._handle_evolution(cls, validated_params)
+                    elif cls is None:
+                        results = {"status": "Incomplete", "warning": "No runner found"}
                     else:
                         results = self._handle_default(cls, module, validated_params)
 

@@ -419,16 +419,81 @@ def _initialize_registry():
         )
     )
 
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="FP-13",
+            filename="Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
+            title="Clinical Cross-Species Convergence",
+            description="Tertiary clinical/cross-species convergence falsification stub",
+            priority_level="Tertiary",
+            category="Falsification",
+            implemented=False,
+            aliases=[
+                "P13",
+                "ClinicalCrossSpecies",
+                "ClinicalConvergence",
+                "FP_13_Clinical_CrossSpecies_Convergence",
+            ],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="FP-14",
+            filename="Falsification/FP_14_fMRI_Anticipation_vmPFC.py",
+            title="fMRI Anticipation: vmPFC-like",
+            description="Tertiary vmPFC anticipation falsification stub linked to EP-5",
+            priority_level="Tertiary",
+            category="Falsification",
+            implemented=False,
+            aliases=["P14", "fMRI-vmPFC-FP", "FP14", "FP_14_fMRI_Anticipation_vmPFC"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="FP-15",
+            filename="Falsification/FP_15_AllenVisualCoding_Fatigue.py",
+            title="Allen Visual Coding: Fatigue Threshold Dynamics",
+            description="Tertiary Allen visual coding fatigue falsification stub linked to VP-17",
+            priority_level="Tertiary",
+            category="Falsification",
+            implemented=False,
+            aliases=["P15", "AllenVisualCoding-FP", "FatigueThreshold", "FP_15_AllenVisualCoding_Fatigue"],
+        )
+    )
+
+    PROTOCOL_REGISTRY.register_protocol(
+        ProtocolInfo(
+            canonical_id="FP-ALL",
+            filename="Falsification/FP_ALL_Aggregator.py",
+            title="Framework-Level Falsification Aggregator",
+            description="Aggregates falsification outputs across available FP protocols",
+            priority_level="Aggregator",
+            category="Falsification",
+            aliases=["FP_ALL", "FP_ALL_Aggregator", "FalsificationAggregator", "all-aggregator"],
+        )
+    )
+
     # ------------------------------------------------------------------
-    # Validation Protocols (VP_01 – VP_21)
+    # Validation Protocols (VP_00 – VP_22 plus aggregators/internal checks)
     # ------------------------------------------------------------------
     _vp_entries = [
+        (
+            "VP-00",
+            "VP_00_HEPProxyValidation.py",
+            "HEP Proxy Validation (EP-0)",
+            "Stub for HEP proxy validation; partial falsification coverage in FP-09",
+            ["VP00", "HEPProxy", "EP-0", "VP_00_HEPProxyValidation"],
+            False,
+        ),
         (
             "VP-01",
             "VP_01_SyntheticEEGMLClassification.py",
             "Synthetic EEG ML Classification",
             "ML classification of synthetic EEG with precision-weighting",
             ["VP01", "SyntheticEEG", "MLClassification"],
+            True,
         ),
         (
             "VP-02",
@@ -436,6 +501,7 @@ def _initialize_registry():
             "Behavioral Bayesian Model Comparison",
             "Bayesian model comparison on behavioral data",
             ["VP02", "BehavioralBayes", "BayesianComparison"],
+            True,
         ),
         (
             "VP-03",
@@ -443,6 +509,7 @@ def _initialize_registry():
             "Active Inference Agent Simulations (APGI-P03 linked)",
             "Agent-based active inference; linked to APGI-P03",
             ["VP03", "ActiveInference", "AgentSimulations"],
+            True,
         ),
         (
             "VP-04",
@@ -471,6 +538,13 @@ def _initialize_registry():
             "TMS Causal Interventions (APGI-P02 linked)",
             "TMS/pharmacological intervention predictions; linked to APGI-P02",
             ["VP07", "TMS", "CausalInterventions"],
+        ),
+        (
+            "VP-07a",
+            "VP_07a_MathematicalConsistency.py",
+            "Mathematical Consistency — SymPy Symbolic Verification",
+            "Internal validation-side mathematical consistency check paired with FP-07",
+            ["VP07a", "VP_07a_MathematicalConsistency", "MathConsistency-VP"],
         ),
         (
             "VP-08",
@@ -577,9 +651,18 @@ def _initialize_registry():
             "Enhanced anticipation-versus-experience validation; linked to APGI-P05",
             ["VP22", "fMRI-Anticipation-Enhanced", "SomaticMarker-fMRI"],
         ),
+        (
+            "VP-ALL",
+            "VP_ALL_Aggregator.py",
+            "Validation Aggregator",
+            "Aggregates validation outputs across available VP protocols",
+            ["VP_ALL", "VP_ALL_Aggregator", "ValidationAggregator"],
+        ),
     ]
 
-    for canon_id, filename, title, description, aliases in _vp_entries:
+    for entry in _vp_entries:
+        canon_id, filename, title, description, aliases, *rest = entry
+        implemented = rest[0] if rest else True
         PROTOCOL_REGISTRY.register_protocol(
             ProtocolInfo(
                 canonical_id=canon_id,
@@ -588,6 +671,7 @@ def _initialize_registry():
                 description=description,
                 priority_level="Validation",
                 category="Validation",
+                implemented=implemented,
                 aliases=aliases,
             )
         )

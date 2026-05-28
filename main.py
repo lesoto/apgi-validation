@@ -2588,6 +2588,18 @@ def _list_protocols(validation_dir: Path) -> List[str]:
     return sorted(protocols)
 
 
+def _list_falsification_protocols(falsification_dir: Path) -> Dict[int, Path]:
+    """List available numeric falsification protocol files."""
+    protocols: Dict[int, Path] = {}
+    for file_path in sorted(falsification_dir.glob("FP_[0-9][0-9]_*.py")):
+        try:
+            protocol_num = int(file_path.name.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        protocols[protocol_num] = file_path
+    return protocols
+
+
 # Module-level function to avoid pickling issues with local functions
 def _run_validation_function(protocol_file: str, validation_dir: Path) -> Tuple[str, Any, str]:
     """Run validation protocol - must be module-level to be picklable."""
@@ -2897,68 +2909,8 @@ def falsify(
         console.print("[red]Error: Falsification protocols directory not found[/red]")
         return
 
-    # List available protocols
-    available_protocols = []
-    # Updated mapping to reflect actual file naming (FP_01, FP_02, etc.)
-    for i in range(1, 14):  # FP_01-FP_13 protocols
-        protocol_file = (
-            falsification_dir / f"FP_{i:02d}_ActiveInference.py"
-            if i == 1
-            else (
-                falsification_dir / f"FP_{i:02d}_AgentComparisonConvergenceBenchmark.py"
-                if i == 2
-                else (
-                    falsification_dir / f"FP_{i:02d}_FrameworkLevelMultiProtocol.py"
-                    if i == 3
-                    else (
-                        falsification_dir / f"FP_{i:02d}_PhaseTransitionEpistemicArchitecture.py"
-                        if i == 4
-                        else (
-                            falsification_dir / f"FP_{i:02d}_EvolutionaryPlausibility.py"
-                            if i == 5
-                            else (
-                                falsification_dir / f"FP_{i:02d}_LiquidNetworkEnergyBenchmark.py"
-                                if i == 6
-                                else (
-                                    falsification_dir / f"FP_{i:02d}_MathematicalConsistency.py"
-                                    if i == 7
-                                    else (
-                                        falsification_dir / f"FP_{i:02d}_ParameterSensitivityIdentifiability.py"
-                                        if i == 8
-                                        else (
-                                            falsification_dir / f"FP_{i:02d}_NeuralSignaturesP3bHEP.py"
-                                            if i == 9
-                                            else (
-                                                falsification_dir / f"FP_{i:02d}_BayesianEstimationMCMC.py"
-                                                if i == 10
-                                                else (
-                                                    falsification_dir / f"FP_{i:02d}_LiquidNetworkDynamicsEchoState.py"
-                                                    if i == 11
-                                                    else (
-                                                        falsification_dir / f"FP_{i:02d}_CrossSpeciesScaling.py"
-                                                        if i == 12
-                                                        else None
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-
-        # Fallback to general pattern FP_XX_*.py
-        if protocol_file is None or not protocol_file.exists():
-            matches = list(falsification_dir.glob(f"FP_{i:02d}_*.py"))
-            if matches:
-                protocol_file = matches[0]
-
-        if protocol_file and protocol_file.exists():
-            available_protocols.append(i)
+    available_protocols = _list_falsification_protocols(falsification_dir)
+    aggregator_file = falsification_dir / "FP_ALL_Aggregator.py"
 
     if available_protocols:
         table = Table(
@@ -2969,8 +2921,10 @@ def falsify(
         table.add_column("Protocol", style="red", width=20)
         table.add_column("Description", style="white", width=50)
 
-        for protocol_num in available_protocols:
-            table.add_row(str(protocol_num), f"Falsification Protocol {protocol_num}")
+        for protocol_num in sorted(available_protocols):
+            table.add_row(str(protocol_num), available_protocols[protocol_num].name)
+        if aggregator_file.exists():
+            table.add_row("fp-all", "FP_ALL_Aggregator.py")
         table.add_row("all", "Run all available protocols")
 
         console.print(table)
@@ -2981,7 +2935,12 @@ def falsify(
         if protocol:
             protocols_to_run = []
             if protocol.lower() == "all":
-                protocols_to_run = available_protocols
+                protocols_to_run = sorted(available_protocols)
+            elif protocol.lower() in {"fp-all", "all-aggregator", "aggregator"}:
+                if not aggregator_file.exists():
+                    console.print("[red]Error: FP_ALL_Aggregator.py not found[/red]")
+                    return
+                protocols_to_run = ["fp-all"]
             else:
                 try:
                     p_num = int(protocol)
@@ -2996,20 +2955,34 @@ def falsify(
 
             all_results = {}
             for p_num in protocols_to_run:
-                console.print(f"[blue]Running falsification protocol {p_num}[/blue]")
-                matches = list(falsification_dir.glob(f"FP_{p_num:02d}_*.py"))
-                if not matches:
-                    console.print(f"[red]Error: Protocol {p_num} file not found[/red]")
-                    continue
-                protocol_file = matches[0]
+                if p_num == "fp-all":
+                    console.print("[blue]Running falsification aggregator FP_ALL[/blue]")
+                    protocol_file = aggregator_file
+                    result_key = "protocol_fp_all"
+                else:
+                    console.print(f"[blue]Running falsification protocol {p_num}[/blue]")
+                    protocol_file = available_protocols.get(p_num)
+                    result_key = f"protocol_{p_num}"
+                    if protocol_file is None:
+                        console.print(f"[red]Error: Protocol {p_num} file not found[/red]")
+                        continue
 
                 try:
-                    falsification_module = secure_load_module(f"falsification_protocol_{p_num}", protocol_file)
+                    module_name = f"falsification_protocol_{str(p_num).replace('-', '_')}"
+                    falsification_module = secure_load_module(module_name, protocol_file)
 
                     result = None
-                    if hasattr(falsification_module, "run_falsification"):
+                    if p_num == "fp-all" and hasattr(falsification_module, "run_framework_falsification"):
+                        console.print("[blue]Executing FP_ALL aggregator...[/blue]")
+                        result = falsification_module.run_framework_falsification()
+                        console.print("[green]✓[/green] FP_ALL completed")
+                    elif hasattr(falsification_module, "run_falsification"):
                         console.print(f"[blue]Executing falsification tests for P{p_num}...[/blue]")
                         result = falsification_module.run_falsification()
+                        console.print(f"[green]✓[/green] Protocol {p_num} completed")
+                    elif hasattr(falsification_module, "run_validation"):
+                        console.print(f"[blue]Executing validation-compatible falsification tests for P{p_num}...[/blue]")
+                        result = falsification_module.run_validation()
                         console.print(f"[green]✓[/green] Protocol {p_num} completed")
                     elif hasattr(falsification_module, "main"):
                         console.print(f"[blue]Running main for P{p_num}...[/blue]")
@@ -3020,7 +2993,7 @@ def falsify(
                         console.print(f"[yellow]Protocol {p_num} has no standard entry function[/yellow]")
 
                     if result:
-                        all_results[f"protocol_{p_num}"] = result
+                        all_results[result_key] = result
 
                 except Exception as e:
                     console.print(f"[red]Error in Protocol {p_num}: {e}[/red]")

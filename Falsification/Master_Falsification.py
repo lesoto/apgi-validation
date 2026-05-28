@@ -472,10 +472,10 @@ class APGIMasterFalsifier:
                 "tier": "secondary",
             },
             "FP-04": {
-                "file": "Falsification/DS_01_Sergent2005_AttentionalBlink.py",
-                "function": "run_validation",
-                "class": "Sergent2005Protocol",
-                "description": "DS-01: Sergent 2005 Attentional Blink (Hill Coefficient β fitting)",
+                "file": "Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",
+                "function": "run_falsification",
+                "class": "None",
+                "description": "Phase Transition / Epistemic Architecture",
                 "tier": "secondary",
             },
             "FP-05": {
@@ -541,6 +541,13 @@ class APGIMasterFalsifier:
                 "description": "Liquid Network Dynamics / Echo State",
                 "tier": "secondary",
             },
+            "FP-12": {
+                "file": "Falsification/FP_12_CrossSpeciesScaling.py",
+                "function": "run_falsification",
+                "class": "None",
+                "description": "Cross-Species Scaling",
+                "tier": "tertiary",
+            },
             "FP-13": {
                 "file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
                 "function": "run_validation",
@@ -562,7 +569,7 @@ class APGIMasterFalsifier:
                 "description": "Allen Visual Coding: Fatigue",
                 "tier": "tertiary",
             },
-            "FP-12": {
+            "FP-ALL": {
                 "file": "Falsification/FP_ALL_Aggregator.py",
                 "function": "run_framework_falsification",
                 "class": "None",
@@ -878,7 +885,7 @@ class APGIMasterFalsifier:
         all_protocols = list(self.available_protocols.keys())
 
         # Exclude meta-protocols from direct execution
-        run_protocols = [p for p in all_protocols if p not in ["FP-10", "FP-12"]]
+        run_protocols = [p for p in all_protocols if p not in ["FP-10", "FP-ALL"]]
 
         logger.info(f"Running {len(run_protocols)} falsification protocols...")
         results = self.run_falsification(run_protocols, **kwargs)
