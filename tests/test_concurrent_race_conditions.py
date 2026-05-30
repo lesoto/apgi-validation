@@ -220,7 +220,7 @@ class TestBackupManagerRaceConditions:
                 try:
                     backups = manager.list_backups()
                     for backup in backups[:5]:
-                        manager.delete_backup(backup["id"])
+                        manager.delete_backup(backup["backup_id"])
                 except Exception as e:
                     errors.append(e)
 
