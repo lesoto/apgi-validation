@@ -2391,7 +2391,7 @@ def run_comprehensive_simulation():
     #   • F6.3: ltcn_sparsity_reduction=0.38 is fraction but the gate
     #     checks ≥30.0 (percentage points); corrected to 38.0
     # -----------------------------------------------------------------------
-    _proxy_rng = np.random.default_rng(config.get("seed", 42) if config else 42)
+    _proxy_rng = np.random.default_rng(int(config.get("seed", 42)) if config else 42)
     _n = 100  # repeated measurements per proxy metric
 
     # F2.1: Iowa Gambling Task — APGI 72 pp advantage selection, PP 50 pp
@@ -2433,9 +2433,7 @@ def run_comprehensive_simulation():
     #
     # F1.4: Threshold decays from 0.50 → 0.20 with τ≈30 trials (within [5, 150])
     _time_pts = np.arange(n_trials, dtype=float)
-    threshold_adaptation = (
-        0.50 * np.exp(-_time_pts / 30.0) + 0.20 + _proxy_rng.normal(0, 0.005, n_trials)
-    ).tolist()
+    threshold_adaptation = (0.50 * np.exp(-_time_pts / 30.0) + 0.20 + _proxy_rng.normal(0, 0.005, n_trials)).tolist()
 
     # F3.1: Performance advantage per run (proportion) — mean 0.25 > 0.15 threshold
     overall_performance_advantage = _proxy_rng.normal(0.25, 0.015, _n).tolist()
@@ -2951,7 +2949,7 @@ def check_falsification(
         for _ in range(n_permutations):
             perm = np.random.permutation(len(pooled))
             grp_ign = pooled[perm[:n_ign]]
-            grp_base = pooled[perm[n_ign:n_ign + n_base]]
+            grp_base = pooled[perm[n_ign : n_ign + n_base]]
             surrogate_diffs_list.append(float(np.mean(grp_ign) - np.mean(grp_base)))
 
         surrogate_diffs = np.array(surrogate_diffs_list)

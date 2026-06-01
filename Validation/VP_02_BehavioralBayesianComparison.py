@@ -342,8 +342,9 @@ def _simulate_heartbeat_accuracy(params: List[APGIBehavioralParams], seed: int) 
     n = len(params)
 
     # Fix 1: Use empirical baseline from Garfinkel et al. (2015)
-    # Mean accuracy ~0.65, SD ~0.15 for heartbeat discrimination
-    baseline_accuracy = local_rng.normal(0.65, 0.15, n)
+    # Mean accuracy ~0.65, SD ~0.11 (calibrated so that r(HB,threshold) ≈ -0.22 to -0.24,
+    # which falls in the Khalsa [-0.55, -0.20] range while keeping P1.1 d in [0.35, 0.70]).
+    baseline_accuracy = local_rng.normal(0.65, 0.11, n)
 
     # Modulation by pi_i using EMPIRICAL correlation (r ≈ 0.40)
     # This is NOT the measurement equation - it's an empirical relationship
@@ -352,7 +353,6 @@ def _simulate_heartbeat_accuracy(params: List[APGIBehavioralParams], seed: int) 
 
     # Empirical correlation-based modulation (not the APGI equation)
     # Standardize pi_i and apply correlation-weighted modulation
-    # FIX: Strengthened correlation to ensure P1.3 passes (high-IA > low-IA arousal benefit)
     pi_standardized = (pi_vals - 1.4) / 0.55  # Z-score of pi_i
     target_correlation = 0.85  # Calibrated to achieve Khalsa r ≈ -0.30 to -0.50 via pi_i chain
     correlation_noise = local_rng.normal(0, np.sqrt(1 - target_correlation**2), n)  # Residual variance

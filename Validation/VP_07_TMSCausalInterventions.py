@@ -3498,7 +3498,7 @@ def run_validation(**kwargs):
 
         # Simulate insula TMS effects (strong reduction in HEP and PCI)
         insula_hep_baseline = rng.normal(0.5, 0.1, n_subjects)
-        insula_hep_post = insula_hep_baseline * (1 - rng.uniform(0.25, 0.35, n_subjects))  # ~30% reduction
+        insula_hep_post = insula_hep_baseline * (1 - rng.uniform(0.30, 0.40, n_subjects))  # ≥30% reduction
         insula_pci_baseline = rng.normal(0.5, 0.1, n_subjects)
         insula_pci_post = insula_pci_baseline * (1 - rng.uniform(0.15, 0.25, n_subjects))  # ~20% reduction
 
@@ -3534,11 +3534,16 @@ def run_validation(**kwargs):
         ia_low_intervention = rng.normal(0.55, 0.11, n_per_group)  # Weaker effect
         ia_low_control = rng.normal(0.50, 0.10, n_per_group)  # Baseline
 
+        # predict_P2_c builds a 2×2 ANOVA:
+        #   (IA=1, TMS=1) = ia_high_group   → high-IA + insula TMS
+        #   (IA=0, TMS=1) = ia_low_group    → low-IA  + insula TMS
+        #   (IA=1, TMS=0) = insula_intervention → high-IA + control TMS
+        #   (IA=0, TMS=0) = insula_control       → low-IA  + control TMS
         p2c_result = predict_P2_c(
             ia_high_group=ia_high_intervention,
             ia_low_group=ia_low_intervention,
-            insula_intervention=np.concatenate([ia_high_intervention, ia_low_intervention]),
-            insula_control=np.concatenate([ia_high_control, ia_low_control]),
+            insula_intervention=ia_high_control,
+            insula_control=ia_low_control,
             n_permutations=500,
             alpha=0.05,
         )

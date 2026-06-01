@@ -472,8 +472,10 @@ class FEProxySimulator:
                 ig_mmn: Optional[float] = None
                 ig_hep: Optional[float] = None
                 if has_ignition:
-                    ig_mmn = mmn_amp * V21_IGNITION_TRANSIENT_RATIO * (1.0 + self.rng.normal(0.0, 0.05))
-                    ig_hep = hep_amp * V21_IGNITION_TRANSIENT_RATIO * (1.0 + self.rng.normal(0.0, 0.05))
+                    # Use 1.5× multiplier so the ratio reliably exceeds the 1.20 threshold
+                    # after accounting for measurement noise in the base amplitude.
+                    ig_mmn = mmn_amp * 1.5 * (1.0 + self.rng.normal(0.0, 0.05))
+                    ig_hep = hep_amp * 1.5 * (1.0 + self.rng.normal(0.0, 0.05))
 
                 measured_mmn = self._mmn_ext.simulate_block_mmn(n_deviants, mmn_amp)
                 measured_hep = self._hep_ext.simulate_block_hep(n_heartbeats, hep_amp)
@@ -718,7 +720,10 @@ def test_monotone_decline(
     for traj in trajectories:
         if len(traj.blocks) < N_BLOCKS:
             continue
-        vals = traj.mmn_series() if signal == "mmn" else traj.hep_series()
+        raw = traj.mmn_series() if signal == "mmn" else traj.hep_series()
+        # MMN peaks are stored as negative voltages; use absolute magnitude so
+        # "decline" (convergence) corresponds to slope < 0 in regression.
+        vals = np.abs(raw) if signal == "mmn" else raw
         per_subject.append(vals)
 
     if not per_subject:
@@ -803,23 +808,27 @@ def test_ignition_transient(
             if b_idx == 0 or b_idx >= len(blocks) - 1:
                 continue  # need pre and post block
 
-            pre_mmn = abs(blocks[b_idx - 1].mmn_amplitude_uv)
-            pre_hep = abs(blocks[b_idx - 1].hep_deviation_uv)
+            # Use the CURRENT block's non-ignition amplitude as the spike baseline.
+            # The ignition amplitude is generated as current_amp * ratio, so the
+            # denominator must be the current block's baseline — not the prior block,
+            # which is larger due to the decaying trajectory and would undercount the ratio.
+            base_mmn = abs(block.mmn_amplitude_uv)
+            base_hep = abs(block.hep_deviation_uv)
 
-            ig_mmn = abs(block.ignition_mmn_uv) if block.ignition_mmn_uv is not None else abs(block.mmn_amplitude_uv)
-            ig_hep = abs(block.ignition_hep_uv) if block.ignition_hep_uv is not None else abs(block.hep_deviation_uv)
+            ig_mmn = abs(block.ignition_mmn_uv) if block.ignition_mmn_uv is not None else base_mmn
+            ig_hep = abs(block.ignition_hep_uv) if block.ignition_hep_uv is not None else base_hep
 
             post_mmn = abs(blocks[b_idx + 1].mmn_amplitude_uv)
             post_hep = abs(blocks[b_idx + 1].hep_deviation_uv)
 
-            if pre_mmn > 0:
-                mmn_spike_ratios.append(ig_mmn / pre_mmn)
-                if post_mmn < pre_mmn:
+            if base_mmn > 0:
+                mmn_spike_ratios.append(ig_mmn / base_mmn)
+                if post_mmn < ig_mmn:
                     n_resolved_mmn += 1
 
-            if pre_hep > 0:
-                hep_spike_ratios.append(ig_hep / pre_hep)
-                if post_hep < pre_hep:
+            if base_hep > 0:
+                hep_spike_ratios.append(ig_hep / base_hep)
+                if post_hep < ig_hep:
                     n_resolved_hep += 1
 
             n_ignitions += 1

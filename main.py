@@ -3761,8 +3761,7 @@ def comprehensive_validation(
             )
             neural_module = importlib.util.module_from_spec(spec1)
             spec1.loader.exec_module(neural_module)
-            neural_validator = neural_module.APGINeuralSignaturesValidator()
-            return neural_validator.validate_convergent_signatures()
+            return neural_module.run_validation()
 
         def run_causal_manipulations():
             console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
@@ -3772,8 +3771,7 @@ def comprehensive_validation(
             )
             causal_module = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(causal_module)
-            causal_validator = causal_module.CausalManipulationsValidator()
-            return causal_validator.validate_causal_predictions()
+            return causal_module.run_validation()
 
         def run_quantitative_fits():
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")

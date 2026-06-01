@@ -556,6 +556,12 @@ class HighGammaGMMAnalyzer:
         """
         Compute per-channel GMM fits and test P6a prediction.
 
+        The GMM is fit to the pooled (hit + miss) power distribution per
+        channel to find the two modes.  Each trial is then assigned to the
+        high-gamma mode via the GMM posterior probability.  Occupancy for
+        hits vs misses is computed as the mean posterior probability of
+        belonging to the high-gamma mode, then compared with Cohen's d.
+
         Returns
         -------
         dict with keys: fits, occupancy_hits, occupancy_misses,
@@ -583,18 +589,37 @@ class HighGammaGMMAnalyzer:
         fits: List[GMMFitResult] = []
 
         for ch, cond_map in by_channel.items():
-            for cond_name, powers in cond_map.items():
-                if len(powers) < GMM_N_COMPONENTS + 1:
-                    continue
-                arr = np.array(powers)
-                fit = fit_gmm_to_power(arr, ch, cond_name)
-                fits.append(fit)
-                if cond_name == "hit":
-                    occupancy_hits.append(fit.high_gamma_mode_occupancy)
-                    bc_hits.append(fit.bimodality_coefficient)
-                else:
-                    occupancy_misses.append(fit.high_gamma_mode_occupancy)
-                    bc_misses.append(fit.bimodality_coefficient)
+            hit_powers = np.array(cond_map.get("hit", []))
+            miss_powers = np.array(cond_map.get("miss", []))
+            if len(hit_powers) < GMM_N_COMPONENTS + 1 or len(miss_powers) < GMM_N_COMPONENTS + 1:
+                continue
+
+            # Fit GMM on pooled distribution to find the two modes
+            pooled = np.concatenate([hit_powers, miss_powers])
+            pooled_fit = fit_gmm_to_power(pooled, ch, "pooled")
+            fits.append(pooled_fit)
+
+            # Assign per-trial occupancy using GMM posterior probability of high mode
+            from sklearn.mixture import GaussianMixture as _GMM
+
+            _gmm = _GMM(
+                n_components=GMM_N_COMPONENTS, n_init=GMM_N_INIT, random_state=RANDOM_SEED, covariance_type="full"
+            )
+            _gmm.fit(pooled.reshape(-1, 1))
+            # Identify which GMM component is the high-gamma (higher mean) component
+            comp_order = np.argsort(_gmm.means_.flatten())
+            high_comp_idx = comp_order[1]  # higher-mean component
+
+            def _high_mode_prob(arr: np.ndarray) -> np.ndarray:
+                proba = _gmm.predict_proba(arr.reshape(-1, 1))
+                return proba[:, high_comp_idx]
+
+            hit_occ = _high_mode_prob(hit_powers)
+            miss_occ = _high_mode_prob(miss_powers)
+            occupancy_hits.extend(hit_occ.tolist())
+            occupancy_misses.extend(miss_occ.tolist())
+            bc_hits.append(pooled_fit.bimodality_coefficient)
+            bc_misses.append(pooled_fit.bimodality_coefficient)
 
         if not occupancy_hits or not occupancy_misses:
             logger.warning("P6a: insufficient data for comparison.")
