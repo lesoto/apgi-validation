@@ -179,12 +179,12 @@ class TestThresholdConstants:
         """Test V7 TMS intervention thresholds"""
         # V7 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
         from utils.falsification_thresholds import (
-            V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC,
-            V7_1_MIN_THRESHOLD_REDUCTION_PCT_SIMULATION,
-            V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC,
-            V7_1_MIN_EFFECT_DURATION_MIN_SIMULATION,
             V7_1_MIN_COHENS_D_PAPER_SPEC,
             V7_1_MIN_COHENS_D_SIMULATION,
+            V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC,
+            V7_1_MIN_EFFECT_DURATION_MIN_SIMULATION,
+            V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC,
+            V7_1_MIN_THRESHOLD_REDUCTION_PCT_SIMULATION,
         )
 
         assert V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC == 15.0
@@ -214,10 +214,10 @@ class TestThresholdConstants:
         """Test P1 primary detection thresholds"""
         # P1 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
         from utils.falsification_thresholds import (
-            P1_1_MIN_D_PRIME_PAPER_SPEC,
-            P1_1_MIN_D_PRIME_SIMULATION,
             P1_1_MAX_D_PRIME_PAPER_SPEC,
             P1_1_MAX_D_PRIME_SIMULATION,
+            P1_1_MIN_D_PRIME_PAPER_SPEC,
+            P1_1_MIN_D_PRIME_SIMULATION,
             P1_2_AROUSAL_INTERACTION_MIN_D_PAPER_SPEC,
             P1_2_AROUSAL_INTERACTION_MIN_D_SIMULATION,
             P1_3_IA_BENEFIT_MIN_D_PAPER_SPEC,
@@ -260,10 +260,10 @@ class TestThresholdConstants:
         """Test P12 cross-species scaling thresholds"""
         # P12 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
         from utils.falsification_thresholds import (
-            P12_A_EXPONENT_MIN_PAPER_SPEC,
-            P12_A_EXPONENT_MIN_SIMULATION,
             P12_A_EXPONENT_MAX_PAPER_SPEC,
             P12_A_EXPONENT_MAX_SIMULATION,
+            P12_A_EXPONENT_MIN_PAPER_SPEC,
+            P12_A_EXPONENT_MIN_SIMULATION,
             P12_B_MIN_CONSISTENCY_PCT_PAPER_SPEC,
             P12_B_MIN_CONSISTENCY_PCT_SIMULATION,
             P12_C_PROPFOLOL_REDUCTION_MIN_PCT_PAPER_SPEC,

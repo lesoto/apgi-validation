@@ -1306,11 +1306,16 @@ def test_P1_2_x_P1_3_interaction(df: pd.DataFrame) -> Dict[str, Any]:
 
     # Interaction passed only when all printed targets are met:
     #   d = P1_2_AROUSAL_INTERACTION_MIN_D–0.50  (using simulation threshold)
-    #   η²_p > 0.06    (was never enforced despite being printed as a target)
+    #   η²_p > 0.04    consistent with d ≤ 0.50 ceiling:
+    #                  η² = d²/(d²+4) → d=0.50 gives η²≈0.059; d=0.41 → η²≈0.040.
+    #                  The former threshold of 0.06 was mathematically unreachable
+    #                  when d is capped at 0.50 (max η²≈0.059), so it is corrected
+    #                  to 0.04 to keep the two effect-size criteria consistent.
     #   Holm-adjusted p significant
+    ETA_SQ_MIN = 0.04
     passed = (
         (P1_2_AROUSAL_INTERACTION_MIN_D <= d_interaction <= 0.50)
-        and (interaction_anova["eta_squared"] > 0.06)
+        and (interaction_anova["eta_squared"] > ETA_SQ_MIN)
         and holm_pass
         and (bf_pass is True or bf_pass is None)
     )  # Pass if BF unavailable
@@ -1341,7 +1346,7 @@ def test_P1_2_x_P1_3_interaction(df: pd.DataFrame) -> Dict[str, Any]:
         "bayesian_status": bf_status,
         "n_high_IA": int(len(high_ia_benefit)),
         "n_low_IA": int(len(low_ia_benefit)),
-        "target_range": "d = 0.30–0.50, η²_p > 0.06, BF10 ≥ 3",
+        "target_range": "d = 0.30–0.50, η²_p > 0.04, BF10 ≥ 3",
         "alpha_bonferroni": float(ALPHA_PER_TEST_BONFERRONI),
     }
 
@@ -1706,10 +1711,10 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
                 "Two-way interaction: High-IA individuals benefit more from arousal "
                 "than Low-IA individuals. Tests P1.2 and P1.3 simultaneously."
             ),
-            "threshold": "Interaction d = 0.30–0.50, η²_p > 0.06, BF10 ≥ 3",
+            "threshold": "Interaction d = 0.30–0.50, η²_p > 0.04, BF10 ≥ 3",
             "falsification_threshold": "d < 0.20 OR η²_p < 0.03 OR p ≥ 0.008",
             "test": "2×2 mixed ANOVA interaction (High/Low IA × Rest/Arousal), Bonferroni α = 0.008",
-            "effect_size": "Cohen's d = 0.30–0.50, partial η² > 0.06",
+            "effect_size": "Cohen's d = 0.30–0.50, partial η² > 0.04",
             "paper_reference": "Combined P1.2 × P1.3 interaction test",
             "alpha": float(ALPHA_PER_TEST_BONFERRONI),
             "d_min": 0.25,
@@ -2345,7 +2350,7 @@ def _print_summary(results: Dict[str, Any]) -> None:
     eff_sizes = p12_p13.get("effect_sizes", {}) if p12_p13 else {}
     print(f"\nP1.2×P1.3  {_fmt_pass(p12_p13.get('passed', False))}")
     print(f"  Interaction d = {eff_sizes.get('cohens_d', 0):.3f}  (target 0.30–0.50)")
-    print(f"  Partial η² = {eff_sizes.get('partial_eta_squared', 0):.3f}")
+    print(f"  Partial η² = {eff_sizes.get('partial_eta_squared', 0):.3f}  (target > 0.04)")
     stats_dict = p12_p13.get("statistics", {}) if p12_p13 else {}
     print(f"  Bonferroni p = {stats_dict.get('p_value_bonferroni', 1):.4f}")
     bf_int = p12_p13.get("bayesian_ttest", {}) if p12_p13 else {}

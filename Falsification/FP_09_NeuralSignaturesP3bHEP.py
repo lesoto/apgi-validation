@@ -129,24 +129,34 @@ except ImportError:
 def detect_ecg_r_peaks(
     ecg_data: np.ndarray,
     fs: float = 1000.0,
-    method: str = "mne",
+    method: str = "pan_tompkins",
 ) -> Dict[str, Any]:
     """
     Detect R-peaks in ECG data for HEP (Heartbeat Evoked Potential) analysis.
 
-    FP-09 Fix: ECG R-peak detection using mne.find_ecg_events or biosppy.
-    Per paper specifications, HEP analysis requires precise R-peak timing
-    to epoch EEG data relative to cardiac events.
+    Supported methods (in priority order):
+      'pan_tompkins' — HEPLAB Pan-Tompkins port (default; most robust)
+      'mne'          — MNE find_ecg_events (requires mne)
+      'biosppy'      — biosppy ecg() (requires biosppy)
+      'scipy'        — simple scipy.signal.find_peaks fallback
 
     Args:
         ecg_data: ECG signal array (1D)
         fs: Sampling frequency in Hz (default 1000 Hz)
-        method: Detection method ('mne' or 'biosppy')
+        method: Detection method (see above)
 
     Returns:
         Dictionary with R-peak indices, times, and detection quality metrics
     """
-    results = {
+    # Lazy import to avoid circular deps at module load time
+    try:
+        from utils.heplab_cardiac_engine import pan_tompkins_rwave_detect
+
+        _HEPLAB_AVAILABLE = True
+    except ImportError:
+        _HEPLAB_AVAILABLE = False
+
+    results: Dict[str, Any] = {
         "r_peak_indices": [],
         "r_peak_times": [],
         "method_used": None,
@@ -159,20 +169,20 @@ def detect_ecg_r_peaks(
         return results
 
     try:
-        if method == "mne" and MNE_AVAILABLE:
-            # Use MNE's ECG detection
+        if method == "pan_tompkins" and _HEPLAB_AVAILABLE:
+            r_idx = pan_tompkins_rwave_detect(ecg_data, srate=fs)
+            results["r_peak_indices"] = r_idx.tolist()
+            results["r_peak_times"] = (r_idx / fs).tolist()
+            results["method_used"] = "pan_tompkins_heplab"
+
+        elif method == "mne" and MNE_AVAILABLE:
             from mne import create_info
             from mne.io import RawArray
             from mne.preprocessing import find_ecg_events
 
-            # Create MNE Raw object from ECG data
             info = create_info(ch_names=["ECG"], sfreq=fs, ch_types=["ecg"])
             raw = RawArray(ecg_data[np.newaxis, :], info)
-
-            # Find ECG events (R-peaks)
             ecg_events, _, _, _ = find_ecg_events(raw, ch_name="ECG")
-
-            # Extract R-peak indices (event samples)
             r_peak_indices = ecg_events[:, 0].tolist()
             results["r_peak_indices"] = r_peak_indices
             results["r_peak_times"] = [idx / fs for idx in r_peak_indices]
@@ -182,31 +192,31 @@ def detect_ecg_r_peaks(
             try:
                 from biosppy.signals import ecg as ecg_biosppy
 
-                # Use biosppy for R-peak detection
                 out = ecg_biosppy.ecg(ecg_data, sampling_rate=fs, show=False)
                 r_peak_indices = out["rpeaks"].tolist()
-
                 results["r_peak_indices"] = r_peak_indices
                 results["r_peak_times"] = [idx / fs for idx in r_peak_indices]
                 results["method_used"] = "biosppy_ecg"
 
             except ImportError:
-                logger.warning("biosppy not available, falling back to scipy method")
-                method = "scipy"
+                logger.warning("biosppy not available, falling back to pan_tompkins")
+                method = "pan_tompkins"
 
-        if method == "scipy" or not results["r_peak_indices"]:
-            # Fallback: Use scipy signal processing for R-peak detection
-            # Filter ECG for QRS complex (5-15 Hz bandpass)
+        if method not in ("mne", "biosppy") and not results["r_peak_indices"]:
+            # pan_tompkins already ran or we need final fallback
+            if _HEPLAB_AVAILABLE and not results["r_peak_indices"]:
+                r_idx = pan_tompkins_rwave_detect(ecg_data, srate=fs)
+                results["r_peak_indices"] = r_idx.tolist()
+                results["r_peak_times"] = (r_idx / fs).tolist()
+                results["method_used"] = "pan_tompkins_heplab"
+
+        if not results["r_peak_indices"]:
+            # Last resort scipy fallback
             b, a = signal.butter(4, [5, 15], btype="bandpass", fs=fs)
             filtered_ecg = signal.filtfilt(b, a, ecg_data)
-
-            # Find peaks with minimum distance (typically 300ms between R-peaks)
-            min_distance_samples = int(0.3 * fs)  # 300ms
-
-            # Use find_peaks with prominence threshold
+            min_distance_samples = int(0.3 * fs)
             prominence = np.std(filtered_ecg) * 0.5
-            peaks, properties = signal.find_peaks(filtered_ecg, distance=min_distance_samples, prominence=prominence)
-
+            peaks, _ = signal.find_peaks(filtered_ecg, distance=min_distance_samples, prominence=prominence)
             results["r_peak_indices"] = peaks.tolist()
             results["r_peak_times"] = (peaks / fs).tolist()
             results["method_used"] = "scipy_find_peaks"
@@ -222,16 +232,14 @@ def detect_ecg_r_peaks(
             )
             mean_rr = float(np.mean(rr_intervals))
             results["heart_rate_bpm"] = 60.0 / mean_rr if mean_rr > 0 else 0.0
-
-            # Detection quality: coefficient of variation of RR intervals
-            # Lower CV = more regular = better quality
             cv_rr = float(np.std(rr_intervals)) / mean_rr if mean_rr > 0 else 1.0
             results["detection_quality"] = max(0.0, 1.0 - cv_rr)
-
             r_peak_indices_count = len(cast(List[int], results["r_peak_indices"]))
             logger.info(
-                f"ECG R-peak detection: {r_peak_indices_count} peaks found, "
-                f"HR={results['heart_rate_bpm']:.1f} BPM, quality={results['detection_quality']:.2f}"
+                f"ECG R-peak detection ({results['method_used']}): "
+                f"{r_peak_indices_count} peaks, "
+                f"HR={results['heart_rate_bpm']:.1f} BPM, "
+                f"quality={results['detection_quality']:.2f}"
             )
         else:
             logger.warning("No R-peaks detected in ECG data")
@@ -241,6 +249,58 @@ def detect_ecg_r_peaks(
         results["error"] = str(e)
 
     return results
+
+
+def detect_ecg_t_waves(
+    ecg_data: np.ndarray,
+    r_peak_indices: List[int],
+    fs: float = 1000.0,
+    search_start_ms: float = 200.0,
+    search_end_ms: float = 500.0,
+) -> Dict[str, Any]:
+    """
+    Detect T-wave peaks using the HEPLAB MTEO algorithm.
+
+    The T-wave boundary defines the ventricular repolarization window used for
+    cardiac-phase gating of exteroceptive stimuli in APGI predictions.
+
+    Args:
+        ecg_data: raw 1-D ECG signal
+        r_peak_indices: output of detect_ecg_r_peaks()["r_peak_indices"]
+        fs: sampling rate in Hz
+        search_start_ms / search_end_ms: T-wave search window (ms post-R)
+
+    Returns:
+        Dict with t_peak_indices, t_peak_times_s, systolic_windows, diastolic_windows
+    """
+    try:
+        from utils.heplab_cardiac_engine import mteo_twave_detect
+    except ImportError:
+        logger.warning("heplab_cardiac_engine not available for T-wave detection")
+        return {"t_peak_indices": [], "t_peak_times_s": [], "error": "heplab_cardiac_engine missing"}
+
+    r_arr = np.asarray(r_peak_indices, dtype=int)
+    t_idx = mteo_twave_detect(ecg_data, r_arr, srate=fs, search_start_ms=search_start_ms, search_end_ms=search_end_ms)
+
+    t_times = np.where(t_idx > 0, t_idx.astype(float) / fs, 0.0)
+
+    # Systolic window: R → T  (ventricular contraction phase)
+    # Diastolic window: T → next-R  (filling/relaxation phase)
+    systolic_ms = []
+    diastolic_ms = []
+    for i, (r, t) in enumerate(zip(r_arr, t_idx)):
+        if t > r:
+            systolic_ms.append((t - r) / fs * 1000.0)
+            if i + 1 < len(r_arr):
+                diastolic_ms.append((r_arr[i + 1] - t) / fs * 1000.0)
+
+    return {
+        "t_peak_indices": t_idx.tolist(),
+        "t_peak_times_s": t_times.tolist(),
+        "systolic_duration_ms": systolic_ms,
+        "diastolic_duration_ms": diastolic_ms,
+        "n_t_peaks_detected": int(np.sum(t_idx > 0)),
+    }
 
 
 from dataclasses import dataclass

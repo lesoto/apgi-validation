@@ -25,9 +25,9 @@
     },
     "Validation": {
       "Master_Validation.py": "7c4187a93ccf51df9b4af1b534e3c9cf40dc38cc7b4d9df5dc8e5384fd13b662",
-      "VP_00_HEPProxyValidation.py": "20c748a235312d5267f017193567476580fb1682d5139f3d89213dea475e745d",
+      "VP_00_HEPProxyValidation.py": "cf2788746165fc4cbfb4ac171b893757b9d02eda1fc01ac45c55d63b90cca95a",
       "VP_01_SyntheticEEGMLClassification.py": "816f6f9762c71bccd97281569bfdfb4312d44691411e567316ffe1526fb6ef12",
-      "VP_02_BehavioralBayesianComparison.py": "b1317df197901a48e180a07d8551f571e349ba368ddccb55d0cd006317651675",
+      "VP_02_BehavioralBayesianComparison.py": "0669ee61d4cc9c264479363a3c25aa71963e5ba2f5757967d7821567d02358aa",
       "VP_03_ActiveInferenceAgentSimulations.py": "c710a7bd4f431d027d7dfe86bfd23e1ec8026b81118fa2f7445b42f40d106a0c",
       "VP_04_PhaseTransitionEpistemicLevel2.py": "0963876d1c180f62b60157fe9bdc4e20b9d48f9e92a74a74ee2066d8680ffec8",
       "VP_05_EvolutionaryEmergence.py": "a7022c18890ee9e7ee3cd2cfccee9bcb6a7a14c991d796a48484fb4371c15ee7",
@@ -52,7 +52,7 @@
       "VP_ALL_Aggregator.py": "c8db920e26d2571934a4a446f6af63418489402cf61ccd439cad95d090dccdef"
     },
     "Falsification": {
-      "FP_01_ActiveInference.py": "d52d4aabec43273108e021fc0976ee8f47109160deadec7cdc6914376d63aad2",
+      "FP_01_ActiveInference.py": "7dcc5e885588e0a3e7493c328288da328d67a552ec899ccc5c00f6d24befdab3",
       "FP_02_AgentComparisonConvergenceBenchmark.py": "641b0b72478db9b4f513dbe6ab9e5958a94528a4366328a1c27b81ebb89ef93a",
       "FP_03_FrameworkLevelMultiProtocol.py": "f1657537029cc1a2a8e8021d1c049d4e1396b1f5b5d8c18dc495c03306aef630",
       "FP_04_PhaseTransitionEpistemicArchitecture.py": "95c9d0a1d8ee4a42e3c747206a29408997ff1b3f6df5ebf0bd61b8288f52b533",
@@ -60,7 +60,7 @@
       "FP_06_LiquidNetworkEnergyBenchmark.py": "88e84a6a15e588bfc1cef2a67af0725f6cb3c9a8bf1d7d41f905557b7a2658d4",
       "FP_07_MathematicalConsistency.py": "634db8dba251f2c7dbd9232f9c72540f1766fb09a4e43dc570b4c455c1f26600",
       "FP_08_ParameterSensitivityIdentifiability.py": "90e702656aee4dda6a818cd708e6b932b6274d80635f76ad37cd3dc6563387e9",
-      "FP_09_NeuralSignaturesP3bHEP.py": "db9d7bb5539a3a15e97422edb98006d3b45a4b6354059530358a35a8a3757109",
+      "FP_09_NeuralSignaturesP3bHEP.py": "0f159904786e8d1beae6a1a8cf51459565a67be31ed3d4047de8e711c14b96a3",
       "FP_10_BayesianEstimationMCMC.py": "1eaca3346bc5dc8fb290245c84628b7b39937f99f0a1f4c50a6a432d0cc66071",
       "FP_11_LiquidNetworkDynamicsEchoState.py": "0455ca2eb1d6b33a38c339bcd04c38e93fe8019b85f38cd0f662c4327764c18a",
       "FP_12_CrossSpeciesScaling.py": "011a82efd23688584a18edbab755b3f41e50226d28b3462f0b1a7893f06ec614",
