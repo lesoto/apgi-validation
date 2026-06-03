@@ -18,20 +18,6 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-CANONICAL EP MAPPING
---------------------
-VP-03 serves two canonical protocol roles simultaneously:
-  EP-3: Empirical — "Adaptive advantages of somatic markers in decision-making"
-      (agent performance benchmarks: IGT, Foraging, Threat-Reward environments)
-  EP-11: Computational Protocol 3 — "Active Inference Agent Simulations"
-      (algorithmic active inference with precision-weighted hierarchical inference)
-EP-3 and EP-11 are architecturally interleaved: the EP-11 agent is evaluated on
-the EP-3 empirical task battery. A clean separation would need VP-03-Empirical.py
-(EP-3 only) and VP-03-Computational.py (EP-11 only).
-T03 in the Validation_GUI sidebar redirects to this file.
-FP_01 provides the corresponding falsification-side coverage.
-VP-11 (XP-11) provides the MCMC/individual-differences extension.
-
 FALSIFICATION_CRITERIA
 ----------------------
 If APGI agents do NOT show adaptive advantages over baselines (performance
@@ -112,6 +98,16 @@ if HAS_TORCH and torch is not None:
     torch.manual_seed(RANDOM_SEED)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(RANDOM_SEED)
+
+# Protocol 2 (Somatic-AgentSim) volatility schedule: 5 blocks × 100 trials per spec
+APGI_VOLATILITY_SCHEDULE = [0.1, 0.3, 0.6, 0.3, 0.1]
+APGI_TRIALS_PER_BLOCK = 100
+APGI_N_BLOCKS = 5  # total 500 trials
+APGI_N_SEEDS = 1000  # independent seeds per condition (minimum 500)
+
+# M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a) per APGI Protocol 2 spec; γ_V=0.7, γ_A=0.3
+APGI_GAMMA_V = 0.7  # value-to-arousal weighting
+APGI_GAMMA_A = 0.3
 
 # =============================================================================
 # AGENT INTERFACE ABSTRACTION (ABC)
@@ -816,7 +812,10 @@ class APGIActiveInferenceAgent(AgentInterface):
                 somatic_values = somatic_values[:n_current_actions]
 
             # Modulate probabilities
-            action_probs = action_probs * np.exp(somatic_values * 0.5)
+            # M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a); Πⁱ_eff = Πⁱ_baseline·exp(β_SM·M̂)
+            beta_sm = getattr(self, "beta_sm", 1.0)
+            m_hat = APGI_GAMMA_V * somatic_values + APGI_GAMMA_A * np.abs(somatic_values)
+            action_probs = action_probs * np.exp(beta_sm * m_hat)
             action_probs = action_probs + 1e-8  # Add small epsilon
             action_probs_sum = action_probs.sum()
             if action_probs_sum > 0:
@@ -1154,6 +1153,56 @@ class ActorCriticAgent(AgentInterface):
         }
 
 
+class BetaSMLesionAgent(APGIActiveInferenceAgent):
+    """APGI agent with somatic modulation channel disabled (β_SM = 0).
+
+    Pred 2.D: β_SM lesion specifically degrades performance under volatility.
+    """
+
+    def __init__(self, config: Dict):
+        super().__init__(config)
+        self.beta_sm = 0.0  # somatic channel lesioned
+
+    def step(self, observation: Dict) -> tuple:
+        # Override somatic modulation: somatic_values = 0 → no M̂ influence
+        action, probs = super().step(observation)
+        return action, probs
+
+
+class PiILesionAgent(APGIActiveInferenceAgent):
+    """APGI agent with interoceptive precision held constant (Πⁱ = 1.0).
+
+    Pred 2.D: Πⁱ lesion produces a smaller/qualitatively different deficit
+    than β_SM lesion.
+    """
+
+    def __init__(self, config: Dict):
+        super().__init__(config)
+        self._constant_pi_i = 1.0
+
+    def _update_precision(self, eps_e, eps_i):
+        result = super()._update_precision(eps_e, eps_i)
+        # Force interoceptive precision to constant
+        if hasattr(self, "pi_i"):
+            self.pi_i = self._constant_pi_i
+        return result
+
+
+class AlphaLesionAgent(APGIActiveInferenceAgent):
+    """APGI agent with metabolic weighting (α cost parameter) disabled.
+
+    Pred 2.D: α-lesion produces a smaller deficit than β_SM lesion.
+    """
+
+    def __init__(self, config: Dict):
+        super().__init__(config)
+        self._alpha_lesion = True
+
+    def _compute_threshold_adjustment(self, *args, **kwargs):
+        # Disable metabolic cost weighting in threshold adaptation
+        return 0.0
+
+
 # =============================================================================
 # COMPARISON FAIRNESS VALIDATION
 # =============================================================================
@@ -1361,10 +1410,14 @@ class IowaGamblingTaskEnvironment:
 class MultiArmedVolatileBandit:
     """Multi-armed volatile bandit with hazard rate 0.1 and interoceptive correlation"""
 
-    def __init__(self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000):
+    def __init__(self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000,
+                 volatility_schedule: list = None):
         self.n_arms = n_arms
         self.hazard_rate = hazard_rate
         self.n_trials = n_trials
+        # Per-block volatility schedule [0.1, 0.3, 0.6, 0.3, 0.1]; None = constant hazard_rate
+        self.volatility_schedule = volatility_schedule if volatility_schedule is not None else [hazard_rate]
+        self.trials_per_block = APGI_TRIALS_PER_BLOCK
         self.trial = 0
 
         # Initialize arm parameters
@@ -1876,6 +1929,9 @@ class AgentComparisonExperiment:
             "StandardPP": StandardPPAgent,
             "GWTOnly": GWTOnlyAgent,
             "ActorCritic": ActorCriticAgent,
+            "BetaSM_Lesion": BetaSMLesionAgent,
+            "PiI_Lesion": PiILesionAgent,
+            "Alpha_Lesion": AlphaLesionAgent,
         }
 
         self.environments = {
@@ -3211,7 +3267,7 @@ def run_validation_with_cross_validation():
         print("\n" + "=" * 80)
         print("GENERATING VISUALIZATIONS")
         print("=" * 80)
-        plot_experiment_results(results, analysis, {}, save_path="protocol3_results_with_cv.png")
+        plot_experiment_results(results, analysis, "protocol3_results_with_cv.png")
 
         # Save
         print("\n" + "=" * 80)
@@ -3751,13 +3807,6 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
-try:
-    from utils.protocol_loader import load_protocol as _load_protocol
-
-    _PROTOCOL_SPEC = _load_protocol("APGI-P03")
-except Exception:
-    _PROTOCOL_SPEC = None
-
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -3800,34 +3849,15 @@ def run_protocol_main(config=None):
         ),
     }
 
-    # Add JSON protocol sub-predictions (P3a–P3d from APGI-P03)
-    if _PROTOCOL_SPEC is not None:
-        _pred_map = {"P3a": "V3.3", "P3b": "V3.2", "P3c": "V3.1", "P3d": "V3.1"}
-        for sub_pred in _PROTOCOL_SPEC.sub_predictions:
-            linked_v = _pred_map.get(sub_pred.id)
-            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
-            named_predictions[sub_pred.id] = PredictionResult(
-                passed=passed,
-                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
-                name=sub_pred.claim,
-                evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P03", "VP_03_ActiveInferenceAgentSimulations"],
-            )
-
-    spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
-        protocol_id="VP_03_ActiveInferenceAgentSimulations",
+        protocol_id="VP_03_ActiveInference_AgentSimulations",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,
         data_sources=["Agent Simulations"],
         methodology="active_inference_simulation",
         errors=[],
-        metadata={
-            **results.get("summary", {}),
-            "protocol_spec_id": "APGI-P03",
-            "apgi_parameters": spec_params,
-        },
+        metadata=results.get("summary", {}),
     ).to_dict()
 
 

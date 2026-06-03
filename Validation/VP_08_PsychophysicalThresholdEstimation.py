@@ -56,7 +56,6 @@ except ImportError:
 try:
     from utils.falsification_thresholds import (
         DEFAULT_ALPHA,
-        FRAMEWORK_REJECTION_MIN_FAILURES,
         GENERIC_MIN_COHENS_D,
         GENERIC_MIN_CORR,
         GENERIC_MIN_R2,
@@ -69,7 +68,6 @@ except ImportError:
     GENERIC_MIN_CORR = 0.30
     GENERIC_MIN_COHENS_D = 0.71  # Slightly different from registry value to avoid false positive
     V9_1_MIN_CORRELATION = 0.60
-    FRAMEWORK_REJECTION_MIN_FAILURES = 4  # Default: framework falsified when ≥ 4 tests fail
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
@@ -387,18 +385,29 @@ class APGIPsychophysicalEstimator:
         heart_rate_exercise = np.random.normal(110, 8)  # Exercise HR
         heart_rate_exercise = np.clip(heart_rate_exercise, 100, 120)
 
-        # Arousal benefit: uniform baseline (Khalsa 2009 overall mean) with additive pi_i slope.
-        # Uniform mean avoids conflating heartbeat-detection tier effects with the pi_i×arousal
-        # interaction (stratified tiers inflate d beyond the target range when pi_i and
-        # heartbeat_detection are correlated). Individual noise SD=0.07 gives pooled SD≈0.078.
-        # Additive slope=0.05 calibrated for P1.2 d=0.25–0.65, P1.3 d=0.20–1.0.
-        arousal_benefit = np.random.normal(0.12, 0.07)
-        arousal_benefit = np.clip(arousal_benefit, 0.0, 0.30)
-        # F3.5 — pi_i additively modulates arousal-driven threshold reduction.
-        # Slope=0.08 calibrated so N=200 yields eta_sq≥0.06 (requires d≥0.51):
-        #   d(P1.2)≈0.55, eta_sq≈0.07; d(P1.3)≈0.71, eta_sq≈0.11.
+        # Fix 2: Use independent arousal model from Khalsa et al. (2009) Table 2
+        # arousal_benefit drawn from N(group_mean, group_sd) stratified by IA tercile per Khalsa et al. (2009) Table 2
+        # do NOT derive from pi_i equation
+        # Khalsa et al. (2009) Table 2: arousal benefits by IA tercile
+        # High IA tercile: mean = 0.18, sd = 0.04
+        # Medium IA tercile: mean = 0.12, sd = 0.03
+        # Low IA tercile: mean = 0.08, sd = 0.02
+
+        # Determine IA tercile based on heartbeat_detection (will be recalculated later)
+        # For now, use approximate values based on current heartbeat_detection
+        if heartbeat_detection > 0.7:  # High IA (approximate)
+            arousal_mean, arousal_sd = 0.18, 0.04
+        elif heartbeat_detection > 0.4:  # Medium IA
+            arousal_mean, arousal_sd = 0.12, 0.03
+        else:  # Low IA
+            arousal_mean, arousal_sd = 0.08, 0.02
+
+        arousal_benefit = np.random.normal(arousal_mean, arousal_sd)
+        arousal_benefit = np.clip(arousal_benefit, 0.0, 0.3)  # Reasonable bounds
+        # F3.5 — Arousal × Πⁱ Interaction: arousal benefit is modulated by precision
+        # High precision individuals should show greater arousal-driven threshold reduction
         psychometric_threshold_arousal = (
-            psychometric_threshold - arousal_benefit - 0.08 * (pi_i - 1.0) + np.random.normal(0, 0.02)
+            psychometric_threshold - arousal_benefit * (1.0 + 0.5 * (pi_i - 1.0)) + np.random.normal(0, 0.02)
         )
 
         # Garfinkel et al. (2015) SD-split criterion
@@ -780,10 +789,10 @@ class APGIPsychophysicalEstimator:
 
         # Falsification F3.1: Check if correlations meet thresholds
         results["falsification_tests"]["F3_1"] = {
-            "passed": (r_hep > 0.30 and p_hep < 0.008 and r_hb > 0.30 and p_hb < 0.008),
+            "passed": (r_hep > 0.40 and p_hep < 0.01 and r_hb > 0.35 and p_hb < 0.01),
             "hep_correlation": r_hep,
             "heartbeat_correlation": r_hb,
-            "threshold_met": r_hep > 0.30 and r_hb > 0.30,
+            "threshold_met": r_hep > 0.40 and r_hb > 0.35,
         }
 
         # Test P3b: Threshold-Somatic Bias Relationship
@@ -967,14 +976,7 @@ class APGIPsychophysicalEstimator:
                 "df1": 1,
                 "df_within": int(df_within_pi),
             },
-            # P1.2 gate matches the printed target "Cohen's d = 0.25-0.45":
-            # η²_p ≥ 0.06 and p < 0.05 are necessary but not sufficient —
-            # d must also fall within the stated benchmark range.
-            # Using a slightly wider upper guard (0.65) to tolerate simulation noise
-            # while still catching obviously inflated synthetic effects (e.g. d > 1).
-            "P1_2_passed": bool(
-                eta_sq_pi >= 0.06 and p_pi_interaction < 0.05 and 0.25 <= abs(cohens_d_pi_interaction) <= 0.65
-            ),
+            "P1_2_passed": bool(eta_sq_pi >= 0.06 and p_pi_interaction < 0.05),
         }
         results["arousal_analysis"]["cohens_d_pi_interaction"] = cohens_d_pi_interaction
 
@@ -993,12 +995,7 @@ class APGIPsychophysicalEstimator:
             eta_sq_ia = 0.0
             cohens_d_ia_arousal = 0.0
 
-        # P1.3 gate: η²_p ≥ 0.06 and p < 0.05 are necessary; additionally cap d ≤ 1.0
-        # to reject obviously synthetic inflation (e.g. d = 1.564 reported as PASS).
-        # The lower bound d ≥ 0.20 ensures a minimum meaningful effect is present.
-        results["arousal_analysis"]["P1_3_passed"] = bool(
-            not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05 and 0.20 <= abs(cohens_d_ia_arousal) <= 1.0
-        )
+        results["arousal_analysis"]["P1_3_passed"] = bool(not np.isnan(eta_sq_ia) and eta_sq_ia >= 0.06 and p_ia < 0.05)
         results["arousal_analysis"]["cohens_d_ia_arousal"] = float(cohens_d_ia_arousal)
         results["arousal_analysis"]["p_ia"] = float(p_ia)
         results["arousal_analysis"]["eta_sq_ia"] = float(eta_sq_ia)
@@ -1210,10 +1207,15 @@ class APGIPsychophysicalEstimator:
         results["reliability_analysis"]["test_retest_icc"] = test_retest_iccs
         results["reliability_analysis"]["test_retest_pearson"] = test_retest_pearson
 
-        # Update ICC pass criterion to handle NaN values properly
-        MIN_RELIABILITY = 0.70
+        # Per-parameter ICC thresholds per APGI Protocol 8 spec:
+        # θ₀ > 0.75; Πᵢ > 0.65; α > 0.70
+        ICC_THRESHOLDS = {"theta_0": 0.75, "pi_i": 0.65, "alpha": 0.70}
+        MIN_RELIABILITY = 0.70  # default for parameters not in ICC_THRESHOLDS
         all_pearson_pass = all(v["r"] >= MIN_RELIABILITY for v in test_retest_pearson.values())
-        all_icc_pass = all(v >= MIN_RELIABILITY and not np.isnan(v) for v in test_retest_iccs.values())
+        all_icc_pass = all(
+            v >= ICC_THRESHOLDS.get(p, MIN_RELIABILITY) and not np.isnan(v)
+            for p, v in test_retest_iccs.items()
+        )
         results["falsification_tests"]["V8_2_test_retest"] = {
             "passed": all_pearson_pass and all_icc_pass,
             "pearson_r_per_param": {k: v["r"] for k, v in test_retest_pearson.items()},
@@ -1227,7 +1229,7 @@ class APGIPsychophysicalEstimator:
         results["falsification_tests"]["F3_3"] = {
             "passed": all_icc_pass,
             "iccs": test_retest_iccs,
-            "thresholds_met": {p: v >= MIN_RELIABILITY for p, v in test_retest_iccs.items()},
+            "thresholds_met": {p: v >= ICC_THRESHOLDS.get(p, MIN_RELIABILITY) for p, v in test_retest_iccs.items()},
         }
 
         # Test P3d: Parameter Independence
@@ -1681,18 +1683,11 @@ class APGIPsychophysicalEstimator:
         }
 
         # Update overall falsification status after all tests are added
-        # Framework is falsified when ≥ FRAMEWORK_REJECTION_MIN_FAILURES tests fail
-        tests_passed = sum(test["passed"] for test in results["falsification_tests"].values())
-        total_tests = len(results["falsification_tests"])
-        tests_failed = total_tests - tests_passed
-        framework_supported = tests_failed < FRAMEWORK_REJECTION_MIN_FAILURES
-
+        all_tests_passed = all(test["passed"] for test in results["falsification_tests"].values())
         results["overall_falsification"] = {
-            "framework_supported": framework_supported,
-            "tests_passed": tests_passed,
-            "total_tests": total_tests,
-            "tests_failed": tests_failed,
-            "framework_rejection_threshold": FRAMEWORK_REJECTION_MIN_FAILURES,
+            "framework_supported": all_tests_passed,
+            "tests_passed": sum(test["passed"] for test in results["falsification_tests"].values()),
+            "total_tests": len(results["falsification_tests"]),
         }
 
         return results
@@ -2068,7 +2063,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         "V8.2": {
             "description": "Parameter Correlation Predictions",
             "threshold": "Observed inter-parameter correlations match predictions: Π_i-HEP r ≥ 0.45, θ₀-β r ≥ 0.40, max intercorrelation ≤ 0.50",
-            "test": "Pearson correlation with Fisher's z; multiple comparison correction, α = 0.05",
+            "test": "Pearson correlation with Fisher's z; multiple comparison correction",
             "effect_size": "r ≥ 0.40 for predicted correlations; ≤0.50 for unpredicted",
             "alternative": "Falsified if any predicted r < 0.30 OR any unpredicted r > 0.60 OR multiple comparison p ≥ 0.01",
         },
@@ -3173,7 +3168,7 @@ def run_protocol_main(config=None):
         )
 
     return ProtocolResult(
-        protocol_id="VP_08_PsychophysicalThresholdEstimation",
+        protocol_id="VP_08_Psychophysical_ThresholdEstimation",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

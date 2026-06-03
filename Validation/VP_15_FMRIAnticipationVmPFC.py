@@ -2,17 +2,6 @@
 VP-15: fMRI vmPFC Anticipation Paradigm (STUB/Synthetic)
 ========================================================
 
-DEPRECATION STATUS: SUPERSEDED BY VP-22 (NOT IN CANONICAL PAPER REGISTRY)
---------------------------------------------------------------------------
-VP-15 is a stub/synthetic stand-in covering the vmPFC connectivity sub-scope of
-Protocol 5.  Its scope overlaps substantially with VP-14 and is fully absorbed by
-VP-22 (VP_22_FMRIAnticipationExperience.py), which implements P5a–P5d completely
-with hardcoded rejection thresholds and is classified as secondary-tier.
-
-V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead.
-Canonical replacement: VP_22_FMRIAnticipationExperience.py
---------------------------------------------------------------------------
-
 VP-15: vmPFC Anticipatory Activity — fMRI Paradigm
 Paper 3, Protocol 5 / Hypothesis 3: Developmental Trajectories Reflect Hierarchical Maturation
 
@@ -121,7 +110,7 @@ class VP15Config:
     """Configuration for VP-15 fMRI vmPFC Anticipation Protocol."""
 
     n_trials: int = 60
-    n_subjects: int = 30
+    n_subjects: int = 36
     tr: float = 2.0
     trial_duration: float = 12.0
     cue_onset: float = 1.0
@@ -374,26 +363,12 @@ def run_validation(
     """
     Run VP-15 validation with empirical or synthetic fMRI data.
 
-    DEPRECATION NOTICE: VP-15 is superseded by VP-22 (VP_22_FMRIAnticipationExperience.py).
-    V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead.
-
     Args:
         fmri_data_path: Path to empirical fMRI data (.npz or .nii/.nii.gz)
         behavior_path: Path to behavioral data (.csv)
         allow_synthetic: If True, fall back to synthetic data if empirical unavailable
     """
-    # Return deprecated stub status
-    return {
-        "status": "deprecated",
-        "passed": None,
-        "protocol_id": "VP-15",
-        "protocol_name": "fMRI vmPFC Anticipation Paradigm [DEPRECATED]",
-        "message": (
-            "VP-15 is superseded by VP-22 (VP_22_FMRIAnticipationExperience.py). "
-            "V15.1–V15.3 predictions are NOT counted in the canonical tally; use VP-22 instead. "
-            "This protocol is retained for backward compatibility only."
-        ),
-    }
+    logger.info("VP-15: fMRI vmPFC Anticipation Validation")
 
     if fmri_data_path and behavior_path:
         # EMPIRICAL mode: Process real fMRI data
@@ -463,7 +438,7 @@ def run_validation(
 
         config = VP15Config(
             n_trials=kwargs.get("n_trials", 60),
-            n_subjects=kwargs.get("n_subjects", 30),
+            n_subjects=kwargs.get("n_subjects", 36),
             tau_anticipation=1.52 * maturation_factor,
         )
 
@@ -534,32 +509,6 @@ def run_validation(
                 "threshold": "Ant > Post in anticipation",
                 "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
                 "reason": "CRIT-05 FIX: Empirical fMRI validation not implemented",
-            },
-            # P5e–P5h: vmPFC developmental trajectory predictions (Paper 3, Hypothesis 3).
-            # These stubs reserve the prediction IDs; empirical implementation is pending.
-            "P5e": {
-                "passed": None,
-                "actual": "STUB",
-                "threshold": "vmPFC maturation index increases monotonically from childhood to adulthood",
-                "validation_status": "STUB_PENDING_EMPIRICAL",
-            },
-            "P5f": {
-                "passed": None,
-                "actual": "STUB",
-                "threshold": "Anticipatory insula onset latency decreases with age (τ_ant ∝ 1/maturation_factor)",
-                "validation_status": "STUB_PENDING_EMPIRICAL",
-            },
-            "P5g": {
-                "passed": None,
-                "actual": "STUB",
-                "threshold": "vmPFC–insula resting-state FC correlates with maturation index r ≥ 0.45",
-                "validation_status": "STUB_PENDING_EMPIRICAL",
-            },
-            "P5h": {
-                "passed": None,
-                "actual": "STUB",
-                "threshold": "Post-insula experience-phase dominance strengthens with age (interaction p < 0.05)",
-                "validation_status": "STUB_PENDING_EMPIRICAL",
             },
         },
         "criteria": {},
@@ -839,7 +788,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_15_FMRIAnticipationVmPFC",
+                protocol_id="VP_15_fMRI_Anticipation_vmPFC",
                 timestamp=datetime.now().isoformat(),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -868,12 +817,12 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 threshold=pred_data.get("threshold"),
                 status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
                 evidence=[str(pred_data.get("actual", ""))],
-                sources=["VP_15_FMRIAnticipationVmPFC"],
+                sources=["VP_15_fMRI_Anticipation_vmPFC"],
                 metadata={"validation_status": "SIMULATION_VALIDATED_ONLY"},
             )
 
         return ProtocolResult(
-            protocol_id="VP_15_FMRIAnticipationVmPFC",
+            protocol_id="VP_15_fMRI_Anticipation_vmPFC",
             timestamp=datetime.now().isoformat(),
             named_predictions=named_predictions,
             completion_percentage=100,

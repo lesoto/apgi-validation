@@ -15,12 +15,12 @@ Algorithmic components (ported from HEPLAB MATLAB toolbox):
 FALSIFICATION CRITERIA
 ----------------------
   1. Detection quality < 0.6  → R-peaks unreliable; protocol aborted.
-  2. |HEP mean amplitude| < 0.2 µV in 300–500 ms post-R window → Π^i falsified.
+  2. |HEP mean amplitude| < 0.2 µV in 250–400 ms post-R window → Π^i falsified.
   3. IBI coefficient of variation > 0.3 (pathological variability) → M(c,a) unreliable.
 
 APGI PARAMETER OUTPUTS
 -----------------------
-  Π^i_eff      : mean HEP amplitude in 300–500 ms post-R window (µV)
+  Π^i_eff      : mean HEP amplitude in 250–400 ms post-R window (µV)
   M(c,a)       : IBI array (ms) summarised as mean ± SD
   Z-scored PE  : running normalisation via OnlineVarianceEstimator
 """
@@ -92,8 +92,8 @@ def _generate_synthetic_ecg_eeg(
 
     # --- EEG (single channel, e.g. Cz) ---
     eeg = rng.normal(0, 0.1, n)
-    hep_start_samp = int(0.300 * srate)  # 300 ms post-R
-    hep_end_samp = int(0.500 * srate)  # 500 ms post-R
+    hep_start_samp = int(0.250 * srate)  # 250 ms post-R
+    hep_end_samp = int(0.400 * srate)  # 400 ms post-R
     hep_width = hep_end_samp - hep_start_samp
     hep_kernel = 0.5 * np.sin(np.linspace(0, np.pi, hep_width))
     for r in r_positions:
