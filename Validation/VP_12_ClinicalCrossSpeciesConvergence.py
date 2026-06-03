@@ -86,7 +86,7 @@ class ClinicalDataAnalyzer:
 
     def __init__(self):
         # Fix 1: Generate clinical profiles from independent literature parameters
-        self.clinical_profiles: Dict[str, ClinicalProfile] = {
+        self.clinical_profiles: Dict[str, Dict[str, Any]] = {
             "vegetative_state": {
                 "pci_mean": 0.31,
                 "pci_std": 0.09,
@@ -143,8 +143,8 @@ class ClinicalDataAnalyzer:
             "p3b_amplitude": p3b_amplitude,
             "frontoparietal_connectivity": frontoparietal_connectivity,
             "ignition_probability": ignition_probability,
-            "theta_t": theta_t,
-            "pci_estimate": pci_value,
+            "theta_t": float(theta_t),
+            "pci_estimate": float(pci_value),
         }
 
     def simulate_patient_data(self, condition: str, n_subjects: int = 20) -> pd.DataFrame:
@@ -153,8 +153,8 @@ class ClinicalDataAnalyzer:
         profile = self.clinical_profiles[condition]
         data = []
         # Extract profile parameters with explicit types
-        pci_mean: float = profile["pci_mean"]
-        pci_std: float = profile["pci_std"]
+        pci_mean: float = profile["pci_mean"]  # type: ignore[assignment]
+        pci_std: float = profile["pci_std"]  # type: ignore[assignment]
         for subject_id in tqdm(range(n_subjects), desc=f"Simulating {condition} subjects"):
             pci_value = np.random.normal(pci_mean, pci_std)
             pci_value = np.clip(pci_value, 0.0, 1.0)
@@ -605,7 +605,7 @@ class CrossSpeciesHomologyAnalyzer:
         ignition_latency: float
 
     def __init__(self):
-        self.species_profiles: Dict[str, SpeciesProfile] = {
+        self.species_profiles: Dict[str, Dict[str, Any]] = {
             "human": {
                 "cortical_thickness": 1.0,
                 "frontal_lobe_ratio": 1.0,
@@ -623,15 +623,15 @@ class CrossSpeciesHomologyAnalyzer:
             "mouse": {
                 "cortical_thickness": 0.3,
                 "frontal_lobe_ratio": 0.4,
-                "theta_t_range": (0.6, 1.2),
-                "Pi_e_range": (0.3, 0.6),
+                "theta_t_range": (0.6, 1.2),  # type: ignore[assignment]
+                "Pi_e_range": (0.3, 0.6),  # type: ignore[assignment]
                 "ignition_latency": 0.15,
             },
             "Fish": {
                 "cortical_thickness": 0.1,
                 "frontal_lobe_ratio": 0.2,
-                "theta_t_range": (0.8, 1.5),
-                "Pi_e_range": (0.2, 0.4),
+                "theta_t_range": (0.8, 1.5),  # type: ignore[assignment]
+                "Pi_e_range": (0.2, 0.4),  # type: ignore[assignment]
                 "ignition_latency": 0.1,
             },
         }

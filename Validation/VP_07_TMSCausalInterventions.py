@@ -3351,9 +3351,9 @@ def main():
     baseline_grouped = baseline_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     baseline_params = psychometric.fit_curve(
-        baseline_grouped.index.values.reshape(-1, 1),
-        baseline_grouped["n_trials"].values.to_numpy().reshape(-1, 1),
-        baseline_grouped["n_seen"].values.to_numpy().reshape(-1, 1),
+        np.asarray(baseline_grouped.index.values).reshape(-1, 1),
+        np.asarray(baseline_grouped["n_trials"].values).reshape(-1, 1),
+        np.asarray(baseline_grouped["n_seen"].values).reshape(-1, 1),
     )
 
     print("\nBaseline (Vertex Control):")
@@ -3366,9 +3366,9 @@ def main():
     intervention_grouped = intervention_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     intervention_params = psychometric.fit_curve(
-        intervention_grouped.index.values,
-        intervention_grouped["n_trials"].values.to_numpy(),
-        intervention_grouped["n_seen"].values.to_numpy(),
+        np.asarray(intervention_grouped.index.values).reshape(-1, 1),
+        np.asarray(intervention_grouped["n_trials"].values).reshape(-1, 1),
+        np.asarray(intervention_grouped["n_seen"].values).reshape(-1, 1),
     )
 
     print("\nIntervention (dlPFC TMS):")

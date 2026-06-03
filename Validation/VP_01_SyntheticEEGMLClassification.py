@@ -3648,7 +3648,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         # Generate all parameter combinations
         from itertools import product
 
-        param_combinations = list(product(*list(param_grid.values())))  # type: ignore[arg-type, call-overload]
+        param_combinations = list(product(*param_grid.values()))  # type: ignore[arg-type, call-overload]
         param_names = list(param_grid.keys())
 
         best_score = -float("inf")
