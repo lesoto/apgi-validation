@@ -2312,6 +2312,58 @@ def get_implementation_metadata() -> Dict[str, Any]:
     }
 
 
+class LiquidNetworkModule:
+    """TheoryModuleInterface implementation for APGI liquid neural network."""
+
+    MODULE_LEVEL: str = "Level 3"
+
+    def compute(self, **kwargs) -> dict:
+        return get_implementation_metadata()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "LNN-1": {
+                "description": "LTC network reproduces APGI ignition threshold dynamics",
+                "threshold": "Threshold crossing reproducibility > 90% across initializations",
+                "test": "Monte Carlo across 100 random seeds",
+            },
+            "LNN-2": {
+                "description": "Precision modulation by neuromodulators matches pharmacological predictions",
+                "threshold": "Direction of π_i change correct in ≥ 4/5 neuromodulator conditions",
+                "test": "Sign test on π_i gradient vs pharmacological ground truth",
+            },
+            "LNN-3": {
+                "description": "Global workspace activation latency ≤ 400 ms post-stimulus",
+                "threshold": "Mean latency ≤ 400 ms",
+                "test": "Simulated GW ignition timing analysis",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-LiquidNetwork", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     print("Running APGI Liquid Network Validation...")
 

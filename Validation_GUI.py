@@ -122,29 +122,152 @@ except (ImportError, Exception):
 
 # Protocol files for metadata
 protocol_files = [
-    ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
-    ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
-    ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
-    ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
+    ("APGI_Protocol_0_HEPProxy", "VP_00_HEPProxyValidation.py"),
+    ("APGI_Protocol_1", "VP_01_SyntheticEEGMLClassification.py"),
+    ("APGI_Protocol_2", "VP_02_BehavioralBayesianComparison.py"),
+    ("APGI_Protocol_3", "VP_03_ActiveInferenceAgentSimulations.py"),
+    ("APGI_Protocol_4", "VP_04_PhaseTransitionEpistemicLevel2.py"),
     ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
-    ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
-    ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
-    ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
-    ("APGI_Protocol_9", "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
-    ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
-    ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
-    ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
-    ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
-    ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
-    ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
-    ("APGI_Protocol_16", "VP_16_Metabolic_ATP_GroundTruth.py"),
-    ("APGI_Protocol_17", "VP_17_AllenVisualCoding_Fatigue.py"),
-    ("APGI_Protocol_18", "VP_18_EEG_Microstate_GFP_P3b.py"),
-    ("APGI_Protocol_19", "VP_19_InformationErasure_MVPA.py"),
-    ("APGI_Protocol_20", "VP_20_Empirical_iEEG.py"),
-    ("APGI_Protocol_21", "VP_21_FreeEnergy_PredictionError.py"),
+    ("APGI_Protocol_6", "VP_06_LiquidNetworkInductiveBias.py"),
+    ("APGI_Protocol_7", "VP_07_TMSCausalInterventions.py"),
+    ("APGI_Protocol_7a_MathConsistency", "VP_07a_MathematicalConsistency.py"),
+    ("APGI_Protocol_8", "VP_08_PsychophysicalThresholdEstimation.py"),
+    ("APGI_Protocol_9", "VP_09_NeuralSignaturesEmpiricalPriority1.py"),
+    ("APGI_Protocol_10", "VP_10_CausalManipulationsPriority2.py"),
+    ("APGI_Protocol_11", "VP_11_MCMCCulturalNeurosciencePriority3.py"),
+    ("APGI_Protocol_12", "VP_12_ClinicalCrossSpeciesConvergence.py"),
+    ("APGI_Protocol_13", "VP_13_EpistemicArchitecture.py"),
+    ("APGI_Protocol_14_fMRI_Anticipation", "VP_14_FMRIAnticipationExperience.py"),
+    ("APGI_Protocol_15", "VP_15_FMRIAnticipationVmPFC.py"),
+    ("APGI_Protocol_16", "VP_16_MetabolicATPGroundTruth.py"),
+    ("APGI_Protocol_17", "VP_17_AllenVisualCodingFatigue.py"),
+    ("APGI_Protocol_18", "VP_18_EEGMicrostateGFPP3b.py"),
+    ("APGI_Protocol_19", "VP_19_InformationErasureMVPA.py"),
+    ("APGI_Protocol_20", "VP_20_EmpiricalIEEG.py"),
+    ("APGI_Protocol_21", "VP_21_FreeEnergyPredictionError.py"),
+    ("APGI_Protocol_22_fMRI_Anticipation_Enhanced", "VP_22_FMRIAnticipationExperience.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
+
+
+# ── APGI Design System ────────────────────────────────────────────────────────
+
+
+def apply_apgi_theme(root: tk.Tk) -> ttk.Style:
+    """Apply unified APGI theme to the tkinter application."""
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    bg = "#f8f9fa"
+    fg = "#212529"
+
+    style.configure("TFrame", background=bg)
+    style.configure("TLabel", background=bg, foreground=fg, font=("Noto Sans", 10))
+    style.configure("Header.TLabel", font=("Noto Sans", 12, "bold"), background=bg, foreground=fg)
+    style.configure("TLabelframe", background=bg, bordercolor="#dee2e6")
+    style.configure(
+        "TLabelframe.Label",
+        background=bg,
+        foreground="#6c757d",
+        font=("Noto Sans", 9, "bold"),
+    )
+    style.configure("Card.TFrame", background="#ffffff", borderwidth=1, relief="solid")
+    style.configure("TButton", padding=6, background="#e9ecef", font=("Noto Sans", 10))
+    style.map(
+        "TButton",
+        background=[("active", "#dee2e6"), ("disabled", "#f1f3f5")],
+        foreground=[("disabled", "#adb5bd")],
+    )
+    style.configure(
+        "Primary.TButton",
+        background="#155724",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Secondary.TButton",
+        background="#2874a6",
+        foreground="white",
+        font=("Noto Sans", 10),
+        padding=6,
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Danger.TButton",
+        background="#721c24",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d"), ("disabled", "#6c757d")],
+        foreground=[("active", "white"), ("disabled", "#dee2e6")],
+    )
+    style.configure(
+        "Horizontal.TProgressbar",
+        background="#2874a6",
+        troughcolor="#dee2e6",
+        borderwidth=0,
+    )
+    style.configure("TCombobox", font=("Noto Sans", 10))
+    style.configure("TNotebook", background=bg, borderwidth=0)
+    style.configure("TNotebook.Tab", font=("Noto Sans", 9), padding=(8, 4))
+    style.map("TNotebook.Tab", background=[("selected", "#ffffff")], foreground=[("selected", "#212529")])
+
+    root.configure(background=bg)
+    return style
+
+
+class APGICard(ttk.Frame):
+    """Standardized information card for APGI applications."""
+
+    def __init__(self, parent: tk.Widget, title: str, value: str, subtitle: str = "", **kwargs: Any) -> None:
+        super().__init__(parent, style="Card.TFrame", **kwargs)
+
+        container = ttk.Frame(self, padding=15, style="Card.TFrame")
+        container.pack(fill="both", expand=True)
+
+        ttk.Label(
+            container,
+            text=title.upper(),
+            font=("Noto Sans", 11, "bold"),
+            background="#ffffff",
+            foreground="#212529",
+        ).pack(anchor="w")
+
+        ttk.Label(
+            container,
+            text=value,
+            font=("Noto Sans Mono", 11),
+            background="#ffffff",
+            foreground="#2874a6",
+            wraplength=600,
+        ).pack(anchor="w", pady=(4, 8))
+
+        if subtitle:
+            ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(0, 6))
+            ttk.Label(
+                container,
+                text=subtitle,
+                font=("Noto Sans", 9, "italic"),
+                background="#ffffff",
+                foreground="#6c757d",
+                wraplength=600,
+            ).pack(anchor="w")
+
+
+# ── Main Application ──────────────────────────────────────────────────────────
 
 
 class APGIValidationGUI:
@@ -153,9 +276,10 @@ class APGIValidationGUI:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("APGI Validation Protocol Runner")
-        self.root.geometry("800x600")
-        self.root.minsize(800, 600)  # Prevent resizing below usable size
+        self.root.geometry("960x720")
+        self.root.minsize(720, 520)
 
+        apply_apgi_theme(self.root)
         self._create_menu_bar()
 
         # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
@@ -383,15 +507,18 @@ class APGIValidationGUI:
         self.root.after(500, self._process_gui_updates)  # Check every 500ms
 
     def _ensure_ui_consistency(self) -> None:
-        """Ensure UI state is consistent with running status"""
+        """Ensure UI state is consistent with running status."""
         try:
-            # Check if widgets exist before accessing
             if hasattr(self, "run_button") and hasattr(self, "stop_button"):
                 if self.is_running:
                     self.run_button.config(state=tk.DISABLED)
+                    if hasattr(self, "run_all_btn"):
+                        self.run_all_btn.config(state=tk.DISABLED)
                     self.stop_button.config(state=tk.NORMAL)
                 else:
                     self.run_button.config(state=tk.NORMAL)
+                    if hasattr(self, "run_all_btn"):
+                        self.run_all_btn.config(state=tk.NORMAL)
                     self.stop_button.config(state=tk.DISABLED)
         except Exception as e:
             logging.error(f"Error ensuring UI consistency: {e}")
@@ -453,148 +580,257 @@ class APGIValidationGUI:
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
-        """Create all GUI widgets with tabbed interface"""
+        """Create all GUI widgets following the APGI three-zone layout."""
 
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky="nsew")
+        _BLUE = "#2874a6"
 
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(1, weight=1)
+        # ── Row 0: Metric bar ─────────────────────────────────────────────
+        metric_bar = tk.Frame(self.root, bg=_BLUE, pady=8, padx=15)
+        metric_bar.grid(row=0, column=0, columnspan=2, sticky="ew")
+        metric_bar.columnconfigure(1, weight=1)
 
-        # Title
-        title_label = ttk.Label(
-            main_frame,
-            text="APGI Validation Protocol Runner",
-            font=("Arial", 16, "bold"),
+        tk.Label(
+            metric_bar,
+            text="APGI VALIDATION PROTOCOLS",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 13, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+
+        self.status_label = tk.Label(
+            metric_bar,
+            text="ℹ  Ready",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 10),
         )
-        title_label.grid(row=0, column=0, pady=(0, 20))
+        self.status_label.grid(row=0, column=1, padx=(20, 15), sticky="e")
 
-        # Create notebook for tabs
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=1, column=0, sticky="nsew")
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(
+            metric_bar,
+            variable=self.progress_var,
+            maximum=100.0,
+            mode="determinate",
+            length=180,
+        )
+        self.progress_bar.grid(row=0, column=2, sticky="e")
 
-        # Validation Tab
-        validation_frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(validation_frame, text="Validation")
+        # ── Root grid weights ─────────────────────────────────────────────
+        self.root.columnconfigure(0, weight=0, minsize=215)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(0, weight=0)
+        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=0)
+        self.root.rowconfigure(3, weight=0, minsize=150)
 
-        # Configure validation tab grid
-        validation_frame.columnconfigure(1, weight=1)
-        validation_frame.rowconfigure(3, weight=1)
+        # ── Row 1, Col 0: Sidebar ─────────────────────────────────────────
+        sidebar = tk.Frame(self.root, bg="#ffffff", width=215, bd=0)
+        sidebar.grid(row=1, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.columnconfigure(0, weight=1)
+        sidebar.rowconfigure(1, weight=1)
 
-        # Protocol selection frame
-        protocol_frame = ttk.LabelFrame(validation_frame, text="Protocol Selection", padding="10")
-        protocol_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
-        protocol_frame.columnconfigure(0, weight=1)
+        tk.Label(
+            sidebar,
+            text="PROTOCOLS",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            pady=5,
+        ).grid(row=0, column=0, columnspan=2, sticky="ew")
 
-        # Protocol checkboxes
-        self.protocol_vars = {}
+        lb_frame = tk.Frame(sidebar, bg="#ffffff")
+        lb_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        lb_frame.columnconfigure(0, weight=1)
+        lb_frame.rowconfigure(0, weight=1)
+
+        self.protocol_listbox = tk.Listbox(
+            lb_frame,
+            font=("Noto Sans", 9),
+            bg="#ffffff",
+            fg="#212529",
+            selectbackground=_BLUE,
+            selectforeground="white",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightcolor="#dee2e6",
+            highlightbackground="#dee2e6",
+            activestyle="none",
+            cursor="hand2",
+            selectmode=tk.MULTIPLE,
+        )
+        lb_scroll = ttk.Scrollbar(lb_frame, orient="vertical", command=self.protocol_listbox.yview)
+        self.protocol_listbox.configure(yscrollcommand=lb_scroll.set)
+        self.protocol_listbox.grid(row=0, column=0, sticky="nsew")
+        lb_scroll.grid(row=0, column=1, sticky="ns")
+
+        # Populate protocol list with BooleanVar tracking
         protocols_info = {
-            1: "Protocol 1: Primary Test (Synthetic EEG ML)",
-            2: "Protocol 2: Secondary Test (Behavioral Bayesian)",
-            3: "Protocol 3: Primary Test (Active Inference Agent)",
-            4: "Protocol 4: Secondary Test (Phase Transition)",
-            5: "Protocol 5: Tertiary Test (Evolutionary Emergence)",
-            6: "Protocol 6: Tertiary Test (Liquid Network)",
-            7: "Protocol 7: Tertiary Test (TMS Causal)",
-            8: "Protocol 8: Secondary Test (Psychophysical Threshold)",
-            9: "Protocol 9: Primary Test (Neural Signatures)",
-            10: "Protocol 10: Priority 2 (Causal Manipulations)",
-            11: "Protocol 11: Priority 3 (MCMC Cultural Neuroscience)",
-            12: "Protocol 12: Clinical/Cross-Species Convergence",
-            13: "Protocol 13: P5-P12 Epistemic Architecture",
-            14: "Protocol 14: Priority 1 (fMRI Anticipation Experience)",
-            15: "Protocol 15: Priority 1 (fMRI Anticipation vmPFC)",
-            16: "Protocol 16: Metabolic ATP Ground-Truth (iATPSnFR2)",
-            17: "Protocol ALL: Master Aggregator (All Protocols)",
+            # ── VP core protocols (canonical EP in brackets) ──────────────────
+            0: "P00: HEP Proxy Validation [EP-0] ⚠",  # D-09: stub — see VP_00
+            1: "P01: Synthetic EEG ML [EP-9]",
+            2: "P02: Behavioral Bayesian [EP-10]",
+            3: "P03: Active Inference [EP-3 / EP-11]",  # D-03: covers both canonical EPs
+            4: "P04: Phase Transition [EP-12]",
+            5: "P05: Evolutionary Emergence [EP-13]",
+            6: "P06: Liquid Network RNN [EP-14]",
+            7: "P07: TMS Causal [EP-2 + EP-7]",  # D-02: dual canonical role
+            70: "P07a: Math Consistency [internal/FP-07]",  # D-04: internal; see also FP-07
+            8: "P08: Psychophysical Threshold [EP-8]",
+            9: "P09: Neural Signatures [EP-0 partial]",
+            10: "P10: Causal Manipulations [XP-07: ext. EP-7]",  # D-11: extended; see VP_10
+            11: "P11: MCMC Cultural Neuro [XP-11: ext. EP-11]",  # D-11: extended; see VP_11
+            12: "P12: Clinical Cross-Species [EP-4 partial]",
+            13: "P13: Epistemic Architecture [EP-12 partial]",
+            14: "P14: fMRI Anticipation [EP-5 superseded → VP-22]",  # D-05
+            15: "P15: fMRI vmPFC [EP-5 ext.]",
+            16: "P16: Metabolic ATP [P4-Prog1]",
+            17: "P17: Allen Visual Coding [P4-Prog4 approx.]",
+            18: "P18: EEG Microstate GFP [P4-Prog2]",
+            19: "P19: Info Erasure MVPA [XP-12: ext. EP-12]",  # D-11: extended; see VP_19
+            20: "P20: Empirical iEEG [EP-6 partial]",
+            21: "P21: Free Energy Pred. Error [XP-11-FEP: ext. EP-11]",  # D-11: see VP_21
+            22: "P22: fMRI Anticipation [EP-5 canonical]",  # D-05: canonical EP-5 (VP-22)
+            99: "P-ALL: Master Aggregator",
+            # ── T series: canonical EP protocols (stub / redirect) ─────────────
+            # D-01: restore canonical entries removed from sidebar
+            101: "T01 [EP-1]: EEG Interoceptive Gating ⚠",  # no file — stub
+            102: "T02 [EP-2]: TMS Anterior Insular → VP-07",  # redirects to VP_07
+            103: "T03 [EP-3/11]: Active Inference → VP-03",  # redirects to VP_03
+            104: "T04 [EP-4]: Disorders of Consciousness ⚠",  # no file — stub
+            105: "T05 [EP-5]: fMRI Anticipation vs Exp → VP-22",  # redirects to VP_22 (canonical)
+            106: "T06 [EP-6]: iEEG Ignition Dynamics → VP-20",  # redirects to VP_20
+            # ── P4 programming protocols (unimplemented entries) ──────────────
+            107: "P4-Prog3: PET Metabolic Rate Comparison ⚠",  # D-10: no file yet
         }
+        self.protocol_vars = {}
+        self._protocol_nums: List[int] = []
 
-        for i, (num, desc) in enumerate(protocols_info.items()):
+        for num, desc in protocols_info.items():
             var = tk.BooleanVar(value=True)
             self.protocol_vars[num] = var
+            self.protocol_listbox.insert(tk.END, desc)
+            self._protocol_nums.append(num)
 
-            cb = ttk.Checkbutton(protocol_frame, text=desc, variable=var)
-            cb.grid(row=i // 2, column=(i % 2) * 2, sticky=tk.W, padx=5, pady=2)
+        self.protocol_listbox.select_set(0, tk.END)
+        self.protocol_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
 
-        # Select All / Deselect All buttons frame
-        select_frame = ttk.Frame(protocol_frame)
-        select_frame.grid(
-            row=(len(protocols_info) + 1) // 2,
-            column=0,
-            columnspan=4,
-            pady=(10, 0),
+        # Sidebar action buttons
+        btn_area = tk.Frame(sidebar, bg="#ffffff", pady=8, padx=8)
+        btn_area.grid(row=2, column=0, columnspan=2, sticky="ew")
+        btn_area.columnconfigure(0, weight=1)
+
+        self.run_button = ttk.Button(
+            btn_area,
+            text="▶  Run Selected",
+            command=self.run_validation,
+            style="Primary.TButton",
+            cursor="hand2",
+        )
+        self.run_button.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+
+        self.run_all_btn = ttk.Button(
+            btn_area,
+            text="Run All",
+            command=self.run_all_scripts,
+            style="Secondary.TButton",
+            cursor="hand2",
+        )
+        self.run_all_btn.grid(row=1, column=0, sticky="ew", pady=(0, 4))
+
+        self.stop_button = ttk.Button(
+            btn_area,
+            text="■  Stop",
+            command=self.stop_validation,
+            style="Danger.TButton",
+            cursor="hand2",
+            state=tk.DISABLED,
+        )
+        self.stop_button.grid(row=2, column=0, sticky="ew", pady=(0, 8))
+
+        ttk.Separator(btn_area, orient="horizontal").grid(row=3, column=0, sticky="ew", pady=(0, 6))
+
+        ttk.Button(btn_area, text="Select All", command=self.select_all_protocols).grid(
+            row=4, column=0, sticky="ew", pady=(0, 4)
+        )
+        ttk.Button(btn_area, text="Deselect All", command=self.deselect_all_protocols).grid(
+            row=5, column=0, sticky="ew", pady=(0, 8)
         )
 
-        ttk.Button(select_frame, text="Select All", command=self.select_all_protocols).grid(row=0, column=0, padx=5)
-        ttk.Button(select_frame, text="Deselect All", command=self.deselect_all_protocols).grid(row=0, column=1, padx=5)
+        ttk.Separator(btn_area, orient="horizontal").grid(row=6, column=0, sticky="ew", pady=(0, 6))
 
-        # Control buttons frame
-        control_frame = ttk.Frame(validation_frame)
-        control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        self.save_button = ttk.Button(btn_area, text="Save Results", command=self.save_results)
+        self.save_button.grid(row=7, column=0, sticky="ew")
 
-        self.run_button = ttk.Button(control_frame, text="Run Validation", command=self.run_validation)
-        self.run_button.grid(row=0, column=0, padx=5)
+        # Sidebar right border divider
+        tk.Frame(self.root, bg="#dee2e6", width=1).grid(row=1, column=0, sticky="nse")
 
-        self.stop_button = ttk.Button(control_frame, text="Stop", command=self.stop_validation, state=tk.DISABLED)
-        self.stop_button.grid(row=0, column=1, padx=5)
+        # ── Row 1, Col 1: Workspace ───────────────────────────────────────
+        workspace = ttk.Frame(self.root, padding=(15, 10, 15, 10))
+        workspace.grid(row=1, column=1, sticky="nsew")
+        workspace.columnconfigure(0, weight=1)
+        workspace.rowconfigure(0, weight=0)
+        workspace.rowconfigure(1, weight=1)
 
-        self.save_button = ttk.Button(control_frame, text="Save Results", command=self.save_results)
-        self.save_button.grid(row=0, column=2, padx=5)
+        # Status card (row 0)
+        self._card_area = ttk.Frame(workspace)
+        self._card_area.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self._card_area.columnconfigure(0, weight=1)
+        self._show_workspace_status_card()
 
-        # Progress bar
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(validation_frame, variable=self.progress_var, maximum=100, length=400)
-        self.progress_bar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        # Notebook (row 1) — all secondary tabs
+        self.notebook = ttk.Notebook(workspace)
+        self.notebook.grid(row=1, column=0, sticky="nsew")
 
-        # Status label
-        self.status_label = ttk.Label(validation_frame, text="Ready to run validation", font=("Arial", 10))
-        self.status_label.grid(row=3, column=0, columnspan=2, pady=(0, 10))
+        # ── Validation summary tab ──
+        validation_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(validation_frame, text="Validation")
+        validation_frame.columnconfigure(0, weight=1)
+        validation_frame.rowconfigure(0, weight=1)
 
-        # Results text area
-        results_frame = ttk.LabelFrame(validation_frame, text="Validation Results", padding="10")
-        results_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
-        results_frame.columnconfigure(0, weight=1)
-        results_frame.rowconfigure(0, weight=1)
+        summary_lf = ttk.LabelFrame(validation_frame, text="SUMMARY", padding="10")
+        summary_lf.grid(row=0, column=0, sticky="nsew")
+        summary_lf.columnconfigure(0, weight=1)
 
-        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
-        self.results_text.grid(row=0, column=0, sticky="nsew")
+        self.summary_label = ttk.Label(
+            summary_lf,
+            text="No validation run yet",
+            font=("Noto Sans", 10),
+            foreground="#6c757d",
+            wraplength=500,
+            justify="left",
+        )
+        self.summary_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
 
-        # Summary frame
-        summary_frame = ttk.LabelFrame(validation_frame, text="Validation Summary", padding="10")
-        summary_frame.grid(row=5, column=0, columnspan=2, sticky="ew")
+        ttk.Button(
+            summary_lf,
+            text="Show Import Status",
+            command=self.show_import_status,
+        ).grid(row=1, column=0, sticky="w")
 
-        self.summary_label = ttk.Label(summary_frame, text="No validation run yet", font=("Arial", 10))
-        self.summary_label.grid(row=0, column=0)
-
-        # Parameter Exploration Tab
+        # ── Parameter Exploration tab ──
         exploration_frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(exploration_frame, text="Parameter Exploration")
-
+        self.notebook.add(exploration_frame, text="Parameters")
         self.create_parameter_exploration_widgets(exploration_frame)
 
-        # Settings Tab
+        # ── Settings tab ──
         settings_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(settings_frame, text="Settings")
-
         self.create_settings_widgets(settings_frame)
 
-        # Data Export Tab
+        # ── Data Export tab ──
         export_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(export_frame, text="Data Export")
-
         self.create_export_widgets(export_frame)
 
-        # Alerts Tab
+        # ── Alerts tab ──
         alerts_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(alerts_frame, text="Alerts")
-
         self.create_alerts_widgets(alerts_frame)
 
-        # Parameter configurations for validation
-        parameters = {
+        # Parameter configurations for bound enforcement
+        self.param_configs = {
             "tau_S": {
                 "label": "Surprise Time Constant (τ_S)",
                 "min": 0.1,
@@ -625,7 +861,96 @@ class APGIValidationGUI:
             },
         }
 
-        self.param_configs = parameters  # Store configs for bound enforcement
+        # ── Row 2: Console toggle header ──────────────────────────────────
+        self._console_visible = True
+        console_header = tk.Frame(self.root, bg="#dee2e6", pady=3)
+        console_header.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+        self._console_toggle_btn = tk.Button(
+            console_header,
+            text="▼  OUTPUT CONSOLE",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            command=self._toggle_console,
+            activebackground="#dee2e6",
+            activeforeground="#495057",
+            bd=0,
+        )
+        self._console_toggle_btn.pack(side="left", padx=10)
+
+        tk.Button(
+            console_header,
+            text="Clear",
+            bg="#dee2e6",
+            fg="#6c757d",
+            font=("Noto Sans", 9),
+            relief="flat",
+            cursor="hand2",
+            command=self.clear_output,
+            activebackground="#dee2e6",
+            bd=0,
+        ).pack(side="right", padx=10)
+
+        # ── Row 3: Console body ───────────────────────────────────────────
+        self._console_frame = ttk.Frame(self.root, padding=(10, 0, 10, 8))
+        self._console_frame.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self._console_frame.columnconfigure(0, weight=1)
+        self._console_frame.rowconfigure(0, weight=1)
+
+        self.results_text = scrolledtext.ScrolledText(
+            self._console_frame,
+            height=9,
+            font=("Noto Sans Mono", 9),
+            bg="#212529",
+            fg="#f8f9fa",
+            insertbackground="#f8f9fa",
+            relief="flat",
+            borderwidth=0,
+        )
+        self.results_text.grid(row=0, column=0, sticky="nsew")
+
+        self._setup_tab_order()
+
+    # ── Layout helpers ────────────────────────────────────────────────────────
+
+    def _show_workspace_status_card(self) -> None:
+        """Show a static info card in the workspace header area."""
+        for w in self._card_area.winfo_children():
+            w.destroy()
+        APGICard(
+            self._card_area,
+            title="Validation Suite",
+            value=f"{len(protocol_files)} Protocols Available",
+            subtitle=(
+                "Select protocols from the sidebar, then click ▶ Run Selected "
+                "or Run All. Output streams to the console below."
+            ),
+        ).pack(fill="x")
+
+    def _toggle_console(self) -> None:
+        """Toggle visibility of the output console."""
+        if self._console_visible:
+            self._console_frame.grid_remove()
+            self._console_toggle_btn.config(text="▶  OUTPUT CONSOLE")
+            self._console_visible = False
+        else:
+            self._console_frame.grid()
+            self._console_toggle_btn.config(text="▼  OUTPUT CONSOLE")
+            self._console_visible = True
+
+    def _on_listbox_select(self, event: Any = None) -> None:
+        """Sync protocol BooleanVars to the current listbox selection."""
+        selected_indices = set(self.protocol_listbox.curselection())
+        for idx, num in enumerate(self._protocol_nums):
+            if num in self.protocol_vars:
+                self.protocol_vars[num].set(idx in selected_indices)
+
+    def _setup_tab_order(self) -> None:
+        """Initialise tab-order tracking list (populated lazily)."""
+        self._tab_widgets: List[tk.Widget] = []
 
     def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
         """Create parameter exploration widgets"""
@@ -932,12 +1257,8 @@ class APGIValidationGUI:
             buttons_frame,
             text="📄 Generate PDF Report",
             command=self.generate_enhanced_report,
-        ).grid(row=1, column=0, pady=5, padx=5)
-        ttk.Button(buttons_frame, text="📧 Email Report", command=self.email_report).grid(
-            row=1, column=1, pady=5, padx=5
-        )
+        ).grid(row=1, column=0, columnspan=2, pady=5, padx=5)
 
-        # Historical Analysis Section
         analysis_frame = ttk.LabelFrame(parent_frame, text="Historical Analysis", padding="10")
         analysis_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         analysis_frame.columnconfigure(1, weight=1)
@@ -1273,11 +1594,6 @@ class APGIValidationGUI:
 
         except Exception as e:
             messagebox.showerror("Report Error", f"Failed to generate enhanced report: {e}")
-
-    def email_report(self):
-        """Email report functionality (placeholder)."""
-        messagebox.showinfo("Email Report", "Email functionality would be implemented here")
-        self.export_results_text.insert(tk.END, "📧 Email report feature coming soon\n")
         self.export_results_text.see(tk.END)
 
     def analyze_trends(self):
@@ -1473,11 +1789,11 @@ class APGIValidationGUI:
         return {
             "cpu": {
                 "direction": ("increasing" if cpu_change > 5 else "decreasing" if cpu_change < -5 else "stable"),
-                "change": f"{cpu_change:+.1f}%",
+                "change": cpu_change,
             },
             "memory": {
                 "direction": ("increasing" if mem_change > 5 else "decreasing" if mem_change < -5 else "stable"),
-                "change": f"{mem_change:+.1f}%",
+                "change": mem_change,
             },
         }
 
@@ -1498,7 +1814,7 @@ class APGIValidationGUI:
         return {
             "success_rate": {
                 "direction": ("improving" if change > 5 else "declining" if change < -5 else "stable"),
-                "change": f"{change:+.1f}%",
+                "change": change,
             }
         }
 
@@ -1862,12 +2178,18 @@ class APGIValidationGUI:
             # Get selected protocols with validation
             selected_protocols: List[int] = [num for num, var in self.protocol_vars.items() if var.get()]
 
-            # Validate protocol numbers
+            # Validate protocol numbers.
+            # Extended set: 0 = EP-0 stub, 70 = VP_07a, 99 = ALL aggregator,
+            # 101–106 = T-series canonical EP stubs/redirects (D-01 fix),
+            # 107 = P4-Prog3 stub (D-10).
+            _EXTENDED_NUMS = frozenset({0, 70, 99, 101, 102, 103, 104, 105, 106, 107})
             for protocol_num in selected_protocols:
-                if not isinstance(protocol_num, int) or protocol_num not in self.validator.PROTOCOL_TIERS:
+                if protocol_num in _EXTENDED_NUMS:
+                    continue
+                if not isinstance(protocol_num, int) or protocol_num < 1 or protocol_num > 22:
                     messagebox.showerror(
                         "Error",
-                        f"Invalid protocol number: {protocol_num}. Must be between 1 and {len(self.validator.PROTOCOL_TIERS)}.",
+                        f"Invalid protocol number: {protocol_num}. Must be between 1 and 22.",
                     )
                     return
 
@@ -1890,6 +2212,8 @@ class APGIValidationGUI:
 
             # Make UI state changes atomically
             self.run_button.config(state=tk.DISABLED)
+            if hasattr(self, "run_all_btn"):
+                self.run_all_btn.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.NORMAL)
             self.results_text.delete(1.0, tk.END)
             self.progress_var.set(0)
@@ -2002,36 +2326,76 @@ Interpretation:
             self.update_results(f"\n--- Protocol {protocol_num} ---\n")
             logging.info(f"Starting Protocol {protocol_num}")
 
-            # Protocol file mapping
-            protocol_files = [
-                (1, "VP_01_SyntheticEEG_MLClassification.py"),
-                (2, "VP_02_Behavioral_BayesianComparison.py"),
-                (3, "VP_03_ActiveInference_AgentSimulations.py"),
-                (4, "VP_04_PhaseTransition_EpistemicLevel2.py"),
-                (5, "VP_05_EvolutionaryEmergence.py"),
-                (6, "VP_06_LiquidNetwork_InductiveBias.py"),
-                (7, "VP_07_TMS_CausalInterventions.py"),
-                (8, "VP_08_Psychophysical_ThresholdEstimation.py"),
-                (9, "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
-                (10, "VP_10_CausalManipulations_Priority2.py"),
-                (11, "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
-                (12, "VP_12_Clinical_CrossSpecies_Convergence.py"),
-                (13, "VP_13_Epistemic_Architecture.py"),
-                (14, "VP_14_fMRI_Anticipation_Experience.py"),
-                (15, "VP_15_fMRI_Anticipation_vmPFC.py"),
-                (16, "VP_16_Metabolic_ATP_GroundTruth.py"),
-                (17, "VP_17_AllenVisualCoding_Fatigue.py"),
-                (18, "VP_18_EEG_Microstate_GFP_P3b.py"),
-                (19, "VP_19_InformationErasure_MVPA.py"),
-                (20, "VP_20_Empirical_iEEG.py"),
-                (21, "VP_21_FreeEnergy_PredictionError.py"),
-                (22, "VP_ALL_Aggregator.py"),
-            ]
+            # Protocol file mapping — dict-keyed so sparse numbers (0, 70, 99, 101-107) work.
+            # 0 = EP-0 stub; T-series (101-106): None = unimplemented, string = redirect.
+            # 107 = P4-Prog3 stub (D-10).
+            protocol_file_map = {
+                0: "VP_00_HEPProxyValidation.py",  # EP-0 stub (D-09)
+                1: "VP_01_SyntheticEEGMLClassification.py",
+                2: "VP_02_BehavioralBayesianComparison.py",
+                3: "VP_03_ActiveInferenceAgentSimulations.py",
+                4: "VP_04_PhaseTransitionEpistemicLevel2.py",
+                5: "VP_05_EvolutionaryEmergence.py",
+                6: "VP_06_LiquidNetworkInductiveBias.py",
+                7: "VP_07_TMSCausalInterventions.py",
+                70: "VP_07a_MathematicalConsistency.py",
+                8: "VP_08_PsychophysicalThresholdEstimation.py",
+                9: "VP_09_NeuralSignaturesEmpiricalPriority1.py",
+                10: "VP_10_CausalManipulationsPriority2.py",
+                11: "VP_11_MCMCCulturalNeurosciencePriority3.py",
+                12: "VP_12_ClinicalCrossSpeciesConvergence.py",
+                13: "VP_13_EpistemicArchitecture.py",
+                14: "VP_14_FMRIAnticipationExperience.py",
+                15: "VP_15_FMRIAnticipationVmPFC.py",
+                16: "VP_16_MetabolicATPGroundTruth.py",
+                17: "VP_17_AllenVisualCodingFatigue.py",
+                18: "VP_18_EEGMicrostateGFPP3b.py",
+                19: "VP_19_InformationErasureMVPA.py",
+                20: "VP_20_EmpiricalIEEG.py",
+                21: "VP_21_FreeEnergyPredictionError.py",
+                22: "VP_22_FMRIAnticipationExperience.py",
+                99: "VP_ALL_Aggregator.py",
+                # T-series: canonical EP entries (D-01 fix)
+                101: None,  # EP-1 stub — no implementation yet
+                102: "VP_07_TMSCausalInterventions.py",  # EP-2 redirect → VP_07
+                103: "VP_03_ActiveInferenceAgentSimulations.py",  # EP-3/11 redirect → VP_03
+                104: None,  # EP-4 stub — no implementation yet
+                105: "VP_22_FMRIAnticipationExperience.py",  # EP-5 redirect → VP_22 (canonical)
+                106: "VP_20_EmpiricalIEEG.py",  # EP-6 redirect → VP_20
+                107: None,  # P4-Prog3 stub — no file yet (D-10)
+            }
 
-            if protocol_num < 1 or protocol_num > len(protocol_files):
+            # Human-readable labels for stub protocols (None file entries)
+            _T_STUB_LABELS = {
+                101: "T01 [EP-1]: EEG Interoceptive Precision Gating",
+                104: "T04 [EP-4]: Disorders of Consciousness — Ignition Capacity + Interoceptive Precision",
+                107: "P4-Prog3: PET Metabolic Rate Comparison",
+            }
+            _T_REDIRECT_LABELS = {
+                102: ("T02 [EP-2]: TMS Anterior Insular", "VP_07"),
+                103: ("T03 [EP-3/EP-11]: Active Inference", "VP_03"),
+                105: ("T05 [EP-5]: fMRI Anticipation vs Experience", "VP_22"),
+                106: ("T06 [EP-6]: iEEG Ignition Dynamics", "VP_20"),
+            }
+
+            if protocol_num not in protocol_file_map:
                 raise ValueError(f"Invalid protocol number: {protocol_num}")
 
-            protocol_file = protocol_files[protocol_num - 1][1]
+            protocol_file = protocol_file_map[protocol_num]
+
+            # Handle T-series stubs (no implementation file yet)
+            if protocol_file is None:
+                label = _T_STUB_LABELS.get(protocol_num, f"Protocol {protocol_num}")
+                self.update_results(f"⚠  {label}: not yet implemented — stub entry only.\n")
+                self.update_results("   This canonical EP has no implementation file.\n")
+                self.update_status(f"Protocol {protocol_num}: stub — skipped")
+                return
+
+            # Log T-series redirects so the user knows which VP is actually running
+            if protocol_num in _T_REDIRECT_LABELS:
+                t_label, vp_label = _T_REDIRECT_LABELS[protocol_num]
+                self.update_results(f"ℹ  {t_label}: redirecting → {vp_label}\n")
+
             protocol_path = Path(__file__).parent / "Validation" / protocol_file
 
             if not protocol_path.exists():
@@ -2133,21 +2497,52 @@ Interpretation:
 
         # 1. First priority: Check the structured protocol_result object
         passed = False
-        # Check for explicit success indicators in the returned dictionary
-        passed = (
-            protocol_result.get("passed") is True
-            or protocol_result.get("success") is True
-            or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
-        )
 
-        # If the protocol explicitly returned a non-success status, override
-        if protocol_result.get("status") in [
-            "FAILED",
-            "failed",
-            "error",
-            "falsified",
-        ]:
-            passed = False
+        # Handle both dict and ProtocolResult objects
+        if isinstance(protocol_result, dict):
+            # Dictionary format
+            passed = (
+                protocol_result.get("passed") is True
+                or protocol_result.get("success") is True
+                or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
+            )
+
+            # If the protocol explicitly returned a non-success status, override
+            if protocol_result.get("status") in [
+                "FAILED",
+                "failed",
+                "error",
+                "falsified",
+            ]:
+                passed = False
+        else:
+            # ProtocolResult object (from schema)
+            try:
+                from utils.protocol_schema import ProtocolResult
+
+                if isinstance(protocol_result, ProtocolResult):
+                    # Check status attribute
+                    passed = protocol_result.status in ["success", "PASSED", "success_validated"]
+
+                    # Check if any named predictions failed
+                    if protocol_result.named_predictions:
+                        passed = all(pred.passed for pred in protocol_result.named_predictions.values())
+
+                    # Check metadata for passed flag
+                    if protocol_result.metadata.get("passed") is False:
+                        passed = False
+            except ImportError:
+                # If schema not available, try to convert to dict
+                if hasattr(protocol_result, "to_dict"):
+                    protocol_result = protocol_result.to_dict()
+                    passed = (
+                        protocol_result.get("passed") is True
+                        or protocol_result.get("success") is True
+                        or protocol_result.get("status") in ["PASSED", "success", "success_validated"]
+                    )
+                else:
+                    # Fallback: try attribute access
+                    passed = getattr(protocol_result, "passed", False) or getattr(protocol_result, "success", False)
 
             # (This is more primitive and error-prone, so used as fallback)
             # Look for success markers in output
@@ -2492,7 +2887,9 @@ Interpretation:
                     # Brief wait for clean exit (reduced from 5s to 0.5s)
                     self.validation_thread.join(timeout=0.5)
                     if self.validation_thread.is_alive():
-                        logging.warning("Validation thread did not stop cleanly within timeout")
+                        logging.debug(
+                            "Validation thread did not stop cleanly within timeout (daemon thread will die with process)"
+                        )
                         # Don't block - the thread is daemon and will die with process
                     else:
                         logging.info("Validation thread stopped successfully")
@@ -2842,27 +3239,31 @@ Interpretation:
         self.stop_validation()
 
     def select_all_protocols(self) -> None:
-        """Select all protocol checkboxes."""
+        """Select all protocols."""
         for var in self.protocol_vars.values():
             var.set(True)
+        if hasattr(self, "protocol_listbox"):
+            self.protocol_listbox.select_set(0, tk.END)
         logging.info("All protocols selected")
 
     def deselect_all_protocols(self) -> None:
-        """Deselect all protocol checkboxes."""
+        """Deselect all protocols."""
         for var in self.protocol_vars.values():
             var.set(False)
+        if hasattr(self, "protocol_listbox"):
+            self.protocol_listbox.select_clear(0, tk.END)
         logging.info("All protocols deselected")
 
     def clear_output(self) -> None:
-        """Clear the output text widgets."""
+        """Clear the console and reset status indicators."""
         if hasattr(self, "results_text"):
             self.results_text.delete(1.0, tk.END)
         if hasattr(self, "param_results_text"):
             self.param_results_text.delete(1.0, tk.END)
         if hasattr(self, "summary_label"):
-            self.summary_label.config(text="No validation run yet")
+            self.summary_label.config(text="No validation run yet", foreground="#6c757d")
         if hasattr(self, "status_label"):
-            self.status_label.config(text="Ready to run validation")
+            self.status_label.config(text="ℹ  Ready")
         if hasattr(self, "progress_var"):
             self.progress_var.set(0)
 
@@ -2938,7 +3339,7 @@ Interpretation:
                 if hasattr(self.validator, "generate_master_report"):
                     report = self.validator.generate_master_report()
                     summary = Paragraph(
-                        f"Overall Decision: {report.overall_decision}",
+                        f"Overall Decision: {report['overall_decision']}",
                         styles["Heading2"],
                     )
                     story.append(summary)
@@ -3037,8 +3438,8 @@ def run_headless() -> None:
 
             # Generate master report
             report = validator.generate_master_report()
-            logger.info(f"Overall Decision: {report.overall_decision}")
-            logger.info(f"Protocols Passed: {report.passed_protocols}/{report.completed_protocols}")
+            logger.info(f"Overall Decision: {report['overall_decision']}")
+            logger.info(f"Protocols Passed: {report['passed_protocols']}/{report['completed_protocols']}")
 
         except Exception as e:
             logger.error(f"Error running protocols: {e}")

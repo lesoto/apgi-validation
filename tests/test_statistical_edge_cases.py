@@ -193,7 +193,7 @@ class TestStatisticalEdgeCases:
 
         # Test with wrong type
         with pytest.raises(ValueError, match="must be an array or list"):
-            validate_sample_array("not_an_array", min_n=2, name="test")
+            validate_sample_array(["not_an_array"], min_n=2, name="test")
 
     def test_validate_paired_arrays_mismatched_lengths(self):
         """Test paired array validation with mismatched lengths."""

@@ -520,3 +520,56 @@ if __name__ == "__main__":
                 print(f"  {feat}: {imp:.3f}")
         print("\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations")
         print("(e.g., interoceptive training) are needed for full identifiability.")
+
+
+class MultimodalClassifierModule:
+    """TheoryModuleInterface implementation for multimodal APGI classifier."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        stratifier = APGIMechanisticStratifier()
+        return stratifier.stratify(APGIBayesianInversion().get_prior_params())
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "MMC-1": {
+                "description": "Multimodal classifier achieves AUC > 0.80 on consciousness-level stratification",
+                "threshold": "AUC > 0.80 (vs AUC = 0.50 chance)",
+                "test": "ROC analysis on held-out test set",
+            },
+            "MMC-2": {
+                "description": "HEP + cardiac phase features add ≥ 5% AUC over EEG-only baseline",
+                "threshold": "ΔAUC ≥ 0.05",
+                "test": "DeLong test for correlated AUCs",
+            },
+            "MMC-3": {
+                "description": "Bayesian inversion recovers π_i within 20% of ground truth",
+                "threshold": "< 20% relative error on parameter recovery",
+                "test": "Parameter recovery on synthetic data with known π_i",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-MultimodalClassifier", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()

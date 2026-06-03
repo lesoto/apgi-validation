@@ -213,7 +213,7 @@ class TestPathValidationEdgeCases:
     def test_none_path(self):
         """Test None path rejection."""
         with pytest.raises(TypeError):
-            validate_file_path(None)
+            validate_file_path(None, PROJECT_ROOT)
 
     def test_path_with_spaces(self, temp_dir):
         """Test paths with spaces are handled correctly."""

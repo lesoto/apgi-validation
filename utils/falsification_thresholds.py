@@ -1141,3 +1141,20 @@ V15_ANTICIPATORY_WINDOW_MS: tuple = (
     0,
 )  # Anticipatory window: -500 to 0 ms pre-stimulus
 V15_ALPHA: float = 0.05  # Significance level for VP-15 tests
+
+# ---------------------------------------------------------------------------
+# FP5 – Evolutionary Emergence (VP_05)
+# ---------------------------------------------------------------------------
+FP5_MIN_APGI_DOMINANCE_PCT: float = 80.0  # Pred 13.B: >80% population with all APGI components by gen 300
+FP5_TARGET_GENERATION: int = 300  # Pred 13.B: fixation target generation per APGI spec
+FP5_FALSIFICATION_GENERATION: int = 500  # Pred 13.1: threshold must reach >60% by gen 500 or falsified
+FP5_FALSIFICATION_MIN_FREQ: float = 60.0  # Pred 13.1: minimum threshold-mechanism frequency at gen 500
+FP5_VOLATILE_ENV_ADVANTAGE_MIN_PCT: float = 20.0  # ≥20% advantage in volatile environments
+FP5_MIN_POPULATION_SIZE: int = 1000
+FP5_MIN_GENERATIONS: int = 500  # Run at least to falsification boundary
+
+# ---------------------------------------------------------------------------
+# P6 / CE – Credibility Evidence thresholds
+# ---------------------------------------------------------------------------
+P6_CE_BF10_MIN: float = 6.0  # CE status default per-subprediction threshold (Preds 5.A, 5.B, 5.D)
+P6_CE_BF10_PRED5C: float = 10.0  # Pred 5.C bifurcation criterion — highest BF threshold per APGI spec

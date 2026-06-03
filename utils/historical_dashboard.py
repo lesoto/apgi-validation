@@ -857,6 +857,16 @@ class HistoricalDashboard:
 
             self.app.run_server(host=host, port=self.port, debug=False, use_reloader=False)
 
+        except OSError as e:
+            if "Address already in use" in str(e):
+                if apgi_logger:
+                    apgi_logger.logger.info(
+                        f"Historical dashboard already running on port {self.port}; skipping duplicate start."
+                    )
+            else:
+                if apgi_logger:
+                    apgi_logger.logger.error(f"Error running historical dashboard: {e}")
+                raise
         except Exception as e:
             if apgi_logger:
                 apgi_logger.logger.error(f"Error running historical dashboard: {e}")

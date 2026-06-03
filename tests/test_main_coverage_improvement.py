@@ -314,7 +314,7 @@ class TestAPGIModuleLoader:
 
             # Mock the config to expect a class that doesn't exist
             loader._module_configs["test"] = {
-                "path": test_module_path,
+                "path": str(test_module_path),
                 "class": "NonExistentClass",
             }
 

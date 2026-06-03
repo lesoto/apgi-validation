@@ -184,13 +184,14 @@ class TestErrorHandlerCoverage:
     def test_all_error_categories(self):
         """Test instantiation of all error categories"""
         from utils.error_handler import APGIError, ErrorCategory, ErrorInfo, ErrorSeverity
+        from utils.errors import ErrorCode
 
         for category in ErrorCategory:
             for severity in ErrorSeverity:
                 error_info = ErrorInfo(
                     category=category,
                     severity=severity,
-                    code=f"TEST_{category.value}",
+                    code=ErrorCode.GEN_UNKNOWN,
                     message=f"Test error for {category.value}",
                 )
 
@@ -201,6 +202,7 @@ class TestErrorHandlerCoverage:
     def test_apgi_error_with_context(self):
         """Test APGIError with full context"""
         from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
+        from utils.errors import ErrorCode
 
         error = APGIError(
             message="Test message",
@@ -208,7 +210,7 @@ class TestErrorHandlerCoverage:
             category=ErrorCategory.VALIDATION,
             context={"key": "value", "number": 42},
             suggestion="Try this fix",
-            error_code="TEST_001",
+            error_code=ErrorCode.GEN_UNKNOWN,
         )
 
         assert error.message == "Test message"

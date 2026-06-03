@@ -1258,6 +1258,58 @@ def get_implementation_metadata() -> Dict[str, Any]:
     }
 
 
+class CulturalNeuroscienceModule:
+    """TheoryModuleInterface implementation for cultural neuroscience predictions."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return validate_cultural_modulation_effects()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "CULT-1": {
+                "description": "Cultural context modulates interoceptive precision (π_i) with effect size > 0.3",
+                "threshold": "Cohen's d > 0.3 for high vs low interoceptive-culture contrast",
+                "test": "Two-sample t-test or Mann-Whitney U on π_i estimates",
+            },
+            "CULT-2": {
+                "description": "APGI model predicts cross-cultural affect labelling accuracy > 60%",
+                "threshold": "Prediction accuracy > 60% (above chance 33% for 3-way)",
+                "test": "Cross-validated classification on held-out cultural groups",
+            },
+            "CULT-3": {
+                "description": "Contemplative practice shifts π_i in predicted direction",
+                "threshold": "Pre-post Cohen's d > 0.4 for meditation vs control",
+                "test": "Paired t-test on π_i change scores",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-CulturalNeuroscience", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     print("Running APGI Cultural Neuroscience Validation...")
 

@@ -65,7 +65,7 @@ class TestValidateSpecparamFit:
 
     def test_valid_fit(self):
         """Test validation of good fit."""
-        results = {
+        results: dict[str, float | bool | str] = {
             "aperiodic_exponent": -1.5,
             "aperiodic_offset": 1.0,
             "r_squared": 0.95,
@@ -76,7 +76,7 @@ class TestValidateSpecparamFit:
 
     def test_invalid_fit_with_error(self):
         """Test validation of fit with error."""
-        results = {
+        results: dict[str, float | bool | str] = {
             "aperiodic_exponent": -1.5,
             "error": True,
             "error_message": "Fit failed",

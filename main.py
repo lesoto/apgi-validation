@@ -47,6 +47,10 @@ console = Console(
 # Global project root
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
+from utils.runtime_environment import configure_runtime_environment
+
+configure_runtime_environment(PROJECT_ROOT)
+
 # Threading lock for global configuration
 _config_lock = threading.RLock()
 
@@ -668,8 +672,10 @@ def formal_model(
     start_time = time.time()
 
     module_info = module_loader.get_module("formal_model")
-    if not module_info:
-        error_msg = "Formal model module not found"
+    # D-06: guard against loader returning a dict with module=None on import failure
+    if not module_info or module_info.get("module") is None:
+        load_err = (module_info or {}).get("error", "module not found")
+        error_msg = f"Formal model module unavailable: {load_err}"
         console.print(f"[red]❌ Error: {error_msg}[/red]")
         apgi_logger.logger.error(error_msg)
         return
@@ -734,7 +740,7 @@ def formal_model(
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
                     try:
-                        from Validation.VP_07_TMS_CausalInterventions import HierarchicalProcessingValidator
+                        from Validation.VP_07_TMSCausalInterventions import HierarchicalProcessingValidator
 
                         validator = HierarchicalProcessingValidator()
                         validation_result = validator.validate()
@@ -779,8 +785,11 @@ def formal_model(
                                         "warning",
                                     )
 
-                    except ImportError:
-                        console.print("[yellow]⚠️  Parameter validator not available, skipping validation[/yellow]")
+                    except (ImportError, AttributeError, RuntimeError, TypeError) as _ve:
+                        # D-06: VP_07 may be unavailable or partially broken — skip validation gracefully
+                        console.print(
+                            f"[yellow]⚠️  Parameter validator not available ({type(_ve).__name__}), skipping validation[/yellow]"
+                        )
                         console.print(f"[green]✓[/green] Loaded custom parameters from {params}")
 
                         # Update model parameters with custom values (no validation)
@@ -2558,6 +2567,15 @@ def monitor_performance(
         apgi_logger.logger.error(f"Performance monitoring error: {e}")
 
 
+# D-12: meta-files and aggregators excluded from auto-discovered protocol runs.
+# Add filenames here to prevent them being picked up by the glob-based validate command.
+_EXCLUDED_PROTOCOLS: frozenset = frozenset(
+    {
+        "VP_ALL_Aggregator.py",  # aggregator — not a standalone runnable protocol
+    }
+)
+
+
 def _list_protocols(validation_dir: Path) -> List[str]:
     """List available validation protocols.
 
@@ -2565,12 +2583,25 @@ def _list_protocols(validation_dir: Path) -> List[str]:
         validation_dir: Directory containing validation protocol files
 
     Returns:
-        List of protocol filenames matching VP_*.py pattern
+        List of protocol filenames matching VP_*.py pattern, excluding aggregators
     """
     protocols = []
     for file_path in validation_dir.glob("VP_*.py"):
-        protocols.append(file_path.name)
+        if file_path.name not in _EXCLUDED_PROTOCOLS:
+            protocols.append(file_path.name)
     return sorted(protocols)
+
+
+def _list_falsification_protocols(falsification_dir: Path) -> Dict[int, Path]:
+    """List available numeric falsification protocol files."""
+    protocols: Dict[int, Path] = {}
+    for file_path in sorted(falsification_dir.glob("FP_[0-9][0-9]_*.py")):
+        try:
+            protocol_num = int(file_path.name.split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        protocols[protocol_num] = file_path
+    return protocols
 
 
 # Module-level function to avoid pickling issues with local functions
@@ -2882,68 +2913,8 @@ def falsify(
         console.print("[red]Error: Falsification protocols directory not found[/red]")
         return
 
-    # List available protocols
-    available_protocols = []
-    # Updated mapping to reflect actual file naming (FP_01, FP_02, etc.)
-    for i in range(1, 14):  # FP_01-FP_13 protocols
-        protocol_file = (
-            falsification_dir / f"FP_{i:02d}_ActiveInference.py"
-            if i == 1
-            else (
-                falsification_dir / f"FP_{i:02d}_AgentComparison_ConvergenceBenchmark.py"
-                if i == 2
-                else (
-                    falsification_dir / f"FP_{i:02d}_FrameworkLevel_MultiProtocol.py"
-                    if i == 3
-                    else (
-                        falsification_dir / f"FP_{i:02d}_PhaseTransition_EpistemicArchitecture.py"
-                        if i == 4
-                        else (
-                            falsification_dir / f"FP_{i:02d}_EvolutionaryPlausibility.py"
-                            if i == 5
-                            else (
-                                falsification_dir / f"FP_{i:02d}_LiquidNetwork_EnergyBenchmark.py"
-                                if i == 6
-                                else (
-                                    falsification_dir / f"FP_{i:02d}_MathematicalConsistency.py"
-                                    if i == 7
-                                    else (
-                                        falsification_dir / f"FP_{i:02d}_ParameterSensitivity_Identifiability.py"
-                                        if i == 8
-                                        else (
-                                            falsification_dir / f"FP_{i:02d}_NeuralSignatures_P3b_HEP.py"
-                                            if i == 9
-                                            else (
-                                                falsification_dir / f"FP_{i:02d}_BayesianEstimation_MCMC.py"
-                                                if i == 10
-                                                else (
-                                                    falsification_dir / f"FP_{i:02d}_LiquidNetworkDynamics_EchoState.py"
-                                                    if i == 11
-                                                    else (
-                                                        falsification_dir / f"FP_{i:02d}_CrossSpeciesScaling.py"
-                                                        if i == 12
-                                                        else None
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-
-        # Fallback to general pattern FP_XX_*.py
-        if protocol_file is None or not protocol_file.exists():
-            matches = list(falsification_dir.glob(f"FP_{i:02d}_*.py"))
-            if matches:
-                protocol_file = matches[0]
-
-        if protocol_file and protocol_file.exists():
-            available_protocols.append(i)
+    available_protocols = _list_falsification_protocols(falsification_dir)
+    aggregator_file = falsification_dir / "FP_ALL_Aggregator.py"
 
     if available_protocols:
         table = Table(
@@ -2954,8 +2925,10 @@ def falsify(
         table.add_column("Protocol", style="red", width=20)
         table.add_column("Description", style="white", width=50)
 
-        for protocol_num in available_protocols:
-            table.add_row(str(protocol_num), f"Falsification Protocol {protocol_num}")
+        for protocol_num in sorted(available_protocols):
+            table.add_row(str(protocol_num), available_protocols[protocol_num].name)
+        if aggregator_file.exists():
+            table.add_row("fp-all", "FP_ALL_Aggregator.py")
         table.add_row("all", "Run all available protocols")
 
         console.print(table)
@@ -2964,9 +2937,17 @@ def falsify(
         if all_protocols:
             protocol = "all"
         if protocol:
-            protocols_to_run = []
+            protocols_to_run: list[int | str] = []
             if protocol.lower() == "all":
-                protocols_to_run = available_protocols
+                # Include both numeric protocols and fp-all aggregator
+                protocols_to_run = sorted(available_protocols)  # type: ignore[assignment]
+                if aggregator_file.exists():
+                    protocols_to_run.append("fp-all")  # type: ignore[arg-type]
+            elif protocol.lower() in {"fp-all", "all-aggregator", "aggregator"}:
+                if not aggregator_file.exists():
+                    console.print("[red]Error: FP_ALL_Aggregator.py not found[/red]")
+                    return
+                protocols_to_run = ["fp-all"]  # type: ignore[list-item]
             else:
                 try:
                     p_num = int(protocol)
@@ -2980,21 +2961,37 @@ def falsify(
                     return
 
             all_results = {}
-            for p_num in protocols_to_run:
-                console.print(f"[blue]Running falsification protocol {p_num}[/blue]")
-                matches = list(falsification_dir.glob(f"FP_{p_num:02d}_*.py"))
-                if not matches:
-                    console.print(f"[red]Error: Protocol {p_num} file not found[/red]")
-                    continue
-                protocol_file = matches[0]
+            for p_num in protocols_to_run:  # type: ignore[assignment]
+                if p_num == "fp-all":
+                    console.print("[blue]Running falsification aggregator FP_ALL[/blue]")
+                    protocol_file = aggregator_file
+                    result_key = "protocol_fp_all"
+                else:
+                    console.print(f"[blue]Running falsification protocol {p_num}[/blue]")
+                    protocol_file = available_protocols.get(p_num)
+                    result_key = f"protocol_{p_num}"
+                    if protocol_file is None:
+                        console.print(f"[red]Error: Protocol {p_num} file not found[/red]")
+                        continue
 
                 try:
-                    falsification_module = secure_load_module(f"falsification_protocol_{p_num}", protocol_file)
+                    module_name = f"falsification_protocol_{str(p_num).replace('-', '_')}"
+                    falsification_module = secure_load_module(module_name, protocol_file)
 
                     result = None
-                    if hasattr(falsification_module, "run_falsification"):
+                    if p_num == "fp-all" and hasattr(falsification_module, "run_framework_falsification"):
+                        console.print("[blue]Executing FP_ALL aggregator...[/blue]")
+                        result = falsification_module.run_framework_falsification()
+                        console.print("[green]✓[/green] FP_ALL completed")
+                    elif hasattr(falsification_module, "run_falsification"):
                         console.print(f"[blue]Executing falsification tests for P{p_num}...[/blue]")
                         result = falsification_module.run_falsification()
+                        console.print(f"[green]✓[/green] Protocol {p_num} completed")
+                    elif hasattr(falsification_module, "run_validation"):
+                        console.print(
+                            f"[blue]Executing validation-compatible falsification tests for P{p_num}...[/blue]"
+                        )
+                        result = falsification_module.run_validation()
                         console.print(f"[green]✓[/green] Protocol {p_num} completed")
                     elif hasattr(falsification_module, "main"):
                         console.print(f"[blue]Running main for P{p_num}...[/blue]")
@@ -3005,7 +3002,7 @@ def falsify(
                         console.print(f"[yellow]Protocol {p_num} has no standard entry function[/yellow]")
 
                     if result:
-                        all_results[f"protocol_{p_num}"] = result
+                        all_results[result_key] = result
 
                 except Exception as e:
                     console.print(f"[red]Error in Protocol {p_num}: {e}[/red]")
@@ -3238,7 +3235,7 @@ def neural_signatures(
         # Import neural signatures validator
         spec = importlib.util.spec_from_file_location(
             "neural_signatures",
-            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignaturesEmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)
@@ -3288,7 +3285,7 @@ def causal_manipulations(
         # Import the causal manipulations validator
         spec = importlib.util.spec_from_file_location(
             "causal_manipulations",
-            PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
+            PROJECT_ROOT / "Validation" / "VP_10_CausalManipulationsPriority2.py",
         )
         causal_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(causal_module)
@@ -3343,7 +3340,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
+            PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCodingFatigue.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3384,7 +3381,7 @@ def clinical_convergence(
         # Import the clinical convergence validator
         spec = importlib.util.spec_from_file_location(
             "clinical_convergence",
-            PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
+            PROJECT_ROOT / "Validation" / "VP_12_ClinicalCrossSpeciesConvergence.py",
         )
         clinical_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(clinical_module)
@@ -3760,29 +3757,27 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
             spec1 = importlib.util.spec_from_file_location(
                 "neural_val",
-                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignaturesEmpiricalPriority1.py",
             )
             neural_module = importlib.util.module_from_spec(spec1)
             spec1.loader.exec_module(neural_module)
-            neural_validator = neural_module.APGINeuralSignaturesValidator()
-            return neural_validator.validate_convergent_signatures()
+            return neural_module.run_validation()
 
         def run_causal_manipulations():
             console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
             spec2 = importlib.util.spec_from_file_location(
                 "causal_val",
-                PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
+                PROJECT_ROOT / "Validation" / "VP_10_CausalManipulationsPriority2.py",
             )
             causal_module = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(causal_module)
-            causal_validator = causal_module.CausalManipulationsValidator()
-            return causal_validator.validate_causal_predictions()
+            return causal_module.run_validation()
 
         def run_quantitative_fits():
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
+                PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCodingFatigue.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)
@@ -3793,7 +3788,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
             spec4 = importlib.util.spec_from_file_location(
                 "clinical_val",
-                PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
+                PROJECT_ROOT / "Validation" / "VP_12_ClinicalCrossSpeciesConvergence.py",
             )
             clinical_module = importlib.util.module_from_spec(spec4)
             spec4.loader.exec_module(clinical_module)

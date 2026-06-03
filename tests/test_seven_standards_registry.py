@@ -4,6 +4,7 @@ from utils.seven_standards_registry import (
     SEVEN_STANDARDS,
     ComplianceLevel,
     Standard,
+    StandardCategory,
     StandardsRegistry,
     check_compliance,
     get_standard,
@@ -209,7 +210,7 @@ class TestListStandards:
 
     def test_list_filtered_by_category(self):
         """Test filtering standards by category."""
-        standards = list_standards(category="validation")
+        standards = list_standards(category=StandardCategory.EMPIRICAL)
         assert isinstance(standards, list)
 
 

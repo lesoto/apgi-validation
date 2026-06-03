@@ -13,6 +13,7 @@ import string
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 from hypothesis import given, settings
@@ -144,8 +145,8 @@ class TestFuzzedJsonValidation:
     def test_json_with_circular_references(self):
         """Test that circular reference detection works."""
         # Create circular reference
-        data = {"a": 1}
-        data["self"] = data
+        data: Dict[str, Any] = {"a": 1}
+        data["self"] = data  # type: ignore[assignment]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "circular.json"

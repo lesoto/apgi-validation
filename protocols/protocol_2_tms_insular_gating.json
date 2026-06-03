@@ -1,0 +1,166 @@
+{
+  "protocol_id": "APGI-P02",
+  "title": "Causal TMS Study: Thalamic and Insular Gating of Ignition Threshold",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-18",
+  "description": "Single-pulse TMS is applied over the right posterior insula and the mediodorsal thalamus (via fMRI-guided neuronavigation) to test whether these structures causally regulate the APGI ignition threshold θₜ. APGI predicts that insula TMS selectively disrupts interoceptive gating (reducing Πⁱ_eff and raising θₜ for interoceptive but not exteroceptive streams), while thalamic TMS affects global ignition probability (Bₜ) across both streams. The Perturbational Complexity Index (PCI) serves as a validated ignition proxy. Three sub-predictions are tested: insula/thalamus regulate θₜ causally (P2a), TMS of insula selectively disrupts interoceptive gating while sparing exteroceptive P3b (P2b), and thalamic TMS shifts Bₜ globally across both streams (P2c). CAUTION: Thalamic gating is one plausible biological implementation of threshold regulation; cortical inhibitory mechanisms and claustrum involvement remain viable alternatives. Paper caption must note this explicitly.",
+  "prediction_cluster": "P2a–P2c",
+  "prediction_cluster_label": "Thalamic/Insular Implementation of Threshold Mechanisms",
+  "sub_predictions": [
+    {
+      "id": "P2a",
+      "claim": "Insula and thalamus regulate θₜ causally",
+      "confirming_evidence": "PCI reduced by insula TMS; HEP–PCI correlation abolished under active stimulation",
+      "falsifying_evidence": "No threshold change following active TMS vs. sham"
+    },
+    {
+      "id": "P2b",
+      "claim": "TMS of insula selectively disrupts interoceptive gating",
+      "confirming_evidence": "HEP–P3b coupling abolished under insula TMS; exteroceptive P3b amplitude spared",
+      "falsifying_evidence": "Uniform suppression of both interoceptive and exteroceptive P3b components"
+    },
+    {
+      "id": "P2c",
+      "claim": "Thalamic TMS affects ignition probability globally",
+      "confirming_evidence": "Bₜ shift (PCI reduction) across both interoceptive and exteroceptive stimulus streams",
+      "falsifying_evidence": "Site-nonspecific effect equivalent across all TMS targets"
+    }
+  ],
+  "validation_status": "specified_with_caveat",
+  "validation_notes": "Prediction structurally sound. Biological substrate specification (thalamic gating) flagged as one plausible implementation among alternatives including cortical inhibition and claustrum. Caption in paper MUST note this is not the sole candidate substrate.",
+  "participants": {
+    "n_target": 36,
+    "n_minimum": 28,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Right-handedness (Edinburgh Handedness Inventory ≥ +40)",
+      "Normal or corrected-to-normal vision",
+      "No contraindications to TMS (Rossi et al. 2021 safety checklist)",
+      "Available structural T1-weighted MRI for neuronavigation",
+      "Resting motor threshold (RMT) determinable at FDI"
+    ],
+    "exclusion_criteria": [
+      "Personal or first-degree family history of epilepsy or seizure disorder",
+      "Metallic implants in head or neck",
+      "Cochlear implants or deep brain stimulators",
+      "Pregnancy or suspected pregnancy",
+      "Current psychotropic medication (antidepressants, antipsychotics, anxiolytics)",
+      "History of significant head injury (loss of consciousness > 5 min)",
+      "Irregular cardiac rhythm on screening ECG"
+    ],
+    "tms_screening": "Safety checklist per Rossi et al. (2021) Clin. Neurophysiol.; written informed consent to TMS risks"
+  },
+  "apparatus": {
+    "TMS_system": "Magstim Rapid² with 70 mm figure-of-eight coil (active) and sham coil (angled 90°)",
+    "neuronavigation": "Brainsight 2 (Rogue Research) with individual T1-weighted MRI (1 mm isotropic, MPRAGE)",
+    "target_regions": [
+      {
+        "name": "Right posterior insula (pIC)",
+        "MNI_coordinate": [40, -6, -4],
+        "rationale": "Somatic marker integration and interoceptive precision gating"
+      },
+      {
+        "name": "Mediodorsal thalamus",
+        "MNI_coordinate": [4, -12, 8],
+        "rationale": "Global broadcast and ignition threshold regulation"
+      },
+      {
+        "name": "Vertex (sham control)",
+        "MNI_coordinate": [0, -30, 70],
+        "rationale": "Active control for nonspecific TMS effects"
+      }
+    ],
+    "EEG": "64-channel BrainAmp (TMS-compatible, Brain Products GmbH) at 5000 Hz, with TMS artifact suppression",
+    "ECG": "BrainAmp ExG bipolar lead-II synchronised to EEG",
+    "display": "VPixx ProPixx at 120 Hz"
+  },
+  "tms_parameters": {
+    "pulse_type": "Monophasic",
+    "intensity_percent_RMT": 110,
+    "RMT_muscle": "First dorsal interosseus (FDI)",
+    "coil_orientation_degrees": 45,
+    "SOA_ms": 100,
+    "conditions": ["insula_active", "thalamus_active", "vertex_sham"],
+    "max_pulses_per_hour": 600,
+    "inter_pulse_interval_s": 4
+  },
+  "trial_structure": {
+    "isi_ms": [2000, 2500],
+    "fixation_duration_ms": 500,
+    "tms_to_stimulus_soa_ms": 100,
+    "target": {
+      "type": "Gabor patch",
+      "spatial_frequency_cpd": 3,
+      "contrast_levels": [0.04, 0.08, 0.16, 0.32],
+      "duration_ms": 33
+    },
+    "mask": {
+      "type": "Pattern mask (4 × 4 Mondrian)",
+      "duration_ms": 100,
+      "soa_ms": 33
+    },
+    "response": "Visibility rating 1–4 (Perceptual Awareness Scale, PAS), response window 2000 ms"
+  },
+  "blocks": {
+    "practice_trials": 30,
+    "experimental_blocks": 12,
+    "trials_per_block": 40,
+    "total_experimental_trials": 480,
+    "break_duration_s": 300,
+    "condition_counterbalancing": "Latin square across TMS-site × contrast blocks; TMS site blocked to avoid coil repositioning during task"
+  },
+  "pci_protocol": {
+    "stimulation_modality": "TMS–EEG",
+    "artifact_suppression": "Fastrak suppression + SSP projection + ICA (Hernandez-Pavon 2023 pipeline)",
+    "pci_computation_software": "Comolatti et al. (2019) open-source PCI toolbox",
+    "pci_threshold_for_consciousness": 0.31
+  },
+  "dependent_variables": [
+    "PCI per TMS condition (insula, thalamus, vertex)",
+    "HEP amplitude (250–400 ms) per TMS condition",
+    "HEP–P3b coupling coefficient per TMS condition",
+    "PAS rating distribution per TMS condition",
+    "Metacognitive sensitivity (M-ratio) per TMS condition",
+    "Estimated θₜ shift (fitted APGI model) per TMS condition",
+    "Estimated Πⁱ_eff (fitted APGI model) per TMS condition"
+  ],
+  "primary_hypothesis": "Active insula TMS reduces PCI and abolishes the HEP–P3b coupling relative to vertex sham, consistent with a TMS-induced reduction in Πⁱ_eff and consequent elevation of θₜ. Thalamic TMS reduces PCI across both interoceptive and exteroceptive stimulus streams.",
+  "primary_analysis": "Linear mixed-effects: PCI ~ TMS_site * stream + (TMS_site | participant). Ordinal mixed-effects: PAS_rating ~ TMS_site * contrast + (TMS_site | participant). HEP–P3b coupling tested via mediation analysis with TMS_site as moderator.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.9,
+    "n_required": 28,
+    "software": "G*Power 3.1",
+    "based_on": "Rosanova et al. (2012) TMS–EEG PCI effects; typical insula TMS interoception disruption Cohen's d ≈ 0.5"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "delta_pi_i_insula_active": -0.4,
+    "delta_pi_i_thalamus_active": -0.3,
+    "delta_pi_i_sham": 0.0
+  },
+  "safety_monitoring": {
+    "max_pulses_per_hour": 600,
+    "rest_between_blocks_min": 5,
+    "adverse_event_protocol": "See SOP-TMS-002; participants screened for headache, phosphenes, and discomfort after each block"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "IRB-2026-XXX",
+    "approval_date": "2026-05-01"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "Thalamic gating is one plausible biological implementation of θₜ regulation. Cortical inhibition (layer-specific GABAergic) and claustrum co-activation remain viable alternative substrates. Paper caption in Figure 3 and Table 2 must include the following statement verbatim: 'Thalamic and insular involvement is consistent with APGI threshold predictions but does not exclude cortical inhibitory or claustrum-mediated mechanisms.'"
+  ]
+}

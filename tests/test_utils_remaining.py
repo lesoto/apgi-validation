@@ -124,8 +124,8 @@ class TestCrashRecovery:
         recovery.save_state({"data": "value"})
 
         # Verify state was saved
-        assert recovery.state_file.exists()
-        assert recovery.current_state is not None
+        assert recovery.state_file.exists()  # nosec B101
+        assert recovery.current_state is not None  # nosec B101
 
 
 class TestEmpiricalDataGenerators:
@@ -135,7 +135,7 @@ class TestEmpiricalDataGenerators:
         """Test empirical_data_generators module import"""
         from utils import empirical_data_generators
 
-        assert empirical_data_generators is not None
+        assert empirical_data_generators is not None  # nosec B101
 
     def test_generate_eeg_sample(self):
         """Test EEG sample generation"""
@@ -145,10 +145,10 @@ class TestEmpiricalDataGenerators:
             n_subjects_per_culture=2, n_trials=10, n_channels=8, sampling_rate=100.0
         )
 
-        assert isinstance(data, pd.DataFrame)
-        assert len(data) > 0
-        assert isinstance(metadata, dict)
-        assert "n_subjects_total" in metadata
+        assert isinstance(data, pd.DataFrame)  # nosec B101
+        assert len(data) > 0  # nosec B101
+        assert isinstance(metadata, dict)  # nosec B101
+        assert "n_subjects_total" in metadata  # nosec B101
 
 
 class TestGenomeDataExtractor:
@@ -158,7 +158,7 @@ class TestGenomeDataExtractor:
         """Test genome_data_extractor module import"""
         from utils import genome_data_extractor
 
-        assert genome_data_extractor is not None
+        assert genome_data_extractor is not None  # nosec B101
 
     def test_extract_genomic_features(self):
         """Test genomic feature extraction"""
@@ -185,8 +185,8 @@ class TestGenomeDataExtractor:
 
         try:
             features = extract_genome_data_from_vp5(temp_path)
-            assert isinstance(features, dict)
-            assert "evolved_alpha_values" in features
+            assert isinstance(features, dict)  # nosec B101
+            assert "evolved_alpha_values" in features  # nosec B101
             assert "timescale_correlations" in features  # nosec B101
             assert "intero_gain_ratios" in features  # nosec B101
         finally:

@@ -9,7 +9,7 @@ A simple GUI for running and displaying test results.
 import logging
 import os
 import queue
-import subprocess
+import subprocess  # nosec B404
 import sys
 import threading
 
@@ -392,7 +392,7 @@ class TestsGUI:
             self.output_text.insert(tk.END, f"> {' '.join(cmd)}\n\n")
             self.output_text.update()
 
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, shell=False)
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, shell=False)  # nosec B603
 
             return {
                 "test_results": {

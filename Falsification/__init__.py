@@ -42,11 +42,9 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 1: {e}")
     Protocol_1 = None
 
-# Protocol 2: Iowa Gambling Task Environment - mapped to FP_02_AgentComparison_ConvergenceBenchmark
+# Protocol 2: Iowa Gambling Task Environment - mapped to FP_02_AgentComparisonConvergenceBenchmark
 try:
-    _spec2 = importlib.util.spec_from_file_location(
-        "Protocol_2", _dir / "FP_02_AgentComparison_ConvergenceBenchmark.py"
-    )
+    _spec2 = importlib.util.spec_from_file_location("Protocol_2", _dir / "FP_02_AgentComparisonConvergenceBenchmark.py")
     if _spec2 and _spec2.loader:
         Protocol_2 = importlib.util.module_from_spec(_spec2)
         _spec2.loader.exec_module(Protocol_2)
@@ -56,11 +54,11 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 2: {e}")
     Protocol_2 = None
 
-# Protocol 3: Agent Comparison Experiment - mapped to FP_03_FrameworkLevel_MultiProtocol
+# Protocol 3: Agent Comparison Experiment - mapped to FP_03_FrameworkLevelMultiProtocol
 try:
     _spec3 = importlib.util.spec_from_file_location(
         "Protocol_3",
-        _dir / "FP_03_FrameworkLevel_MultiProtocol.py",
+        _dir / "FP_03_FrameworkLevelMultiProtocol.py",
     )
     if _spec3 and _spec3.loader:
         Protocol_3 = importlib.util.module_from_spec(_spec3)
@@ -75,7 +73,7 @@ except Exception as e:
 try:
     _spec4 = importlib.util.spec_from_file_location(
         "Protocol_4",
-        _dir / "FP_04_PhaseTransition_EpistemicArchitecture.py",
+        _dir / "FP_04_PhaseTransitionEpistemicArchitecture.py",
     )
     if _spec4 and _spec4.loader:
         Protocol_4 = importlib.util.module_from_spec(_spec4)
@@ -100,7 +98,7 @@ except Exception as e:
 
 # Protocol 6: Network Comparison Experiment - uses existing Falsification_Protocol_P6
 try:
-    _spec6 = importlib.util.spec_from_file_location("Protocol_6", _dir / "FP_06_LiquidNetwork_EnergyBenchmark.py")
+    _spec6 = importlib.util.spec_from_file_location("Protocol_6", _dir / "FP_06_LiquidNetworkEnergyBenchmark.py")
     if _spec6 and _spec6.loader:
         Protocol_6 = importlib.util.module_from_spec(_spec6)
         _spec6.loader.exec_module(Protocol_6)

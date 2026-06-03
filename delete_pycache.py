@@ -14,11 +14,11 @@ Features:
 - APGI-specific options for selective cleanup
 
 Usage Examples:
-  python delete_pycache.py                    # Standard cleanup
-  python delete_pycache.py --dry-run          # Preview what will be removed
-  python delete_pycache.py --apgi-only        # Only APGI-specific files
-  python delete_pycache.py --keep-visualizations  # Keep *.png, *.html, *.svg
-  python delete_pycache.py --keep-reports     # Keep *.json, *.html reports
+  python utils/delete_pycache.py                    # Standard cleanup
+  python utils/delete_pycache.py --dry-run          # Preview what will be removed
+  python utils/delete_pycache.py --apgi-only        # Only APGI-specific files
+  python utils/delete_pycache.py --keep-visualizations  # Keep *.png, *.html, *.svg
+  python utils/delete_pycache.py --keep-reports     # Keep *.json, *.html reports
 """
 
 import argparse

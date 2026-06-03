@@ -1953,12 +1953,12 @@ class ConfigManager:
             profile_file = PROFILES_DIR / f"{profile_data['name']}.yaml"
             if not profile_file.exists():
                 profile = ConfigProfile(
-                    name=profile_data["name"],
-                    description=profile_data["description"],
-                    category=profile_data["category"],
-                    parameters=profile_data["parameters"],
+                    name=str(profile_data["name"]),
+                    description=str(profile_data["description"]),
+                    category=str(profile_data["category"]),
+                    parameters=dict(profile_data["parameters"]),  # type: ignore[arg-type]
                     created_at=datetime.now().isoformat(),
-                    tags=profile_data["tags"],
+                    tags=list(profile_data["tags"]),
                 )
 
                 with open(profile_file, "w") as f:
@@ -2095,20 +2095,23 @@ validation:
                     value = whitelisted_vars.get(env_var) or os.getenv(env_var)
                     if value is not None:
                         # Convert string values to appropriate types
-                        if value.lower() in ["true", "false"]:
-                            value = value.lower() == "true"
+                        converted_value: Union[str, bool, float, int] = value
+                        if isinstance(converted_value, str) and converted_value.lower() in ["true", "false"]:
+                            converted_value = converted_value.lower() == "true"
                         else:
                             try:
                                 # Try to convert to float (handles negatives and decimals)
-                                value = float(value)
+                                float_val = float(converted_value)
                                 # If it's an integer, convert to int
-                                if value.is_integer():
-                                    value = int(value)
-                            except ValueError:
+                                if float_val.is_integer():
+                                    converted_value = int(float_val)
+                                else:
+                                    converted_value = float_val
+                            except (ValueError, AttributeError):
                                 # Not a number, keep as string
                                 pass
 
-                        self.set_parameter(section, param, value)
+                        self.set_parameter(section, param, converted_value)
                         apgi_logger.info(f"Applied environment override: {env_var} -> {section}.{param} = {value}")
             except (
                 FileNotFoundError,

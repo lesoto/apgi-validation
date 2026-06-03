@@ -21,16 +21,16 @@ def test_falsification_files_exist():
     # Check falsification protocol files - use actual filenames from directory
     falsification_files = [
         "FP_01_ActiveInference.py",
-        "FP_02_AgentComparison_ConvergenceBenchmark.py",
-        "FP_03_FrameworkLevel_MultiProtocol.py",
-        "FP_04_PhaseTransition_EpistemicArchitecture.py",
+        "FP_02_AgentComparisonConvergenceBenchmark.py",
+        "FP_03_FrameworkLevelMultiProtocol.py",
+        "FP_04_PhaseTransitionEpistemicArchitecture.py",
         "FP_05_EvolutionaryPlausibility.py",
-        "FP_06_LiquidNetwork_EnergyBenchmark.py",
+        "FP_06_LiquidNetworkEnergyBenchmark.py",
         "FP_07_MathematicalConsistency.py",
-        "FP_08_ParameterSensitivity_Identifiability.py",
-        "FP_09_NeuralSignatures_P3b_HEP.py",
-        "FP_10_BayesianEstimation_MCMC.py",
-        "FP_11_LiquidNetworkDynamics_EchoState.py",
+        "FP_08_ParameterSensitivityIdentifiability.py",
+        "FP_09_NeuralSignaturesP3bHEP.py",
+        "FP_10_BayesianEstimationMCMC.py",
+        "FP_11_LiquidNetworkDynamicsEchoState.py",
         "FP_12_CrossSpeciesScaling.py",
         "FP_ALL_Aggregator.py",
         "Master_Falsification.py",
@@ -279,22 +279,22 @@ def test_falsification_protocol_7_mathematical_consistency():
 
 
 def test_falsification_protocol_8_parameter_sensitivity():
-    """Test parameter sensitivity analysis from FP_08_ParameterSensitivity_Identifiability.py"""
+    """Test parameter sensitivity analysis from FP_08_ParameterSensitivityIdentifiability.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_08_ParameterSensitivity_Identifiability.py"
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_08_ParameterSensitivityIdentifiability.py"
     if not protocol_path.exists():
-        pytest.skip("FP_08_ParameterSensitivity_Identifiability.py not yet implemented")
+        pytest.skip("FP_08_ParameterSensitivityIdentifiability.py not yet implemented")
 
     try:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("falsification8", protocol_path)
         if spec is None or spec.loader is None:
-            pytest.skip("FP_08_ParameterSensitivity_Identifiability.py not found")
+            pytest.skip("FP_08_ParameterSensitivityIdentifiability.py not found")
         falsification8 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification8)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"FP_08_ParameterSensitivity_Identifiability.py import failed: {e}")
+        pytest.skip(f"FP_08_ParameterSensitivityIdentifiability.py import failed: {e}")
 
     # Test that module has sensitivity analysis functions
     assert hasattr(falsification8, "analyze_parameter_sensitivity")
@@ -302,22 +302,22 @@ def test_falsification_protocol_8_parameter_sensitivity():
 
 
 def test_falsification_protocol_9_neural_signatures():
-    """Test neural signatures validation from FP_09_NeuralSignatures_P3b_HEP.py"""
+    """Test neural signatures validation from FP_09_NeuralSignaturesP3bHEP.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_09_NeuralSignatures_P3b_HEP.py"
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_09_NeuralSignaturesP3bHEP.py"
     if not protocol_path.exists():
-        pytest.skip("FP_09_NeuralSignatures_P3b_HEP.py not yet implemented")
+        pytest.skip("FP_09_NeuralSignaturesP3bHEP.py not yet implemented")
 
     try:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("falsification9", protocol_path)
         if spec is None or spec.loader is None:
-            pytest.skip("FP_09_NeuralSignatures_P3b_HEP.py not found")
+            pytest.skip("FP_09_NeuralSignaturesP3bHEP.py not found")
         falsification9 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification9)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"FP_09_NeuralSignatures_P3b_HEP.py import failed: {e}")
+        pytest.skip(f"FP_09_NeuralSignaturesP3bHEP.py import failed: {e}")
 
     # Test that module has neural signature functions
     assert hasattr(falsification9, "detect_neural_signatures")
@@ -348,22 +348,22 @@ def test_falsification_protocol_10_cross_species_scaling():
 
 
 def test_falsification_protocol_11_bayesian_estimation():
-    """Test Bayesian estimation from FP_10_BayesianEstimation_MCMC.py"""
+    """Test Bayesian estimation from FP_10_BayesianEstimationMCMC.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_10_BayesianEstimation_MCMC.py"
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_10_BayesianEstimationMCMC.py"
     if not protocol_path.exists():
-        pytest.skip("FP_10_BayesianEstimation_MCMC.py not yet implemented")
+        pytest.skip("FP_10_BayesianEstimationMCMC.py not yet implemented")
 
     try:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("falsification11", protocol_path)
         if spec is None or spec.loader is None:
-            pytest.skip("FP_10_BayesianEstimation_MCMC.py not found")
+            pytest.skip("FP_10_BayesianEstimationMCMC.py not found")
         falsification11 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification11)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"FP_10_BayesianEstimation_MCMC.py import failed: {e}")
+        pytest.skip(f"FP_10_BayesianEstimationMCMC.py import failed: {e}")
 
     # Test that module has Bayesian estimation functions
     assert hasattr(falsification11, "run_bayesian_estimation")
@@ -371,22 +371,22 @@ def test_falsification_protocol_11_bayesian_estimation():
 
 
 def test_falsification_protocol_12_liquid_network():
-    """Test liquid network validation from FP_11_LiquidNetworkDynamics_EchoState.py"""
+    """Test liquid network validation from FP_11_LiquidNetworkDynamicsEchoState.py"""
     # Skip test if protocol doesn't exist yet
-    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_11_LiquidNetworkDynamics_EchoState.py"
+    protocol_path = Path(__file__).parent.parent / "Falsification" / "FP_11_LiquidNetworkDynamicsEchoState.py"
     if not protocol_path.exists():
-        pytest.skip("FP_11_LiquidNetworkDynamics_EchoState.py not yet implemented")
+        pytest.skip("FP_11_LiquidNetworkDynamicsEchoState.py not yet implemented")
 
     try:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("falsification12", protocol_path)
         if spec is None or spec.loader is None:
-            pytest.skip("FP_11_LiquidNetworkDynamics_EchoState.py not found")
+            pytest.skip("FP_11_LiquidNetworkDynamicsEchoState.py not found")
         falsification12 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification12)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"FP_11_LiquidNetworkDynamics_EchoState.py import failed: {e}")
+        pytest.skip(f"FP_11_LiquidNetworkDynamicsEchoState.py import failed: {e}")
 
     # Test that module has liquid network functions
     assert hasattr(falsification12, "detect_neural_signatures")

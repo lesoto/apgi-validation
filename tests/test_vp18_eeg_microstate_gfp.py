@@ -1,5 +1,5 @@
 """
-Tests for VP_18_EEG_Microstate_GFP_P3b.py
+Tests for VP_18_EEGMicrostateGFPP3b.py
 """
 
 import sys
@@ -11,7 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Validation.VP_18_EEG_Microstate_GFP_P3b import (
+from Validation.VP_18_EEGMicrostateGFPP3b import (
     GFP_WINDOW_MS,
     GFPMicrostateValidator,
     GFPResult,
@@ -207,8 +207,8 @@ class TestGFPMicrostateValidator:
                 raise KeyError(f"Missing required key: {key}")
         if results["tests_total"] != 3:
             raise AssertionError(f"Expected tests_total=3, got {results['tests_total']}")
-        if results["protocol_id"] != "VP_18_EEG_Microstate_GFP_P3b":
-            raise AssertionError(f"Expected protocol_id VP_18_EEG_Microstate_GFP_P3b, got {results['protocol_id']}")
+        if results["protocol_id"] != "VP_18_EEGMicrostateGFPP3b":
+            raise AssertionError(f"Expected protocol_id VP_18_EEGMicrostateGFPP3b, got {results['protocol_id']}")
 
     def test_run_full_validation_score_range(self, small_validator):
         results = small_validator.run_full_validation()
@@ -232,7 +232,7 @@ class TestGFPMicrostateValidator:
         if missing_terms:
             raise AssertionError(f"Note missing required terms: {missing_terms}")
 
-    @patch("Validation.VP_18_EEG_Microstate_GFP_P3b.HAS_MATPLOTLIB", False)
+    @patch("Validation.VP_18_EEGMicrostateGFPP3b.HAS_MATPLOTLIB", False)
     def test_generate_summary_figure_no_matplotlib(self, small_validator):
         result = small_validator.generate_summary_figure()
         if result is not None:
@@ -284,8 +284,8 @@ class TestRunValidation:
 
     def test_run_validation_has_protocol_id(self):
         result = run_validation(seed=0)
-        if result["protocol_id"] != "VP_18_EEG_Microstate_GFP_P3b":
-            raise AssertionError(f"Expected protocol_id VP_18_EEG_Microstate_GFP_P3b, got {result['protocol_id']}")
+        if result["protocol_id"] != "VP_18_EEGMicrostateGFPP3b":
+            raise AssertionError(f"Expected protocol_id VP_18_EEGMicrostateGFPP3b, got {result['protocol_id']}")
 
     def test_run_validation_accepts_kwargs(self):
         result = run_validation(seed=7, extra_param="ignored")

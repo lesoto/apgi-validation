@@ -26,6 +26,10 @@ class ProtocolContract(BaseModel):
     file: str
     entrypoint: str
     schema_version: str = "1.0"
+    folder: str = ""
+    """Optional sub-folder relative to project_root (e.g. 'Validation',
+    'Falsification', 'Theory', 'protocols').  When empty, ``file`` is
+    treated as a path relative to project_root directly."""
 
 
 class ProtocolContractRegistry:
@@ -53,7 +57,12 @@ class ProtocolContractRegistry:
                     config_file="protocol_contracts",
                 )
 
-            protocol_path = project_root / "Validation" / contract.file
+            if contract.folder:
+                protocol_path = project_root / contract.folder / contract.file
+            else:
+                # file already carries a full relative path (e.g. "Validation/VP_01.py")
+                protocol_path = project_root / contract.file
+
             if not protocol_path.exists():
                 raise ProtocolError(
                     f"Protocol file not found: {protocol_path}",

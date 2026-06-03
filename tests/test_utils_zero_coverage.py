@@ -37,8 +37,8 @@ class TestAuthAdapter:
         from utils.auth_adapter import AuthSession, Role
 
         session = AuthSession("user123", Role.ADMIN, "token123", time.time() + 3600)
-        assert session.user_id == "user123"  # nosec B101  # nosec B101
-        assert session.role == Role.ADMIN  # nosec B101  # nosec B101
+        assert session.user_id == "user123"  # nosec B101
+        assert session.role == Role.ADMIN  # nosec B101
         assert session.token == "token123"  # nosec B101  # nosec B105
 
     def test_auth_session_is_valid(self):
@@ -273,7 +273,7 @@ class TestDTO:
         from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
 
         # Define ProtocolResult to resolve forward reference
-        class ProtocolResult(BaseModel):
+        class ProtocolResult(BaseModel):  # type: ignore[misc]
             protocol_name: str
             status: str
             timestamp: str

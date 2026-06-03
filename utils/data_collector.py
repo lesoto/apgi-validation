@@ -12,7 +12,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 try:
     import psutil
@@ -48,7 +48,7 @@ class DataCollector:
 
         # Threading controls
         self._collection_active = False
-        self._collection_thread = None
+        self._collection_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
         # Initialize database
@@ -169,7 +169,7 @@ class DataCollector:
             return
 
         try:
-            metrics = {
+            metrics: Dict[str, Union[str, float, int]] = {
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -521,15 +521,12 @@ class DataCollector:
                 cursor = conn.cursor()
 
                 # Validate table name to prevent SQL injection
-                if not table.replace("_", "").isalnum():
-                    raise ValueError(f"Invalid table name: {table}")
+                allowed_tables = ["validation_results", "benchmark_results", "simulation_data"]
+                if table not in allowed_tables:
+                    raise ValueError(f"Invalid table name: {table}. Allowed: {allowed_tables}")
 
                 cursor.execute(
-                    """
-                    SELECT * FROM {table} 
-                    WHERE timestamp >= ?
-                    ORDER BY timestamp DESC
-                """,
+                    f"SELECT * FROM {table} WHERE timestamp >= ? ORDER BY timestamp DESC",  # nosec B608
                     (cutoff_time.isoformat(),),
                 )
 

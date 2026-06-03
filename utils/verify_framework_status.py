@@ -41,7 +41,7 @@ def run_with_timeout(func, timeout_secs=30):
         TimeoutError: If function takes longer than timeout_secs
     """
     result = [None]
-    exception = [None]
+    exception: list[Exception | None] = [None]
 
     def target():
         try:
@@ -158,97 +158,97 @@ def main():
     fp_protocols = [
         ("Falsification.FP_01_ActiveInference", "FP_01_ActiveInference"),
         (
-            "Falsification.FP_02_AgentComparison_ConvergenceBenchmark",
-            "FP_02_AgentComparison_ConvergenceBenchmark",
+            "Falsification.FP_02_AgentComparisonConvergenceBenchmark",
+            "FP_02_AgentComparisonConvergenceBenchmark",
         ),
         (
-            "Falsification.FP_03_FrameworkLevel_MultiProtocol",
-            "FP_03_FrameworkLevel_MultiProtocol",
+            "Falsification.FP_03_FrameworkLevelMultiProtocol",
+            "FP_03_FrameworkLevelMultiProtocol",
         ),
         (
-            "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
-            "FP_04_PhaseTransition_EpistemicArchitecture",
+            "Falsification.FP_04_PhaseTransitionEpistemicArchitecture",
+            "FP_04_PhaseTransitionEpistemicArchitecture",
         ),
         (
             "Falsification.FP_05_EvolutionaryPlausibility",
             "FP_05_EvolutionaryPlausibility",
         ),
         (
-            "Falsification.FP_06_LiquidNetwork_EnergyBenchmark",
-            "FP_06_LiquidNetwork_EnergyBenchmark",
+            "Falsification.FP_06_LiquidNetworkEnergyBenchmark",
+            "FP_06_LiquidNetworkEnergyBenchmark",
         ),
         (
             "Falsification.FP_07_MathematicalConsistency",
             "FP_07_MathematicalConsistency",
         ),
         (
-            "Falsification.FP_08_ParameterSensitivity_Identifiability",
-            "FP_08_ParameterSensitivity_Identifiability",
+            "Falsification.FP_08_ParameterSensitivityIdentifiability",
+            "FP_08_ParameterSensitivityIdentifiability",
         ),
         (
-            "Falsification.FP_09_NeuralSignatures_P3b_HEP",
-            "FP_09_NeuralSignatures_P3b_HEP",
+            "Falsification.FP_09_NeuralSignaturesP3bHEP",
+            "FP_09_NeuralSignaturesP3bHEP",
         ),
         (
-            "Falsification.FP_10_BayesianEstimation_MCMC",
-            "FP_10_BayesianEstimation_MCMC",
+            "Falsification.FP_10_BayesianEstimationMCMC",
+            "FP_10_BayesianEstimationMCMC",
         ),
         (
-            "Falsification.FP_11_LiquidNetworkDynamics_EchoState",
-            "FP_11_LiquidNetworkDynamics_EchoState",
+            "Falsification.FP_11_LiquidNetworkDynamicsEchoState",
+            "FP_11_LiquidNetworkDynamicsEchoState",
         ),
         ("Falsification.FP_12_CrossSpeciesScaling", "FP_12_CrossSpeciesScaling"),
     ]
 
     vp_protocols = [
         (
-            "Validation.VP_01_SyntheticEEG_MLClassification",
-            "VP_01_SyntheticEEG_MLClassification",
+            "Validation.VP_01_SyntheticEEGMLClassification",
+            "VP_01_SyntheticEEGMLClassification",
         ),
         (
-            "Validation.VP_02_Behavioral_BayesianComparison",
-            "VP_02_Behavioral_BayesianComparison",
+            "Validation.VP_02_BehavioralBayesianComparison",
+            "VP_02_BehavioralBayesianComparison",
         ),
         (
-            "Validation.VP_03_ActiveInference_AgentSimulations",
-            "VP_03_ActiveInference_AgentSimulations",
+            "Validation.VP_03_ActiveInferenceAgentSimulations",
+            "VP_03_ActiveInferenceAgentSimulations",
         ),
         (
-            "Validation.VP_04_PhaseTransition_EpistemicLevel2",
-            "VP_04_PhaseTransition_EpistemicLevel2",
+            "Validation.VP_04_PhaseTransitionEpistemicLevel2",
+            "VP_04_PhaseTransitionEpistemicLevel2",
         ),
         ("Validation.VP_05_EvolutionaryEmergence", "VP_05_EvolutionaryEmergence"),
         (
-            "Validation.VP_06_LiquidNetwork_InductiveBias",
-            "VP_06_LiquidNetwork_InductiveBias",
+            "Validation.VP_06_LiquidNetworkInductiveBias",
+            "VP_06_LiquidNetworkInductiveBias",
         ),
-        ("Validation.VP_07_TMS_CausalInterventions", "VP_07_TMS_CausalInterventions"),
+        ("Validation.VP_07_TMSCausalInterventions", "VP_07_TMSCausalInterventions"),
         (
-            "Validation.VP_08_Psychophysical_ThresholdEstimation",
-            "VP_08_Psychophysical_ThresholdEstimation",
-        ),
-        (
-            "Validation.VP_09_NeuralSignatures_EmpiricalPriority1",
-            "VP_09_NeuralSignatures_EmpiricalPriority1",
+            "Validation.VP_08_PsychophysicalThresholdEstimation",
+            "VP_08_PsychophysicalThresholdEstimation",
         ),
         (
-            "Validation.VP_10_CausalManipulations_Priority2",
-            "VP_10_CausalManipulations_Priority2",
+            "Validation.VP_09_NeuralSignaturesEmpiricalPriority1",
+            "VP_09_NeuralSignaturesEmpiricalPriority1",
         ),
         (
-            "Validation.VP_11_MCMC_CulturalNeuroscience_Priority3",
-            "VP_11_MCMC_CulturalNeuroscience_Priority3",
+            "Validation.VP_10_CausalManipulationsPriority2",
+            "VP_10_CausalManipulationsPriority2",
         ),
         (
-            "Validation.VP_12_Clinical_CrossSpecies_Convergence",
-            "VP_12_Clinical_CrossSpecies_Convergence",
+            "Validation.VP_11_MCMCCulturalNeurosciencePriority3",
+            "VP_11_MCMCCulturalNeurosciencePriority3",
         ),
-        ("Validation.VP_13_Epistemic_Architecture", "VP_13_Epistemic_Architecture"),
         (
-            "Validation.VP_14_fMRI_Anticipation_Experience",
-            "VP_14_fMRI_Anticipation_Experience",
+            "Validation.VP_12_ClinicalCrossSpeciesConvergence",
+            "VP_12_ClinicalCrossSpeciesConvergence",
         ),
-        ("Validation.VP_15_fMRI_Anticipation_vmPFC", "VP_15_fMRI_Anticipation_vmPFC"),
+        ("Validation.VP_13_EpistemicArchitecture", "VP_13_EpistemicArchitecture"),
+        (
+            "Validation.VP_14_FMRIAnticipationExperience",
+            "VP_14_FMRIAnticipationExperience",
+        ),
+        ("Validation.VP_15_FMRIAnticipationVmPFC", "VP_15_FMRIAnticipationVmPFC"),
     ]
 
     print("\n" + "=" * 80)

@@ -8,6 +8,7 @@ Target: 100% coverage for utils/data_validation.py
 import json
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -569,7 +570,7 @@ class TestEdgeCases:
         json_file = tmp_path / "deep.json"
 
         # Create deeply nested JSON
-        nested = {}
+        nested: Dict[str, Any] = {}
         current = nested
         for _ in range(500):
             current["next"] = {}

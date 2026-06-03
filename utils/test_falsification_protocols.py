@@ -48,7 +48,7 @@ def test_protocol_import(protocol_num: int) -> Tuple[bool, str]:
 def check_pac_variance_fix() -> Tuple[bool, str]:
     """Check if FP_02 PAC variance has been increased."""
     try:
-        fp02_path = project_root / "Falsification" / "FP_02_AgentComparison_ConvergenceBenchmark.py"
+        fp02_path = project_root / "Falsification" / "FP_02_AgentComparisonConvergenceBenchmark.py"
         with open(fp02_path, "r") as f:
             content = f.read()
 

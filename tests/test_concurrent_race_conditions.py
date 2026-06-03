@@ -124,7 +124,7 @@ class TestConfigManagerConcurrency:
                 for i in range(10):
                     try:
                         profile_name = f"profile_{thread_id}_{i}"
-                        manager.create_profile(profile_name, f"Test profile {i}")
+                        manager.create_profile(profile_name, f"Test profile {i}", "test")
                     except (ValueError, AttributeError, TypeError):
                         pass  # Method might not exist or have different signature
             except Exception as e:
@@ -184,7 +184,7 @@ class TestBackupManagerRaceConditions:
             def create_backup(thread_id):
                 try:
                     for i in range(5):
-                        backup_id = manager.create_backup(f"concurrent_backup_{thread_id}_{i}", ["config"])
+                        backup_id = manager.create_backup(["config"], f"concurrent_backup_{thread_id}_{i}")
                         backup_ids.append(backup_id)
                 except Exception as e:
                     errors.append(e)
@@ -207,7 +207,7 @@ class TestBackupManagerRaceConditions:
 
             # Create some backups first
             for i in range(10):
-                manager.create_backup(f"test_backup_{i}", ["config"])
+                manager.create_backup(["config"], f"test_backup_{i}")
 
             def list_backups():
                 try:
@@ -220,7 +220,7 @@ class TestBackupManagerRaceConditions:
                 try:
                     backups = manager.list_backups()
                     for backup in backups[:5]:
-                        manager.delete_backup(backup["id"])
+                        manager.delete_backup(backup["backup_id"])
                 except Exception as e:
                     errors.append(e)
 
@@ -268,12 +268,12 @@ class TestBackupManagerRaceConditions:
             errors = []
 
             # Create initial backup
-            backup_id = manager.create_backup("initial", ["config"])
+            backup_id = manager.create_backup(["config"], "initial")
 
             def backup_loop():
                 try:
                     for i in range(10):
-                        manager.create_backup(f"backup_{i}", ["config"])
+                        manager.create_backup(["config"], f"backup_{i}")
                 except Exception as e:
                     errors.append(e)
 
@@ -349,7 +349,7 @@ class TestTOCTOUMitigation:
 
             try:
                 # Create and verify backup
-                backup_id = manager.create_backup("toctou_test", ["config"])
+                backup_id = manager.create_backup(["config"], "toctou_test")
 
                 # Verify backup exists
                 backups = manager.list_backups()
@@ -414,7 +414,7 @@ class TestDeadlockPrevention:
         from utils.config_manager import ConfigManager
 
         completed = [0]
-        errors = []
+        errors: list[Exception] = []
 
         def operation_a():
             try:

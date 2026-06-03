@@ -26,18 +26,18 @@ import importlib.util
 
 # Protocol number to filename mapping
 PROTOCOL_FILE_MAP = {
-    1: "VP_01_SyntheticEEG_MLClassification.py",
-    2: "VP_02_Behavioral_BayesianComparison.py",
-    3: "VP_03_ActiveInference_AgentSimulations.py",
-    4: "VP_04_PhaseTransition_EpistemicLevel2.py",
+    1: "VP_01_SyntheticEEGMLClassification.py",
+    2: "VP_02_BehavioralBayesianComparison.py",
+    3: "VP_03_ActiveInferenceAgentSimulations.py",
+    4: "VP_04_PhaseTransitionEpistemicLevel2.py",
     5: "VP_05_EvolutionaryEmergence.py",
-    6: "VP_06_LiquidNetwork_InductiveBias.py",
-    7: "VP_07_TMS_CausalInterventions.py",
-    8: "VP_08_Psychophysical_ThresholdEstimation.py",
-    9: "VP_09_NeuralSignatures_EmpiricalPriority1.py",
-    10: "VP_10_CausalManipulations_Priority2.py",
-    11: "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
-    12: "VP_12_Clinical_CrossSpecies_Convergence.py",
+    6: "VP_06_LiquidNetworkInductiveBias.py",
+    7: "VP_07_TMSCausalInterventions.py",
+    8: "VP_08_PsychophysicalThresholdEstimation.py",
+    9: "VP_09_NeuralSignaturesEmpiricalPriority1.py",
+    10: "VP_10_CausalManipulationsPriority2.py",
+    11: "VP_11_MCMCCulturalNeurosciencePriority3.py",
+    12: "VP_12_ClinicalCrossSpeciesConvergence.py",
 }
 
 
@@ -64,18 +64,18 @@ def test_validation_files_exist():
 
     # Check validation protocol files (updated to VP_XX naming)
     validation_files = [
-        "VP_01_SyntheticEEG_MLClassification.py",
-        "VP_02_Behavioral_BayesianComparison.py",
-        "VP_03_ActiveInference_AgentSimulations.py",
-        "VP_04_PhaseTransition_EpistemicLevel2.py",
+        "VP_01_SyntheticEEGMLClassification.py",
+        "VP_02_BehavioralBayesianComparison.py",
+        "VP_03_ActiveInferenceAgentSimulations.py",
+        "VP_04_PhaseTransitionEpistemicLevel2.py",
         "VP_05_EvolutionaryEmergence.py",
-        "VP_06_LiquidNetwork_InductiveBias.py",
-        "VP_07_TMS_CausalInterventions.py",
-        "VP_08_Psychophysical_ThresholdEstimation.py",
-        "VP_09_NeuralSignatures_EmpiricalPriority1.py",
-        "VP_10_CausalManipulations_Priority2.py",
-        "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
-        "VP_12_Clinical_CrossSpecies_Convergence.py",
+        "VP_06_LiquidNetworkInductiveBias.py",
+        "VP_07_TMSCausalInterventions.py",
+        "VP_08_PsychophysicalThresholdEstimation.py",
+        "VP_09_NeuralSignaturesEmpiricalPriority1.py",
+        "VP_10_CausalManipulationsPriority2.py",
+        "VP_11_MCMCCulturalNeurosciencePriority3.py",
+        "VP_12_ClinicalCrossSpeciesConvergence.py",
         "Master_Validation.py",
     ]
 
@@ -442,12 +442,12 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
     try:
         # Try to import the dynamical system from the correct location
-        # APGIDynamicalSystem is in VP_01_SyntheticEEG_MLClassification.py
+        # APGIDynamicalSystem is in VP_01_SyntheticEEGMLClassification.py
         import importlib.util
 
         spec = importlib.util.spec_from_file_location(
             "protocol1",
-            Path(__file__).parent.parent / "Validation" / "VP_01_SyntheticEEG_MLClassification.py",
+            Path(__file__).parent.parent / "Validation" / "VP_01_SyntheticEEGMLClassification.py",
         )
         protocol1 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol1)
@@ -493,7 +493,7 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
 
 def test_validation_protocol_3_hierarchical_generative_model():
-    """Test HierarchicalGenerativeModel from VP_03_ActiveInference_AgentSimulations.py"""
+    """Test HierarchicalGenerativeModel from VP_03_ActiveInferenceAgentSimulations.py"""
     try:
         import importlib.util
 
@@ -502,7 +502,7 @@ def test_validation_protocol_3_hierarchical_generative_model():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -544,7 +544,7 @@ def test_validation_protocol_3_hierarchical_generative_model():
 
 
 def test_validation_protocol_3_somatic_marker_network():
-    """Test SomaticMarkerNetwork from VP_03_ActiveInference_AgentSimulations.py"""
+    """Test SomaticMarkerNetwork from VP_03_ActiveInferenceAgentSimulations.py"""
     try:
         import importlib.util
 
@@ -553,7 +553,7 @@ def test_validation_protocol_3_somatic_marker_network():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -584,7 +584,7 @@ def test_validation_protocol_3_somatic_marker_network():
 
 
 def test_validation_protocol_3_policy_network():
-    """Test PolicyNetwork from VP_03_ActiveInference_AgentSimulations.py"""
+    """Test PolicyNetwork from VP_03_ActiveInferenceAgentSimulations.py"""
     try:
         import importlib.util
 
@@ -593,7 +593,7 @@ def test_validation_protocol_3_policy_network():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -624,7 +624,7 @@ def test_validation_protocol_3_policy_network():
 
 # Placeholder tests for protocols 4-12 (to be expanded)
 def test_validation_protocol_4_apgi_dynamical_system():
-    """Test APGIDynamicalSystem from VP_04_PhaseTransition_EpistemicLevel2.py"""
+    """Test APGIDynamicalSystem from VP_04_PhaseTransitionEpistemicLevel2.py"""
     try:
         import importlib.util
 
@@ -632,7 +632,7 @@ def test_validation_protocol_4_apgi_dynamical_system():
 
         spec = importlib.util.spec_from_file_location(
             "protocol4",
-            Path(__file__).parent.parent / "Validation" / "VP_04_PhaseTransition_EpistemicLevel2.py",
+            Path(__file__).parent.parent / "Validation" / "VP_04_PhaseTransitionEpistemicLevel2.py",
         )
         protocol4 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol4)
@@ -698,8 +698,8 @@ def test_validation_protocol_4_apgi_dynamical_system():
 
 
 def test_validation_protocol_4_exists():
-    """Test that VP_04_PhaseTransition_EpistemicLevel2.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_04_PhaseTransition_EpistemicLevel2.py"
+    """Test that VP_04_PhaseTransitionEpistemicLevel2.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_04_PhaseTransitionEpistemicLevel2.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -709,7 +709,7 @@ def test_validation_protocol_4_exists():
         protocol4 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol4)
     except ImportError as e:
-        pytest.skip(f"VP_04_PhaseTransition_EpistemicLevel2.py import failed: {e}")
+        pytest.skip(f"VP_04_PhaseTransitionEpistemicLevel2.py import failed: {e}")
 
 
 def test_validation_protocol_5_exists():
@@ -728,8 +728,8 @@ def test_validation_protocol_5_exists():
 
 
 def test_validation_protocol_6_exists():
-    """Test that VP_06_LiquidNetwork_InductiveBias.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_06_LiquidNetwork_InductiveBias.py"
+    """Test that VP_06_LiquidNetworkInductiveBias.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_06_LiquidNetworkInductiveBias.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -739,12 +739,12 @@ def test_validation_protocol_6_exists():
         protocol6 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol6)
     except ImportError as e:
-        pytest.skip(f"VP_06_LiquidNetwork_InductiveBias.py import failed: {e}")
+        pytest.skip(f"VP_06_LiquidNetworkInductiveBias.py import failed: {e}")
 
 
 def test_validation_protocol_7_exists():
-    """Test that VP_07_TMS_CausalInterventions.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_07_TMS_CausalInterventions.py"
+    """Test that VP_07_TMSCausalInterventions.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_07_TMSCausalInterventions.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -754,12 +754,12 @@ def test_validation_protocol_7_exists():
         protocol7 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol7)
     except ImportError as e:
-        pytest.skip(f"VP_07_TMS_CausalInterventions.py import failed: {e}")
+        pytest.skip(f"VP_07_TMSCausalInterventions.py import failed: {e}")
 
 
 def test_validation_protocol_8_exists():
-    """Test that VP_08_Psychophysical_ThresholdEstimation.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_08_Psychophysical_ThresholdEstimation.py"
+    """Test that VP_08_PsychophysicalThresholdEstimation.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_08_PsychophysicalThresholdEstimation.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -769,12 +769,12 @@ def test_validation_protocol_8_exists():
         protocol8 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol8)
     except ImportError as e:
-        pytest.skip(f"VP_08_Psychophysical_ThresholdEstimation.py import failed: {e}")
+        pytest.skip(f"VP_08_PsychophysicalThresholdEstimation.py import failed: {e}")
 
 
 def test_validation_protocol_9_exists():
-    """Test that VP_09_NeuralSignatures_EmpiricalPriority1.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py"
+    """Test that VP_09_NeuralSignaturesEmpiricalPriority1.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_09_NeuralSignaturesEmpiricalPriority1.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -784,12 +784,12 @@ def test_validation_protocol_9_exists():
         protocol9 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol9)
     except ImportError as e:
-        pytest.skip(f"VP_09_NeuralSignatures_EmpiricalPriority1.py import failed: {e}")
+        pytest.skip(f"VP_09_NeuralSignaturesEmpiricalPriority1.py import failed: {e}")
 
 
 def test_validation_protocol_10_exists():
-    """Test that VP_10_CausalManipulations_Priority2.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_10_CausalManipulations_Priority2.py"
+    """Test that VP_10_CausalManipulationsPriority2.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_10_CausalManipulationsPriority2.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -799,12 +799,12 @@ def test_validation_protocol_10_exists():
         protocol10 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol10)
     except ImportError as e:
-        pytest.skip(f"VP_10_CausalManipulations_Priority2.py import failed: {e}")
+        pytest.skip(f"VP_10_CausalManipulationsPriority2.py import failed: {e}")
 
 
 def test_validation_protocol_11_exists():
-    """Test that VP_11_MCMC_CulturalNeuroscience_Priority3.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_11_MCMC_CulturalNeuroscience_Priority3.py"
+    """Test that VP_11_MCMCCulturalNeurosciencePriority3.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_11_MCMCCulturalNeurosciencePriority3.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -814,12 +814,12 @@ def test_validation_protocol_11_exists():
         protocol11 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol11)
     except ImportError as e:
-        pytest.skip(f"VP_11_MCMC_CulturalNeuroscience_Priority3.py import failed: {e}")
+        pytest.skip(f"VP_11_MCMCCulturalNeurosciencePriority3.py import failed: {e}")
 
 
 def test_validation_protocol_12_exists():
-    """Test that VP_12_Clinical_CrossSpecies_Convergence.py exists and can be imported"""
-    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py"
+    """Test that VP_12_ClinicalCrossSpeciesConvergence.py exists and can be imported"""
+    protocol_path = Path(__file__).parent.parent / "Validation" / "VP_12_ClinicalCrossSpeciesConvergence.py"
     assert protocol_path.exists()  # nosec B101
 
     try:
@@ -829,7 +829,7 @@ def test_validation_protocol_12_exists():
         protocol12 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol12)
     except ImportError as e:
-        pytest.skip(f"VP_12_Clinical_CrossSpecies_Convergence.py import failed: {e}")
+        pytest.skip(f"VP_12_ClinicalCrossSpeciesConvergence.py import failed: {e}")
 
 
 @pytest.mark.parametrize(
@@ -883,7 +883,7 @@ def test_hierarchical_generative_model_edge_cases(levels_config):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -922,7 +922,7 @@ def test_somatic_marker_network_edge_cases(context_dim, action_dim):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -962,7 +962,7 @@ def test_policy_network_edge_cases(state_dim, action_dim):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInference_AgentSimulations.py",
+            Path(__file__).parent.parent / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -1003,7 +1003,7 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
 
         spec = importlib.util.spec_from_file_location(
             "synthetic_eeg",
-            Path(__file__).parent.parent / "Validation" / "VP_01_SyntheticEEG_MLClassification.py",
+            Path(__file__).parent.parent / "Validation" / "VP_01_SyntheticEEGMLClassification.py",
         )
         synthetic_eeg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(synthetic_eeg)

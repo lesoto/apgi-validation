@@ -1,0 +1,113 @@
+{
+  "protocol_id": "FP-13",
+  "title": "Clinical Cross-Species Convergence",
+  "paper": "APGI Falsification Suite",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-27",
+  "description": "Falsification-side coverage for clinical and cross-species convergence predictions. Tests whether clinical populations show predicted APGI parameter deviations (Cohen's d ≥ 0.5) and whether non-mammalian systems exhibit ignition-like threshold dynamics (allometric exponent deviation ≤ 30%).",
+  "prediction_cluster": "FP-13",
+  "prediction_cluster_label": "Clinical Cross-Species Convergence",
+  "sub_predictions": [
+    {
+      "id": "FP13a",
+      "claim": "Clinical groups (GAD, MDD, Psychosis) show predicted APGI parameter deviations vs. healthy controls",
+      "key_measurement_equation": "Cohen_d >= 0.5 for APGI parameter differences in >=2 of 3 clinical groups",
+      "confirming_evidence": "At least 2 of 3 clinical groups show d >= 0.5 deviation from controls in predicted direction.",
+      "falsifying_evidence": "Fewer than 2 clinical groups show d >= 0.5 — APGI clinical specificity claim is falsified."
+    },
+    {
+      "id": "FP13b",
+      "claim": "Non-mammalian systems (invertebrate, cephalopod, avian) exhibit ignition-like threshold dynamics",
+      "key_measurement_equation": "allometric_exponent_deviation < 0.30 AND >=2 of 3 non-mammalian systems show bistable attractor dynamics",
+      "confirming_evidence": "Allometric scaling matches theory within 30% and >=2 non-mammalian systems show ignition thresholds.",
+      "falsifying_evidence": "Non-mammalian systems show only continuous graded processing without thresholds — universality claim is falsified."
+    }
+  ],
+  "validation_status": "stub_not_implemented",
+  "validation_notes": "FP-13 stub — not yet implemented. Partial validation coverage: VP_12_ClinicalCrossSpeciesConvergence.py. Partial falsification coverage: FP_12_CrossSpeciesScaling.py.",
+  "participants": {
+    "n_target": 40,
+    "n_minimum": 24,
+    "inclusion_criteria": [
+      "Clinical population data available (GAD, MDD, or Psychosis cohort)",
+      "Non-mammalian neurophysiology dataset available or simulated"
+    ],
+    "exclusion_criteria": [
+      "Insufficient clinical sample sizes (n < 12 per group)",
+      "Non-mammalian data with non-comparable recording modalities"
+    ]
+  },
+  "apparatus": {
+    "execution_environment": "APGI desktop application and local project runtime",
+    "runtime_module": "FP_13_Clinical_CrossSpecies_Convergence",
+    "category": "Falsification"
+  },
+  "trial_structure": {
+    "target": {
+      "type": "Clinical EEG/fMRI dataset or simulated non-mammalian neural dynamics",
+      "duration_ms": 0
+    },
+    "response": "Falsification decision for clinical profiles and cross-species scaling checks",
+    "session_structure": "Offline analysis pipeline"
+  },
+  "blocks": {
+    "practice_trials": 0,
+    "experimental_blocks": 2,
+    "total_experimental_trials": 2,
+    "notes": "Sub-Protocol A (clinical) and Sub-Protocol B (cross-species) are independent analysis blocks."
+  },
+  "dependent_variables": [
+    "Cohen's d for APGI parameter deviation in clinical groups",
+    "Allometric scaling exponent deviation from APGI theory",
+    "Proportion of non-mammalian systems with ignition-like dynamics",
+    "FP-13 overall falsification decision"
+  ],
+  "primary_hypothesis": "Clinical populations will show APGI-predicted parameter deviations (d ≥ 0.5), and non-mammalian systems will exhibit ignition-like threshold dynamics consistent with APGI universality claims.",
+  "primary_analysis": "Statistical comparison of APGI parameters across clinical and control groups; allometric regression of APGI parameters vs. brain mass; threshold detection in non-mammalian simulations.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "n_required": 24,
+    "software": "G*Power 3.1",
+    "based_on": "Clinical effect size estimate d = 0.5 from VP-12 protocol specification"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-27"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "runtime_protocol": "FP_13_Clinical_CrossSpecies_Convergence"
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "APP-2026-FP-13",
+    "approval_date": "2026-05-27",
+    "exempt_reason": "Archival/public clinical data used under prior institutional approval or exemption."
+  },
+  "submission_blocking_issues": [
+    "FP_13 is a stub — ClinicalCrossSpeciesProtocol.run_validation() returns not_implemented.",
+    "Clinical dataset integration not yet completed.",
+    "Cross-species simulation pipeline not connected."
+  ],
+  "caveats": [
+    "FP-13 is a tertiary-tier extension, not a canonical EP falsification criterion.",
+    "FP_12_CrossSpeciesScaling.py provides overlapping but distinct cross-species coverage."
+  ],
+  "aliases": [
+    "FP_13",
+    "FP_13_Clinical_CrossSpecies_Convergence",
+    "F13",
+    "ClinicalCrossSpecies"
+  ],
+  "runtime_module": "FP_13_Clinical_CrossSpecies_Convergence",
+  "source_file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
+  "integration_target": "allprotocols",
+  "linked_protocols": ["VP-12", "FP-12"],
+  "canonical_ep": "EP-4 partial"
+}

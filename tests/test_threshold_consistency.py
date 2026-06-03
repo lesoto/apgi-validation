@@ -138,7 +138,7 @@ def test_f1_f3_criteria_consistency():
     assert F2_4_MIN_BETA_INTERACTION == 0.35, "F2.4_MIN_BETA_INTERACTION should be 0.35"
     assert F2_4_ALPHA == 0.01, "F2.4_ALPHA should be 0.01"
 
-    assert F2_5_MAX_TRIALS == 55.0, "F2.5_MAX_TRIALS should be 55.0"
+    assert F2_5_MAX_TRIALS == 80.0, "F2.5_MAX_TRIALS should be 80.0 (APGI-OSF-Preregistration P3a: 50–80 trials)"
     assert F2_5_MIN_HAZARD_RATIO == 1.65, "F2.5_MIN_HAZARD_RATIO should be 1.65"
     assert F2_5_MIN_TRIAL_ADVANTAGE == 12.0, "F2.5_MIN_TRIAL_ADVANTAGE should be 12.0"
     assert F2_5_ALPHA == 0.01, "F2.5_ALPHA should be 0.01"

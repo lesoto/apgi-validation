@@ -1,5 +1,7 @@
 """Tests for Empirical Transition Report module - comprehensive coverage."""
 
+from typing import Any
+
 from utils.empirical_transition_report import (
     compare_reports,
     format_report_as_markdown,
@@ -26,7 +28,7 @@ class TestGenerateTransitionReport:
 
     def test_generate_empty_report(self):
         """Test generating report with empty data."""
-        data = {"transitions": []}
+        data: dict[str, Any] = {"transitions": []}
         report = generate_transition_report(data)
         assert isinstance(report, dict)
         assert report["transitions"] == []
@@ -47,7 +49,7 @@ class TestFormatReportAsMarkdown:
 
     def test_format_empty_report(self):
         """Test formatting empty report."""
-        report = {}
+        report: dict[str, Any] = {}
         markdown = format_report_as_markdown(report)
         assert isinstance(markdown, str)
 

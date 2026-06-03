@@ -12,6 +12,7 @@ Tests integration across protocol boundaries including:
 import threading
 import time
 from datetime import datetime
+from typing import Any
 
 import pytest
 
@@ -58,10 +59,12 @@ class TestCrossProtocolDataFlow:
     def test_protocol_boundary_data_validation(self):
         """Test data validation at protocol boundaries."""
         # Invalid data should be caught at boundaries
-        invalid_data = {"subject_id": None, "measurements": []}
+        invalid_data: dict[str, object] = {"subject_id": None, "measurements": []}
 
         # Validation should fail for missing required fields
-        is_valid = invalid_data.get("subject_id") is not None and len(invalid_data.get("measurements", [])) > 0
+        measurements = invalid_data.get("measurements", [])
+        assert isinstance(measurements, list)
+        is_valid = invalid_data.get("subject_id") is not None and len(measurements) > 0  # type: ignore[arg-type]
         assert not is_valid
 
 
@@ -90,7 +93,7 @@ class TestCrossProtocolErrorHandling:
         }
 
         # System should continue with available protocols
-        successful = sum(1 for r in results.values() if r["status"] == "success")
+        successful = sum(1 for r in results.values() if isinstance(r, dict) and r.get("status") == "success")
         assert successful >= 2  # At least 2 should succeed
 
     def test_protocol_failure_notification(self):
@@ -114,13 +117,17 @@ class TestSharedResourceManagement:
 
     def test_concurrent_protocol_access(self):
         """Test safe concurrent access to shared resources."""
-        shared_resource = {"counter": 0, "data": []}
+        shared_resource: dict[str, object] = {"counter": 0, "data": []}
         lock = threading.Lock()
 
         def increment_counter(protocol_id):
             with lock:
-                shared_resource["counter"] += 1
-                shared_resource["data"].append(protocol_id)
+                counter = shared_resource["counter"]
+                if isinstance(counter, int):
+                    shared_resource["counter"] = counter + 1
+                data = shared_resource["data"]
+                if isinstance(data, list):
+                    data.append(protocol_id)
 
         # Simulate multiple protocols accessing resource
         threads = [threading.Thread(target=increment_counter, args=(f"FP-{i}",)) for i in range(1, 6)]
@@ -131,8 +138,10 @@ class TestSharedResourceManagement:
             t.join()
 
         # All increments should be recorded
-        assert shared_resource["counter"] == 5
-        assert len(shared_resource["data"]) == 5
+        counter = shared_resource["counter"]
+        data = shared_resource["data"]
+        assert isinstance(counter, int) and counter == 5
+        assert isinstance(data, list) and len(data) == 5
 
     def test_resource_cleanup_after_protocol_completion(self):
         """Test that resources are cleaned up after protocols complete."""
@@ -469,16 +478,21 @@ class TestCrossProtocolWorkflowIntegration:
         import time
 
         # Resource pool simulation
-        resource_pool = {"cpu_cores": 4, "memory_gb": 16, "active_protocols": set()}
-        results_queue = queue.Queue()
+        resource_pool: dict[str, object] = {"cpu_cores": 4, "memory_gb": 16, "active_protocols": set()}
+        results_queue: queue.Queue[dict[str, object]] = queue.Queue()
         lock = threading.Lock()
 
         def execute_protocol(protocol_id, duration, required_cores):
             # Acquire resources
             with lock:
-                if len(resource_pool["active_protocols"]) < resource_pool["cpu_cores"]:
-                    resource_pool["active_protocols"].add(protocol_id)
-                    acquired = True
+                active_protocols = resource_pool["active_protocols"]
+                cpu_cores = resource_pool["cpu_cores"]
+                if isinstance(active_protocols, set) and isinstance(cpu_cores, int):
+                    if len(active_protocols) < cpu_cores:
+                        active_protocols.add(protocol_id)
+                        acquired = True
+                    else:
+                        acquired = False
                 else:
                     acquired = False
 
@@ -487,9 +501,12 @@ class TestCrossProtocolWorkflowIntegration:
                 # Wait for resources
                 while True:
                     with lock:
-                        if len(resource_pool["active_protocols"]) < resource_pool["cpu_cores"]:
-                            resource_pool["active_protocols"].add(protocol_id)
-                            break
+                        active_protocols = resource_pool["active_protocols"]
+                        cpu_cores = resource_pool["cpu_cores"]
+                        if isinstance(active_protocols, set) and isinstance(cpu_cores, int):
+                            if len(active_protocols) < cpu_cores:
+                                active_protocols.add(protocol_id)
+                                break
                     time.sleep(0.01)
 
             # Execute
@@ -530,7 +547,7 @@ class TestCrossProtocolWorkflowIntegration:
             return hashlib.sha256(str(data).encode()).hexdigest()[:16]
 
         # Initial data with lineage
-        data = {
+        data: dict[str, Any] = {
             "value": 42,
             "lineage": [
                 {
@@ -542,32 +559,39 @@ class TestCrossProtocolWorkflowIntegration:
         }
 
         # Pass through FP-1
-        data["value"] *= 2  # FP-1 transformation
-        data["lineage"].append(
-            {
-                "protocol": "FP-1",
-                "operation": "multiply_by_2",
-                "hash": compute_hash(data["value"]),
-                "timestamp": "2024-01-01T00:01:00",
-            }
-        )
+        if isinstance(data["value"], (int, float)):
+            data["value"] *= 2  # FP-1 transformation  # type: ignore[operator]
+        lineage = data.get("lineage")
+        if isinstance(lineage, list):
+            lineage.append(  # type: ignore[arg-type]
+                {
+                    "protocol": "FP-1",
+                    "operation": "multiply_by_2",
+                    "hash": compute_hash(data["value"]) if isinstance(data["value"], (int, float)) else "",
+                    "timestamp": "2024-01-01T00:01:00",
+                }
+            )
 
         # Pass through FP-2
-        data["value"] += 10  # FP-2 transformation
-        data["lineage"].append(
-            {
-                "protocol": "FP-2",
-                "operation": "add_10",
-                "hash": compute_hash(data["value"]),
-                "timestamp": "2024-01-01T00:02:00",
-            }
-        )
+        if isinstance(data["value"], (int, float)):
+            data["value"] += 10  # FP-2 transformation  # type: ignore[operator]
+        lineage = data.get("lineage")
+        if isinstance(lineage, list):
+            lineage.append(  # type: ignore[arg-type]
+                {
+                    "protocol": "FP-2",
+                    "operation": "add_10",
+                    "hash": compute_hash(data["value"]) if isinstance(data["value"], (int, float)) else "",
+                    "timestamp": "2024-01-01T00:02:00",
+                }
+            )
 
         # Verify lineage
-        assert len(data["lineage"]) == 3
-        assert data["lineage"][0]["protocol"] == "origin"
-        assert data["lineage"][1]["protocol"] == "FP-1"
-        assert data["lineage"][2]["protocol"] == "FP-2"
+        lineage = data.get("lineage")
+        assert isinstance(lineage, list) and len(lineage) == 3
+        assert isinstance(lineage[0], dict) and lineage[0]["protocol"] == "origin"
+        assert isinstance(lineage[1], dict) and lineage[1]["protocol"] == "FP-1"
+        assert isinstance(lineage[2], dict) and lineage[2]["protocol"] == "FP-2"
 
         # Verify final value (42 * 2 + 10 = 94)
         assert data["value"] == 94
@@ -639,8 +663,8 @@ class TestCrossProtocolWorkflowIntegration:
             deps = dependencies.get(protocol, [])
             return all(d in completed for d in deps) and not any(d in failed for d in deps)
 
-        completed = set()
-        runnable = set()
+        completed: set[str] = set()
+        runnable: set[str] = set()
         blocked = set()
 
         for protocol in dependencies:
@@ -665,11 +689,11 @@ class TestCrossProtocolWorkflowIntegration:
         import time
 
         # Shared state with versioning
-        shared_state = {"version": 0, "data": {}, "lock": threading.Lock()}
+        shared_state: dict[str, Any] = {"version": 0, "data": {}, "lock": threading.Lock()}
 
-        def update_state(protocol_id, key, value):
+        def update_state(protocol_id: str, key: str, value: float) -> None:
             with shared_state["lock"]:
-                current_version = shared_state["version"]
+                current_version: int = shared_state["version"]  # type: ignore[assignment]
                 time.sleep(0.01)  # Simulate processing
                 shared_state["data"][key] = {
                     "value": value,

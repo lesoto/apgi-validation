@@ -1,0 +1,167 @@
+{
+  "protocol_id": "APGI-P05",
+  "title": "fMRI Anticipation vs. Experience Study: Dissociating Somatic Marker Retrieval from Prediction Error",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-18",
+  "description": "This fMRI study uses a risky-choice task with variable foreperiod to test whether somatic marker retrieval M̂(c,a) modulates effective interoceptive precision Πⁱ_eff during anticipation, rather than directly encoding the raw prediction error εⁱ during outcome. APGI predicts that vmPFC–posterior insula connectivity emerges during the anticipation window (before stimulus onset), not the outcome window, and that this coupling is sensitive to option valence rather than sensory contrast. Four sub-predictions are tested: that M̂ modulates Πⁱ_eff rather than εⁱ directly (P5a), that vmPFC–posterior insula coupling peaks during anticipation (P5b), that the vmPFC effect is context-specific (valence-sensitive, not contrast-sensitive) (P5c), and that suppressing anticipation via a no-foreperiod control collapses vmPFC–insula coupling (P5d). Identifiability of β and Πⁱ is fully resolved via orthogonal fMRI + SCR channels confirmed by block-diagonal Fisher Information Matrix in pre-session protocol.",
+  "prediction_cluster": "P5a–P5d",
+  "prediction_cluster_label": "Dissociating Somatic Marker Retrieval from Prediction Error",
+  "sub_predictions": [
+    {
+      "id": "P5a",
+      "claim": "M̂ modulates Πⁱ_eff, not εⁱ directly",
+      "confirming_evidence": "vmPFC–posterior insula functional connectivity during anticipation period; vmPFC BOLD does not correlate with primary interoceptive prediction error εⁱ at outcome",
+      "falsifying_evidence": "vmPFC BOLD correlates with primary εⁱ (outcome-locked SCR) rather than with anticipatory connectivity"
+    },
+    {
+      "id": "P5b",
+      "claim": "vmPFC–posterior insula coupling appears during anticipation window, not outcome window",
+      "confirming_evidence": "PPI (psychophysiological interaction) analysis shows vmPFC–posterior insula connectivity peak before stimulus onset (anticipation > outcome, p < 0.05 FWE-corrected)",
+      "falsifying_evidence": "No anticipatory vmPFC–posterior insula coupling; vmPFC–insula connectivity limited to outcome period"
+    },
+    {
+      "id": "P5c",
+      "claim": "Somatic marker effect is context-specific: sensitive to option valence, not sensory contrast",
+      "confirming_evidence": "vmPFC activation parametrically modulated by option expected value (EV) across option valence, not by Gabor contrast or sensory luminance",
+      "falsifying_evidence": "vmPFC activation correlates with sensory contrast or physical stimulus attributes regardless of option valence"
+    },
+    {
+      "id": "P5d",
+      "claim": "Removing anticipation (no-foreperiod control) collapses vmPFC–insula coupling",
+      "confirming_evidence": "Significantly reduced vmPFC–posterior insula coupling in 0 ms foreperiod condition vs. 2000–4000 ms foreperiod condition (paired t-test on PPI coefficient, p < 0.05)",
+      "falsifying_evidence": "vmPFC–insula coupling persists at equivalent magnitude under no-anticipation control"
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "Identifiability fully resolved. β and Πⁱ orthogonality confirmed via block-diagonal Fisher Information Matrix from orthogonal fMRI + SCR channels in pre-session protocol. No submission-blocking issues for this protocol.",
+  "participants": {
+    "n_target": 36,
+    "n_minimum": 28,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Right-handedness (Edinburgh Handedness Inventory ≥ +40)",
+      "Normal or corrected-to-normal vision",
+      "No MRI contraindications",
+      "Willingness to participate in risky-choice decision task"
+    ],
+    "exclusion_criteria": [
+      "Metallic implants or pacemaker",
+      "Claustrophobia",
+      "History of psychiatric disorder (DSM-5 criteria)",
+      "Current psychotropic or cardiovascular medication",
+      "Beta-blocker use (would suppress SCR)",
+      "Diabetes or autonomic neuropathy (would affect SCR)",
+      "BMI > 40 (bore diameter constraint)"
+    ]
+  },
+  "apparatus": {
+    "MRI_system": "3T Siemens Prisma, 64-channel head coil",
+    "fMRI_sequence": "Multi-band EPI (MB factor 4), TR = 1000 ms, TE = 30 ms, voxel size 2 mm isotropic, 72 axial slices",
+    "structural_MRI": "T1-weighted MPRAGE, 1 mm isotropic, for anatomical localisation",
+    "SCR": "MRI-compatible Biopac MP160 with 8 mm Ag/AgCl electrodes, thenar/hypothenar placement, 2000 Hz sampling",
+    "cardiac": "MRI-compatible pulse oximeter (Siemens PMU) for cardiac noise correction",
+    "display": "Fiber-optic goggle system (Resonance Technology) at 60 Hz, 800 × 600 resolution",
+    "response": "4-button fiber-optic response box (Current Designs)"
+  },
+  "trial_structure": {
+    "isi_ms": [2000, 4000],
+    "fixation_duration_ms": [2000, 4000],
+    "anticipation_foreperiod_ms": {
+      "short": 0,
+      "long": [2000, 4000]
+    },
+    "target": {
+      "type": "Risky choice: two-option gamble display (expected value 0.2–0.8, variance 0.1–0.6)",
+      "duration_ms": 3000,
+      "presentation": "Left-right option pair; valence indicated by colour (gain = green, loss = red)"
+    },
+    "response": "Left or right button press within 3000 ms decision window; outcome revealed after 1500 ms delay"
+  },
+  "blocks": {
+    "practice_trials": 20,
+    "experimental_blocks": 8,
+    "trials_per_block": 30,
+    "total_experimental_trials": 240,
+    "runs_per_session": 4,
+    "condition_counterbalancing": "Foreperiod length (0 vs. 2000–4000 ms) blocked within runs; option valence pseudorandomised across trials"
+  },
+  "fmri_analysis_pipeline": {
+    "preprocessing_software": "fMRIPrep 23.2 (BIDS-compatible)",
+    "spatial_smoothing_fwhm_mm": 6,
+    "motion_correction": "ICA-AROMA denoising; scrubbing at FD > 0.5 mm",
+    "GLM_software": "SPM12 or FSL FEAT",
+    "regressors_of_interest": [
+      "Anticipation period (onset = option display, duration = foreperiod length)",
+      "Outcome period (onset = outcome reveal, duration = 1 s)",
+      "Parametric: option expected value (EV) × anticipation period",
+      "Parametric: SCR magnitude × outcome period"
+    ],
+    "nuisance_regressors": "6 motion parameters, CSF signal, WM signal, cardiac and respiratory noise (RETROICOR)",
+    "rois": [
+      "vmPFC (medial prefrontal cortex): anatomical mask from Neurovault vmPFC atlas",
+      "Anterior insula (aIC): anatomical mask from AAL2 atlas",
+      "Posterior insula (pIC): anatomical mask from AAL2 atlas"
+    ],
+    "connectivity_analysis": "Psychophysiological interaction (PPI): seed = vmPFC, target = posterior insula; psychological regressor = anticipation vs. outcome contrast"
+  },
+  "scr_analysis": {
+    "bandpass_filter_hz": [0.05, 5],
+    "tonic_removal": "High-pass filter at 0.05 Hz",
+    "phasic_scr_window_s": [1, 5],
+    "minimum_amplitude_threshold_uS": 0.05,
+    "software": "Ledalab v3.4 or equivalent",
+    "scr_as_proxy_for": "Raw interoceptive prediction error εⁱ (outcome-locked)"
+  },
+  "identifiability_protocol": {
+    "status": "resolved",
+    "method": "Block-diagonal Fisher Information Matrix (FIM) decomposition",
+    "description": "Pre-session protocol uses alternating fMRI and SCR-only blocks to estimate β (somatic modulation gain) and Πⁱ (interoceptive precision) from orthogonal measurement channels. FIM off-diagonal block confirmed < 0.1 (near-zero covariance between β and Πⁱ estimates), confirming identifiability.",
+    "reference": "Appendix A.5 of Paper 1"
+  },
+  "dependent_variables": [
+    "vmPFC BOLD: anticipation period parametric modulation by EV",
+    "vmPFC–posterior insula PPI coefficient: anticipation > outcome contrast",
+    "vmPFC–anterior insula PPI coefficient: anticipation > outcome contrast",
+    "vmPFC activation: valence-specificity (gain vs. loss option foreperiod)",
+    "PPI coefficient: long foreperiod vs. no foreperiod (0 ms) condition",
+    "SCR phasic amplitude: outcome-locked (εⁱ proxy)",
+    "Estimated β and Πⁱ from pre-session FIM protocol"
+  ],
+  "primary_hypothesis": "vmPFC–posterior insula functional connectivity peaks during the anticipation foreperiod rather than the outcome period, and this anticipatory coupling is parametrically modulated by option expected value (valence) rather than sensory contrast, consistent with somatic marker retrieval M̂ operating on Πⁱ_eff prior to decision execution.",
+  "primary_analysis": "ROI-based PPI analysis: vmPFC–pIC coupling coefficient compared between anticipation and outcome regressors (paired t-test across participants, p < 0.05 FWE-corrected). Secondary: whole-brain EV parametric modulation during anticipation. Foreperiod manipulation (P5d): mixed-effects with foreperiod length as within-participant factor.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.05,
+    "power": 0.90,
+    "n_required": 28,
+    "software": "G*Power 3.1",
+    "based_on": "Naqvi et al. (2007) vmPFC-insula in somatic marker tasks; typical PPI effect sizes in anticipation paradigms"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "pi_i_long_foreperiod": 1.2,
+    "pi_i_no_foreperiod": 0.8,
+    "gamma_V_estimate": 0.6,
+    "gamma_A_estimate": 0.3
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "IRB-2026-fMRI-XXX",
+    "approval_date": "2026-05-01"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "SCR is a noisy proxy for εⁱ; individual differences in SCR reactivity may reduce power for P5a. Include SCR-reactor subgroup analysis (top 50% SCR amplitude).",
+    "vmPFC coordinates vary across atlas conventions; report results in both AAL2 and Schaefer parcellation for reproducibility.",
+    "Beta-blockers must be excluded to preserve SCR signal; this may introduce selection bias toward lower-anxiety participants."
+  ]
+}

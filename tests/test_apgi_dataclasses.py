@@ -7,11 +7,7 @@ Focuses on dataclass validation, methods, and properties that are currently unco
 
 import pytest
 
-from apgi_core.equations import (
-    APGIParameters,
-    PsychologicalState,
-    StateCategory,
-)
+from apgi_core.equations import APGIParameters, PsychologicalState, StateCategory
 
 
 def test_apgi_parameters_defaults():

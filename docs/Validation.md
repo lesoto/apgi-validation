@@ -70,7 +70,7 @@ python3 main.py info
 
 | Command | Description | Status |
 | :--- | :--- | :--- |
-| `python3 main.py validate --protocol N` | Run specific validation protocol (1-15) | WORKING |
+| `python3 main.py validate --protocol N` | Run specific validation protocol (1-22) | WORKING |
 | `python3 main.py validate --all-protocols` | Run all validation protocols | WORKING |
 | `python3 main.py falsify --protocol N` | Run specific falsification protocol (1-12) | WORKING |
 | `python3 main.py validate-neural-signatures` | Validate neural signature protocols | WORKING |
@@ -181,46 +181,59 @@ Bayesian parameter inference:
   • Uncertainty quantification
   • Neural signal generators (HEP, P3b waveforms)
 
-### 5. Validation Protocols (`Validation/` - 15 Protocols)
+### 5. Validation Protocols (`Validation/` - 22 Protocols)
 
 Comprehensive testing suite:
 
-| Protocol | Description |
-| -------- | ----------- |
-| VP_01 | Synthetic EEG ML Classification |
-| VP_02 | Behavioral Bayesian Comparison |
-| VP_03 | Active Inference Agent Simulations |
-| VP_04 | Phase Transition Epistemic Level 2 |
-| VP_05 | Evolutionary Emergence |
-| VP_06 | Liquid Network Inductive Bias |
-| VP_07 | TMS Causal Interventions |
-| VP_08 | Psychophysical Threshold Estimation |
-| VP_09 | Neural Signatures Empirical Priority 1 |
-| VP_10 | Causal Manipulations Priority 2 |
-| VP_11 | MCMC Cultural Neuroscience Priority 3 |
-| VP_12 | Clinical Cross-Species Convergence |
-| VP_13 | Epistemic Architecture |
-| VP_14 | fMRI Anticipation Experience |
-| VP_15 | fMRI Anticipation vmPFC |
+| Protocol | Description | Tier |
+| -------- | ----------- | ---- |
+| VP_01 | Synthetic EEG ML Classification | Primary |
+| VP_02 | Behavioral Bayesian Comparison | Primary |
+| VP_03 | Active Inference Agent Simulations | Primary |
+| VP_04 | Phase Transition Epistemic Level 2 | Primary |
+| VP_05 | Evolutionary Emergence | Secondary |
+| VP_06 | Liquid Network Inductive Bias | Secondary |
+| VP_07 | TMS Causal Interventions (canonical P2.a–P2.c) | Primary |
+| VP_08 | Psychophysical Threshold Estimation | Primary |
+| VP_09 | Neural Signatures Empirical Priority 1 | Primary |
+| VP_10 | Causal Manipulations Priority 2 (supplementary V10.a–V10.c) | Secondary |
+| VP_11 | MCMC Cultural Neuroscience Priority 3 | Secondary |
+| VP_12 | Clinical Cross-Species Convergence | Secondary |
+| VP_13 | Epistemic Architecture | Secondary |
+| VP_14 | fMRI Anticipation Experience (P5a–P5d) | Primary |
+| VP_15 | fMRI Anticipation vmPFC (P5e–P5h stubs) | Secondary |
+| VP_16 | Metabolic ATP Ground-Truth (synthetic; qBOLD/PET pending) | Secondary |
+| VP_17 | Allen Visual Coding Fatigue (synthetic; allensdk path optional) | Secondary |
+| VP_18 | EEG Microstate GFP / P3b Energy | Secondary |
+| VP_19 | Information Erasure MVPA | Secondary |
+| VP_20 | Empirical iEEG Pipeline (BIDS-iEEG) | Secondary |
+| VP_21 | Free Energy Prediction Error (MMN + HEP) | Secondary |
+| VP_22 | fMRI Anticipation Experience — canonical P5a–P5d owner | Primary |
 
 ### 6. Falsification Protocols (`Falsification/` - 12 Protocols)
 
-Model falsification testing:
+Model falsification testing. **FP-03 must run after all other FP protocols** (it performs
+meta-level cross-protocol consistency checks). FP-05 and FP-08 require prerequisite
+data (genome_data from VP-05, APGIAgent from VP-03) which are injected automatically
+by `Master_Falsification.run_falsification()`.
 
-| Protocol | Description |
-| -------- | ----------- |
-| FP_01 | Active Inference |
-| FP_02 | Agent Comparison Convergence Benchmark |
-| FP_03 | Framework Level Multi-Protocol |
-| FP_04 | Phase Transition Epistemic Architecture |
-| FP_05 | Evolutionary Plausibility |
-| FP_06 | Liquid Network Energy Benchmark |
-| FP_07 | Mathematical Consistency |
-| FP_08 | Parameter Sensitivity Identifiability |
-| FP_09 | Neural Signatures P3b HEP |
-| FP_10 | Bayesian Estimation MCMC |
-| FP_11 | Liquid Network Dynamics Echo State |
-| FP_12 | Cross Species Scaling |
+Gate: **F8.2** (FP-08 FIM rank-deficiency) blocks VP-08 and VP-11 if flagged —
+pass `falsification_results` to `run_end_to_end_validation_pipeline()`.
+
+| Protocol | Description | Key Criteria |
+| -------- | ----------- | ------------ |
+| FP_01 | Active Inference — MCMC + threshold dynamics | F1.1–F1.6 |
+| FP_02 | Agent Comparison Convergence Benchmark | F2.1–F2.5 |
+| FP_03 | Framework-Level Multi-Protocol Consistency (**runs last**) | F3.1–F3.6 |
+| FP_04 | Phase Transition Epistemic Architecture | F4.1–F4.5 |
+| FP_05 | Evolutionary Plausibility (needs genome_data) | F5.1–F5.6 |
+| FP_06 | Liquid Network Energy Benchmark | F6.1–F6.2 |
+| FP_07 | Mathematical Consistency (algebra + numerics) | F7.x |
+| FP_08 | Parameter Sensitivity & Identifiability (**Gate F8.2**) | F8.1–F8.x |
+| FP_09 | Neural Signatures P3b / HEP | F9.x |
+| FP_10 | Bayesian Estimation MCMC (PyMC v5; pymc3 deprecated) | F10.x |
+| FP_11 | Liquid Network Dynamics Echo State | F11.x |
+| FP_12 | Cross-Species Scaling | F12.x |
 
 ### System Requirements
 
@@ -306,7 +319,7 @@ Comprehensive logging system with:
 # Run all validation protocols
 python3 main.py validate --all-protocols
 
-# Run specific validation protocol (1-15)
+# Run specific validation protocol (1-22)
 python3 main.py validate --protocol 3
 
 # Run validation with output directory

@@ -649,5 +649,59 @@ def run_validation() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+
+
+class TemporalTilingModule:
+    """TheoryModuleInterface implementation for hierarchical temporal tiling derivation."""
+
+    MODULE_LEVEL: str = "Level 3"
+
+    def compute(self, **kwargs) -> dict:
+        return run_validation()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "HTT-1": {
+                "description": "Optimal hierarchy depth N=5 levels minimises free energy",
+                "threshold": "N=5 selected by BIC/AIC across simulated hierarchies N=3..8",
+                "test": "Model selection via information criteria",
+            },
+            "HTT-2": {
+                "description": "Temporal coverage > 85% of interoceptive signal bandwidth",
+                "threshold": "Coverage > 85%",
+                "test": "Spectral coverage analysis of tiling windows",
+            },
+            "HTT-3": {
+                "description": "Level-to-level time constant ratio within 15% of golden-ratio prediction",
+                "threshold": "< 15% deviation from φ ≈ 1.618 ratio",
+                "test": "Estimated vs predicted ratio comparison",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-TemporalTiling", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     run_validation()

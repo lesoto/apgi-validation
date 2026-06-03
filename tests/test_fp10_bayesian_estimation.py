@@ -2,23 +2,21 @@
 
 import numpy as np
 
-from Falsification.FP_10_BayesianEstimation_MCMC import (
+from Falsification.FP_10_BayesianEstimationMCMC import (
     BayesianParameterRecovery,
     DataSource,
     FP10bParameterRecovery,
     ParameterRecoveryResult,
     compute_posterior_distributions,
 )
-from Falsification.FP_10_BayesianEstimation_MCMC import generate_synthetic_data
-from Falsification.FP_10_BayesianEstimation_MCMC import generate_synthetic_data as generate_synthetic_data_mcmc
-from Falsification.FP_10_BayesianEstimation_MCMC import (
+from Falsification.FP_10_BayesianEstimationMCMC import generate_synthetic_data
+from Falsification.FP_10_BayesianEstimationMCMC import generate_synthetic_data as generate_synthetic_data_mcmc
+from Falsification.FP_10_BayesianEstimationMCMC import (
     run_bayesian_estimation,
     run_mcmc_bayesian_estimation,
     set_data_source,
 )
-from Falsification.FP_10_BayesianEstimation_MCMC import (
-    test_parameter_identifiability as check_parameter_identifiability,
-)
+from Falsification.FP_10_BayesianEstimationMCMC import test_parameter_identifiability as check_parameter_identifiability
 
 
 class TestDataSource:
@@ -248,14 +246,14 @@ class TestSetDataSource:
 
     def test_get_data_source(self):
         """Test getting data source."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import get_data_source
+        from Falsification.FP_10_BayesianEstimationMCMC import get_data_source
 
         source = get_data_source()
         assert source in DataSource
 
     def test_require_empirical_validation(self):
         """Test requiring empirical validation."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import require_empirical_validation
+        from Falsification.FP_10_BayesianEstimationMCMC import require_empirical_validation
 
         require_empirical_validation(True)
         require_empirical_validation(False)
@@ -267,7 +265,7 @@ class TestMCMCPriors:
 
     def test_get_mcmc_priors_default(self):
         """Test getting default MCMC priors."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import get_mcmc_priors
+        from Falsification.FP_10_BayesianEstimationMCMC import get_mcmc_priors
 
         priors = get_mcmc_priors("default")
         assert isinstance(priors, dict)
@@ -279,7 +277,7 @@ class TestMCMCPriors:
 
     def test_get_mcmc_priors_conservative(self):
         """Test getting conservative MCMC priors."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import get_mcmc_priors
+        from Falsification.FP_10_BayesianEstimationMCMC import get_mcmc_priors
 
         priors = get_mcmc_priors("conservative")
         assert isinstance(priors, dict)
@@ -287,7 +285,7 @@ class TestMCMCPriors:
 
     def test_get_mcmc_priors_informative(self):
         """Test getting informative MCMC priors."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import get_mcmc_priors
+        from Falsification.FP_10_BayesianEstimationMCMC import get_mcmc_priors
 
         priors = get_mcmc_priors("informative")
         assert isinstance(priors, dict)
@@ -299,7 +297,7 @@ class TestPsychometricFunctions:
 
     def test_apgi_psychometric_function_np(self):
         """Test numpy-based APGI psychometric function."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import apgi_psychometric_function_np
+        from Falsification.FP_10_BayesianEstimationMCMC import apgi_psychometric_function_np
 
         stimulus = np.array([0.1, 0.5, 0.9])
         result = apgi_psychometric_function_np(stimulus, theta_0=0.5, pi_e=0.5, pi_i=3.0, beta=2.5, alpha=1.5)
@@ -309,7 +307,7 @@ class TestPsychometricFunctions:
 
     def test_apgi_psychometric_function(self):
         """Test APGI psychometric function."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import apgi_psychometric_function
+        from Falsification.FP_10_BayesianEstimationMCMC import apgi_psychometric_function
 
         stimulus = np.array([0.1, 0.5, 0.9])
         result = apgi_psychometric_function(stimulus, theta_0=0.5, pi_e=0.5, pi_i=3.0, beta=2.5, alpha=1.5)
@@ -318,7 +316,7 @@ class TestPsychometricFunctions:
 
     def test_apgi_psychometric_v2(self):
         """Test APGI psychometric function v2."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import apgi_psychometric_v2
+        from Falsification.FP_10_BayesianEstimationMCMC import apgi_psychometric_v2
 
         stimulus = np.array([0.1, 0.5, 0.9])
         result = apgi_psychometric_v2(stimulus, theta_0=0.5, pi_e=0.5, pi_i=3.0, beta=2.5, alpha=1.5)
@@ -331,7 +329,7 @@ class TestBayesFactors:
 
     def test_interpret_bayes_factor(self):
         """Test Bayes factor interpretation."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import interpret_bayes_factor
+        from Falsification.FP_10_BayesianEstimationMCMC import interpret_bayes_factor
 
         # Test various Bayes factor values
         assert interpret_bayes_factor(1.0) == "Weak evidence for model 1"
@@ -342,7 +340,7 @@ class TestBayesFactors:
 
     def test_compute_bayes_factors(self):
         """Test Bayes factor computation."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import compute_bayes_factors
+        from Falsification.FP_10_BayesianEstimationMCMC import compute_bayes_factors
 
         evidence_dict = {"APGI": -100.0, "StandardPP": -105.0, "GWTOnly": -110.0}
         result = compute_bayes_factors(evidence_dict)
@@ -357,7 +355,7 @@ class TestPosteriorPredictive:
 
     def test_compute_posterior_predictive_mae(self):
         """Test posterior predictive MAE computation."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import compute_posterior_predictive_mae
+        from Falsification.FP_10_BayesianEstimationMCMC import compute_posterior_predictive_mae
 
         # Create mock trace with posterior samples
         mock_trace = {
@@ -384,7 +382,7 @@ class TestFalsificationCriteria:
 
     def test_get_falsification_criteria(self):
         """Test getting falsification criteria."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import get_falsification_criteria
+        from Falsification.FP_10_BayesianEstimationMCMC import get_falsification_criteria
 
         criteria = get_falsification_criteria()
         assert isinstance(criteria, dict)
@@ -394,7 +392,7 @@ class TestFalsificationCriteria:
 
     def test_define_apgi_priors(self):
         """Test defining APGI priors."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import define_apgi_priors
+        from Falsification.FP_10_BayesianEstimationMCMC import define_apgi_priors
 
         priors = define_apgi_priors()
         assert isinstance(priors, dict)
@@ -410,7 +408,7 @@ class TestUtilityFunctions:
 
     def test_convert_to_serializable(self):
         """Test converting numpy types to serializable."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import _convert_to_serializable
+        from Falsification.FP_10_BayesianEstimationMCMC import _convert_to_serializable
 
         # Test numpy array
         arr = np.array([1, 2, 3])
@@ -428,7 +426,7 @@ class TestUtilityFunctions:
 
     def test_harmonic_mean_evidence(self):
         """Test harmonic mean evidence computation."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import compute_harmonic_mean_evidence
+        from Falsification.FP_10_BayesianEstimationMCMC import compute_harmonic_mean_evidence
 
         # Create mock trace
         mock_trace = {
@@ -446,7 +444,7 @@ class TestAlternativeModels:
 
     def test_run_alternative_models_minimal(self):
         """Test running alternative models with minimal samples."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import run_alternative_models
+        from Falsification.FP_10_BayesianEstimationMCMC import run_alternative_models
 
         stimulus_data = np.array([0.1, 0.5, 0.9])
         response_data = np.array([0, 1, 1])
@@ -467,7 +465,7 @@ class TestParameterRecovery:
     def test_generate_parameter_recovery_data(self):
         """Test generating parameter recovery data."""
         try:
-            from Falsification.FP_10_BayesianEstimation_MCMC import generate_parameter_recovery_data
+            from Falsification.FP_10_BayesianEstimationMCMC import generate_parameter_recovery_data
 
             stimulus, response = generate_parameter_recovery_data(n_trials=20)
             assert len(stimulus) == 20
@@ -480,7 +478,7 @@ class TestParameterRecovery:
 
     def test_generate_empirical_plausible_data(self):
         """Test generating empirical plausible data."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import generate_empirical_plausible_data
+        from Falsification.FP_10_BayesianEstimationMCMC import generate_empirical_plausible_data
 
         stimulus, response = generate_empirical_plausible_data(n_trials=20)
         assert len(stimulus) == 20
@@ -492,7 +490,7 @@ class TestProtocolRunner:
 
     def test_run_protocol_main(self):
         """Test main protocol runner."""
-        from Falsification.FP_10_BayesianEstimation_MCMC import run_protocol_main
+        from Falsification.FP_10_BayesianEstimationMCMC import run_protocol_main
 
         result = run_protocol_main()
         assert isinstance(result, dict)

@@ -10,9 +10,124 @@ from typing import Any, Dict
 # CORE FALSIFICATION CRITERIA (F1.1–F6.2)
 # =============================================================================
 
+# =============================================================================
+# CANONICAL PROXY MAPPING: Theoretical constructs → Empirical measures
+# This table is the authoritative cross-reference between APGI symbols and
+# the experimental measures used in each protocol.
+# =============================================================================
+
+CONSTRUCT_PROXY_MAP = {
+    "B_t": {
+        "description": "Ignition event (binary): B_t = 1 iff S_t > θ_t",
+        "computational": "Heaviside(S_t - theta_t); see algorithmic_verification.py",
+        "proxies": {
+            "P1_EEG": {"measure": "P3b amplitude", "threshold": "≥ 0.3 µV", "criterion": "F9.1"},
+            "P2_TMS": {"measure": "PCI", "threshold": "≥ 0.31", "criterion": "P2.a"},
+            "P4_DoC": {"measure": "PCI", "threshold": "≥ 0.31", "criterion": "P4.a"},
+            "P6_iEEG": {"measure": "Hartigan dip p", "threshold": "< 0.05", "criterion": "P6a"},
+        },
+    },
+    "Pi_i": {
+        "description": "Interoceptive precision (baseline)",
+        "proxies": {
+            "P1_EEG": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "trial-by-trial, r > 0.4 with P3b",
+                "criterion": "P1a",
+            },
+            "P2_TMS": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "≥ 30% reduction under insula TMS",
+                "criterion": "P2.b",
+            },
+            "P4_DoC": {
+                "measure": "HEP amplitude 250–400 ms",
+                "threshold": "d > 0.5 MCS vs VS/UWS",
+                "criterion": "P4b",
+            },
+        },
+        "proxy_equation": "HEP_amplitude ∝ Pi_i_eff (monotonic, not linear; calibration required per session)",
+    },
+    "Pi_e": {
+        "description": "Exteroceptive precision",
+        "proxies": {
+            "P3_sim": {"measure": "Gabor contrast level", "threshold": "0.02–0.32 cpd range", "criterion": "P3a"},
+        },
+        "note": "Pi_e is manipulated as stimulus contrast in P1/P6; it is not measured independently. "
+        "Must be added to Protocol Table P1 hypothesis column.",
+    },
+    "S_t": {
+        "description": "Accumulated surprise: dS/dt = -S/τ_S + Πᵉ|εᵉ| + β_s·Πⁱ|εⁱ|",
+        "proxies": {
+            "P1_EEG": {
+                "measure": "N2 amplitude (200–300 ms) or pre-P3b negativity",
+                "threshold": "not yet formally registered",
+                "criterion": "MISSING — see TODO below",
+            },
+            "P6_iEEG": {
+                "measure": "Pre-ignition high-gamma envelope",
+                "threshold": "AC1 increase Kendall τ > 0.3",
+                "criterion": "P6c",
+            },
+        },
+        "todo": "P1 and P4 have no registered empirical proxy for S_t. "
+        "Add N2/pre-P3b negativity as S_t proxy to NAMED_PREDICTIONS and F-criteria.",
+    },
+    "M_hat": {
+        "description": "Somatic marker: M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
+        "scalar_alias": "M (used in sympy dict — scalar approximation only)",
+        "full_form": "bilinear: M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
+        "proxies": {
+            "P3_sim": {
+                "measure": "Agent M̂ signal (simulated)",
+                "threshold": "leads B_t by ≥1 trial in ≥75% events",
+                "criterion": "P3c",
+            },
+            "P5_fMRI": {
+                "measure": "vmPFC BOLD (anticipation phase)",
+                "threshold": "PPI coupling r > 0.4 vs posterior insula",
+                "criterion": "P5.a",
+            },
+        },
+    },
+}
+# =============================================================================
+# PROXY CALIBRATION SPECIFICATIONS
+# Quantitative relationship between empirical measure and theoretical construct.
+# All protocols MUST import from here; never assert proxy relationships inline.
+# =============================================================================
+
+PROXY_CALIBRATION = {
+    "HEP_to_Pi_i": {
+        "functional_form": "monotonic_positive",
+        "specification": "HEP amplitude (µV, 250–400 ms, Cz) is a rank-order proxy for Πⁱ_eff. "
+        "No linear scaling assumed. Operationalised as: high Πⁱ ↔ HEP > median "
+        "within-session; low Πⁱ ↔ HEP ≤ median. Trial-by-trial mixed-effects "
+        "regression (P3b ~ HEP_amplitude + RMSSD + random slopes) is the primary "
+        "calibration procedure. Session-level z-scoring required before cross-session comparison.",
+        "minimum_r_for_proxy_validity": 0.35,  # EP-0 CSV: HEP–Πⁱ r > 0.35 required for proxy validity
+        "falsification": "HEP–P3b r < 0.35 invalidates HEP as Πⁱ proxy for that session (EP-0 criterion)",
+        "references": ["Garfinkel et al. (2014)", "Canales-Johnson et al. (2020)"],
+    },
+    "PCI_to_B_t": {
+        "functional_form": "threshold_dichotomous",
+        "specification": "PCI ≥ 0.31 is treated as B_t = 1 (ignition present); PCI < 0.31 as B_t = 0. "
+        "Threshold sourced from Casarotto et al. (2016) 100% specificity cutoff. "
+        "Within-protocol comparisons use continuous PCI; the 0.31 cutoff applies "
+        "only to clinical DoC classification (Protocol 4) and consciousness level "
+        "assignment. Do NOT use 0.31 as a threshold in TMS or iEEG Protocol 2/6 "
+        "comparisons — use within-condition delta-PCI instead.",
+        "pci_consciousness_threshold": 0.31,
+        "delta_pci_minimum_effect": 0.05,  # Minimum meaningful PCI change within condition
+        "falsification": "PCI change < 0.05 following insula TMS does not constitute threshold shift (P2a)",
+        "references": ["Casarotto et al. (2016)", "Comolatti et al. (2019)"],
+    },
+}
+
 FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     # F1.1: Threshold Ignition Emergence
     "F1.1": {
+        "type": "FAL",
         "name": "Threshold Ignition Emergence",
         "description": "APGI agents should show discrete ignition events (Sₜ > θₜ) with sudden firing-rate increases",
         "test_type": "binomial",
@@ -25,6 +140,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F1.2: Precision-Weighted Coding
     "F1.2": {
+        "type": "FAL",
         "name": "Precision-Weighted Coding",
         "description": "Neural representations should be weighted by precision Π",
         "test_type": "correlation",
@@ -37,6 +153,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F1.3: Interoceptive Prioritization
     "F1.3": {
+        "type": "FAL",
         "name": "Interoceptive Prioritization",
         "description": "Interoceptive prediction errors should receive higher weighting than exteroceptive",
         "test_type": "ratio",
@@ -48,6 +165,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F1.4: Threshold Adaptation Dynamics
     "F1.4": {
+        "type": "FAL",
         "name": "Threshold Adaptation Dynamics",
         "description": "Ignition threshold θₜ should adapt based on metabolic cost",
         "test_type": "correlation",
@@ -59,6 +177,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     "F1.5": {
+        "type": "FAL",
         "name": "Cross-Level Phase-Amplitude Coupling",
         "description": "PAC between theta phase and gamma amplitude should increase during ignition",
         "test_type": "permutation",
@@ -71,6 +190,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F1.6: Spectral Slope During Ignition
     "F1.6": {
+        "type": "FAL",
         "name": "Spectral Slope During Ignition",
         "description": "1/f spectral slope should flatten during ignition",
         "test_type": "ttest",
@@ -82,6 +202,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F2.1: Advantageous Deck Selection (Iowa Gambling Task)
     "F2.1": {
+        "type": "FAL",
         "name": "Advantageous Deck Selection",
         "description": "APGI agents should prefer advantageous decks in IGT",
         "test_type": "binomial",
@@ -93,6 +214,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F2.2: Interoceptive Cost Correlation
     "F2.2": {
+        "type": "FAL",
         "name": "Interoceptive Cost Correlation",
         "description": "Deck selection should correlate with interoceptive cost signals",
         "test_type": "correlation",
@@ -104,8 +226,11 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F2.3: vmPFC-Like Anticipatory Bias (RT advantage)
     "F2.3": {
+        "type": "FAL",
         "name": "vmPFC-Like Anticipatory Bias",
-        "description": "Reaction time advantage for advantageous decks",
+        "description": "vmPFC-Like Anticipatory Bias — operationalized via M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a), NOT scalar M. "
+        "Test uses vmPFC BOLD as M̂ proxy during anticipation phase (P5a). "
+        "Falsified if vmPFC correlates with outcome-phase εⁱ rather than anticipation-phase M̂.",
         "test_type": "ttest",
         "threshold": "RT advantage ≥ 50ms, β ≥ 25ms, R² ≥ 0.18",
         "falsification_threshold": "RT advantage < 25ms",
@@ -116,8 +241,11 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F2.4: Precision vs Error Magnitude
     "F2.4": {
+        "type": "FAL",
         "name": "Precision vs Error Magnitude",
-        "description": "Neural precision should scale with prediction error magnitude",
+        "description": "Precision-Weighted Integration via M̂ (Not Error Magnitude). "
+        "M̂ modulates Πⁱ_eff = Πⁱ · exp(β_s · M̂), not raw |εⁱ|. "
+        "Uses full bilinear form M̂(c,a); scalar M is insufficient for this criterion.",
         "test_type": "regression",
         "threshold": "β ≥ 0.40, R² ≥ 0.20",
         "falsification_threshold": "β < 0.20 OR R² < 0.10",
@@ -127,6 +255,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F2.5: Somatic Marker Integration
     "F2.5": {
+        "type": "FAL",
         "name": "Somatic Marker Integration",
         "description": "Somatic signals should modulate decision thresholds",
         "test_type": "hazard_ratio",
@@ -138,6 +267,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.1: Phase Transition Detection
     "F3.1": {
+        "type": "FAL",
         "name": "Phase Transition Detection",
         "description": "Abrupt changes in neural dynamics at critical points",
         "test_type": "susceptibility",
@@ -149,6 +279,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.2: Φ Spike During Ignition
     "F3.2": {
+        "type": "FAL",
         "name": "Φ Spike During Ignition",
         "description": "Integrated information should spike during ignition",
         "test_type": "ttest",
@@ -160,6 +291,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.3: Critical Slowing Down
     "F3.3": {
+        "type": "FAL",
         "name": "Critical Slowing Down",
         "description": "Autocorrelation should increase near critical points",
         "test_type": "correlation",
@@ -171,6 +303,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.4: Discontinuity Effect Size
     "F3.4": {
+        "type": "FAL",
         "name": "Discontinuity Effect Size",
         "description": "Large discontinuities in neural metrics at phase transitions",
         "test_type": "ttest",
@@ -182,6 +315,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.5: Hurst Exponent Analysis
     "F3.5": {
+        "type": "FAL",
         "name": "Hurst Exponent Analysis",
         "description": "Long-range temporal correlations in neural dynamics",
         "test_type": "equivalence",
@@ -193,6 +327,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F3.6: Bistability Detection
     "F3.6": {
+        "type": "FAL",
         "name": "Bistability Detection",
         "description": "Two stable states in neural dynamics",
         "test_type": "bimodality",
@@ -204,6 +339,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F4.1: Multi-Scale Precision Hierarchy
     "F4.1": {
+        "type": "FAL",
         "name": "Multi-Scale Precision Hierarchy",
         "description": "Precision should vary hierarchically across neural levels",
         "test_type": "anova",
@@ -215,6 +351,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F4.2: Cross-Level Coherence
     "F4.2": {
+        "type": "FAL",
         "name": "Cross-Level Coherence",
         "description": "Coherence between neural levels during ignition",
         "test_type": "correlation",
@@ -226,6 +363,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F4.3: Spectral Slope Hierarchy
     "F4.3": {
+        "type": "FAL",
         "name": "Spectral Slope Hierarchy",
         "description": "1/f slope should vary systematically across levels",
         "test_type": "trend",
@@ -237,6 +375,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F4.4: Information Flow Direction
     "F4.4": {
+        "type": "FAL",
         "name": "Information Flow Direction",
         "description": "Granger causality should flow bottom-up during ignition",
         "test_type": "granger",
@@ -248,6 +387,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F4.5: Cross-Scale Integration
     "F4.5": {
+        "type": "FAL",
         "name": "Cross-Scale Integration",
         "description": "Integration across spatial and temporal scales",
         "test_type": "correlation",
@@ -259,6 +399,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.1: Threshold Filtering Emergence
     "F5.1": {
+        "type": "FAL",
         "name": "Threshold Filtering Emergence",
         "description": "Evolved agents should develop threshold-like gating",
         "test_type": "binomial",
@@ -272,6 +413,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.2: Precision-Weighted Coding Emergence
     "F5.2": {
+        "type": "FAL",
         "name": "Precision-Weighted Coding Emergence",
         "description": "Evolved agents should develop precision weighting",
         "test_type": "correlation",
@@ -285,6 +427,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.3: Interoceptive Prioritization Emergence
     "F5.3": {
+        "type": "FAL",
         "name": "Interoceptive Prioritization Emergence",
         "description": "Evolved agents should prioritize interoceptive signals",
         "test_type": "ratio",
@@ -298,6 +441,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.4: Multi-Timescale Integration Emergence
     "F5.4": {
+        "type": "FAL",
         "name": "Multi-Timescale Integration Emergence",
         "description": "Evolved agents should integrate across timescales",
         "test_type": "binomial",
@@ -311,6 +455,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.5: PCA Variance Structure
     "F5.5": {
+        "type": "FAL",
         "name": "PCA Variance Structure",
         "description": "PCA should reveal predicted dimensional structure",
         "test_type": "pca",
@@ -323,6 +468,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F5.6: Non-APGI Architecture Failure
     "F5.6": {
+        "type": "FAL",
         "name": "Non-APGI Architecture Failure",
         "description": "Architectures without APGI components should underperform",
         "test_type": "ttest",
@@ -335,6 +481,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F6.1: Intrinsic Threshold Behavior (LTCN transition)
     "F6.1": {
+        "type": "FAL",
         "name": "Intrinsic Threshold Behavior",
         "description": "LTCNs should show sharp ignition transitions <50ms",
         "test_type": "mann_whitney",
@@ -348,6 +495,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
     },
     # F6.2: Intrinsic Temporal Integration
     "F6.2": {
+        "type": "FAL",
         "name": "Intrinsic Temporal Integration",
         "description": "LTCNs should integrate over 200-500ms windows",
         "test_type": "ratio",
@@ -371,20 +519,23 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
     # VP-08: Psychophysical Threshold Estimation (Paper 1 — Protocol 1)
     # V1.1–V1.3 here are the authoritative registry definitions; VP-01's local
     # criteria use the VP01.x prefix to avoid collision.
-    "VP_08_Psychophysical_ThresholdEstimation": {
+    "VP_08_PsychophysicalThresholdEstimation": {
         "V1.1": {
+            "type": "VAL",
             "name": "Heartbeat Discrimination Accuracy",
             "description": "APGI should improve heartbeat discrimination compared to StandardPP",
             "threshold": "d' improvement ≥ 0.30",
             "alpha": 0.05,
         },
         "V1.2": {
+            "type": "VAL",
             "name": "Visual Detection Threshold Modulation",
             "description": "Detection threshold should vary with interoceptive precision",
             "threshold": "threshold shift ≥ 15%",
             "alpha": 0.05,
         },
         "V1.3": {
+            "type": "VAL",
             "name": "Arousal Interaction",
             "description": "High arousal (100-120 bpm) should enhance interoceptive weighting",
             "threshold": "interaction d = 0.25–0.45",
@@ -393,6 +544,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
     },
     "Validation_Protocol_5": {
         "V5.1": {
+            "type": "VAL",
             "name": "Algorithmic Falsification",
             "description": "APGI equations must produce correct numerical predictions",
             "threshold": "numerical accuracy ε ≤ 1e-6",
@@ -401,24 +553,28 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
     },
     "Validation_Protocol_9": {
         "V9.1": {
+            "type": "VAL",
             "name": "Symptom Prediction",
             "description": "APGI metrics should predict clinical symptoms",
             "threshold": "r ≥ 0.60",
             "alpha": 0.01,
         },
         "V9.2": {
+            "type": "VAL",
             "name": "Treatment Response Prediction",
             "description": "APGI metrics should predict treatment outcomes",
             "threshold": "r ≥ 0.50",
             "alpha": 0.01,
         },
         "V9.3": {
+            "type": "VAL",
             "name": "Biomarker Prediction",
             "description": "APGI metrics should correlate with neural biomarkers",
             "threshold": "r ≥ 0.70",
             "alpha": 0.01,
         },
         "V9.4": {
+            "type": "VAL",
             "name": "Cognitive Performance",
             "description": "APGI metrics should predict cognitive task performance",
             "threshold": "r ≥ 0.50",
@@ -427,12 +583,14 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
     },
     "Validation_Protocol_12": {
         "V12.1": {
+            "type": "VAL",
             "name": "Clinical Gradient Prediction",
             "description": "APGI should distinguish VS, MCS, EMCS, healthy",
             "threshold": "P3b reduction ≥80%, ignition reduction ≥70%, d ≥ 0.80",
             "alpha": 0.01,
         },
         "V12.2": {
+            "type": "VAL",
             "name": "Cross-Species Homology",
             "description": "APGI dynamics should be conserved across species",
             "threshold": "r ≥ 0.60, Pillai's trace ≥ 0.40",
@@ -441,8 +599,9 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
         },
     },
     # HIGH-05: VP-13 Epistemic Architecture Validation Protocol
-    "VP_13_Epistemic_Architecture": {
+    "VP_13_EpistemicArchitecture": {
         "V13.1": {
+            "type": "VAL",
             "name": "Epistemic Hierarchy Validation",
             "description": "Multi-scale precision hierarchy should emerge across neural levels",
             "threshold": "susceptibility ratio ≥ 2.0, η² ≥ 0.15",
@@ -454,6 +613,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.01,
         },
         "V13.2": {
+            "type": "VAL",
             "name": "Cross-Level Coherence",
             "description": "Coherence between neural levels during ignition events",
             "threshold": "mutual information ≥ 10.0 bits/s, coherence ≥ 0.40",
@@ -465,6 +625,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.01,
         },
         "V13.3": {
+            "type": "VAL",
             "name": "Information Flow Directionality",
             "description": "Granger causality should flow bottom-up during ignition",
             "threshold": "TE ≥ 0.1 bits, bottom-up GC ≥ 2× top-down",
@@ -476,6 +637,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.01,
         },
         "V13.4": {
+            "type": "VAL",
             "name": "Phase Transition Detection",
             "description": "Critical slowing and susceptibility peaks at ignition",
             "threshold": "critical slowing ratio ≥ 1.2 (20% increase), p < 0.05",
@@ -485,6 +647,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.05,
         },
         "V13.5": {
+            "type": "VAL",
             "name": "Cross-Scale Integration",
             "description": "Integrated information across spatial and temporal scales",
             "threshold": "Φ_proxy ≥ 0.5 bits, cross-scale correlation ≥ 0.50",

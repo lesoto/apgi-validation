@@ -42,7 +42,7 @@ def test_data_generation_performance():
 
     def generate_data():
         return sample_data_generator.generate_sample_multimodal_data(
-            n_samples=1000, sampling_rate=100.0, duration_minutes=0.1
+            n_samples=1000, sampling_rate=100.0, duration_minutes=int(0.1)
         )
 
     df = generate_data()
@@ -61,7 +61,7 @@ def test_data_validation_performance():
     """Benchmark data validation performance."""
     # Generate test data first
     df = sample_data_generator.generate_sample_multimodal_data(
-        n_samples=1000, sampling_rate=100.0, duration_minutes=0.1
+        n_samples=1000, sampling_rate=100.0, duration_minutes=int(0.1)
     )
 
     validator = data_validation.DataValidator()

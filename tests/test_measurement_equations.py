@@ -7,11 +7,7 @@ Focuses on measurement equation methods that are currently uncovered.
 
 import pytest
 
-from apgi_core.equations import (
-    MeasurementEquations,
-    PsychologicalState,
-    StateCategory,
-)
+from apgi_core.equations import MeasurementEquations, PsychologicalState, StateCategory
 
 
 def test_compute_HEP_basic():

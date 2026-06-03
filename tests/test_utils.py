@@ -229,14 +229,14 @@ class TestErrorHandling:
 
     def test_apgi_error_creation(self):
         """Test APGIError exception creation."""
-        error = APGIError("Test error message")
+        error = APGIError(message="Test error message")
         # APGIError now includes severity and category in string representation
         assert "Test error message" in str(error)
         assert "[MEDIUM]" in str(error)
         assert "RUNTIME" in str(error)
 
         # Test with error code - ErrorCode is a string enum, compare the value
-        error_with_code = APGIError("Test error", error_code=ErrorCode.GEN_UNKNOWN)
+        error_with_code = APGIError(message="Test error", error_code=ErrorCode.GEN_UNKNOWN)
         assert error_with_code.error_code == ErrorCode.GEN_UNKNOWN
         assert error_with_code.error_code.value == "GEN_000"
 

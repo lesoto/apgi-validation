@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lesoto/apgi-framework/protocols/schemas/protocol.schema.json",
+  "title": "APGI Experimental Protocol",
+  "description": "Schema for APGI experimental protocol specification files.",
+  "type": "object",
+  "required": [
+    "protocol_id",
+    "title",
+    "paper",
+    "version",
+    "last_updated",
+    "description",
+    "participants",
+    "trial_structure",
+    "blocks",
+    "dependent_variables",
+    "primary_hypothesis",
+    "primary_analysis",
+    "power_analysis",
+    "pre_registration",
+    "apgi_parameters",
+    "ethics"
+  ],
+  "properties": {
+    "protocol_id": {
+      "type": "string",
+      "pattern": "^(APGI-P[0-9]{2}|VP-[0-9]+[a-z]?|FP-[0-9]+)$",
+      "description": "Unique protocol identifier. Canonical EPs: APGI-P01..APGI-P15. Validation Protocols: VP-00..VP-22, VP-07a. Falsification Protocols: FP-01..FP-12."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5
+    },
+    "paper": {
+      "type": "string"
+    },
+    "osf_url": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20
+    },
+    "participants": {
+      "type": "object",
+      "required": ["n_target", "n_minimum", "inclusion_criteria", "exclusion_criteria"],
+      "properties": {
+        "n_target": {"type": "integer", "minimum": 1},
+        "n_minimum": {"type": "integer", "minimum": 1},
+        "inclusion_criteria": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "exclusion_criteria": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      },
+      "additionalProperties": true
+    },
+    "apparatus": {
+      "type": "object"
+    },
+    "trial_structure": {
+      "type": "object",
+      "required": ["target", "response"],
+      "properties": {
+        "target": {
+          "type": "object",
+          "required": ["type", "duration_ms"],
+          "properties": {
+            "type": {"type": "string"},
+            "duration_ms": {"type": "number", "minimum": 0}
+          }
+        },
+        "response": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "blocks": {
+      "type": "object",
+      "required": ["practice_trials", "experimental_blocks", "total_experimental_trials"],
+      "properties": {
+        "practice_trials": {"type": "integer", "minimum": 0},
+        "experimental_blocks": {"type": "integer", "minimum": 1},
+        "total_experimental_trials": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    },
+    "dependent_variables": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "primary_hypothesis": {
+      "type": "string",
+      "minLength": 10
+    },
+    "primary_analysis": {
+      "type": "string",
+      "minLength": 5
+    },
+    "power_analysis": {
+      "type": "object",
+      "required": ["effect_size_d", "alpha", "power", "n_required"],
+      "properties": {
+        "effect_size_d": {"type": "number", "exclusiveMinimum": 0},
+        "alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "power": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "n_required": {"type": "integer", "minimum": 1},
+        "software": {"type": "string"}
+      }
+    },
+    "pre_registration": {
+      "type": "object",
+      "required": ["platform", "url", "date"],
+      "properties": {
+        "platform": {"type": "string"},
+        "url": {"type": "string"},
+        "date": {"type": "string", "format": "date"}
+      }
+    },
+    "apgi_parameters": {
+      "type": "object",
+      "required": ["kappa", "alpha", "beta_initial_estimate"],
+      "properties": {
+        "kappa": {"type": "number", "exclusiveMinimum": 0},
+        "alpha": {"type": "number", "minimum": 0},
+        "beta_initial_estimate": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "safety_monitoring": {
+      "type": "object"
+    },
+    "ethics": {
+      "type": "object",
+      "required": ["committee", "protocol_number", "approval_date"],
+      "properties": {
+        "committee": {
+          "type": "string",
+          "minLength": 3,
+          "description": "Name of the ethics committee or IRB."
+        },
+        "protocol_number": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Assigned IRB/ethics protocol number."
+        },
+        "approval_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date ethics approval was granted (YYYY-MM-DD)."
+        },
+        "exempt_reason": {
+          "type": "string",
+          "description": "If no human subjects are involved, state the exemption reason."
+        },
+        "surrogate_consent": {
+          "type": "string",
+          "description": "Surrogate consent procedure for incapacitated participants."
+        },
+        "data_sharing": {
+          "type": "string",
+          "description": "Data sharing and de-identification plan."
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

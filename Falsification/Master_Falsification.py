@@ -29,6 +29,7 @@ This would indicate that the falsification coordination framework is not robust.
 """
 
 import importlib.util
+import inspect
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -457,24 +458,24 @@ class APGIMasterFalsifier:
                 "tier": "primary",
             },
             "FP-02": {
-                "file": "Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py",
+                "file": "Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Agent Comparison: F3.x (Performance Benchmarks)",
                 "tier": "primary",
             },
             "FP-03": {
-                "file": "Falsification/FP_03_FrameworkLevel_MultiProtocol.py",
+                "file": "Falsification/FP_03_FrameworkLevelMultiProtocol.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Framework-Level Multi-Protocol Synthesis",
                 "tier": "secondary",
             },
             "FP-04": {
-                "file": "Falsification/DS_01_Sergent2005_AttentionalBlink.py",
-                "function": "run_validation",
-                "class": "Sergent2005Protocol",
-                "description": "DS-01: Sergent 2005 Attentional Blink (Hill Coefficient β fitting)",
+                "file": "Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",
+                "function": "run_falsification",
+                "class": "None",
+                "description": "Phase Transition / Epistemic Architecture",
                 "tier": "secondary",
             },
             "FP-05": {
@@ -485,7 +486,7 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-06": {
-                "file": "Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py",
+                "file": "Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Liquid Network / Energy Benchmark: F6.x",
@@ -499,28 +500,28 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-08": {
-                "file": "Falsification/FP_08_ParameterSensitivity_Identifiability.py",
+                "file": "Falsification/FP_08_ParameterSensitivityIdentifiability.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Parameter Sensitivity / Identifiability: F8.x",
                 "tier": "secondary",
             },
             "FP-09": {
-                "file": "Falsification/FP_09_NeuralSignatures_P3b_HEP.py",
+                "file": "Falsification/FP_09_NeuralSignaturesP3bHEP.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Neural Signatures: P4.x, P5.x (P3b, HEP)",
                 "tier": "tertiary",
             },
             "FP-10": {
-                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
+                "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Bayesian MCMC + Cross-Species Scaling",
                 "tier": "tertiary",
             },
             "FP-10a": {
-                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
+                "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Bayesian MCMC Estimation (standalone)",
@@ -534,11 +535,18 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-11": {
-                "file": "Falsification/FP_11_LiquidNetworkDynamics_EchoState.py",
+                "file": "Falsification/FP_11_LiquidNetworkDynamicsEchoState.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Liquid Network Dynamics / Echo State",
                 "tier": "secondary",
+            },
+            "FP-12": {
+                "file": "Falsification/FP_12_CrossSpeciesScaling.py",
+                "function": "run_falsification",
+                "class": "None",
+                "description": "Cross-Species Scaling",
+                "tier": "tertiary",
             },
             "FP-13": {
                 "file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
@@ -561,7 +569,7 @@ class APGIMasterFalsifier:
                 "description": "Allen Visual Coding: Fatigue",
                 "tier": "tertiary",
             },
-            "FP-12": {
+            "FP-ALL": {
                 "file": "Falsification/FP_ALL_Aggregator.py",
                 "function": "run_framework_falsification",
                 "class": "None",
@@ -657,7 +665,7 @@ class APGIMasterFalsifier:
             RuntimeError: If APGIAgent cannot be instantiated
         """
         project_root = Path(__file__).parent.parent
-        vp3_path = project_root / "Validation" / "VP_03_ActiveInference_AgentSimulations.py"
+        vp3_path = project_root / "Validation" / "VP_03_ActiveInferenceAgentSimulations.py"
 
         logger.info("CRIT-04 FIX: Running VP-03 prerequisite to prepare APGIAgent for FP-08...")
 
@@ -683,7 +691,7 @@ class APGIMasterFalsifier:
                 config = module.APGIConfig()
                 agent = APGIAgentClass(config=config)
             else:
-                agent = APGIAgentClass()
+                agent = APGIAgentClass({})
 
             logger.info(f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})")
             return agent
@@ -703,7 +711,16 @@ class APGIMasterFalsifier:
         """
         results: Dict[str, Dict[str, Any]] = {}
 
-        for protocol_name in protocols:
+        # FP-03 depends on all other FP results to perform meta-level consistency checks.
+        # Ensure FP-03 always runs last within the requested batch so prerequisite results
+        # are available in self.protocol_results when FP-03 executes.
+        if "FP-03" in protocols and protocols.index("FP-03") != len(protocols) - 1:
+            ordered = [p for p in protocols if p != "FP-03"] + ["FP-03"]
+            logger.info("FP-03 reordered to run last (requires other FP results as prerequisites).")
+        else:
+            ordered = list(protocols)
+
+        for protocol_name in ordered:
             if protocol_name not in self.available_protocols:
                 logger.warning(f"Unknown falsification protocol: {protocol_name}")
                 results[protocol_name] = {
@@ -722,6 +739,13 @@ class APGIMasterFalsifier:
                         protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
                     # Set n_replicates=5 for FP-05 as per specification
                     protocol_kwargs.setdefault("n_replicates", 5)
+
+                # FP-03 prerequisite injection: pass accumulated results so FP-03
+                # can perform cross-protocol consistency checks.
+                if protocol_name == "FP-03":
+                    if "prerequisite_results" not in protocol_kwargs:
+                        protocol_kwargs["prerequisite_results"] = dict(self.protocol_results)
+                        protocol_kwargs["prerequisite_results"].update(results)
 
                 # CRIT-04 FIX: Inject APGIAgent for FP-08
                 if protocol_name == "FP-08":
@@ -821,8 +845,18 @@ class APGIMasterFalsifier:
                     "falsified": True,
                 }
 
-        # Run the protocol
-        result = run_func(**kwargs)
+        # Run the protocol — filter kwargs to only what the function accepts
+        sig = inspect.signature(run_func)
+        params = sig.parameters
+        has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if has_var_keyword:
+            call_kwargs = kwargs
+        else:
+            call_kwargs = {k: v for k, v in kwargs.items() if k in params}
+            # Aggregator protocols that need collected results as positional input
+            if "results_input" in params and "results_input" not in call_kwargs:
+                call_kwargs["results_input"] = dict(self.protocol_results)
+        result = run_func(**call_kwargs)
 
         # Standardize result format
         if "falsified" not in result:
@@ -851,7 +885,7 @@ class APGIMasterFalsifier:
         all_protocols = list(self.available_protocols.keys())
 
         # Exclude meta-protocols from direct execution
-        run_protocols = [p for p in all_protocols if p not in ["FP-10", "FP-12"]]
+        run_protocols = [p for p in all_protocols if p not in ["FP-10", "FP-ALL"]]
 
         logger.info(f"Running {len(run_protocols)} falsification protocols...")
         results = self.run_falsification(run_protocols, **kwargs)

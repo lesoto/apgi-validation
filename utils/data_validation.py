@@ -873,7 +873,7 @@ class DataPreprocessor(DataValidator):
         if format == "csv":
             df.to_csv(output_path, index=False)
         elif format == "json":
-            data_dict = {
+            data_dict: dict[str, object] = {
                 "data": df.to_dict("records"),
                 "preprocessing_steps": self.preprocessing_steps,
                 "processing_timestamp": datetime.now().isoformat(),

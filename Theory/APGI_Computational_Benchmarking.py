@@ -1124,6 +1124,58 @@ def run_benchmark_suite(config: Optional[Dict[str, Any]] = None) -> Dict[str, An
     return results
 
 
+class BenchmarkingModule:
+    """TheoryModuleInterface implementation for computational benchmarking."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return run_benchmark_suite(kwargs.get("config"))
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "BENCH-1": {
+                "description": "APGI framework achieves statistically superior fit vs FEP/GNW/IIT",
+                "threshold": "p < 0.05 on pairwise comparison, Cohen's d > 0.5",
+                "test": "Paired t-test across benchmark paradigms",
+            },
+            "BENCH-2": {
+                "description": "Prediction distributions show < 20% overlap with competing frameworks",
+                "threshold": "< 20% distributional overlap (Bhattacharyya coefficient)",
+                "test": "Bhattacharyya coefficient on prediction histograms",
+            },
+            "BENCH-3": {
+                "description": "APGI outperforms baselines on interoceptive paradigms",
+                "threshold": "Mean accuracy gap > 5 percentage points",
+                "test": "Bootstrap confidence interval on accuracy gap",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-Benchmarking", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     # Initialize enhanced benchmarker
     benchmarker = EnhancedBenchmarker()

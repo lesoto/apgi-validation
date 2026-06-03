@@ -922,8 +922,8 @@ class TestGUICodeCoverage:
     def test_gui_thread_safety(self):
         """Test GUI thread safety patterns."""
         # GUI updates should happen in main thread
-        gui_queue = queue.Queue()
-        results = []
+        gui_queue: queue.Queue[str] = queue.Queue()
+        results: list[str] = []
 
         def background_worker():
             # Simulate background task

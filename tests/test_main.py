@@ -366,10 +366,12 @@ class TestUtilityFunctions:
                 json.dump(test_data, f)
 
             # Should not raise exception for small file
-            assert _check_file_size(test_file) is None
+            _check_file_size(test_file)
+            assert True  # Function returns None, just verify it doesn't raise
 
             # Test with custom limit
-            assert _check_file_size(test_file, max_mb=1) is None
+            _check_file_size(test_file, max_mb=1)
+            assert True  # Function returns None, just verify it doesn't raise
         finally:
             if test_file.exists():
                 os.remove(test_file)

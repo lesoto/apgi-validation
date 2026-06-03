@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from Falsification.FP_03_FrameworkLevel_MultiProtocol import (
+from Falsification.FP_03_FrameworkLevelMultiProtocol import (
     FrameworkValidator,
     MultiProtocolRunner,
     ProtocolConfig,
@@ -138,7 +138,7 @@ class TestRunMultiProtocolFramework:
             ProtocolConfig("proto2", True, {}),
         ]
 
-        with patch("Falsification.FP_03_FrameworkLevel_MultiProtocol.MultiProtocolRunner") as MockRunner:
+        with patch("Falsification.FP_03_FrameworkLevelMultiProtocol.MultiProtocolRunner") as MockRunner:
             mock_runner = MagicMock()
             mock_runner.run_all.return_value = [
                 ProtocolResult(

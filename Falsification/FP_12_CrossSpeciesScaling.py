@@ -6,6 +6,25 @@ This protocol implements rigorous validation of cross-species allometric scaling
 and clinical convergence (Propofol/DoC) using Liquid Time Constant (LTC) analysis.
 Consolidated from VP-12 and F6 specifications.
 
+CONSOLIDATION NOTE (Scientific Validity Assessment)
+----------------------------------------------------
+FP-12 duplicates elements of FP-03 (Framework-Level Multi-Protocol). For manuscript
+purposes, cross-species content should be merged into VP-05 (Cross-Species Convergence),
+and clinical content moved to VP-12 (Clinical Dysregulation Profiles, Paper 3).
+
+QUANTITATIVE CRITERIA (per validity assessment):
+  Cross-species convergence (VP-5B equivalent):
+    - ≥2 of 3 non-mammalian systems (invertebrate, cephalopod, avian) must show:
+      (a) bistable attractor dynamics, (b) adaptive thresholds after high-frequency
+      events, (c) precision-like weighting of reliable vs. noisy inputs.
+    - Falsification: if invertebrate/cephalopod/avian systems show only continuous
+      graded processing without thresholds, APGI is mammalian-specific, not universal.
+
+  Clinical profiles (VP-12A equivalent, Paper 3):
+    - ≥2 of 3 disorders (panic, depression, schizophrenia) show predicted parameter
+      profiles with 95% CI non-overlapping with healthy controls.
+    - Falsification: random parameter variation (no systematic clinical pattern).
+
 CRITICAL FEATURES:
 - Liquid Time Constant (LTC) analysis via Echo State Network (ESN) simulation
 - Allometric scaling exponents for {Πⁱ, θₜ, τS} vs. brain mass

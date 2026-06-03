@@ -380,7 +380,7 @@ class TestMissingCoverageFunctions:
             test_module_path.write_text("# Missing expected class")
 
             loader._module_configs["test"] = {
-                "path": test_module_path,
+                "path": str(test_module_path),
                 "class": "NonExistentClass",
             }
 

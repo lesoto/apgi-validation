@@ -44,8 +44,10 @@ def serialize(obj):
     """Custom JSON serializer for non-serializable objects"""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, (datetime, np.datetime64)):
+    elif isinstance(obj, datetime):
         return obj.isoformat()
+    elif isinstance(obj, np.datetime64):
+        return obj.astype(datetime).isoformat()
     else:
         return str(obj)
 
@@ -936,6 +938,58 @@ def main():
         f.write(prereg.to_json())
 
     print("\nSample preregistration saved to: sample_preregistration.json")
+
+
+class OpenScienceModule:
+    """TheoryModuleInterface implementation for open science & replication framework."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return main()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "OS-1": {
+                "description": "Pre-registered predictions confirmed in independent replication",
+                "threshold": "≥ 80% of pre-registered primary outcomes replicate (p < 0.05)",
+                "test": "Replication rate across independent labs",
+            },
+            "OS-2": {
+                "description": "Effect sizes in replication within 20% of original estimate",
+                "threshold": "< 20% relative deviation from original Cohen's d",
+                "test": "Bootstrap CI comparison across original and replication",
+            },
+            "OS-3": {
+                "description": "Open data release enables independent parameter recovery",
+                "threshold": "Independent recovery within ±15% of reported π_i estimates",
+                "test": "External validation using shared data and analysis code",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-OpenScience", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
 
 
 if __name__ == "__main__":

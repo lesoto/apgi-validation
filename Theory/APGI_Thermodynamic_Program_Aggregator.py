@@ -918,5 +918,59 @@ def run_aggregator(config: Optional[AggregatorConfig] = None) -> AggregatorRepor
 # ENTRY POINT
 # ===========================================================================
 
+
+class ThermodynamicModule:
+    """TheoryModuleInterface implementation for thermodynamic program aggregation."""
+
+    MODULE_LEVEL: str = "Level 1"
+
+    def compute(self, **kwargs) -> dict:
+        report = run_aggregator(kwargs.get("config"))
+        return report.__dict__ if hasattr(report, "__dict__") else {"report": str(report)}
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "THERMO-1": {
+                "description": "Landauer minimum metabolic cost reproduced within 10% of kT·ln2 prediction",
+                "threshold": "< 10% relative deviation from Landauer bound",
+                "test": "Numerical integration of bit-erasure energy cost",
+            },
+            "THERMO-2": {
+                "description": "Double-bridge metabolic cost scaling consistent with neural data",
+                "threshold": "Scaling exponent within ±0.1 of observed neural metabolic exponent",
+                "test": "OLS regression of log(cost) vs log(complexity)",
+            },
+            "THERMO-3": {
+                "description": "Aggregate thermodynamic report covers all APGI sub-programs",
+                "threshold": "100% sub-program coverage in aggregator report",
+                "test": "Enumeration check of registered sub-programs",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-ThermodynamicAggregator", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     run_aggregator()

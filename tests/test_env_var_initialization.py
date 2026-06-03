@@ -216,8 +216,8 @@ class TestEnvVarInitialization:
         import threading
         from queue import Queue
 
-        keys_queue = Queue()
-        errors_queue = Queue()
+        keys_queue: Queue = Queue()
+        errors_queue: Queue = Queue()
 
         def get_key():
             try:

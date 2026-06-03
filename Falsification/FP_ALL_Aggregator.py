@@ -366,6 +366,12 @@ NAMED_PREDICTIONS = {
     "fp10b_bf": "Bayesian MCMC: BF₁₀ ≥ 3 for APGI vs StandardPP/GWT",
     "fp10c_mae": "Bayesian MCMC: ≥20% lower MAE than alternatives",
     "fp10b_scaling": "Cross-species scaling: Allometric exponents within ±2 SD",
+    # S_t proxy predictions
+    "P1.S_t": "Pre-P3b negativity (200–300 ms, N2/CNV) reflects S_t accumulation: amplitude scales with Πⁱ·|εⁱ| input (r > 0.35 with HEP)",
+    "P6.S_t": "Pre-ignition high-gamma AC1 increase (Kendall τ > 0.3) reflects S_t approaching θₜ (P6c bifurcation criterion)",
+    "P6.alpha": "Ignition sharpness α (sigmoid steepness) ≥ 2.0 in frontoparietal iEEG "
+    "(fitted from P3b–surprisal sigmoidal curve; distinguishes threshold-like "
+    "from graded ignition; falsified if α < 1.0 indicating continuous response)",
 }
 
 # Fix for Protocol 3: Add missing predictions from FP-01 and FP-02 for synthesis
@@ -387,38 +393,38 @@ PREDICTION_TO_PROTOCOL = {
     "P1.2": "FP_01_ActiveInference",
     "P1.3": "FP_01_ActiveInference",
     # FP-2: TMS/Pharmacological Causal Manipulation
-    "P2.a": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.b": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.c": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "P2.a": "VP_10_CausalManipulationsPriority2",
+    "P2.b": "VP_10_CausalManipulationsPriority2",
+    "P2.c": "VP_10_CausalManipulationsPriority2",
     # FP-3: Agent Comparison Convergence
-    "P3.conv": "FP_02_AgentComparison_ConvergenceBenchmark",
-    "P3.bic": "FP_02_AgentComparison_ConvergenceBenchmark",
+    "P3.conv": "FP_02_AgentComparisonConvergenceBenchmark",
+    "P3.bic": "FP_02_AgentComparisonConvergenceBenchmark",
     # FP-4: DoC Clinical Predictions
-    "P4.a": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.b": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.c": "FP_09_NeuralSignatures_P3b_HEP",
-    "P4.d": "FP_09_NeuralSignatures_P3b_HEP",
+    "P4.a": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.b": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.c": "FP_09_NeuralSignaturesP3bHEP",
+    "P4.d": "FP_09_NeuralSignaturesP3bHEP",
     # FP-5: Skin Conductance / Affective Markers
     "P5.a": "FP_05_EvolutionaryPlausibility",
     "P5.b": "FP_05_EvolutionaryPlausibility",
     # DS-01: Sergent 2005 Attentional Blink
     "DS-01.1": "DS_01_Sergent2005_AttentionalBlink",
     # FP-10: Bayesian MCMC + Cross-Species Scaling
-    "fp10a_mcmc": "FP_10_BayesianEstimation_MCMC",
-    "fp10b_bf": "FP_10_BayesianEstimation_MCMC",
-    "fp10c_mae": "FP_10_BayesianEstimation_MCMC",
-    "fp10b_scaling": "FP_10_BayesianEstimation_MCMC",
+    "fp10a_mcmc": "FP_10_BayesianEstimationMCMC",
+    "fp10b_bf": "FP_10_BayesianEstimationMCMC",
+    "fp10c_mae": "FP_10_BayesianEstimationMCMC",
+    "fp10b_scaling": "FP_10_BayesianEstimationMCMC",
 }
 
 # FP-12 Fix 4: Validate PREDICTION_TO_PROTOCOL mapping at module load time
 # This catches typos in protocol IDs early rather than silently failing at runtime
 VALID_PROTOCOL_IDS = {
     "FP_01_ActiveInference",
-    "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "FP_02_AgentComparison_ConvergenceBenchmark",
-    "FP_09_NeuralSignatures_P3b_HEP",
+    "VP_10_CausalManipulationsPriority2",
+    "FP_02_AgentComparisonConvergenceBenchmark",
+    "FP_09_NeuralSignaturesP3bHEP",
     "FP_05_EvolutionaryPlausibility",
-    "FP_10_BayesianEstimation_MCMC",
+    "FP_10_BayesianEstimationMCMC",
     "DS_01_Sergent2005_AttentionalBlink",
 }
 
@@ -461,6 +467,28 @@ def _extract_named_predictions(data: dict) -> dict:
     nested = data.get("results")
     if isinstance(nested, dict) and isinstance(nested.get("named_predictions"), dict):
         return nested["named_predictions"]
+
+    # Format 2.5: Criteria nested inside {"status":..., "results": {"criteria": {...}, "F6.x": ...}}
+    # This handles run_falsification()-style wrappers that store criteria one level deep.
+    _f_patterns = tuple(f"F{i}." for i in range(1, 13))
+    if isinstance(nested, dict):
+        nested_criteria = nested.get("criteria", {})
+        if isinstance(nested_criteria, dict):
+            nc_extracted = {
+                crit_id.replace("F", "P"): {
+                    "passed": crit_result.get("passed", False),
+                    "value": crit_result.get("value"),
+                    "description": crit_result.get("description", ""),
+                }
+                for crit_id, crit_result in nested_criteria.items()
+                if crit_id.startswith(_f_patterns) and isinstance(crit_result, dict)
+            }
+            if nc_extracted:
+                return nc_extracted
+        # Also check top-level F*.* keys inside results (e.g. {"F6.1": {...}, "F6.2": {...}})
+        nc_direct = {k: v for k, v in nested.items() if k.startswith(_f_patterns) and isinstance(v, dict)}
+        if nc_direct:
+            return nc_direct
 
     # FIXED: Format 3 - Extract from criteria if named_predictions not available
     criteria = data.get("criteria", {})
@@ -530,7 +558,7 @@ def _extract_named_predictions(data: dict) -> dict:
     if direct_predictions:
         return direct_predictions
 
-    logger.warning("No 'named_predictions' found in protocol payload")
+    logger.debug("No 'named_predictions' found in protocol payload")
     return {}
 
 
@@ -1274,11 +1302,12 @@ def _compute_iit_phi(value: float, pred_id: str, all_values: list) -> float:
     return float(np.clip(phi, 0.0, 1.0))
 
 
-def run_framework_falsification(results_input) -> dict:  # noqa: F811
+def run_framework_falsification(results_input=None) -> dict:  # noqa: F811
     """Run complete framework falsification analysis.
 
     Args:
         results_input: List of JSON result files or dict of outcome dicts from all protocols.
+            If None, aggregates from any JSON result files available on disk.
 
     Returns:
         dict: Complete falsification results with conditions A and B
@@ -1753,8 +1782,8 @@ class FalsificationAggregator:
         disagreements between the two protocols and flags them for manual review.
 
         Args:
-            fp06_results: Results from FP_06_LiquidNetwork_EnergyBenchmark
-            fp11_results: Results from FP_11_LiquidNetworkDynamics_EchoState
+            fp06_results: Results from FP_06_LiquidNetworkEnergyBenchmark
+            fp11_results: Results from FP_11_LiquidNetworkDynamicsEchoState
 
         Returns:
             dict: Reconciliation report with PROTOCOL_CONFLICT status if disagreements found

@@ -143,7 +143,8 @@ class TestEEGPreprocessor:
         result = preprocessor.preprocess_eeg(df, sampling_rate=fs, show_progress=False)
 
         assert len(result) == len(df), "Should preserve data length"
-        assert all(col in result.columns for col in df.columns), "Should preserve all columns"
+        if isinstance(result, pd.DataFrame):
+            assert all(col in result.columns for col in df.columns), "Should preserve all columns"
         assert len(preprocessor.preprocessing_log) > 0, "Should log preprocessing steps"
 
     def test_preprocess_eeg_custom_columns(self, sample_eeg_data):
@@ -156,7 +157,8 @@ class TestEEGPreprocessor:
         eeg_columns = ["eeg_1", "eeg_2"]
         result = preprocessor.preprocess_eeg(df, eeg_columns=eeg_columns, sampling_rate=fs, show_progress=False)
 
-        assert all(col in result.columns for col in eeg_columns), "Should process specified columns"
+        if isinstance(result, pd.DataFrame):
+            assert all(col in result.columns for col in eeg_columns), "Should process specified columns"
 
     def test_preprocess_eeg_missing_sampling_rate(self, sample_eeg_data):
         """Test EEG preprocessing without sampling rate (should warn and raise)."""

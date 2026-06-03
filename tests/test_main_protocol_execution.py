@@ -51,7 +51,7 @@ def test_validate_all_dry_run(runner):
         [
             "validate",
             "--protocol",
-            "VP_16_Metabolic_ATP_GroundTruth.py",
+            "VP_16_MetabolicATPGroundTruth.py",
             "--timeout",
             "1",
         ],

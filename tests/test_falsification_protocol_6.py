@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 # Import the protocol to test
-from Validation.VP_10_CausalManipulations_Priority2 import (
+from Validation.VP_10_CausalManipulationsPriority2 import (
     CausalManipulationsValidator,
     MetabolicIntervention,
     PharmacologicalIntervention,

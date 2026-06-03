@@ -308,7 +308,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # Load modules with hyphens using importlib
-formal_model_path = PROJECT_ROOT / "Falsification" / "FP_04_PhaseTransition_EpistemicArchitecture.py"
+formal_model_path = PROJECT_ROOT / "Falsification" / "FP_04_PhaseTransitionEpistemicArchitecture.py"
 if formal_model_path.exists():
     formal_model_spec = importlib.util.spec_from_file_location(
         "SurpriseIgnitionSystem",

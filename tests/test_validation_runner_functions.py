@@ -158,7 +158,7 @@ class TestValidationRunnerFunctions:
         # Mock import error for falsification modules
         with patch.dict(
             "sys.modules",
-            {"Falsification.FP_02_AgentComparison_ConvergenceBenchmark": None},
+            {"Falsification.FP_02_AgentComparisonConvergenceBenchmark": None},
         ):
             result = validate_fp02_data_variance()
 

@@ -975,5 +975,57 @@ def main():
         print(f"  • {rec}")
 
 
+class FalsificationFrameworkModule:
+    """TheoryModuleInterface implementation for the APGI falsification protocol framework."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        return main()
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "FF-1": {
+                "description": "False positive rate < 10% across all protocol-level tests",
+                "threshold": "FPR < 0.10 under null simulation",
+                "test": "Permutation test with 10,000 iterations",
+            },
+            "FF-2": {
+                "description": "Statistical power > 0.8 for primary APGI predictions",
+                "threshold": "Power > 0.80 at α = 0.05",
+                "test": "Power analysis via non-central distributions or simulation",
+            },
+            "FF-3": {
+                "description": "Popperian severity: passing tests are highly improbable under H0",
+                "threshold": "SEV(T, e) > 0.9 for key predictions",
+                "test": "Severity calculation per Mayo & Spanos framework",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-FalsificationFramework", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
+
+
 if __name__ == "__main__":
     main()

@@ -1,0 +1,154 @@
+{
+  "protocol_id": "APGI-P04",
+  "title": "Disorders of Consciousness Assessment: Joint Roles of Ignition and Interoception",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-05-18",
+  "description": "This clinical biomarker study examines whether interoceptive precision (indexed by HEP amplitude) and ignition capacity (indexed by the Perturbational Complexity Index, PCI) jointly predict clinical recovery outcomes across disorders of consciousness (DoC) better than either biomarker alone. Four sub-predictions are tested: that HEP + PCI joint models outperform univariate predictors of DoC recovery (P4a), that HEP amplitude discriminates minimally conscious state (MCS) from vegetative state/unresponsive wakefulness syndrome (VS/UWS) at the group level (P4b), that interoceptive stimulation increases PCI in MCS patients (P4c), and that interoceptive biomarkers track longitudinal recovery on the Glasgow Coma Scale-Stimulation (GCS-S) (P4d). This protocol is directly supported by the Disorders of Consciousness Table in Paper 3 Appendix.",
+  "prediction_cluster": "P4a–P4d",
+  "prediction_cluster_label": "Joint Roles of Ignition and Interoception in Disorders of Consciousness",
+  "sub_predictions": [
+    {
+      "id": "P4a",
+      "claim": "HEP + PCI jointly predict DoC recovery better than either biomarker alone",
+      "confirming_evidence": "Joint model R² (or AUC for binary outcome) significantly exceeds univariate HEP or PCI models (likelihood ratio test p < 0.05)",
+      "falsifying_evidence": "Joint model R² ≤ max(univariate HEP R², univariate PCI R²)"
+    },
+    {
+      "id": "P4b",
+      "claim": "HEP discriminates MCS from VS/UWS at the group level",
+      "confirming_evidence": "HEP amplitude (250–400 ms) significantly higher in MCS than VS/UWS (independent samples t-test or Mann-Whitney, p < 0.05, Cohen's d > 0.5)",
+      "falsifying_evidence": "No significant HEP amplitude difference between MCS and VS/UWS groups"
+    },
+    {
+      "id": "P4c",
+      "claim": "Interoceptive stimulation increases PCI in MCS patients",
+      "confirming_evidence": "PCI rises significantly post-interoceptive stimulation (heartbeat attention task) relative to baseline in MCS group (paired test p < 0.05); VS/UWS group shows no change",
+      "falsifying_evidence": "No significant PCI change post-stimulation in MCS, or equivalent change in VS/UWS"
+    },
+    {
+      "id": "P4d",
+      "claim": "Interoceptive biomarkers track longitudinal recovery",
+      "confirming_evidence": "HEP amplitude correlates with GCS-S score at 3-month and 6-month follow-up (Spearman r > 0.4, p < 0.05) within-participant",
+      "falsifying_evidence": "HEP shows no significant longitudinal correlation with GCS-S across recovery time points"
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "Formally specified. Directly supported by Paper 3 Appendix (Disorders of Consciousness Table). Parameter identifiability confirmed for HEP and PCI as independent predictors.",
+  "participants": {
+    "n_target": 60,
+    "n_minimum": 45,
+    "n_per_group": {
+      "coma": 10,
+      "vegetative_state_UWS": 15,
+      "minimally_conscious_state": 20,
+      "healthy_controls": 15
+    },
+    "inclusion_criteria": [
+      "Clinical DoC diagnosis by certified neurologist using CRS-R and GCS-S",
+      "Age 18–70 years",
+      "Stable medical condition permitting EEG and TMS assessment",
+      "Etiology: traumatic or hypoxic-ischemic brain injury",
+      "≥ 4 weeks post-injury at enrolment"
+    ],
+    "exclusion_criteria": [
+      "Active seizure disorder or anti-epileptic drug modification within 2 weeks",
+      "Significant cardiac arrhythmia precluding reliable ECG R-peak detection",
+      "Metallic implants precluding TMS (for PCI sub-study)",
+      "Progressive neurological condition (e.g. neurodegenerative disease)",
+      "Age < 18 or > 70 years",
+      "Life expectancy < 3 months"
+    ],
+    "healthy_controls_criteria": [
+      "No history of neurological or psychiatric disorder",
+      "Age- and sex-matched to patient groups",
+      "Normal ECG and cardiac rhythm"
+    ]
+  },
+  "apparatus": {
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, bedside-compatible cap",
+    "ECG": "BrainAmp ExG bipolar lead-II synchronised to EEG",
+    "TMS_for_PCI": "Magstim Rapid² with 70 mm figure-of-eight coil; vertex stimulation protocol for PCI",
+    "clinical_scales": [
+      "Coma Recovery Scale-Revised (CRS-R)",
+      "Glasgow Coma Scale-Stimulation (GCS-S)",
+      "Disorder of Consciousness Score (DoCS)"
+    ],
+    "interoceptive_stimulation": "Heartbeat attention task: auditory feedback of participant's own heartbeat via stethoscope and speaker, 5-minute block"
+  },
+  "trial_structure": {
+    "isi_ms": null,
+    "target": {
+      "type": "TMS pulse for PCI; auditory heartbeat for interoceptive stimulation condition",
+      "duration_ms": 0
+    },
+    "response": "Passive EEG recording; no behavioural response required from patients. Controls perform auditory detection task."
+  },
+  "blocks": {
+    "practice_trials": 0,
+    "experimental_blocks": 3,
+    "trials_per_block": 40,
+    "total_experimental_trials": 120,
+    "sessions": {
+      "baseline": "Enrolment (week 0): EEG resting state + PCI + CRS-R + GCS-S",
+      "stimulation": "Week 1: Interoceptive stimulation block + post-stimulation PCI",
+      "followup_3mo": "Month 3: EEG + PCI + CRS-R + GCS-S",
+      "followup_6mo": "Month 6: EEG + PCI + CRS-R + GCS-S"
+    }
+  },
+  "eeg_analysis_pipeline": {
+    "bandpass_filter_hz": [0.1, 40],
+    "epoch_window_ms": [-200, 800],
+    "baseline_correction_ms": [-200, 0],
+    "artifact_rejection_threshold_uv": 150,
+    "hep_window_ms": [250, 400],
+    "hep_channels": ["Cz", "FCz", "Fz"],
+    "minimum_clean_epochs": 20,
+    "ica_cardiac_artifact": "Automated ICA cardiac component rejection (EEGLAB ADJUST)",
+    "pci_computation_software": "Comolatti et al. (2019) open-source toolbox; PCI threshold for consciousness = 0.31"
+  },
+  "dependent_variables": [
+    "HEP amplitude (250–400 ms, Cz) per DoC group and time point",
+    "PCI per DoC group and time point",
+    "Joint model R² (HEP + PCI) for GCS-S recovery at 3 and 6 months",
+    "Univariate model R² for HEP alone and PCI alone (comparison benchmarks)",
+    "PCI pre- vs. post-interoceptive stimulation (MCS vs. VS/UWS)",
+    "Spearman correlation: HEP amplitude vs. GCS-S at each time point"
+  ],
+  "primary_hypothesis": "A linear model including both HEP amplitude and PCI at enrolment explains significantly more variance in 3-month GCS-S outcome than either biomarker alone, consistent with APGI's claim that interoceptive precision and ignition capacity jointly determine recovery trajectory.",
+  "primary_analysis": "Multiple linear regression: GCS-S_3mo ~ HEP_amplitude + PCI + age + etiology + (random site effect). Model comparison: joint vs. univariate via likelihood ratio test. Group comparison (P4b): Mann-Whitney U (MCS vs. VS/UWS). Longitudinal (P4d): linear mixed-effects with time × biomarker interaction.",
+  "power_analysis": {
+    "effect_size_d": 0.6,
+    "alpha": 0.05,
+    "power": 0.85,
+    "n_required": 45,
+    "software": "G*Power 3.1",
+    "based_on": "Rosanova et al. (2018) PCI in DoC; Canales-Johnson et al. (2020) HEP group differences"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "pi_i_estimated_MCS": 0.8,
+    "pi_i_estimated_VS_UWS": 0.3,
+    "pi_i_estimated_controls": 1.2
+  },
+  "ethics": {
+    "committee": "Institutional Review Board and Research Ethics Committee (clinical)",
+    "protocol_number": "IRB-2026-DOC-XXX",
+    "approval_date": "2026-05-01",
+    "surrogate_consent": "Required for all patient participants; surrogate (next-of-kin or legal guardian) provides written informed consent"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "PCI requires TMS, which cannot be applied to patients with metallic implants or unstable hemodynamics; PCI subsample may be smaller than full cohort.",
+    "HEP reliability in DoC populations is lower than in healthy controls due to cardiac artifact overlap; minimum 20 clean epochs per participant required; participants below this threshold excluded from HEP analyses.",
+    "Etiology (traumatic vs. hypoxic-ischemic) is a known moderator of recovery trajectory and is included as covariate in all models."
+  ]
+}

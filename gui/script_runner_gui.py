@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
-from typing import List
+from typing import List, Union
 
 from gui.theme import COLORS, FONTS, APGIButtons, APGICard, apply_apgi_theme, create_empty_state
 
@@ -62,7 +62,7 @@ class ScriptRunnerGUI:
         """Discover all Python scripts in Theory folder and introspect their capabilities."""
         import ast
 
-        protocols = {}
+        protocols: dict[str, dict[str, object]] = {}
         if not os.path.exists(theory_dir):
             self.log_message(f"Theory directory not found: {theory_dir}")
             return protocols
@@ -332,7 +332,7 @@ class ScriptRunnerGUI:
         import platform
 
         metric_bar = ttk.Frame(self.root, padding=(15, 8))
-        metric_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        metric_bar.grid(row=0, column=0, columnspan=2, sticky="we")
         metric_bar.configure(style="TFrame")
 
         status_card = ttk.LabelFrame(
@@ -378,7 +378,7 @@ class ScriptRunnerGUI:
     def _create_sidebar(self):
         """Create left sidebar with script selection."""
         sidebar = ttk.Frame(self.root, padding=15)
-        sidebar.grid(row=1, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
+        sidebar.grid(row=1, column=0, sticky="nsew")
         sidebar.configure(style="TFrame")
 
         ttk.Label(sidebar, text="SCRIPT LIBRARY", style="Header.TLabel").pack(anchor="w", pady=(0, 15))
@@ -405,7 +405,7 @@ class ScriptRunnerGUI:
             btn = ttk.Button(
                 btn_frame,
                 text=protocol_name,
-                command=lambda info=protocol_info, name=protocol_name: (self.select_protocol(name, info)),
+                command=lambda info=protocol_info, name=protocol_name: self.select_protocol(name, info),  # type: ignore[misc, arg-type]
             )
             btn.pack(fill="x", padx=8, pady=8)
             self.script_buttons[protocol_name] = btn
@@ -417,7 +417,7 @@ class ScriptRunnerGUI:
     def _create_workspace(self):
         """Create main workspace area with notebook tabs."""
         workspace = ttk.Frame(self.root, padding=15)
-        workspace.grid(row=1, column=1, sticky=(tk.N, tk.S, tk.W, tk.E))
+        workspace.grid(row=1, column=1, sticky="nsew")
         workspace.configure(style="TFrame")
 
         self.notebook = ttk.Notebook(workspace)
@@ -442,7 +442,7 @@ class ScriptRunnerGUI:
             padding=15,
             style="Metric.TLabelframe",
         )
-        selected_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        selected_card.grid(row=0, column=0, sticky="we", pady=(0, 15))
 
         self.selected_protocol_label = ttk.Label(
             selected_card,
@@ -460,7 +460,7 @@ class ScriptRunnerGUI:
         self.selected_protocol_desc.pack(anchor="w", pady=(5, 0))
 
         control_frame = ttk.Frame(parent_frame)
-        control_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        control_frame.grid(row=1, column=0, sticky="we", pady=(0, 15))
 
         self.run_selected_button = APGIButtons.primary(control_frame, "Run Selected", self.run_selected_protocol)
         self.run_selected_button.pack(side=tk.LEFT, padx=(0, 10))
@@ -475,7 +475,7 @@ class ScriptRunnerGUI:
             padding=15,
             style="Metric.TLabelframe",
         )
-        stats_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        stats_frame.grid(row=2, column=0, sticky="nsew")
         stats_frame.columnconfigure(0, weight=1)
         stats_frame.columnconfigure(1, weight=1)
         stats_frame.columnconfigure(2, weight=1)
@@ -501,7 +501,7 @@ class ScriptRunnerGUI:
             padding=15,
             style="Metric.TLabelframe",
         )
-        selector_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
+        selector_card.grid(row=0, column=0, sticky="we", pady=(0, 15))
 
         selector_inner = ttk.Frame(selector_card)
         selector_inner.pack(fill="x")
@@ -521,7 +521,7 @@ class ScriptRunnerGUI:
             padding=15,
             style="Metric.TLabelframe",
         )
-        params_card.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        params_card.grid(row=1, column=0, sticky="nsew")
 
         self.params_canvas = tk.Canvas(params_card, background=COLORS["surface"])
         self.params_scrollbar = ttk.Scrollbar(params_card, orient="vertical", command=self.params_canvas.yview)
@@ -536,7 +536,7 @@ class ScriptRunnerGUI:
         self.params_scrollbar.pack(side="right", fill="y")
 
         control_frame = ttk.Frame(parent_frame)
-        control_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+        control_frame.grid(row=2, column=0, sticky="we", pady=(10, 0))
         APGIButtons.standard(control_frame, "Load Defaults", self.load_default_parameters).pack(
             side=tk.LEFT, padx=(0, 10)
         )
@@ -560,7 +560,7 @@ class ScriptRunnerGUI:
             padding=10,
             style="Metric.TLabelframe",
         )
-        console_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        console_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
         toolbar = ttk.Frame(console_frame)
         toolbar.pack(fill="x", pady=(0, 5))
@@ -660,6 +660,7 @@ class ScriptRunnerGUI:
                 font=(FONTS["monospace"], 10),
             ).grid(row=row, column=0, sticky=tk.W, padx=(0, 15), pady=5)
 
+            var: Union[tk.DoubleVar, tk.IntVar, tk.StringVar]
             if param_config["type"] == "float":
                 var = tk.DoubleVar(value=param_config["default"])
                 widget = tk.Spinbox(
@@ -705,14 +706,14 @@ class ScriptRunnerGUI:
                     font=(FONTS["monospace"], 10),
                 )
 
-            widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5)
+            widget.grid(row=row, column=1, sticky="we", pady=5)
             ttk.Label(
                 self.params_scrollable_frame,
                 text=param_config.get("description", ""),
                 foreground=COLORS["text_secondary"],
                 font=(FONTS["primary"], 9),
                 wraplength=300,
-            ).grid(row=row, column=2, sticky=tk.W, padx=(10, 0), pady=5)
+            ).grid(row=row, column=2, sticky="w", padx=(10, 0), pady=5)
 
             self.parameter_widgets[param_name] = {"var": var, "widget": widget}
             row += 1
@@ -1060,7 +1061,7 @@ class ScriptRunnerGUI:
                 configured_params = protocol_info.get("configured_params", {})
                 exec_info = protocol_info.get("execution_info", {})
 
-                validated_params = {}
+                validated_params: dict[str, int | float] = {}
                 for key, value in configured_params.items():
                     try:
                         num_value = float(value)

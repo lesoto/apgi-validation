@@ -61,9 +61,9 @@ def extract_genome_data_from_vp5(
         # Initialize n_agents with default value
         n_agents = 100
 
-        evolved_alpha_values = []
-        timescale_correlations = []
-        intero_gain_ratios = []
+        evolved_alpha_values: np.ndarray = np.array([])
+        timescale_correlations: np.ndarray = np.array([])
+        intero_gain_ratios: np.ndarray = np.array([])
 
         if "final_statistics" in vp5_results:
             final_freqs = vp5_results["final_statistics"].get("final_frequencies", {})
@@ -109,9 +109,9 @@ def extract_genome_data_from_vp5(
             )
 
         # Set return values from extracted data
-        evolved_alpha_values = evolved_alpha_values if "evolved_alpha_values" in dir() else []
-        timescale_correlations = timescale_correlations if "timescale_correlations" in dir() else []
-        intero_gain_ratios = intero_gain_ratios if "intero_gain_ratios" in dir() else []
+        evolved_alpha_values = evolved_alpha_values if "evolved_alpha_values" in dir() else np.array([])  # type: ignore[assignment]
+        timescale_correlations = timescale_correlations if "timescale_correlations" in dir() else np.array([])  # type: ignore[assignment]
+        intero_gain_ratios = intero_gain_ratios if "intero_gain_ratios" in dir() else np.array([])  # type: ignore[assignment]
 
         genome_data = {
             "evolved_alpha_values": (

@@ -136,7 +136,7 @@ class TestValidationRunnerComplete:
                 parameters={"test_param": "test_value"},
                 dependencies=[],
                 priority=1,
-                timeout_seconds=0.5,  # Very short timeout
+                timeout_seconds=int(0.5),  # Very short timeout
             )
 
             # Execute protocol (should timeout)

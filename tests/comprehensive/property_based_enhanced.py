@@ -145,11 +145,11 @@ class TestEnhancedMathematicalProperties:
 
     @pytest.mark.skipif(not APGI_AVAILABLE, reason="APGI modules not available")
     @settings(max_examples=300, deadline=None)
-    @given(APGIStrategies.positive_float(), APGIStrategies.positive_float())
-    def test_precision_bounds(self, variance, epsilon):
+    @given(APGIStrategies.positive_float())
+    def test_precision_bounds(self, variance):
         """Test precision computation stays within valid bounds."""
-        if APGI_AVAILABLE and variance > epsilon:
-            precision = FoundationalEquations.precision(variance, epsilon)
+        if APGI_AVAILABLE and variance > 0:
+            precision = FoundationalEquations.precision(variance)
             assert 0 <= precision <= 1, f"Precision should be in [0, 1], got {precision}"
 
     @pytest.mark.skipif(not APGI_AVAILABLE, reason="APGI modules not available")

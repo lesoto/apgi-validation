@@ -37,7 +37,7 @@ differentiator between the frameworks.
 import logging
 import warnings
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import scipy.linalg
@@ -746,6 +746,63 @@ def run_analysis() -> Dict:
     """Module-level entry point for headless / CLI execution."""
     analysis = APGILNNBifurcationAnalysis()
     return analysis.run_analysis()
+
+
+class BifurcationModule:
+    """TheoryModuleInterface implementation — linked to APGI-P06.
+
+    Wraps APGILNNBifurcationAnalysis for uniform invocation by VP/FP
+    aggregators via TheoryModuleInterface.
+    """
+
+    MODULE_LEVEL: str = "Level 3"
+
+    def compute(self, **kwargs: Any) -> Dict:
+        return run_analysis()
+
+    def get_falsification_criteria(self) -> Dict:
+        return {
+            "BIF-1": {
+                "description": "Bimodal high-gamma distribution (P6a)",
+                "threshold": "Hartigan dip test p < 0.05",
+                "test": "Two-component GMM fit vs. unimodal",
+            },
+            "BIF-2": {
+                "description": "Region-specific bistability (P6b)",
+                "threshold": "Frontoparietal bimodal; occipital graded",
+                "test": "Region × modality interaction, p < 0.05",
+            },
+            "BIF-3": {
+                "description": "AC1 increases pre-ignition — critical slowing (P6c)",
+                "threshold": "AC1 higher on hits-near-threshold vs misses, one-sided t p < 0.05",
+                "test": "Sliding-window AC1 comparison",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-BifurcationAnalysis", **kwargs: Any) -> Dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            preds = raw.get("empirical_predictions", {})
+            passed = preds.get(key, {}).get("supported", False) if isinstance(preds, dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id, "APGI-P06"],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL, "linked_spec": "APGI-P06"},
+        ).to_dict()
 
 
 if __name__ == "__main__":

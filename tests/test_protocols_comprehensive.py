@@ -9,6 +9,7 @@ to achieve 85%+ coverage across all APGI validation protocols.
 import sys
 import unittest
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -389,10 +390,10 @@ class TestProtocolIntegration(unittest.TestCase):
         }
 
         # Aggregate score
-        scores = [r["score"] for r in results.values()]
+        scores = [cast(float, r["score"]) for r in results.values()]
         avg_score = np.mean(scores)
 
-        self.assertAlmostEqual(avg_score, 0.81, places=1)
+        self.assertAlmostEqual(float(avg_score), 0.81, places=1)
         self.assertEqual(sum(1 for r in results.values() if r["status"] == "fail"), 1)
 
 

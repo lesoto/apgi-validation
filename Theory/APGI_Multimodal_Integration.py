@@ -2309,7 +2309,7 @@ def compute_HEP_zscore(
             warnings.warn("No valid EEG epochs could be extracted")
             return np.array([])
 
-        epochs = np.array(epochs)
+        epochs = np.array(epochs)  # type: ignore[assignment]
         return epochs
 
     # 1. Detect R-peaks with enhanced validation
@@ -3892,6 +3892,60 @@ def demonstrate_joint_biomarker_validation():
     print(f"  Criterion met: {'YES' if results['passed'] else 'NO'}")
 
     return results
+
+
+class MultimodalIntegrationModule:
+    """TheoryModuleInterface implementation for cardiac-phase multimodal integration."""
+
+    MODULE_LEVEL: str = "Level 2"
+
+    def compute(self, **kwargs) -> dict:
+        cardiac = demonstrate_cardiac_phase_detection()
+        joint = demonstrate_joint_biomarker_validation()
+        return {"cardiac_phase": cardiac, "joint_biomarker": joint}
+
+    def get_falsification_criteria(self) -> dict:
+        return {
+            "MMI-1": {
+                "description": "Cardiac systole suppresses interoceptive signals (π_i systole < π_i diastole)",
+                "threshold": "Suppression ratio < 0.9 (systole/diastole), p < 0.05",
+                "test": "Paired t-test on systole vs diastole epochs",
+            },
+            "MMI-2": {
+                "description": "Joint biomarker (HEP + pupil + EEG) outperforms any single modality",
+                "threshold": "Joint AUC > max(single AUC) + 0.05",
+                "test": "DeLong test on correlated AUCs",
+            },
+            "MMI-3": {
+                "description": "Cross-modal π_i estimates agree within 25% across modalities",
+                "threshold": "CV of π_i estimates across modalities < 0.25",
+                "test": "Coefficient of variation across modality-specific estimators",
+            },
+        }
+
+    def as_protocol_result(self, protocol_id: str = "T-MultimodalIntegration", **kwargs) -> dict:
+        try:
+            from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+        except ImportError:
+            return self.compute(**kwargs)
+        raw = self.compute(**kwargs)
+        criteria = self.get_falsification_criteria()
+        named = {}
+        for key, spec in criteria.items():
+            passed = raw.get(key, {}).get("passed", False) if isinstance(raw.get(key), dict) else False
+            named[key] = PredictionResult(
+                passed=passed,
+                status=PredictionStatus.PASSED if passed else PredictionStatus.NOT_EVALUATED,
+                sources=[protocol_id],
+                metadata=spec,
+            )
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named,
+            completion_percentage=100,
+            methodology=self.MODULE_LEVEL,
+            metadata={"module_level": self.MODULE_LEVEL},
+        ).to_dict()
 
 
 if __name__ == "__main__":

@@ -154,4 +154,5 @@ data_repository/*.json
 data_repository/*.csv
 data_repository/*.db
 .gitnexus
-.claude/
+.claude/*.json
+.claude/worktrees/

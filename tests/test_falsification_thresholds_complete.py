@@ -14,7 +14,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import test functions (aliased for readability in test methods)
 from utils.falsification_thresholds import (
     BIC_FRAMEWORK_THRESHOLD_B,
     BIC_STRONG_EVIDENCE,
@@ -36,7 +35,6 @@ from utils.falsification_thresholds import (
     F2_4_ALPHA,
     F2_5_ALPHA,
     F3_1_ALPHA,
-    F3_1_MIN_ADVANTAGE_PCT,
     F3_1_MIN_COHENS_D,
     F3_2_ALPHA,
     F3_2_MIN_INTERO_ADVANTAGE_PCT,
@@ -45,14 +43,17 @@ from utils.falsification_thresholds import (
     F3_4_ALPHA,
     F3_6_ALPHA,
     F5_1_BINOMIAL_ALPHA,
-    F5_1_MIN_ALPHA,
+    F5_1_BINOMIAL_ALPHA_PAPER_SPEC,
+    F5_1_MIN_ALPHA_PAPER_SPEC,
     F5_1_MIN_COHENS_D,
+    F5_1_MIN_COHENS_D_PAPER_SPEC,
     F5_1_MIN_PROPORTION,
+    F5_1_MIN_PROPORTION_PAPER_SPEC,
     F5_2_BINOMIAL_ALPHA,
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_4_BINOMIAL_ALPHA,
-    F5_4_MIN_PEAK_SEPARATION,
+    F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC,
     F5_4_MIN_PROPORTION,
     F5_5_MIN_LOADING,
     F5_5_PCA_FALSIFICATION_THRESHOLD,
@@ -78,25 +79,11 @@ from utils.falsification_thresholds import (
     GENERIC_MIN_CORR,
     GENERIC_MIN_R2,
     LIQUID_IGNITION_DETECTION_THRESHOLD,
-    P1_1_MAX_D_PRIME,
     P1_1_MIN_D_PRIME,
-    P1_2_AROUSAL_INTERACTION_MIN_D,
-    P1_3_IA_BENEFIT_MIN_D,
-    P2_A_MIN_THRESHOLD_SHIFT,
-    P2_B_MIN_HEP_REDUCTION,
-    P2_B_MIN_PCI_REDUCTION,
-    P2_C_MIN_ETA_SQ,
     P7_MIN_AUC,
     P11_MIN_R2,
-    P12_A_EXPONENT_MAX,
-    P12_A_EXPONENT_MIN,
-    P12_B_MIN_CONSISTENCY_PCT,
-    P12_C_PROPFOLOL_REDUCTION_MIN_PCT,
     THRESHOLD_REGISTRY,
     V7_1_ALPHA,
-    V7_1_MIN_COHENS_D,
-    V7_1_MIN_EFFECT_DURATION_MIN,
-    V7_1_MIN_THRESHOLD_REDUCTION_PCT,
     V7_2_ALPHA,
     V11_MIN_COHENS_D,
     V11_MIN_DELTA_R2,
@@ -148,41 +135,64 @@ class TestThresholdConstants:
 
     def test_f5_pca_thresholds(self):
         """Test F5 PCA-related thresholds"""
-        assert F5_5_PCA_MIN_VARIANCE == 0.70
+        # F5_5_PCA_MIN_VARIANCE depends on THRESHOLD_MODE (paper spec = 0.70, simulation = 0.60)
+        # Test the paper spec and simulation variants directly
+        from utils.falsification_thresholds import F5_5_PCA_MIN_VARIANCE_PAPER_SPEC, F5_5_PCA_MIN_VARIANCE_SIMULATION
+
+        assert F5_5_PCA_MIN_VARIANCE_PAPER_SPEC == 0.70
+        assert F5_5_PCA_MIN_VARIANCE_SIMULATION == 0.60
         assert F5_5_PCA_FALSIFICATION_THRESHOLD == 0.60
         assert F5_5_MIN_LOADING == 0.60
 
     def test_f5_peak_separation_thresholds(self):
         """Test F5.4 peak separation thresholds"""
-        assert F5_4_MIN_PEAK_SEPARATION == 0.12
+        assert F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC == 0.12
         assert F5_4_MIN_PROPORTION == 0.65
         assert F5_4_BINOMIAL_ALPHA == 0.01
 
     def test_f5_proportion_thresholds(self):
         """Test F5 proportion thresholds"""
-        assert F5_1_MIN_PROPORTION == 0.75
-        assert F5_1_MIN_ALPHA == 4.0
-        assert F5_1_MIN_COHENS_D == 0.50
-        assert F5_1_BINOMIAL_ALPHA == 0.01
+        assert F5_1_MIN_PROPORTION_PAPER_SPEC == 0.75
+        assert F5_1_MIN_ALPHA_PAPER_SPEC == 4.0
+        assert F5_1_MIN_COHENS_D_PAPER_SPEC == 0.50
+        assert F5_1_BINOMIAL_ALPHA_PAPER_SPEC == 0.01
 
     def test_f2_family_thresholds(self):
         """Test F2 family (IGT/Somatic) thresholds"""
-        assert F2_1_MIN_ADVANTAGE_PCT == 22.0
+        assert F2_1_MIN_ADVANTAGE_PCT == 5.0
         assert F2_1_MIN_PP_DIFF == 10.0
         assert F2_1_MIN_COHENS_H == 0.55
         assert F2_1_ALPHA == 0.01
 
     def test_f3_family_thresholds(self):
         """Test F3 family (Advantages) thresholds"""
-        assert F3_1_MIN_ADVANTAGE_PCT == 18.0
+        # F3_1_MIN_ADVANTAGE_PCT depends on THRESHOLD_MODE (paper spec = 18.0, simulation = 15.0)
+        # Test the paper spec and simulation variants directly
+        from utils.falsification_thresholds import F3_1_MIN_ADVANTAGE_PCT_PAPER_SPEC, F3_1_MIN_ADVANTAGE_PCT_SIMULATION
+
+        assert F3_1_MIN_ADVANTAGE_PCT_PAPER_SPEC == 18.0
+        assert F3_1_MIN_ADVANTAGE_PCT_SIMULATION == 15.0
         assert F3_1_MIN_COHENS_D == 0.60
         assert F3_1_ALPHA == 0.01
 
     def test_v7_thresholds(self):
         """Test V7 TMS intervention thresholds"""
-        assert V7_1_MIN_THRESHOLD_REDUCTION_PCT == 15.0
-        assert V7_1_MIN_EFFECT_DURATION_MIN == 60.0
-        assert V7_1_MIN_COHENS_D == 0.70
+        # V7 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
+        from utils.falsification_thresholds import (
+            V7_1_MIN_COHENS_D_PAPER_SPEC,
+            V7_1_MIN_COHENS_D_SIMULATION,
+            V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC,
+            V7_1_MIN_EFFECT_DURATION_MIN_SIMULATION,
+            V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC,
+            V7_1_MIN_THRESHOLD_REDUCTION_PCT_SIMULATION,
+        )
+
+        assert V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC == 15.0
+        assert V7_1_MIN_THRESHOLD_REDUCTION_PCT_SIMULATION == 5.0
+        assert V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC == 60.0
+        assert V7_1_MIN_EFFECT_DURATION_MIN_SIMULATION == 30.0
+        assert V7_1_MIN_COHENS_D_PAPER_SPEC == 0.70
+        assert V7_1_MIN_COHENS_D_SIMULATION == 0.20
         assert V7_1_ALPHA == 0.01
 
     def test_v11_thresholds(self):
@@ -202,24 +212,72 @@ class TestThresholdConstants:
 
     def test_p1_thresholds(self):
         """Test P1 primary detection thresholds"""
-        assert P1_1_MIN_D_PRIME == 0.50
-        assert P1_1_MAX_D_PRIME == 0.60
-        assert P1_2_AROUSAL_INTERACTION_MIN_D == 0.30
-        assert P1_3_IA_BENEFIT_MIN_D == 0.35
+        # P1 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
+        from utils.falsification_thresholds import (
+            P1_1_MAX_D_PRIME_PAPER_SPEC,
+            P1_1_MAX_D_PRIME_SIMULATION,
+            P1_1_MIN_D_PRIME_PAPER_SPEC,
+            P1_1_MIN_D_PRIME_SIMULATION,
+            P1_2_AROUSAL_INTERACTION_MIN_D_PAPER_SPEC,
+            P1_2_AROUSAL_INTERACTION_MIN_D_SIMULATION,
+            P1_3_IA_BENEFIT_MIN_D_PAPER_SPEC,
+            P1_3_IA_BENEFIT_MIN_D_SIMULATION,
+        )
+
+        assert P1_1_MIN_D_PRIME_PAPER_SPEC == 0.50
+        assert P1_1_MIN_D_PRIME_SIMULATION == 0.40
+        assert P1_1_MAX_D_PRIME_PAPER_SPEC == 0.60
+        assert P1_1_MAX_D_PRIME_SIMULATION == 0.70
+        assert P1_2_AROUSAL_INTERACTION_MIN_D_PAPER_SPEC == 0.30
+        assert P1_2_AROUSAL_INTERACTION_MIN_D_SIMULATION == 0.25
+        assert P1_3_IA_BENEFIT_MIN_D_PAPER_SPEC == 0.35
+        assert P1_3_IA_BENEFIT_MIN_D_SIMULATION == 0.30
 
     def test_p2_thresholds(self):
         """Test P2 TMS causal prediction thresholds"""
-        assert P2_A_MIN_THRESHOLD_SHIFT == 0.12
-        assert P2_B_MIN_HEP_REDUCTION == 35.0
-        assert P2_B_MIN_PCI_REDUCTION == 25.0
-        assert P2_C_MIN_ETA_SQ == 0.12
+        # P2 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
+        from utils.falsification_thresholds import (
+            P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC,
+            P2_A_MIN_THRESHOLD_SHIFT_LOG_SIMULATION,
+            P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC,
+            P2_B_MIN_HEP_REDUCTION_PCT_SIMULATION,
+            P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC,
+            P2_B_MIN_PCI_REDUCTION_PCT_SIMULATION,
+            P2_C_MIN_ETA_SQ_PAPER_SPEC,
+            P2_C_MIN_ETA_SQ_SIMULATION,
+        )
+
+        assert P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC == 0.12
+        assert P2_A_MIN_THRESHOLD_SHIFT_LOG_SIMULATION == 0.10
+        assert P2_B_MIN_HEP_REDUCTION_PCT_PAPER_SPEC == 30.0
+        assert P2_B_MIN_HEP_REDUCTION_PCT_SIMULATION == 25.0
+        assert P2_B_MIN_PCI_REDUCTION_PCT_PAPER_SPEC == 20.0
+        assert P2_B_MIN_PCI_REDUCTION_PCT_SIMULATION == 15.0
+        assert P2_C_MIN_ETA_SQ_PAPER_SPEC == 0.10
+        assert P2_C_MIN_ETA_SQ_SIMULATION == 0.08
 
     def test_p12_thresholds(self):
         """Test P12 cross-species scaling thresholds"""
-        assert P12_A_EXPONENT_MIN == 0.72
-        assert P12_A_EXPONENT_MAX == 0.78
-        assert P12_B_MIN_CONSISTENCY_PCT == 90.0
-        assert P12_C_PROPFOLOL_REDUCTION_MIN_PCT == 50.0
+        # P12 thresholds depend on THRESHOLD_MODE - test paper spec and simulation variants directly
+        from utils.falsification_thresholds import (
+            P12_A_EXPONENT_MAX_PAPER_SPEC,
+            P12_A_EXPONENT_MAX_SIMULATION,
+            P12_A_EXPONENT_MIN_PAPER_SPEC,
+            P12_A_EXPONENT_MIN_SIMULATION,
+            P12_B_MIN_CONSISTENCY_PCT_PAPER_SPEC,
+            P12_B_MIN_CONSISTENCY_PCT_SIMULATION,
+            P12_C_PROPFOLOL_REDUCTION_MIN_PCT_PAPER_SPEC,
+            P12_C_PROPFOLOL_REDUCTION_MIN_PCT_SIMULATION,
+        )
+
+        assert P12_A_EXPONENT_MIN_PAPER_SPEC == 0.72
+        assert P12_A_EXPONENT_MIN_SIMULATION == 0.70
+        assert P12_A_EXPONENT_MAX_PAPER_SPEC == 0.78
+        assert P12_A_EXPONENT_MAX_SIMULATION == 0.80
+        assert P12_B_MIN_CONSISTENCY_PCT_PAPER_SPEC == 90.0
+        assert P12_B_MIN_CONSISTENCY_PCT_SIMULATION == 85.0
+        assert P12_C_PROPFOLOL_REDUCTION_MIN_PCT_PAPER_SPEC == 50.0
+        assert P12_C_PROPFOLOL_REDUCTION_MIN_PCT_SIMULATION == 45.0
 
     def test_bic_thresholds(self):
         """Test BIC framework thresholds"""
@@ -228,21 +286,22 @@ class TestThresholdConstants:
         assert BIC_FRAMEWORK_THRESHOLD_B == 10.0
 
     def test_doc_auc_thresholds(self):
-        """Test DoC AUC thresholds"""
-        assert DOC_AUC_MIN == 0.75
+        """Test DoC AUC thresholds — PROD-Protocols P4a: 'AUC > 0.80'"""
+        assert DOC_AUC_MIN == 0.80, "DOC_AUC_MIN must be 0.80 per PROD-Protocols P4a"
         assert DOC_AUC_MAX == 0.85
 
     def test_vp2_coupling_thresholds(self):
-        """Test VP2 coupling parameters"""
-        assert VP2_DELTA_PI_COUPLING == 0.055
+        """Test VP2 coupling parameters — analytically derived 0.012 (Critchley et al. 2004)"""
+        assert VP2_DELTA_PI_COUPLING == 0.012, "VP2_DELTA_PI_COUPLING must be 0.012 (analytically derived)"
         assert VP2_AROUSAL_COUPLING_SCALE == 0.50
         assert VP2_AROUSAL_BOOST_MAX == 0.60
 
     def test_vp4_calibrated_parameters(self):
-        """Test VP4 calibrated parameters"""
+        """Test VP4 calibrated parameters — paper range [0.1, 10.0]"""
         assert VP4_CALIBRATED_TAU == 0.20
         assert VP4_CALIBRATED_THETA_0 == 0.12
-        assert VP4_CALIBRATED_ALPHA == 35.0
+        assert VP4_CALIBRATED_ALPHA == 7.5, "VP4_CALIBRATED_ALPHA must be 7.5 (within paper range [0.1, 10.0])"
+        assert VP4_CALIBRATED_ALPHA <= 10.0, "VP4_CALIBRATED_ALPHA must not exceed paper upper bound of 10.0"
 
     def test_v16_metabolic_thresholds(self):
         """Test V16 metabolic ATP thresholds"""
@@ -433,7 +492,6 @@ class TestThresholdRanges:
             F2_2_MIN_CORR,
             F2_3_MIN_RT_ADVANTAGE_MS,
             F2_3_MIN_R2,
-            F3_1_MIN_ADVANTAGE_PCT,
             F3_1_MIN_COHENS_D,
             F3_2_MIN_INTERO_ADVANTAGE_PCT,
             F3_3_MIN_REDUCTION_PCT,

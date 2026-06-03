@@ -32,6 +32,12 @@ advantage >2 points, or if the Standard 6 compliance score falls below 12/15,
 or if mathematical solutions do not match numerical simulations (error > 15%),
 then the APGI evolutionary plausibility claim is falsified. This would indicate
 that APGI architectures are not evolutionarily plausible or mathematically consistent.
+
+VP-22 CONSOLIDATION NOTE
+-------------------------
+Predictions P5a–P5d (vmPFC/insula fMRI anticipation vs. experience dissociation)
+are exclusively owned by VP_22_FMRIAnticipationExperience.py. VP-05 does not
+generate, test, or claim those predictions.
 """
 
 import copy
@@ -1043,7 +1049,7 @@ class EvolutionaryOptimizer:
     def __init__(
         self,
         population_size: int = 100,
-        n_generations: int = 500,
+        n_generations: int = 300,  # EP-13 CSV: >80% APGI components by generation 300
         mutation_rate: float = 0.1,
         crossover_rate: float = 0.7,
         tournament_size: int = 5,
@@ -1278,7 +1284,10 @@ class EvolutionaryOptimizer:
         self, best_genome: AgentGenome, perturbations: List[float] = None
     ) -> Dict[str, Any]:
         """
-        V5.4: Test adversarial robustness by mutating best genome and measuring fitness retention.
+        V5.4 [RESERVED — not registered in aggregator NAMED_PREDICTIONS; do not add
+        unless VP-05 scope is formally extended to include adversarial robustness checks].
+
+        Test adversarial robustness by mutating best genome and measuring fitness retention.
 
         For perturbation in [0.1, 0.2, 0.4]: mutate best genome; measure fitness retention;
         pass if retention > 0.80
@@ -1713,7 +1722,7 @@ class FalsificationChecker:
     """Check Protocol 5 falsification criteria"""
 
     def __init__(self):
-        self.criteria = {
+        self.criteria: Dict[str, Dict[str, Any]] = {
             "F5.1": {
                 "description": "Threshold mechanism does not reach >60% by generation 500",
                 "threshold": 0.60,
@@ -2062,7 +2071,7 @@ class FalsificationChecker:
         # F5.6
         criterion = {
             "code": "F5.6",
-            "description": self.criteria["F5.6"]["description"],
+            "description": self.criteria["F5.6"]["description"],  # type: ignore[index]
             "details": f5_6_details,
         }
 
@@ -2815,7 +2824,7 @@ def plot_environmental_gradient_results(results: Dict[str, Any]) -> None:
 def run_ensemble_evolution(
     n_seeds: int = 5,
     population_size: int = 100,
-    n_generations: int = 500,
+    n_generations: int = 300,  # EP-13 CSV: by generation 300
     mutation_rate: float = 0.01,
     crossover_rate: float = 0.7,
     tournament_size: int = 5,
