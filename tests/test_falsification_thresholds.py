@@ -30,10 +30,10 @@ def test_f6_1_intrinsic_threshold_behavior_fail_time():
 
 
 def test_f6_1_validation_errors():
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_1(np.array([1.0]), np.array([1.0, 2.0]))
 
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_1(np.array([1.0, 2.0]), np.array([1.0]))
 
     with pytest.raises(ValueError, match="contains NaN or Inf"):
@@ -66,10 +66,10 @@ def test_f6_2_intrinsic_temporal_integration_fail_ratio():
 
 
 def test_f6_2_validation_errors():
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_2(np.array([1.0]), np.array([1.0, 2.0]))
 
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_2(np.array([1.0, 2.0]), np.array([1.0]))
 
     with pytest.raises(ValueError, match="contains NaN or Inf"):
@@ -100,10 +100,10 @@ def test_f6_3_metabolic_selectivity_fail():
 
 
 def test_f6_3_validation_errors():
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_3(np.array([1.0]), np.array([1.0, 2.0]))
 
-    with pytest.raises(ValueError, match=r"must have ≥2 elements"):
+    with pytest.raises(ValueError, match=r"must have at least 2 elements"):
         _test_f6_3(np.array([1.0, 2.0]), np.array([1.0]))
 
     with pytest.raises(ValueError, match="contains NaN or Inf"):

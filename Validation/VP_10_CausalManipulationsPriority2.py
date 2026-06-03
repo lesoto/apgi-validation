@@ -93,14 +93,15 @@ except ImportError:
 # Fix 1: Assert that paper-spec values in falsification_thresholds match expected paper specifications.
 # Guard compares _PAPER_SPEC variants (mode-independent) so this check passes regardless of
 # whether the codebase is running in SIMULATION or PAPER_SPEC mode.
-# Expected values corrected to match falsification_thresholds.py canonical paper-spec values:
-#   P2b HEP: 30.0 (was incorrectly 35.0 in VP-10 guard)
-#   P2b PCI: 20.0 (was incorrectly 25.0 in VP-10 guard)
-#   P2c η²:  0.10 (was incorrectly 0.12 in VP-10 guard)
+# Expected values match falsification_thresholds.py canonical paper-spec values:
+#   P2a threshold shift: 0.12 log units
+#   P2b HEP: 35.0%
+#   P2b PCI: 25.0%
+#   P2c η²:  0.12
 _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT = 0.12
-_EXPECTED_P2_B_MIN_HEP_REDUCTION = 30.0
-_EXPECTED_P2_B_MIN_PCI_REDUCTION = 20.0
-_EXPECTED_P2_C_MIN_ETA_SQ = 0.10
+_EXPECTED_P2_B_MIN_HEP_REDUCTION = 35.0
+_EXPECTED_P2_B_MIN_PCI_REDUCTION = 25.0
+_EXPECTED_P2_C_MIN_ETA_SQ = 0.12
 
 if P2_A_MIN_THRESHOLD_SHIFT_LOG_PAPER_SPEC != _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT:
     raise ValueError(

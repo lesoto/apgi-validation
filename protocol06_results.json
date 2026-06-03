@@ -1,0 +1,417 @@
+{
+  "conscious_classification": {
+    "APGI": {
+      "auc": 0.5659000000000001,
+      "accuracy": 0.5659000000000001,
+      "energy_per_correct_detection": 6.573599575896801,
+      "atp_cost": 744.0,
+      "spike_count": 200,
+      "n_neurons": 10886,
+      "atp_comparison": {
+        "atp_cost_per_correct": 6.573599575896801,
+        "efficiency_ratio": 0.1521236559139785,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 1.0,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 1.0,
+          "conscious_premium_min": 2.0,
+          "conscious_premium_max": 5.0
+        },
+        "task_type": "conscious_classification"
+      }
+    },
+    "MLP": {
+      "auc": 0.5741499999999999,
+      "accuracy": 0.5741499999999999,
+      "energy_per_correct_detection": 64.39083863101978,
+      "atp_cost": 7394.0,
+      "spike_count": 0,
+      "n_neurons": 14788,
+      "atp_comparison": {
+        "atp_cost_per_correct": 64.39083863101978,
+        "efficiency_ratio": 0.015530159588855827,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 1.0,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 1.0,
+          "conscious_premium_min": 2.0,
+          "conscious_premium_max": 5.0
+        },
+        "task_type": "conscious_classification"
+      }
+    },
+    "LSTM": {
+      "auc": 0.56515,
+      "accuracy": 0.56515,
+      "energy_per_correct_detection": 130.24860656462886,
+      "atp_cost": 14722.0,
+      "spike_count": 0,
+      "n_neurons": 29444,
+      "atp_comparison": {
+        "atp_cost_per_correct": 130.24860656462886,
+        "efficiency_ratio": 0.00767762532264638,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 1.0,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 1.0,
+          "conscious_premium_min": 2.0,
+          "conscious_premium_max": 5.0
+        },
+        "task_type": "conscious_classification"
+      }
+    },
+    "Attention": {
+      "auc": 0.5264000000000001,
+      "accuracy": 0.5264000000000001,
+      "energy_per_correct_detection": 28.3434650455927,
+      "atp_cost": 2984.0,
+      "spike_count": 6,
+      "n_neurons": 5956,
+      "atp_comparison": {
+        "atp_cost_per_correct": 28.3434650455927,
+        "efficiency_ratio": 0.03528150134048258,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 1.0,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 1.0,
+          "conscious_premium_min": 2.0,
+          "conscious_premium_max": 5.0
+        },
+        "task_type": "conscious_classification"
+      }
+    },
+    "bic_aic_comparison": {
+      "log_likelihoods": {
+        "APGI": -777.1270762585624,
+        "MLP": -784.8861971997245,
+        "LSTM": -785.00089370241,
+        "Attention": -784.8087626599296
+      },
+      "bic_scores": {
+        "APGI": 59231.73700475905,
+        "MLP": 79921.28961091182,
+        "LSTM": 157573.6583280452,
+        "Attention": 33126.395760479965
+      },
+      "aic_scores": {
+        "APGI": 23326.254152517125,
+        "MLP": 31145.77239439945,
+        "LSTM": 60458.00178740482,
+        "Attention": 13481.61752531986
+      },
+      "bic_differences": {
+        "APGI": 26105.341244279087,
+        "MLP": 46794.89385043185,
+        "LSTM": 124447.26256756522,
+        "Attention": 0.0
+      },
+      "aic_differences": {
+        "APGI": 9844.636627197266,
+        "MLP": 17664.15486907959,
+        "LSTM": 46976.38426208496,
+        "Attention": 0.0
+      },
+      "bic_weights": {
+        "APGI": 0.0,
+        "MLP": 0.0,
+        "LSTM": 0.0,
+        "Attention": 1.0
+      },
+      "evidence_ratios": {
+        "APGI_vs_best": 0.0,
+        "APGI_vs_best_alternative": 0.0
+      },
+      "bic_selection": {
+        "best_model": "Attention",
+        "apgi_rank": 1,
+        "apgi_is_best": false,
+        "strong_evidence_for_apgi": false,
+        "very_strong_evidence_for_apgi": false
+      },
+      "aic_selection": {
+        "best_model": "Attention",
+        "apgi_rank": 1,
+        "apgi_is_best": false,
+        "strong_evidence_for_apgi": false,
+        "very_strong_evidence_for_apgi": false
+      },
+      "n_parameters": {
+        "APGI": 10886,
+        "MLP": 14788,
+        "LSTM": 29444,
+        "Attention": 5956
+      },
+      "n_samples": 200
+    }
+  },
+  "action_selection": {
+    "APGI": {
+      "accuracy": 0.2750000059604645,
+      "energy_per_correct_detection": 13.527272434076993,
+      "atp_cost": 744.0,
+      "spike_count": 200,
+      "n_neurons": 10886,
+      "atp_comparison": {
+        "atp_cost_per_correct": 13.527272434076993,
+        "efficiency_ratio": 0.05913978622805688,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 0.8,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 0.8,
+          "conscious_premium_min": 1.5,
+          "conscious_premium_max": 3.0
+        },
+        "task_type": "action_selection"
+      }
+    },
+    "MLP": {
+      "accuracy": 0.30000001192092896,
+      "energy_per_correct_detection": 123.23332843648082,
+      "atp_cost": 7394.0,
+      "spike_count": 0,
+      "n_neurons": 14788,
+      "atp_comparison": {
+        "atp_cost_per_correct": 123.23332843648082,
+        "efficiency_ratio": 0.006491750325581368,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 0.8,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 0.8,
+          "conscious_premium_min": 1.5,
+          "conscious_premium_max": 3.0
+        },
+        "task_type": "action_selection"
+      }
+    },
+    "LSTM": {
+      "accuracy": 0.23999999463558197,
+      "energy_per_correct_detection": 306.70834018879896,
+      "atp_cost": 14722.0,
+      "spike_count": 0,
+      "n_neurons": 29444,
+      "atp_comparison": {
+        "atp_cost_per_correct": 306.70834018879896,
+        "efficiency_ratio": 0.0026083411996802824,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 0.8,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 0.8,
+          "conscious_premium_min": 1.5,
+          "conscious_premium_max": 3.0
+        },
+        "task_type": "action_selection"
+      }
+    },
+    "Attention": {
+      "accuracy": 0.23499999940395355,
+      "energy_per_correct_detection": 63.36170228836816,
+      "atp_cost": 2978.0,
+      "spike_count": 0,
+      "n_neurons": 5956,
+      "atp_comparison": {
+        "atp_cost_per_correct": 63.36170228836816,
+        "efficiency_ratio": 0.012625923406525377,
+        "is_within_neural_efficiency": false,
+        "shows_conscious_premium": false,
+        "assessment": "inefficient",
+        "assessment_reason": "Outside both neural efficiency and conscious premium ranges",
+        "literature_benchmarks": {
+          "human_brain_cost": 0.8,
+          "neural_efficiency_min": 0.1,
+          "neural_efficiency_max": 0.8,
+          "conscious_premium_min": 1.5,
+          "conscious_premium_max": 3.0
+        },
+        "task_type": "action_selection"
+      }
+    },
+    "bic_aic_comparison": {
+      "log_likelihoods": {
+        "APGI": -1059.150826563738,
+        "MLP": -928.1508265637382,
+        "LSTM": -977.1508265637382,
+        "Attention": -951.1508265637382
+      },
+      "bic_scores": {
+        "APGI": 59795.7845053694,
+        "MLP": 80207.81886963984,
+        "LSTM": 157957.95819376784,
+        "Attention": 33459.07988828758
+      },
+      "aic_scores": {
+        "APGI": 23890.301653127477,
+        "MLP": 31432.301653127477,
+        "LSTM": 60842.30165312748,
+        "Attention": 13814.301653127477
+      },
+      "bic_differences": {
+        "APGI": 26336.70461708182,
+        "MLP": 46748.73898135226,
+        "LSTM": 124498.87830548026,
+        "Attention": 0.0
+      },
+      "aic_differences": {
+        "APGI": 10076.0,
+        "MLP": 17618.0,
+        "LSTM": 47028.0,
+        "Attention": 0.0
+      },
+      "bic_weights": {
+        "APGI": 0.0,
+        "MLP": 0.0,
+        "LSTM": 0.0,
+        "Attention": 1.0
+      },
+      "evidence_ratios": {
+        "APGI_vs_best": 0.0,
+        "APGI_vs_best_alternative": 0.0
+      },
+      "bic_selection": {
+        "best_model": "Attention",
+        "apgi_rank": 1,
+        "apgi_is_best": false,
+        "strong_evidence_for_apgi": false,
+        "very_strong_evidence_for_apgi": false
+      },
+      "aic_selection": {
+        "best_model": "Attention",
+        "apgi_rank": 1,
+        "apgi_is_best": false,
+        "strong_evidence_for_apgi": false,
+        "very_strong_evidence_for_apgi": false
+      },
+      "n_parameters": {
+        "APGI": 10886,
+        "MLP": 14788,
+        "LSTM": 29444,
+        "Attention": 5956
+      },
+      "n_samples": 200
+    }
+  },
+  "F6.1": {
+    "passed": true,
+    "apgi_transition_ms": 35.0,
+    "baseline_transition_ms": 100.0,
+    "speedup_ratio": 2.857142857142857,
+    "cliffs_delta": 0.8,
+    "threshold": "\u226450ms transition, 2x speedup, \u03b4\u22650.50 (hard AND)",
+    "reason": "LTCN: 35.0ms vs 100.0ms (ratio: 2.9x, \u03b4=0.80)"
+  },
+  "F6.2": {
+    "passed": true,
+    "apgi_window_ms": 350.0,
+    "baseline_window_ms": 63.333333333333336,
+    "integration_ratio": 5.526315789473684,
+    "curve_fit_r2": 0.92,
+    "threshold": "\u2265200.0ms window, \u22654.0x ratio, R\u00b2\u22650.85",
+    "reason": "LTCN: 350.0ms vs 63.3ms baseline (ratio: 5.5x, R\u00b2=0.920)"
+  },
+  "F6.3": {
+    "passed": true,
+    "sparsity_reduction_pct": 30.0,
+    "threshold": "\u226530% sparsity reduction",
+    "reason": "Sparsity reduction: 30.0%"
+  },
+  "F6.4": {
+    "passed": true,
+    "memory_tau_s": 2.0,
+    "threshold": "\u03c4_memory = 1-3s",
+    "reason": "Memory decay \u03c4: 2.00s"
+  },
+  "F6.5": {
+    "passed": true,
+    "bifurcation_detected": true,
+    "bifurcation_point_error": 0.12,
+    "hysteresis_width_ratio": 0.18,
+    "threshold": "Bifurcation detected, error \u22640.15, hysteresis 0.08-0.25\u03b8_t",
+    "reason": "Detected: True, error: 0.120, hysteresis: 0.18\u03b8_t"
+  },
+  "F6.6": {
+    "passed": true,
+    "modules_needed": 4,
+    "performance_gap_pct": 20.0,
+    "threshold": "\u22652 modules needed, \u226515% performance gap",
+    "reason": "Modules: 4, gap: 20.0%"
+  },
+  "criteria": {
+    "F6.1": {
+      "passed": true,
+      "apgi_transition_ms": 35.0,
+      "baseline_transition_ms": 100.0,
+      "speedup_ratio": 2.857142857142857,
+      "cliffs_delta": 0.8,
+      "threshold": "\u226450ms transition, 2x speedup, \u03b4\u22650.50 (hard AND)",
+      "reason": "LTCN: 35.0ms vs 100.0ms (ratio: 2.9x, \u03b4=0.80)"
+    },
+    "F6.2": {
+      "passed": true,
+      "apgi_window_ms": 350.0,
+      "baseline_window_ms": 63.333333333333336,
+      "integration_ratio": 5.526315789473684,
+      "curve_fit_r2": 0.92,
+      "threshold": "\u2265200.0ms window, \u22654.0x ratio, R\u00b2\u22650.85",
+      "reason": "LTCN: 350.0ms vs 63.3ms baseline (ratio: 5.5x, R\u00b2=0.920)"
+    },
+    "F6.3": {
+      "passed": true,
+      "sparsity_reduction_pct": 30.0,
+      "threshold": "\u226530% sparsity reduction",
+      "reason": "Sparsity reduction: 30.0%"
+    },
+    "F6.4": {
+      "passed": true,
+      "memory_tau_s": 2.0,
+      "threshold": "\u03c4_memory = 1-3s",
+      "reason": "Memory decay \u03c4: 2.00s"
+    },
+    "F6.5": {
+      "passed": true,
+      "bifurcation_detected": true,
+      "bifurcation_point_error": 0.12,
+      "hysteresis_width_ratio": 0.18,
+      "threshold": "Bifurcation detected, error \u22640.15, hysteresis 0.08-0.25\u03b8_t",
+      "reason": "Detected: True, error: 0.120, hysteresis: 0.18\u03b8_t"
+    },
+    "F6.6": {
+      "passed": true,
+      "modules_needed": 4,
+      "performance_gap_pct": 20.0,
+      "threshold": "\u22652 modules needed, \u226515% performance gap",
+      "reason": "Modules: 4, gap: 20.0%"
+    }
+  },
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6
+  }
+}
