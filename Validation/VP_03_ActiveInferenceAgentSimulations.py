@@ -1163,9 +1163,9 @@ class BetaSMLesionAgent(APGIActiveInferenceAgent):
         super().__init__(config)
         self.beta_sm = 0.0  # somatic channel lesioned
 
-    def step(self, observation: Dict) -> tuple:
+    def step(self, observation: Dict, dt: float = 0.05) -> Tuple[int, np.ndarray]:
         # Override somatic modulation: somatic_values = 0 → no M̂ influence
-        action, probs = super().step(observation)
+        action, probs = super().step(observation, dt)
         return action, probs
 
 
@@ -1410,8 +1410,9 @@ class IowaGamblingTaskEnvironment:
 class MultiArmedVolatileBandit:
     """Multi-armed volatile bandit with hazard rate 0.1 and interoceptive correlation"""
 
-    def __init__(self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000,
-                 volatility_schedule: list = None):
+    def __init__(
+        self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000, volatility_schedule: list = None
+    ):
         self.n_arms = n_arms
         self.hazard_rate = hazard_rate
         self.n_trials = n_trials
@@ -3267,7 +3268,7 @@ def run_validation_with_cross_validation():
         print("\n" + "=" * 80)
         print("GENERATING VISUALIZATIONS")
         print("=" * 80)
-        plot_experiment_results(results, analysis, "protocol3_results_with_cv.png")
+        plot_experiment_results(results, analysis, falsification, "protocol3_results_with_cv.png")
 
         # Save
         print("\n" + "=" * 80)

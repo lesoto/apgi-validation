@@ -1453,7 +1453,7 @@ class InterventionFalsificationChecker:
     """Check Protocol 7 falsification criteria"""
 
     def __init__(self):
-        self.criteria = {
+        self.criteria: Dict[str, Dict[str, Any]] = {
             "F3.1": {
                 "description": "dlPFC TMS fails to shift threshold by ≥3%",
                 "threshold": "3% reduction",
@@ -2123,7 +2123,7 @@ class InterventionFalsificationChecker:
 
             criterion = {
                 "code": "F3.1",
-                "description": self.criteria["F3.1"]["description"],
+                "description": str(self.criteria["F3.1"]["description"]),
                 "falsified": f3_1_result,
                 "details": f3_1_details,
             }
@@ -2143,7 +2143,7 @@ class InterventionFalsificationChecker:
 
             criterion = {
                 "code": "F3.2",
-                "description": self.criteria["F3.2"]["description"],
+                "description": str(self.criteria["F3.2"]["description"]),
                 "falsified": f3_2_result,
                 "details": f3_2_details,
             }
@@ -2556,7 +2556,7 @@ def interactive_power_analysis_tool():
 
     sample_sizes = {}
     for intervention, params in interventions.items():
-        sample_sizes[intervention] = compute_sample_size(**params)
+        sample_sizes[intervention] = compute_sample_size(effect_size=params["effect_size"])
 
     return sample_sizes
 
@@ -3351,9 +3351,9 @@ def main():
     baseline_grouped = baseline_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     baseline_params = psychometric.fit_curve(
-        baseline_grouped.index.values,
-        baseline_grouped["n_trials"].values,
-        baseline_grouped["n_seen"].values,
+        np.asarray(baseline_grouped.index.values).reshape(-1, 1),
+        np.asarray(baseline_grouped["n_trials"].values).reshape(-1, 1),
+        np.asarray(baseline_grouped["n_seen"].values).reshape(-1, 1),
     )
 
     print("\nBaseline (Vertex Control):")
@@ -3366,9 +3366,9 @@ def main():
     intervention_grouped = intervention_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     intervention_params = psychometric.fit_curve(
-        intervention_grouped.index.values,
-        intervention_grouped["n_trials"].values,
-        intervention_grouped["n_seen"].values,
+        np.asarray(intervention_grouped.index.values).reshape(-1, 1),
+        np.asarray(intervention_grouped["n_trials"].values).reshape(-1, 1),
+        np.asarray(intervention_grouped["n_seen"].values).reshape(-1, 1),
     )
 
     print("\nIntervention (dlPFC TMS):")

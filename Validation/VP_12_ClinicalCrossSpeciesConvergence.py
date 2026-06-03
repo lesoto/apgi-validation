@@ -33,7 +33,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -74,9 +74,19 @@ logger = logging.getLogger(__name__)
 class ClinicalDataAnalyzer:
     """Analyze clinical populations for APGI validation"""
 
+    class ClinicalProfile(TypedDict):
+        pci_mean: float
+        pci_std: float
+        p3b_amplitude: Optional[float]
+        frontoparietal_connectivity: Optional[float]
+        ignition_probability: Optional[float]
+        theta_t: Optional[float]
+        _empirical_source: str
+        _independence_note: str
+
     def __init__(self):
         # Fix 1: Generate clinical profiles from independent literature parameters
-        self.clinical_profiles = {
+        self.clinical_profiles: Dict[str, Dict[str, Any]] = {
             "vegetative_state": {
                 "pci_mean": 0.31,
                 "pci_std": 0.09,
@@ -133,8 +143,8 @@ class ClinicalDataAnalyzer:
             "p3b_amplitude": p3b_amplitude,
             "frontoparietal_connectivity": frontoparietal_connectivity,
             "ignition_probability": ignition_probability,
-            "theta_t": theta_t,
-            "pci_estimate": pci_value,
+            "theta_t": float(theta_t),
+            "pci_estimate": float(pci_value),
         }
 
     def simulate_patient_data(self, condition: str, n_subjects: int = 20) -> pd.DataFrame:
@@ -142,8 +152,11 @@ class ClinicalDataAnalyzer:
             raise ValueError(f"Unknown condition: {condition}")
         profile = self.clinical_profiles[condition]
         data = []
+        # Extract profile parameters with explicit types
+        pci_mean: float = profile["pci_mean"]  # type: ignore[assignment]
+        pci_std: float = profile["pci_std"]  # type: ignore[assignment]
         for subject_id in tqdm(range(n_subjects), desc=f"Simulating {condition} subjects"):
-            pci_value = np.random.normal(profile["pci_mean"], profile["pci_std"])
+            pci_value = np.random.normal(pci_mean, pci_std)
             pci_value = np.clip(pci_value, 0.0, 1.0)
             derived_measures = self._derive_measures_from_pci(pci_value, condition)
             subject_data = {
@@ -584,8 +597,15 @@ class PsychiatricProfileAnalyzer:
 
 
 class CrossSpeciesHomologyAnalyzer:
+    class SpeciesProfile(TypedDict):
+        cortical_thickness: float
+        frontal_lobe_ratio: float
+        theta_t_range: tuple[float, float]
+        Pi_e_range: tuple[float, float]
+        ignition_latency: float
+
     def __init__(self):
-        self.species_profiles = {
+        self.species_profiles: Dict[str, Dict[str, Any]] = {
             "human": {
                 "cortical_thickness": 1.0,
                 "frontal_lobe_ratio": 1.0,
@@ -603,15 +623,15 @@ class CrossSpeciesHomologyAnalyzer:
             "mouse": {
                 "cortical_thickness": 0.3,
                 "frontal_lobe_ratio": 0.4,
-                "theta_t_range": (0.6, 1.2),
-                "Pi_e_range": (0.3, 0.6),
+                "theta_t_range": (0.6, 1.2),  # type: ignore[assignment]
+                "Pi_e_range": (0.3, 0.6),  # type: ignore[assignment]
                 "ignition_latency": 0.15,
             },
             "Fish": {
                 "cortical_thickness": 0.1,
                 "frontal_lobe_ratio": 0.2,
-                "theta_t_range": (0.8, 1.5),
-                "Pi_e_range": (0.2, 0.4),
+                "theta_t_range": (0.8, 1.5),  # type: ignore[assignment]
+                "Pi_e_range": (0.2, 0.4),  # type: ignore[assignment]
                 "ignition_latency": 0.1,
             },
         }
@@ -620,15 +640,22 @@ class CrossSpeciesHomologyAnalyzer:
         profile = self.species_profiles[species]
         data = []
         for subject_id in range(n_subjects):
+            # Extract profile parameters with explicit types
+            cortical_thickness: float = profile["cortical_thickness"]  # type: ignore[assignment]
+            frontal_lobe_ratio: float = profile["frontal_lobe_ratio"]  # type: ignore[assignment]
+            theta_t_range: tuple[float, float] = profile["theta_t_range"]  # type: ignore[assignment]
+            pi_e_range: tuple[float, float] = profile["Pi_e_range"]  # type: ignore[assignment]
+            ignition_latency: float = profile["ignition_latency"]  # type: ignore[assignment]
+
             subject_data = {
                 "subject_id": subject_id,
                 "species": species,
-                "cortical_thickness": profile["cortical_thickness"],
-                "frontal_lobe_ratio": profile["frontal_lobe_ratio"],
+                "cortical_thickness": cortical_thickness,
+                "frontal_lobe_ratio": frontal_lobe_ratio,
             }
-            subject_data["theta_t"] = np.random.uniform(*profile["theta_t_range"])
-            subject_data["Pi_e"] = np.random.uniform(*profile["Pi_e_range"])
-            subject_data["ignition_latency"] = profile["ignition_latency"] + np.random.normal(0, 0.02)
+            subject_data["theta_t"] = np.random.uniform(*theta_t_range)
+            subject_data["Pi_e"] = np.random.uniform(*pi_e_range)
+            subject_data["ignition_latency"] = ignition_latency + np.random.normal(0, 0.02)
             subject_data.update(self._simulate_species_measures(subject_data, species))
             data.append(subject_data)
         return pd.DataFrame(data)
@@ -883,7 +910,10 @@ class ClinicalConvergenceValidator:
             "cohens_d_p3b": float(p3b_reduction_vs_baseline),
             "eta_squared": 0.48,
             "paired_ttest_p3b_pvalue": float(
-                self.clinical_analyzer.permutation_test_paired(data["baseline_p3b"], data["propofol_p3b"])
+                self.clinical_analyzer.permutation_test_paired(
+                    data["baseline_p3b"].to_numpy().astype(float),
+                    data["propofol_p3b"].to_numpy().astype(float),
+                )
             ),
             "validation_passed": m_p3b > 50.0 and m_ign > 50.0,
         }

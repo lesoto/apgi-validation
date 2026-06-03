@@ -1213,8 +1213,7 @@ class APGIPsychophysicalEstimator:
         MIN_RELIABILITY = 0.70  # default for parameters not in ICC_THRESHOLDS
         all_pearson_pass = all(v["r"] >= MIN_RELIABILITY for v in test_retest_pearson.values())
         all_icc_pass = all(
-            v >= ICC_THRESHOLDS.get(p, MIN_RELIABILITY) and not np.isnan(v)
-            for p, v in test_retest_iccs.items()
+            v >= ICC_THRESHOLDS.get(p, MIN_RELIABILITY) and not np.isnan(v) for p, v in test_retest_iccs.items()
         )
         results["falsification_tests"]["V8_2_test_retest"] = {
             "passed": all_pearson_pass and all_icc_pass,
