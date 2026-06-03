@@ -53,31 +53,32 @@ def apply_apgi_theme(root: tk.Tk) -> ttk.Style:
     style.configure("Card.TFrame", background=_SURFACE, borderwidth=1, relief="solid")
     style.configure("Card.TCheckbutton", background=_SURFACE)
     style.configure("TButton", padding=6, background=_SOFT, font=("Noto Sans", 10))
-    style.map("TButton",
-              background=[("active", _BORDER), ("disabled", "#f1f3f5")],
-              foreground=[("disabled", "#adb5bd")])
-    style.configure("Primary.TButton", background=_GREEN, foreground="white",
-                    font=("Noto Sans", 10, "bold"), padding=8)
-    style.map("Primary.TButton",
-              background=[("active", "#0f3d1a"), ("disabled", _MUTED)],
-              foreground=[("active", "white"), ("disabled", _BORDER)])
-    style.configure("Secondary.TButton", background=_BLUE, foreground="white",
-                    font=("Noto Sans", 10), padding=6)
-    style.map("Secondary.TButton",
-              background=[("active", "#1f5a82"), ("disabled", _MUTED)],
-              foreground=[("active", "white"), ("disabled", _BORDER)])
-    style.configure("Danger.TButton", background=_RED, foreground="white",
-                    font=("Noto Sans", 10, "bold"), padding=8)
-    style.map("Danger.TButton",
-              background=[("active", "#5a161d"), ("disabled", _MUTED)],
-              foreground=[("active", "white"), ("disabled", _BORDER)])
+    style.map(
+        "TButton", background=[("active", _BORDER), ("disabled", "#f1f3f5")], foreground=[("disabled", "#adb5bd")]
+    )
+    style.configure("Primary.TButton", background=_GREEN, foreground="white", font=("Noto Sans", 10, "bold"), padding=8)
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a"), ("disabled", _MUTED)],
+        foreground=[("active", "white"), ("disabled", _BORDER)],
+    )
+    style.configure("Secondary.TButton", background=_BLUE, foreground="white", font=("Noto Sans", 10), padding=6)
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82"), ("disabled", _MUTED)],
+        foreground=[("active", "white"), ("disabled", _BORDER)],
+    )
+    style.configure("Danger.TButton", background=_RED, foreground="white", font=("Noto Sans", 10, "bold"), padding=8)
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d"), ("disabled", _MUTED)],
+        foreground=[("active", "white"), ("disabled", _BORDER)],
+    )
     style.configure("Horizontal.TProgressbar", background=_BLUE, troughcolor=_BORDER, borderwidth=0)
     style.configure("TCombobox", font=("Noto Sans", 10))
     style.configure("TNotebook", background=_BG, tabmargins=[2, 5, 2, 0])
     style.configure("TNotebook.Tab", font=("Noto Sans", 10), padding=[10, 5])
-    style.map("TNotebook.Tab",
-              background=[("selected", _SURFACE)],
-              expand=[("selected", [1, 1, 1, 0])])
+    style.map("TNotebook.Tab", background=[("selected", _SURFACE)], expand=[("selected", [1, 1, 1, 0])])
 
     root.configure(background=_BG)
     return style
@@ -91,21 +92,24 @@ class APGICard(ttk.Frame):
         container = ttk.Frame(self, padding=15, style="Card.TFrame")
         container.pack(fill="both", expand=True)
 
-        ttk.Label(container, text=title.upper(),
-                  font=("Noto Sans", 11, "bold"),
-                  background=_SURFACE, foreground=_FG).pack(anchor="w")
+        ttk.Label(
+            container, text=title.upper(), font=("Noto Sans", 11, "bold"), background=_SURFACE, foreground=_FG
+        ).pack(anchor="w")
 
-        ttk.Label(container, text=value,
-                  font=("Noto Sans Mono", 11),
-                  background=_SURFACE, foreground=_BLUE,
-                  wraplength=580).pack(anchor="w", pady=(4, 8))
+        ttk.Label(
+            container, text=value, font=("Noto Sans Mono", 11), background=_SURFACE, foreground=_BLUE, wraplength=580
+        ).pack(anchor="w", pady=(4, 8))
 
         if subtitle:
             ttk.Separator(container, orient="horizontal").pack(fill="x", pady=(0, 6))
-            ttk.Label(container, text=subtitle,
-                      font=("Noto Sans", 9, "italic"),
-                      background=_SURFACE, foreground=_MUTED,
-                      wraplength=580).pack(anchor="w")
+            ttk.Label(
+                container,
+                text=subtitle,
+                font=("Noto Sans", 9, "italic"),
+                background=_SURFACE,
+                foreground=_MUTED,
+                wraplength=580,
+            ).pack(anchor="w")
 
 
 # ── Protocol Definitions ──────────────────────────────────────────────────────
@@ -275,7 +279,15 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
 }
 
 # Status options for dropdown
-_STATUS_OPTIONS = ["Not started", "In preparation", "Pre-registered", "Data collection", "Analysis", "Completed", "On hold"]
+_STATUS_OPTIONS = [
+    "Not started",
+    "In preparation",
+    "Pre-registered",
+    "Data collection",
+    "Analysis",
+    "Completed",
+    "On hold",
+]
 _PREREG_OPTIONS = ["Pending", "Draft ready", "Submitted", "Registered", "Not applicable"]
 
 # Type badge colours
@@ -353,13 +365,12 @@ class OSFProtocolGUI:
 
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Export Protocol Report", command=self.export_protocol_report,
-                              accelerator="Ctrl+E")
-        file_menu.add_command(label="Generate Pre-reg Template", command=self.generate_prereg_template,
-                              accelerator="Ctrl+G")
+        file_menu.add_command(label="Export Protocol Report", command=self.export_protocol_report, accelerator="Ctrl+E")
+        file_menu.add_command(
+            label="Generate Pre-reg Template", command=self.generate_prereg_template, accelerator="Ctrl+G"
+        )
         file_menu.add_separator()
-        file_menu.add_command(label="Save Status Snapshot", command=self.save_status_snapshot,
-                              accelerator="Ctrl+S")
+        file_menu.add_command(label="Save Status Snapshot", command=self.save_status_snapshot, accelerator="Ctrl+S")
         file_menu.add_command(label="Load Status Snapshot", command=self.load_status_snapshot)
         file_menu.add_separator()
         file_menu.add_command(label="Quit", command=self._on_closing, accelerator="Ctrl+Q")
@@ -400,19 +411,22 @@ class OSFProtocolGUI:
         tk.Label(
             metric_bar,
             text="APGI OPEN SCIENCE FRAMEWORK  —  EMPIRICAL PROTOCOLS",
-            bg=_BLUE, fg="white",
+            bg=_BLUE,
+            fg="white",
             font=("Noto Sans", 13, "bold"),
         ).grid(row=0, column=0, sticky="w")
 
         # Summary counters
         self._counter_var = tk.StringVar(value=self._build_counter_text())
-        tk.Label(metric_bar, textvariable=self._counter_var,
-                 bg=_BLUE, fg="white", font=("Noto Sans", 10)).grid(row=0, column=1, padx=(20, 15), sticky="e")
+        tk.Label(metric_bar, textvariable=self._counter_var, bg=_BLUE, fg="white", font=("Noto Sans", 10)).grid(
+            row=0, column=1, padx=(20, 15), sticky="e"
+        )
 
         # OSF status indicator
         self._osf_status_var = tk.StringVar(value="ℹ  OSF: Ready")
-        tk.Label(metric_bar, textvariable=self._osf_status_var,
-                 bg=_BLUE, fg="white", font=("Noto Sans", 10)).grid(row=0, column=2, sticky="e")
+        tk.Label(metric_bar, textvariable=self._osf_status_var, bg=_BLUE, fg="white", font=("Noto Sans", 10)).grid(
+            row=0, column=2, sticky="e"
+        )
 
         # ── Grid weights ──────────────────────────────────────────────────────
         self.root.columnconfigure(0, weight=0, minsize=220)
@@ -429,9 +443,9 @@ class OSFProtocolGUI:
         sidebar.columnconfigure(0, weight=1)
         sidebar.rowconfigure(1, weight=1)
 
-        tk.Label(sidebar, text="EMPIRICAL PROTOCOLS",
-                 bg=_BORDER, fg=_MUTED,
-                 font=("Noto Sans", 9, "bold"), pady=5).grid(row=0, column=0, columnspan=2, sticky="ew")
+        tk.Label(
+            sidebar, text="EMPIRICAL PROTOCOLS", bg=_BORDER, fg=_MUTED, font=("Noto Sans", 9, "bold"), pady=5
+        ).grid(row=0, column=0, columnspan=2, sticky="ew")
 
         lb_frame = tk.Frame(sidebar, bg=_SURFACE)
         lb_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
@@ -441,11 +455,16 @@ class OSFProtocolGUI:
         self.protocol_listbox = tk.Listbox(
             lb_frame,
             font=("Noto Sans", 9),
-            bg=_SURFACE, fg=_FG,
-            selectbackground=_BLUE, selectforeground="white",
-            borderwidth=0, highlightthickness=1,
-            highlightcolor=_BORDER, highlightbackground=_BORDER,
-            activestyle="none", cursor="hand2",
+            bg=_SURFACE,
+            fg=_FG,
+            selectbackground=_BLUE,
+            selectforeground="white",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightcolor=_BORDER,
+            highlightbackground=_BORDER,
+            activestyle="none",
+            cursor="hand2",
         )
         lb_scroll = ttk.Scrollbar(lb_frame, orient="vertical", command=self.protocol_listbox.yview)
         self.protocol_listbox.configure(yscrollcommand=lb_scroll.set)
@@ -465,14 +484,17 @@ class OSFProtocolGUI:
         btn_area.columnconfigure(0, weight=1)
 
         self._gen_prereg_btn = ttk.Button(
-            btn_area, text="✎  Generate Pre-reg",
+            btn_area,
+            text="✎  Generate Pre-reg",
             command=self.generate_prereg_template,
-            style="Primary.TButton", state=tk.DISABLED,
+            style="Primary.TButton",
+            state=tk.DISABLED,
         )
         self._gen_prereg_btn.grid(row=0, column=0, sticky="ew", pady=(0, 4))
 
         self._export_btn = ttk.Button(
-            btn_area, text="Export Report",
+            btn_area,
+            text="Export Report",
             command=self.export_protocol_report,
             style="Secondary.TButton",
         )
@@ -480,10 +502,10 @@ class OSFProtocolGUI:
 
         ttk.Separator(btn_area, orient="horizontal").grid(row=2, column=0, sticky="ew", pady=(0, 6))
 
-        ttk.Button(btn_area, text="Dependency Overview",
-                   command=self._show_dependency_overview).grid(row=3, column=0, sticky="ew", pady=(0, 4))
-        ttk.Button(btn_area, text="Clear Console",
-                   command=self.clear_console).grid(row=4, column=0, sticky="ew")
+        ttk.Button(btn_area, text="Dependency Overview", command=self._show_dependency_overview).grid(
+            row=3, column=0, sticky="ew", pady=(0, 4)
+        )
+        ttk.Button(btn_area, text="Clear Console", command=self.clear_console).grid(row=4, column=0, sticky="ew")
 
         # Right border divider
         tk.Frame(self.root, bg=_BORDER, width=1).grid(row=1, column=0, sticky="nse")
@@ -492,8 +514,8 @@ class OSFProtocolGUI:
         workspace = ttk.Frame(self.root, padding=(15, 10, 15, 10))
         workspace.grid(row=1, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
-        workspace.rowconfigure(0, weight=0)   # cards row
-        workspace.rowconfigure(1, weight=1)   # detail/notes row
+        workspace.rowconfigure(0, weight=0)  # cards row
+        workspace.rowconfigure(1, weight=1)  # detail/notes row
 
         self._card_area = ttk.Frame(workspace)
         self._card_area.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -514,7 +536,8 @@ class OSFProtocolGUI:
         ttk.Label(
             self._detail_inner,
             text="Select a protocol from the sidebar to view details and manage pre-registration.",
-            foreground=_MUTED, font=("Noto Sans", 10),
+            foreground=_MUTED,
+            font=("Noto Sans", 10),
         ).grid(row=0, column=0, padx=20, pady=20)
 
         # ── Row 2: Console toggle header ──────────────────────────────────────
@@ -524,11 +547,15 @@ class OSFProtocolGUI:
         self._console_toggle_btn = tk.Button(
             console_header,
             text="▼  OUTPUT CONSOLE",
-            bg=_BORDER, fg=_MUTED,
+            bg=_BORDER,
+            fg=_MUTED,
             font=("Noto Sans", 9, "bold"),
-            relief="flat", cursor="hand2",
+            relief="flat",
+            cursor="hand2",
             command=self._toggle_console,
-            activebackground=_BORDER, activeforeground="#495057", bd=0,
+            activebackground=_BORDER,
+            activeforeground="#495057",
+            bd=0,
         )
         self._console_toggle_btn.pack(side="left", padx=10)
 
@@ -543,7 +570,8 @@ class OSFProtocolGUI:
             self._console_frame,
             height=8,
             font=("Noto Sans Mono", 9),
-            bg="#1e1e1e", fg="#d4d4d4",
+            bg="#1e1e1e",
+            fg="#d4d4d4",
             insertbackground="white",
             state=tk.DISABLED,
             wrap=tk.WORD,
@@ -551,7 +579,7 @@ class OSFProtocolGUI:
         self.console.grid(row=0, column=0, sticky="nsew")
 
         self._log("OSF Protocol Manager initialised. Select a protocol to begin.")
-        self._log(f"7 protocols loaded  |  All status: Not started  |  Pre-reg: Pending")
+        self._log("7 protocols loaded  |  All status: Not started  |  Pre-reg: Pending")
 
     # ── Workspace helpers ─────────────────────────────────────────────────────
 
@@ -561,11 +589,14 @@ class OSFProtocolGUI:
 
         frame = ttk.Frame(self._card_area, padding=30)
         frame.grid(row=0, column=0)
-        tk.Canvas(frame, width=200, height=80,
-                  bg=_BG, highlightbackground=_SOFT, highlightthickness=2).pack()
-        ttk.Label(frame,
-                  text="No protocol selected.  Choose one from the sidebar to view metadata and manage pre-registration.",
-                  wraplength=400, font=("Noto Sans", 11), foreground=_MUTED).pack(pady=(15, 0))
+        tk.Canvas(frame, width=200, height=80, bg=_BG, highlightbackground=_SOFT, highlightthickness=2).pack()
+        ttk.Label(
+            frame,
+            text="No protocol selected.  Choose one from the sidebar to view metadata and manage pre-registration.",
+            wraplength=400,
+            font=("Noto Sans", 11),
+            foreground=_MUTED,
+        ).pack(pady=(15, 0))
 
     def _show_protocol_cards(self, key: str) -> None:
         """Populate the card area with summary cards for the selected protocol."""
@@ -580,30 +611,25 @@ class OSFProtocolGUI:
         for i in range(4):
             cards_row.columnconfigure(i, weight=1)
 
-        APGICard(cards_row,
-                 "Protocol",
-                 meta["id"],
-                 f"Type: {meta['type']}  |  Priority: {meta['priority']}").grid(
-            row=0, column=0, padx=(0, 6), pady=4, sticky="ew")
+        APGICard(cards_row, "Protocol", meta["id"], f"Type: {meta['type']}  |  Priority: {meta['priority']}").grid(
+            row=0, column=0, padx=(0, 6), pady=4, sticky="ew"
+        )
 
         prereq_text = ", ".join(meta["depends_on"]) if meta["depends_on"] else "None"
-        APGICard(cards_row,
-                 "Dependencies",
-                 prereq_text,
-                 "Must be completed before this protocol").grid(
-            row=0, column=1, padx=(0, 6), pady=4, sticky="ew")
+        APGICard(cards_row, "Dependencies", prereq_text, "Must be completed before this protocol").grid(
+            row=0, column=1, padx=(0, 6), pady=4, sticky="ew"
+        )
 
-        APGICard(cards_row,
-                 "Study Status",
-                 st["status"],
-                 "Update via the status panel below").grid(
-            row=0, column=2, padx=(0, 6), pady=4, sticky="ew")
+        APGICard(cards_row, "Study Status", st["status"], "Update via the status panel below").grid(
+            row=0, column=2, padx=(0, 6), pady=4, sticky="ew"
+        )
 
-        APGICard(cards_row,
-                 "Pre-registration",
-                 st["prereg_status"],
-                 f"Platform: {meta['platform']}  |  Required: {'Yes' if meta['prereg_required'] else 'No'}").grid(
-            row=0, column=3, padx=0, pady=4, sticky="ew")
+        APGICard(
+            cards_row,
+            "Pre-registration",
+            st["prereg_status"],
+            f"Platform: {meta['platform']}  |  Required: {'Yes' if meta['prereg_required'] else 'No'}",
+        ).grid(row=0, column=3, padx=0, pady=4, sticky="ew")
 
     def _populate_detail_panel(self, key: str) -> None:
         """Build the scrollable detail/status editor for the selected protocol."""
@@ -623,26 +649,25 @@ class OSFProtocolGUI:
         self._detail_inner.columnconfigure(0, weight=1)
 
         scrollable = ttk.Frame(canvas, padding=(10, 6))
-        scrollable.bind("<Configure>",
-                        lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        scrollable.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.create_window((0, 0), window=scrollable, anchor="nw")
         scrollable.columnconfigure(1, weight=1)
 
         def _row(r: int, label: str, value: str, mono: bool = False) -> None:
-            ttk.Label(scrollable, text=label + ":",
-                      font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
-                row=r, column=0, sticky="nw", padx=(0, 12), pady=2)
+            ttk.Label(scrollable, text=label + ":", font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
+                row=r, column=0, sticky="nw", padx=(0, 12), pady=2
+            )
             fnt = ("Noto Sans Mono", 9) if mono else ("Noto Sans", 10)
-            ttk.Label(scrollable, text=value, font=fnt, foreground=_FG,
-                      wraplength=560, justify="left").grid(
-                row=r, column=1, sticky="nw", pady=2)
+            ttk.Label(scrollable, text=value, font=fnt, foreground=_FG, wraplength=560, justify="left").grid(
+                row=r, column=1, sticky="nw", pady=2
+            )
 
         row_idx = 0
 
         # Title
-        ttk.Label(scrollable, text=meta["title"],
-                  font=("Noto Sans", 13, "bold"), foreground=_FG).grid(
-            row=row_idx, column=0, columnspan=2, sticky="w", pady=(0, 6))
+        ttk.Label(scrollable, text=meta["title"], font=("Noto Sans", 13, "bold"), foreground=_FG).grid(
+            row=row_idx, column=0, columnspan=2, sticky="w", pady=(0, 6)
+        )
         row_idx += 1
 
         _row(row_idx, "Description", meta["description"])
@@ -664,45 +689,54 @@ class OSFProtocolGUI:
             _row(row_idx, "Notes", meta["notes"])
             row_idx += 1
 
-        ttk.Separator(scrollable, orient="horizontal").grid(
-            row=row_idx, column=0, columnspan=2, sticky="ew", pady=8)
+        ttk.Separator(scrollable, orient="horizontal").grid(row=row_idx, column=0, columnspan=2, sticky="ew", pady=8)
         row_idx += 1
 
         # ── Editable status fields ────────────────────────────────────────────
-        ttk.Label(scrollable, text="UPDATE STATUS",
-                  font=("Noto Sans", 10, "bold"), foreground=_MUTED).grid(
-            row=row_idx, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        ttk.Label(scrollable, text="UPDATE STATUS", font=("Noto Sans", 10, "bold"), foreground=_MUTED).grid(
+            row=row_idx, column=0, columnspan=2, sticky="w", pady=(0, 4)
+        )
         row_idx += 1
 
         # Study status
-        ttk.Label(scrollable, text="Study Status:",
-                  font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
-            row=row_idx, column=0, sticky="w", pady=2)
+        ttk.Label(scrollable, text="Study Status:", font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
+            row=row_idx, column=0, sticky="w", pady=2
+        )
         status_var = tk.StringVar(value=st["status"])
         self._detail_vars["status"] = status_var
-        status_cb = ttk.Combobox(scrollable, textvariable=status_var,
-                                 values=_STATUS_OPTIONS, state="readonly", width=28)
+        status_cb = ttk.Combobox(
+            scrollable, textvariable=status_var, values=_STATUS_OPTIONS, state="readonly", width=28
+        )
         status_cb.grid(row=row_idx, column=1, sticky="w", pady=2)
         row_idx += 1
 
         # Pre-reg status
-        ttk.Label(scrollable, text="Pre-reg Status:",
-                  font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
-            row=row_idx, column=0, sticky="w", pady=2)
+        ttk.Label(scrollable, text="Pre-reg Status:", font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
+            row=row_idx, column=0, sticky="w", pady=2
+        )
         prereg_var = tk.StringVar(value=st["prereg_status"])
         self._detail_vars["prereg_status"] = prereg_var
-        prereg_cb = ttk.Combobox(scrollable, textvariable=prereg_var,
-                                 values=_PREREG_OPTIONS, state="readonly", width=28)
+        prereg_cb = ttk.Combobox(
+            scrollable, textvariable=prereg_var, values=_PREREG_OPTIONS, state="readonly", width=28
+        )
         prereg_cb.grid(row=row_idx, column=1, sticky="w", pady=2)
         row_idx += 1
 
         # Notes
-        ttk.Label(scrollable, text="Notes:",
-                  font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
-            row=row_idx, column=0, sticky="nw", pady=2)
-        notes_text = tk.Text(scrollable, height=3, width=55,
-                             font=("Noto Sans", 10), wrap=tk.WORD,
-                             bg=_SURFACE, fg=_FG, relief="solid", bd=1)
+        ttk.Label(scrollable, text="Notes:", font=("Noto Sans", 9, "bold"), foreground=_MUTED).grid(
+            row=row_idx, column=0, sticky="nw", pady=2
+        )
+        notes_text = tk.Text(
+            scrollable,
+            height=3,
+            width=55,
+            font=("Noto Sans", 10),
+            wrap=tk.WORD,
+            bg=_SURFACE,
+            fg=_FG,
+            relief="solid",
+            bd=1,
+        )
         notes_text.insert("1.0", st["notes"])
         notes_text.grid(row=row_idx, column=1, sticky="ew", pady=2)
         self._notes_widget = notes_text
@@ -718,8 +752,9 @@ class OSFProtocolGUI:
             self._log(f"[{meta['id']}] Status saved: {status_var.get()} | Pre-reg: {prereg_var.get()}")
             messagebox.showinfo("Saved", f"{meta['id']} status updated.")
 
-        ttk.Button(scrollable, text="Save Changes", command=_save,
-                   style="Primary.TButton").grid(row=row_idx, column=1, sticky="w", pady=8)
+        ttk.Button(scrollable, text="Save Changes", command=_save, style="Primary.TButton").grid(
+            row=row_idx, column=1, sticky="w", pady=8
+        )
 
     # ── Sidebar selection ─────────────────────────────────────────────────────
 
@@ -739,14 +774,8 @@ class OSFProtocolGUI:
 
     def _build_counter_text(self) -> str:
         total = len(EP_PROTOCOLS)
-        registered = sum(
-            1 for s in self._protocol_status.values()
-            if s["prereg_status"] == "Registered"
-        )
-        completed = sum(
-            1 for s in self._protocol_status.values()
-            if s["status"] == "Completed"
-        )
+        registered = sum(1 for s in self._protocol_status.values() if s["prereg_status"] == "Registered")
+        completed = sum(1 for s in self._protocol_status.values() if s["status"] == "Completed")
         return f"Protocols: {total}  |  Pre-registered: {registered}/{total}  |  Completed: {completed}/{total}"
 
     # ── Dependency Overview ───────────────────────────────────────────────────
@@ -758,10 +787,9 @@ class OSFProtocolGUI:
         win.configure(bg=_BG)
         win.resizable(True, True)
 
-        tk.Label(win, text="PROTOCOL DEPENDENCY GRAPH",
-                 bg=_BLUE, fg="white",
-                 font=("Noto Sans", 12, "bold"),
-                 pady=8).pack(fill="x", padx=0)
+        tk.Label(
+            win, text="PROTOCOL DEPENDENCY GRAPH", bg=_BLUE, fg="white", font=("Noto Sans", 12, "bold"), pady=8
+        ).pack(fill="x", padx=0)
 
         frame = ttk.Frame(win, padding=15)
         frame.pack(fill="both", expand=True)
@@ -781,8 +809,9 @@ class OSFProtocolGUI:
             )
         lines.append("\n" + "=" * 48)
 
-        text = scrolledtext.ScrolledText(frame, font=("Noto Sans Mono", 9),
-                                         bg=_SURFACE, fg=_FG, state=tk.DISABLED, wrap=tk.WORD)
+        text = scrolledtext.ScrolledText(
+            frame, font=("Noto Sans Mono", 9), bg=_SURFACE, fg=_FG, state=tk.DISABLED, wrap=tk.WORD
+        )
         text.pack(fill="both", expand=True)
         text.configure(state=tk.NORMAL)
         text.insert(tk.END, "\n".join(lines))
@@ -804,7 +833,7 @@ class OSFProtocolGUI:
 
         lines: List[str] = [
             "=" * 64,
-            f"APGI PRE-REGISTRATION TEMPLATE",
+            "APGI PRE-REGISTRATION TEMPLATE",
             f"Generated: {timestamp}",
             "=" * 64,
             "",
@@ -882,12 +911,16 @@ class OSFProtocolGUI:
         win.geometry("680x560")
         win.configure(bg=_BG)
 
-        tk.Label(win, text=f"PRE-REGISTRATION TEMPLATE  —  {meta['id']}",
-                 bg=_BLUE, fg="white",
-                 font=("Noto Sans", 12, "bold"), pady=8).pack(fill="x")
+        tk.Label(
+            win,
+            text=f"PRE-REGISTRATION TEMPLATE  —  {meta['id']}",
+            bg=_BLUE,
+            fg="white",
+            font=("Noto Sans", 12, "bold"),
+            pady=8,
+        ).pack(fill="x")
 
-        txt = scrolledtext.ScrolledText(win, font=("Noto Sans Mono", 9),
-                                        bg=_SURFACE, fg=_FG, wrap=tk.WORD)
+        txt = scrolledtext.ScrolledText(win, font=("Noto Sans Mono", 9), bg=_SURFACE, fg=_FG, wrap=tk.WORD)
         txt.pack(fill="both", expand=True, padx=10, pady=10)
         txt.insert(tk.END, template_text)
 
@@ -904,8 +937,9 @@ class OSFProtocolGUI:
 
         btn_frame = ttk.Frame(win)
         btn_frame.pack(fill="x", padx=10, pady=(0, 10))
-        ttk.Button(btn_frame, text="Save to File…", command=_save_file,
-                   style="Primary.TButton").pack(side="left", padx=(0, 8))
+        ttk.Button(btn_frame, text="Save to File…", command=_save_file, style="Primary.TButton").pack(
+            side="left", padx=(0, 8)
+        )
         ttk.Button(btn_frame, text="Close", command=win.destroy).pack(side="left")
 
         self._log(f"[{meta['id']}] Pre-registration template generated.")
@@ -954,10 +988,7 @@ class OSFProtocolGUI:
         if path.endswith(".json"):
             data = {
                 "generated": timestamp,
-                "protocols": {
-                    key: {**EP_PROTOCOLS[key], **self._protocol_status[key]}
-                    for key in EP_PROTOCOLS
-                },
+                "protocols": {key: {**EP_PROTOCOLS[key], **self._protocol_status[key]} for key in EP_PROTOCOLS},
             }
             Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
         else:
@@ -1004,12 +1035,17 @@ class OSFProtocolGUI:
     # ── Console ───────────────────────────────────────────────────────────────
 
     def _log(self, message: str) -> None:
+        if self.headless:
+            logger.info(message)
+            return
+
         def _do() -> None:
             self.console.configure(state=tk.NORMAL)
             ts = datetime.now().strftime("%H:%M:%S")
             self.console.insert(tk.END, f"[{ts}]  {message}\n")
             self.console.see(tk.END)
             self.console.configure(state=tk.DISABLED)
+
         try:
             self.gui_queue.put_nowait(_do)
         except queue.Full:
@@ -1052,13 +1088,13 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.headless:
-        gui = OSFProtocolGUI(tk.Tk(), headless=True)
+        _ = OSFProtocolGUI(tk.Tk(), headless=True)
         print("OSF GUI initialised in headless mode.")
         print(f"Protocols loaded: {list(EP_PROTOCOLS.keys())}")
         return
 
     root = tk.Tk()
-    app = OSFProtocolGUI(root)
+    _ = OSFProtocolGUI(root)
     root.mainloop()
 
 
