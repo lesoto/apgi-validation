@@ -15,31 +15,6 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-STRUCTURAL DEBT RESOLVED (VP-7 split, formerly P1 priority):
-This file is now VP-7b — TMS/pharmacological empirical predictions only.
-The split has been completed as follows:
-  VP-7a (VP_07a_MathematicalConsistency.py):  SymPy symbolic verification of
-      APGI core equations (monotonicity, boundary conditions, fixed points).
-  VP-7b (this file):  TMS/pharmacological causal predictions (P2.a–P2.c / F3.x).
-  VP-22 (VP_22_FMRIAnticipationExperience.py):  fMRI dissociation / Protocol 5
-      (P5a–P5d), absorbed from the former VP-7 scope during the earlier P5 split.
-
-V7.1–V7.3 predictions remain canonical here (VP-7b) and count in the
-14-prediction falsification tally. V7a.1–V7a.5 predictions are in VP-7a
-and are classified as primary-tier (mathematical proofs).
-
-CANONICAL EP MAPPING
---------------------
-VP-07 (VP-7b) serves two canonical protocol roles simultaneously:
-  EP-2: Causal TMS — Anterior Insular/Thalamic gating
-      (V7.1: dlPFC TMS disrupts ignition specifically at threshold-crossing window)
-  EP-7: TMS + Pharmacological agents shifting Π and θₜ
-      (V7.2: precision-modulating drugs shift θₜ predictably; V7.3: interaction effects)
-Both EPs share the causal-intervention paradigm but address different hypotheses:
-  EP-2 targets spatial/temporal gating; EP-7 targets pharmacodynamic precision scaling.
-T02 in the Validation_GUI sidebar redirects to this file for EP-2 coverage.
-VP-10 (XP-07) provides the supplementary Priority 2 causal manipulation extension.
-
 FALSIFICATION_CRITERIA
 ----------------------
 If interventions do not produce the predicted directional changes in APGI
@@ -87,19 +62,13 @@ if str(project_root) not in sys.path:
 from utils.falsification_thresholds import (
     V7_1_ALPHA,
     V7_1_MIN_COHENS_D,
-    V7_1_MIN_COHENS_D_PAPER_SPEC,
     V7_1_MIN_EFFECT_DURATION_MIN,
-    V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC,
     V7_1_MIN_THRESHOLD_REDUCTION_PCT,
-    V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC,
     V7_2_ALPHA,
     V7_2_MIN_COHENS_D,
     V7_2_MIN_ETA_SQUARED,
-    V7_2_MIN_ETA_SQUARED_PAPER_SPEC,
     V7_2_MIN_IGNITION_REDUCTION_PCT,
-    V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC,
     V7_2_MIN_PRECISION_INCREASE_PCT,
-    V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,49 +105,8 @@ except (ImportError, AttributeError, Exception) as e:
             return None
 
     class PowerStub:
-        def tt_ind_solve_power(self, effect_size=0.5, alpha=0.05, power=0.8, **kwargs):
-            # Normal-approximation fallback: n = 2*((z_alpha/2 + z_beta)/d)^2
-            import math
-
-            # z for alpha/2 (two-tailed) and z for power
-            def _norm_ppf(p):
-                # Beasley-Springer-Moro approximation
-                a = [
-                    0,
-                    -3.969683028665376e01,
-                    2.209460984245205e02,
-                    -2.759285104469687e02,
-                    1.383577518672690e02,
-                    -3.066479806614716e01,
-                    2.506628277459239e00,
-                ]
-                b = [
-                    0,
-                    -5.447609879822406e01,
-                    1.615858368580409e02,
-                    -1.556989798598866e02,
-                    6.680131188771972e01,
-                    -1.328068155288572e01,
-                ]
-                q = p - 0.5
-                if abs(q) <= 0.42:
-                    r = q * q
-                    return (
-                        q
-                        * (((a[3] * r + a[2]) * r + a[1]) * r + a[0])
-                        / ((((b[4] * r + b[3]) * r + b[2]) * r + b[1]) * r + 1.0)
-                    )
-                r = p if q > 0 else 1.0 - p
-                r = math.sqrt(-math.log(r))
-                return math.copysign(
-                    (((a[6] * r + a[5]) * r + a[4]) * r + a[3])
-                    / ((((b[5] * r + b[4]) * r + b[3]) * r + b[2]) * r + b[1]),
-                    q,
-                )
-
-            z_a = _norm_ppf(1.0 - alpha / 2.0)
-            z_b = _norm_ppf(power)
-            return 2 * ((z_a + z_b) / effect_size) ** 2 if effect_size else float("inf")
+        def tt_ind_solve_power(self, *args, **kwargs):
+            return None
 
     stats = StatsStub()
     minimize = OptimizeStub().minimize
@@ -207,38 +135,28 @@ _FALLBACK_V7_2_MIN_ETA_SQUARED = 0.20
 _FALLBACK_V7_2_MIN_COHENS_D = 0.40
 _FALLBACK_V7_2_ALPHA = 0.01
 
-# Fix 1: Assert that paper-spec constants in falsification_thresholds haven't drifted.
-# Guards compare _PAPER_SPEC variants (mode-independent) so they pass regardless of
-# whether the codebase is running in SIMULATION or PAPER_SPEC mode.
-if V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC != _FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT:
+# Fix 1: Assert that imported values match fallback values
+# This ensures paper spec alignment even if import fails
+if V7_1_MIN_THRESHOLD_REDUCTION_PCT != _FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT:
     raise ValueError(
-        f"V7_1_MIN_THRESHOLD_REDUCTION_PCT paper-spec mismatch: "
-        f"{V7_1_MIN_THRESHOLD_REDUCTION_PCT_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT}"
+        f"V7_1_MIN_THRESHOLD_REDUCTION_PCT mismatch: {V7_1_MIN_THRESHOLD_REDUCTION_PCT} != {_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT}"
     )
-if V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC != _FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN:
+if V7_1_MIN_EFFECT_DURATION_MIN != _FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN:
     raise ValueError(
-        f"V7_1_MIN_EFFECT_DURATION_MIN paper-spec mismatch: "
-        f"{V7_1_MIN_EFFECT_DURATION_MIN_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN}"
+        f"V7_1_MIN_EFFECT_DURATION_MIN mismatch: {V7_1_MIN_EFFECT_DURATION_MIN} != {_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN}"
     )
-if V7_1_MIN_COHENS_D_PAPER_SPEC != _FALLBACK_V7_1_MIN_COHENS_D:
+if V7_1_MIN_COHENS_D != _FALLBACK_V7_1_MIN_COHENS_D:
+    raise ValueError(f"V7_1_MIN_COHENS_D mismatch: {V7_1_MIN_COHENS_D} != {_FALLBACK_V7_1_MIN_COHENS_D}")
+if V7_2_MIN_PRECISION_INCREASE_PCT != _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT:
     raise ValueError(
-        f"V7_1_MIN_COHENS_D paper-spec mismatch: " f"{V7_1_MIN_COHENS_D_PAPER_SPEC} != {_FALLBACK_V7_1_MIN_COHENS_D}"
+        f"V7_2_MIN_PRECISION_INCREASE_PCT mismatch: {V7_2_MIN_PRECISION_INCREASE_PCT} != {_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT}"
     )
-if V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC != _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT:
+if V7_2_MIN_IGNITION_REDUCTION_PCT != _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT:
     raise ValueError(
-        f"V7_2_MIN_PRECISION_INCREASE_PCT paper-spec mismatch: "
-        f"{V7_2_MIN_PRECISION_INCREASE_PCT_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT}"
+        f"V7_2_MIN_IGNITION_REDUCTION_PCT mismatch: {V7_2_MIN_IGNITION_REDUCTION_PCT} != {_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT}"
     )
-if V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC != _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT:
-    raise ValueError(
-        f"V7_2_MIN_IGNITION_REDUCTION_PCT paper-spec mismatch: "
-        f"{V7_2_MIN_IGNITION_REDUCTION_PCT_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT}"
-    )
-if V7_2_MIN_ETA_SQUARED_PAPER_SPEC != _FALLBACK_V7_2_MIN_ETA_SQUARED:
-    raise ValueError(
-        f"V7_2_MIN_ETA_SQUARED paper-spec mismatch: "
-        f"{V7_2_MIN_ETA_SQUARED_PAPER_SPEC} != {_FALLBACK_V7_2_MIN_ETA_SQUARED}"
-    )
+if V7_2_MIN_ETA_SQUARED != _FALLBACK_V7_2_MIN_ETA_SQUARED:
+    raise ValueError(f"V7_2_MIN_ETA_SQUARED mismatch: {V7_2_MIN_ETA_SQUARED} != {_FALLBACK_V7_2_MIN_ETA_SQUARED}")
 if V7_2_MIN_COHENS_D != _FALLBACK_V7_2_MIN_COHENS_D:
     raise ValueError(f"V7_2_MIN_COHENS_D mismatch: {V7_2_MIN_COHENS_D} != {_FALLBACK_V7_2_MIN_COHENS_D}")
 
@@ -467,10 +385,10 @@ class TMSInterventions:
 
     # MNI coordinates for TMS sites (Huang et al., 2019)
     # Standard stereotactic coordinates for neuronavigation
-    DLPFC_MNI = (-44, 36, 20)  # Left dorsolateral prefrontal cortex — EP-2 CSV master
-    INSULA_MNI = (-38, 4, -8)  # Left anterior insula
-    V1_MNI = (0, -90, 10)  # Primary visual cortex (midline)
-    VERTEX_MNI = (0, 0, 80)  # Vertex (control site, top of head)
+    DLPFC_MNI = (-46, 36, 20)  # Left dorsolateral prefrontal cortex
+    INSULA_MNI = (40, -6, -4)  # Right posterior insula (pIC) — Protocol 4 TMS target per APGI spec
+    PPC_MNI = (28, -60, 46)  # Right posterior parietal cortex (BA7) — bilateral ±28,−60,46
+    VERTEX_MNI = (0, -30, 70)  # Vertex sham (active nonspecific control) per APGI spec
 
     @staticmethod
     def dlpfc_tms() -> InterventionEffect:
@@ -480,7 +398,7 @@ class TMSInterventions:
         Target: Increases external precision (Pi_e) via top-down attention
         Mechanism: Enhances sensory gain control
 
-        MNI coordinates: (-44, 36, 20) per EP-2 CSV master (BA 46)
+        MNI coordinates: (-46, 36, 20) per Huang et al. (2019)
         """
         return InterventionEffect(
             name="dlPFC_TMS",
@@ -501,7 +419,7 @@ class TMSInterventions:
         Target: Increases interoceptive precision (Pi_i)
         Mechanism: Enhances interoceptive signal processing
 
-        MNI coordinates: (-38, 4, -8) per Huang et al. (2019)
+        MNI coordinates: (40, -6, -4) right posterior insula (pIC) per APGI Protocol 4 spec
         """
         return InterventionEffect(
             name="Insula_TMS",
@@ -515,24 +433,25 @@ class TMSInterventions:
         )
 
     @staticmethod
-    def v1_tms() -> InterventionEffect:
+    def ppc_tms() -> InterventionEffect:
         """
-        V1 TMS (phosphene threshold)
+        Posterior parietal cortex TMS (global workspace broadcast site)
 
-        Target: Decreases threshold (makes ignition easier)
-        Mechanism: Direct cortical excitation
+        Target: Reduces global ignition probability (Bₜ) across both streams
+        Mechanism: Disrupts global workspace broadcast without selectively affecting HEP
+        MNI coordinates: bilateral ±28, −60, 46 (BA7) per APGI Protocol 4 spec
 
-        MNI coordinates: (0, -90, 10) per Huang et al. (2019)
+        Pred 4.A: PPC TMS reduces PCI 15–25% without affecting HEP amplitude.
         """
         return InterventionEffect(
-            name="V1_TMS",
+            name="PPC_TMS",
             target_parameter="theta",
-            effect_size=-0.4,  # Negative = threshold reduction
+            effect_size=-0.45,
             effect_direction="decrease",
             onset_time=0.0,
-            peak_time=0.1,  # Very rapid
-            duration=5.0,
-            effect_se=0.12,
+            peak_time=0.1,
+            duration=20.0,
+            effect_se=0.15,
         )
 
     @staticmethod
@@ -543,7 +462,7 @@ class TMSInterventions:
         Target: None (null effect)
         Mechanism: Auditory/somatosensory artifact only
 
-        MNI coordinates: (0, 0, 80) - top of head (control site)
+        MNI coordinates: (0, -30, 70) per APGI Protocol 4 spec (active nonspecific control)
         """
         return InterventionEffect(
             name="Vertex_TMS_Control",
@@ -1555,6 +1474,23 @@ class InterventionFalsificationChecker:
                 "description": "Placebo effects larger than active intervention",
                 "threshold": None,
             },
+            # Framework Paper P5a–P5d: vmPFC/insula fMRI dissociation
+            "P5a": {
+                "description": "vmPFC TMS reduces PCI but NOT HEP",
+                "threshold": None,
+            },
+            "P5b": {
+                "description": "Anticipation vs. experience BOLD analysis shows dissociation",
+                "threshold": None,
+            },
+            "P5c": {
+                "description": "High IA × insula TMS interaction (strongest effect for high-Πⁱ individuals)",
+                "threshold": None,
+            },
+            "P5d": {
+                "description": "Double-dissociation confirmed (interaction significant)",
+                "threshold": 0.05,
+            },
         }
 
     def check_F3_1(
@@ -1673,6 +1609,221 @@ class InterventionFalsificationChecker:
             "z_score": float(z),
             "p_value": float(p_value),
             "active_superior": difference > 0 and p_value < 0.05,
+        }
+
+    def check_P5a(
+        self,
+        vmPFC_PCI_reduction: float,
+        vmPFC_HEP_change: float,
+        vmPFC_PCI_se: float,
+        vmPFC_HEP_se: float,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5a: vmPFC TMS reduces PCI but NOT HEP
+
+        Framework Paper P5a prediction: vmPFC TMS selectively reduces precision-weighted
+        confidence (PCI) without affecting interoceptive precision (HEP).
+
+        Args:
+            vmPFC_PCI_reduction: Reduction in PCI after vmPFC TMS
+            vmPFC_HEP_change: Change in HEP after vmPFC TMS
+            vmPFC_PCI_se: Standard error of PCI reduction
+            vmPFC_HEP_se: Standard error of HEP change
+
+        Returns:
+            Tuple of (falsified, details)
+        """
+        # PCI should be significantly reduced
+        pci_significant = vmPFC_PCI_reduction > 0 and (vmPFC_PCI_reduction / (vmPFC_PCI_se + 1e-10) > 1.96)
+
+        # HEP should NOT be significantly reduced (or change should be minimal)
+        hep_not_reduced = abs(vmPFC_HEP_change) < 0.1 or (abs(vmPFC_HEP_change / (vmPFC_HEP_se + 1e-10)) < 1.96)
+
+        falsified = not (pci_significant and hep_not_reduced)
+
+        return falsified, {
+            "pci_reduction": float(vmPFC_PCI_reduction),
+            "pci_se": float(vmPFC_PCI_se),
+            "pci_significant": pci_significant,
+            "hep_change": float(vmPFC_HEP_change),
+            "hep_se": float(vmPFC_HEP_se),
+            "hep_not_reduced": hep_not_reduced,
+            "dissociation_confirmed": pci_significant and hep_not_reduced,
+        }
+
+    def check_P5b(
+        self,
+        anticipation_bold: np.ndarray,
+        experience_bold: np.ndarray,
+        vmPFC_activation: np.ndarray,
+        insula_activation: np.ndarray,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5b: Anticipation vs. experience BOLD analysis shows dissociation
+
+        Framework Paper P5b prediction: vmPFC shows stronger activation during
+        anticipation, while insula shows stronger activation during experience.
+
+        Args:
+            anticipation_bold: BOLD signal during anticipation phase
+            experience_bold: BOLD signal during experience phase
+            vmPFC_activation: vmPFC ROI activation
+            insula_activation: Insula ROI activation
+
+        Returns:
+            Tuple of (falsified, details)
+        """
+        # vmPFC should be more active during anticipation
+        vmPFC_anticipation = np.mean(vmPFC_activation)
+        vmPFC_experience = np.mean(experience_bold)
+        vmPFC_anticipation_dominant = vmPFC_anticipation > vmPFC_experience
+
+        # Insula should be more active during experience
+        insula_anticipation = np.mean(anticipation_bold)
+        insula_experience = np.mean(insula_activation)
+        insula_experience_dominant = insula_experience > insula_anticipation
+
+        # Test the dissociation pattern
+        from scipy import stats
+
+        # Paired t-test for vmPFC
+        vmPFC_t, vmPFC_p = stats.ttest_rel(vmPFC_activation, experience_bold)
+
+        # Paired t-test for insula
+        insula_t, insula_p = stats.ttest_rel(anticipation_bold, insula_activation)
+
+        # Interaction test (2x2 ANOVA would be ideal, using t-test difference)
+        dissociation_pattern = (
+            vmPFC_anticipation_dominant and insula_experience_dominant and vmPFC_p < 0.05 and insula_p < 0.05
+        )
+
+        falsified = not dissociation_pattern
+
+        return falsified, {
+            "vmPFC_anticipation_mean": float(vmPFC_anticipation),
+            "vmPFC_experience_mean": float(vmPFC_experience),
+            "insula_anticipation_mean": float(insula_anticipation),
+            "insula_experience_mean": float(insula_experience),
+            "vmPFC_t_stat": float(vmPFC_t),
+            "vmPFC_p_value": float(vmPFC_p),
+            "insula_t_stat": float(insula_t),
+            "insula_p_value": float(insula_p),
+            "dissociation_pattern": dissociation_pattern,
+        }
+
+    def check_P5c(
+        self,
+        insula_PCI_change: float,
+        insula_HEP_reduction: float,
+        insula_PCI_se: float,
+        insula_HEP_se: float,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5c: Insula TMS reduces HEP but NOT PCI
+
+        Framework Paper P5c prediction: Insula TMS selectively reduces interoceptive
+        precision (HEP) without affecting exteroceptive precision (PCI).
+
+        Args:
+            insula_PCI_change: Change in PCI after insula TMS
+            insula_HEP_reduction: Reduction in HEP after insula TMS
+            insula_PCI_se: Standard error of PCI change
+            insula_HEP_se: Standard error of HEP reduction
+
+        Returns:
+            Tuple of (falsified, details)
+        """
+        # HEP should be significantly reduced
+        hep_significant = insula_HEP_reduction > 0 and (insula_HEP_reduction / (insula_HEP_se + 1e-10) > 1.96)
+
+        # PCI should NOT be significantly reduced (double-dissociation check)
+        pci_not_reduced = abs(insula_PCI_change) < 0.1 or (abs(insula_PCI_change / (insula_PCI_se + 1e-10)) < 1.96)
+
+        falsified = not (hep_significant and pci_not_reduced)
+
+        return falsified, {
+            "hep_reduction": float(insula_HEP_reduction),
+            "hep_se": float(insula_HEP_se),
+            "hep_significant": hep_significant,
+            "pci_change": float(insula_PCI_change),
+            "pci_se": float(insula_PCI_se),
+            "pci_not_reduced": pci_not_reduced,
+            "dissociation_confirmed": hep_significant and pci_not_reduced,
+        }
+
+    def check_P5d(
+        self,
+        vmPFC_PCI_reduction: float,
+        vmPFC_HEP_change: float,
+        insula_PCI_change: float,
+        insula_HEP_reduction: float,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5d: Double-dissociation confirmed (interaction significant)
+
+        """
+        # Calculate interaction effect size
+        # High IA individuals: vmPFC effect enhanced, insula effect diminished
+        vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
+        insula_effect = insula_PCI_change - insula_HEP_reduction
+
+        # Interaction should be positive (vmPFC > insula)
+        interaction_effect = vmPFC_effect - insula_effect
+
+        # Test significance (simplified - in practice would use mixed-effects model)
+        interaction_significant = abs(interaction_effect) > 0.2
+
+        falsified = not interaction_significant
+
+        return falsified, {
+            "vmPFC_PCI_reduction": float(vmPFC_PCI_reduction),
+            "vmPFC_HEP_change": float(vmPFC_HEP_change),
+            "insula_PCI_change": float(insula_PCI_change),
+            "insula_HEP_reduction": float(insula_HEP_reduction),
+            "vmPFC_effect": float(vmPFC_effect),
+            "insula_effect": float(insula_effect),
+            "interaction_effect": float(interaction_effect),
+            "interaction_significant": interaction_significant,
+            "high_IA_interaction_confirmed": interaction_significant,
+        }
+
+    def check_P5c_high_IA_interaction(
+        self,
+        vmPFC_PCI_reduction: float,
+        vmPFC_HEP_change: float,
+        insula_PCI_change: float,
+        insula_HEP_reduction: float,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5c: High IA interaction check
+
+        Framework Paper P5c prediction: High-Πⁱ individuals should show stronger
+        interaction effects between vmPFC and insula TMS, where high-Πⁱ individuals
+        experience enhanced vmPFC effects while insula TMS effects are diminished.
+        """
+        # Calculate interaction effect size
+        # High IA individuals: vmPFC effect enhanced, insula effect diminished
+        vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
+        insula_effect = insula_PCI_change - insula_HEP_reduction
+
+        # Interaction should be positive (vmPFC > insula)
+        interaction_effect = vmPFC_effect - insula_effect
+
+        # Test significance (simplified - in practice would use mixed-effects model)
+        interaction_significant = abs(interaction_effect) > 0.2
+
+        falsified = not interaction_significant
+
+        return falsified, {
+            "vmPFC_PCI_reduction": float(vmPFC_PCI_reduction),
+            "vmPFC_HEP_change": float(vmPFC_HEP_change),
+            "insula_PCI_change": float(insula_PCI_change),
+            "insula_HEP_reduction": float(insula_HEP_reduction),
+            "vmPFC_effect": float(vmPFC_effect),
+            "insula_effect": float(insula_effect),
+            "interaction_effect": float(interaction_effect),
+            "interaction_significant": interaction_significant,
+            "high_IA_interaction_confirmed": interaction_significant,
         }
 
     def double_dissociation_anova(
@@ -2405,9 +2556,7 @@ def interactive_power_analysis_tool():
 
     sample_sizes = {}
     for intervention, params in interventions.items():
-        sample_sizes[intervention] = compute_sample_size(
-            effect_size=params["effect_size"], alpha=0.05, power=0.80, test_type="two-sided", design="between"
-        )
+        sample_sizes[intervention] = compute_sample_size(**params)
 
     return sample_sizes
 
@@ -3134,7 +3283,7 @@ def main():
     interventions = {
         "dlPFC_TMS": TMSInterventions.dlpfc_tms(),
         "Insula_TMS": TMSInterventions.insula_tms(),
-        "V1_TMS": TMSInterventions.v1_tms(),
+        "PPC_TMS": TMSInterventions.ppc_tms(),
         "Vertex_Control": TMSInterventions.vertex_tms(),
         "Propranolol": PharmacologicalInterventions.propranolol(),
         "Methylphenidate": PharmacologicalInterventions.methylphenidate(),
@@ -3202,9 +3351,9 @@ def main():
     baseline_grouped = baseline_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     baseline_params = psychometric.fit_curve(
-        baseline_grouped.index.to_numpy(),
-        baseline_grouped["n_trials"].to_numpy(),
-        baseline_grouped["n_seen"].to_numpy(),
+        baseline_grouped.index.values,
+        baseline_grouped["n_trials"].values,
+        baseline_grouped["n_seen"].values,
     )
 
     print("\nBaseline (Vertex Control):")
@@ -3217,9 +3366,9 @@ def main():
     intervention_grouped = intervention_data.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     intervention_params = psychometric.fit_curve(
-        intervention_grouped.index.to_numpy(),
-        intervention_grouped["n_trials"].to_numpy(),
-        intervention_grouped["n_seen"].to_numpy(),
+        intervention_grouped.index.values,
+        intervention_grouped["n_trials"].values,
+        intervention_grouped["n_seen"].values,
     )
 
     print("\nIntervention (dlPFC TMS):")
@@ -3498,7 +3647,7 @@ def run_validation(**kwargs):
 
         # Simulate insula TMS effects (strong reduction in HEP and PCI)
         insula_hep_baseline = rng.normal(0.5, 0.1, n_subjects)
-        insula_hep_post = insula_hep_baseline * (1 - rng.uniform(0.30, 0.40, n_subjects))  # ≥30% reduction
+        insula_hep_post = insula_hep_baseline * (1 - rng.uniform(0.25, 0.35, n_subjects))  # ~30% reduction
         insula_pci_baseline = rng.normal(0.5, 0.1, n_subjects)
         insula_pci_post = insula_pci_baseline * (1 - rng.uniform(0.15, 0.25, n_subjects))  # ~20% reduction
 
@@ -3534,16 +3683,11 @@ def run_validation(**kwargs):
         ia_low_intervention = rng.normal(0.55, 0.11, n_per_group)  # Weaker effect
         ia_low_control = rng.normal(0.50, 0.10, n_per_group)  # Baseline
 
-        # predict_P2_c builds a 2×2 ANOVA:
-        #   (IA=1, TMS=1) = ia_high_group   → high-IA + insula TMS
-        #   (IA=0, TMS=1) = ia_low_group    → low-IA  + insula TMS
-        #   (IA=1, TMS=0) = insula_intervention → high-IA + control TMS
-        #   (IA=0, TMS=0) = insula_control       → low-IA  + control TMS
         p2c_result = predict_P2_c(
             ia_high_group=ia_high_intervention,
             ia_low_group=ia_low_intervention,
-            insula_intervention=ia_high_control,
-            insula_control=ia_low_control,
+            insula_intervention=np.concatenate([ia_high_intervention, ia_low_intervention]),
+            insula_control=np.concatenate([ia_high_control, ia_low_control]),
             n_permutations=500,
             alpha=0.05,
         )
@@ -3616,13 +3760,6 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
-try:
-    from utils.protocol_loader import load_protocol as _load_protocol
-
-    _PROTOCOL_SPEC = _load_protocol("APGI-P02")
-except Exception:
-    _PROTOCOL_SPEC = None
-
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -3640,34 +3777,15 @@ def run_protocol_main(config=None):
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
-    # Add JSON protocol sub-predictions (P2a, P2b, P2c from APGI-P02)
-    if _PROTOCOL_SPEC is not None:
-        _pred_map = {"P2a": "V7.1", "P2b": "V7.2", "P2c": "V7.3"}
-        for sub_pred in _PROTOCOL_SPEC.sub_predictions:
-            linked_v = _pred_map.get(sub_pred.id)
-            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
-            named_predictions[sub_pred.id] = PredictionResult(
-                passed=passed,
-                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
-                name=sub_pred.claim,
-                evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P02", "VP_07_TMSCausalInterventions"],
-            )
-
-    spec_params = _PROTOCOL_SPEC.apgi_parameters if _PROTOCOL_SPEC else {}
     return ProtocolResult(
-        protocol_id="VP_07_TMSCausalInterventions",
+        protocol_id="VP_07_TMS_CausalInterventions",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,
         data_sources=["TMS Simulation", "Pharmacological Model"],
         methodology="causal_intervention_psychophysics",
         errors=[],
-        metadata={
-            **legacy_result.get("results", {}).get("summary", {}),
-            "protocol_spec_id": "APGI-P02",
-            "apgi_parameters": spec_params,
-        },
+        metadata=legacy_result.get("results", {}).get("summary", {}),
     ).to_dict()
 
 
@@ -3976,7 +4094,7 @@ class HierarchicalProcessingValidator:
             interventions = {
                 "dlpfc": TMSInterventions.dlpfc_tms(),
                 "insula": TMSInterventions.insula_tms(),
-                "v1": TMSInterventions.v1_tms(),
+                "ppc": TMSInterventions.ppc_tms(),
                 "vertex": TMSInterventions.vertex_tms(),
             }
 

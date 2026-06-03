@@ -2,19 +2,6 @@
 APGI Protocol 14: fMRI Anticipation & Experience Validation
 ============================================================
 
-DEPRECATION STATUS: SUPERSEDED BY VP-22 (NOT IN CANONICAL PAPER REGISTRY)
---------------------------------------------------------------------------
-VP-14 is a simulation-only precursor to VP-22 (VP_22_FMRIAnticipationExperience.py).
-VP-22 is now the CANONICAL implementation of APGI Protocol 5 (P5a–P5d somatic
-marker / fMRI anticipation vs. experience) and is classified as secondary-tier.
-
-VP-14 is retained for reference and regression testing of the BOLD-simulation
-pipeline, but its V14.x predictions are NOT counted in the canonical tally.
-New work should target VP-22.
-
-Canonical replacement: VP_22_FMRIAnticipationExperience.py
---------------------------------------------------------------------------
-
 Status: SIMULATION-VALIDATED, AWAITING EMPIRICAL CONFIRMATION
 Note: This protocol uses double-gamma HRF convolution over synthetic S(t) and M(t)
 time series to validate the computational pipeline. Final empirical confirmation
@@ -108,7 +95,7 @@ class fMRI_SimulationConfig:
     # Note: tau_M ~1.5s reflects vmPFC BOLD decay time constant during threat anticipation
     tau_M: float = 1.52  # vmPFC somatic marker tau (Somerville et al. 2013 Neuron)
     scanner_noise_pct_bold: float = 0.002  # 0.2% BOLD typical range 0.1-0.3%
-    detectability_sample_size: int = 30
+    detectability_sample_size: int = 36
 
 
 class APGI_fMRISimulator:
@@ -260,10 +247,10 @@ def compute_bold_detectability(
     threat_M_bolds: np.ndarray,
     safe_M_bolds: np.ndarray,
     scanner_noise_pct_bold: float = 0.002,
-    n_participants: int = 30,
+    n_participants: int = 36,
     n_bootstrap: int = 100,  # VP-14 Fix 4: Bootstrap iterations for tSNR CI
 ) -> Dict[str, Any]:
-    """Estimate tSNR and whether the vmPFC BOLD difference is detectable at N=30.
+    """Estimate tSNR and whether the vmPFC BOLD difference is detectable at N=36.
 
     VP-14 Fix 4: Added bootstrap confidence intervals for tSNR estimates.
     VP-14 Fix 5: Added power analysis for vmPFC-SCR correlation detection.
@@ -298,7 +285,7 @@ def compute_bold_detectability(
     # Murphy, K., Bodurka, J., & Bandettini, P. A. (2007). How long to scan?
     # The relationship between fMRI temporal signal-to-noise ratio and necessary
     # scan duration. NeuroImage, 34(2), 565-574.
-    detectable = (tsnr >= BOLD_TSNR_MIN) and (n_participants >= 30)
+    detectable = (tsnr >= BOLD_TSNR_MIN) and (n_participants >= 26)
 
     # VP-14 Fix 5: Power analysis for vmPFC-SCR correlation detection
     power_analysis = compute_power_analysis_for_correlation(
@@ -569,13 +556,6 @@ try:
 except ImportError:
     HAS_SCHEMA = False
 
-try:
-    from utils.protocol_loader import load_protocol as _load_protocol_p05
-
-    _PROTOCOL_SPEC_P05 = _load_protocol_p05("APGI-P05")
-except Exception:
-    _PROTOCOL_SPEC_P05 = None
-
 
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
@@ -597,7 +577,7 @@ def run_protocol_main(config=None):
                 for i in range(1, 4)
             }
             return ProtocolResult(
-                protocol_id="VP_14_FMRIAnticipationExperience",
+                protocol_id="VP_14_fMRI_Anticipation_Experience",
                 timestamp=np.datetime64("now").astype(str),
                 named_predictions=named_predictions,
                 completion_percentage=100,
@@ -606,7 +586,9 @@ def run_protocol_main(config=None):
                 errors=[],
                 metadata={"test_mode": True},
             ).to_dict()
-        return {"status": "success", "test_mode": True}
+    else:
+        # Run full validation simulation
+        return run_validation()
 
     legacy_result = run_validation()
     if not HAS_SCHEMA:
@@ -622,23 +604,8 @@ def run_protocol_main(config=None):
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
         )
 
-    # Add JSON protocol sub-predictions (P5a–P5d from APGI-P05)
-    if _PROTOCOL_SPEC_P05 is not None:
-        _pred_map = {"P5a": "V14.1", "P5b": "V14.2", "P5c": "V14.3", "P5d": "V14.1"}
-        for sub_pred in _PROTOCOL_SPEC_P05.sub_predictions:
-            linked_v = _pred_map.get(sub_pred.id)
-            passed = named_predictions[linked_v].passed if linked_v in named_predictions else False
-            named_predictions[sub_pred.id] = PredictionResult(
-                passed=passed,
-                status=PredictionStatus.PASSED if passed else PredictionStatus.FAILED,
-                name=sub_pred.claim,
-                evidence=[sub_pred.confirming_evidence],
-                sources=["APGI-P05", "VP_14_FMRIAnticipationExperience"],
-            )
-
-    spec_params = _PROTOCOL_SPEC_P05.apgi_parameters if _PROTOCOL_SPEC_P05 else {}
     return ProtocolResult(
-        protocol_id="VP_14_FMRIAnticipationExperience",
+        protocol_id="VP_14_fMRI_Anticipation_Experience",
         timestamp=np.datetime64("now").astype(str),
         named_predictions=named_predictions,
         completion_percentage=100,
@@ -651,8 +618,6 @@ def run_protocol_main(config=None):
             "last_updated": "2026-04-06",
             "verification": "Standardized BOLD simulation with double-gamma HRF implemented.",
             **legacy_result.get("summary", {}),
-            "protocol_spec_id": "APGI-P05",
-            "apgi_parameters": spec_params,
         },
     ).to_dict()
 

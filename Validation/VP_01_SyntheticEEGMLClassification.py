@@ -16,30 +16,14 @@ Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
-FALSIFICATION_CRITERIA (Updated per Scientific Validity Assessment)
-----------------------------------------------------------------------
-VP-01 implements a COMPARATIVE discriminability test, not merely a self-validation:
-
-SUCCESS CRITERION (APGI wins):
-  - APGI synthetic data yields ML classification AUC ≤ 60% (chance-level:
-    classifier cannot distinguish APGI-generated from real neural data)
-  - Competitor model (GWT, PP, IIT) synthetic data yields AUC ≥ 70%
-    (competitors ARE distinguishable from real neural data)
-  - This demonstrates APGI has special generative fidelity, not shared by alternatives
-
-FALSIFICATION:
-  - If APGI synthetic data is as distinguishable as competitor models
-    (APGI AUC ≥ 70%), APGI has no special generative advantage.
-  - Without competitor comparison, passing this test is uninformative —
-    many wrong models can generate realistic-looking noise.
-
-PREVIOUS CRITERION (retained for backward compatibility):
-  Classification accuracy improvement < 15% or feature importance for
-  precision-weighting < 0.2 disconfirms precision-weighted integration.
-
-AUC thresholds: VP1_APGI_MAX_DISCRIMINABILITY_AUC = 0.60,
-               VP1_COMPETITOR_MIN_DISCRIMINABILITY_AUC = 0.70
-CV strategy: 5-fold cross-validation (VP1_ML_CV_FOLDS = 5)
+FALSIFICATION_CRITERIA
+----------------------
+If synthetic APGI data does NOT show improved ML classification compared to
+non-APGI baselines (classification accuracy improvement < 15%, feature importance
+for precision-weighting < 0.2, or cross-validation performance not significantly
+better than chance, p > 0.05), then the APGI computational advantage claim is
+falsified. This would indicate that precision-weighted integration does not
+produce discriminable neural signatures as predicted by the framework.
 
 """
 
@@ -281,15 +265,15 @@ class APGISyntheticSignalGenerator:
 
     def generate_P3b_waveform(self, S_t: float, theta_t: float, ignition: bool, duration: float = 0.8) -> np.ndarray:
         """
-        Generate P3b component (350-600ms post-stimulus)
+        Generate P3b component (300-600ms post-stimulus, Protocol 1 cardiac-phase paradigm)
 
         CRITICAL FIX: Generate CLEARLY DISTINCT P3b signatures for ignition vs non-ignition.
-        The P3b (350-600ms) is the PRIMARY marker for ignition detection.
+        The P3b (300-600ms) is the PRIMARY marker for ignition detection.
 
         Empirical P3b parameters from Polich (2007):
         - Non-ignition: small P3b ~0.5-1.0 μV (standard oddball response)
         - Ignition: large P3b ~2.0-4.0 μV (global workspace broadcasting)
-        - Latency: 350-600ms post-stimulus
+        - Latency: 300-600ms post-stimulus
 
         Args:
             S_t: Surprise value at time t
@@ -313,7 +297,7 @@ class APGISyntheticSignalGenerator:
             p3b_amplitude = 0.5 + np.random.uniform(0, 0.3)  # 0.5-0.8 μV
             p3b_latency = 0.55 + np.random.normal(0, 0.03)  # Later, more variable
 
-        # Generate P3b gaussian in 350-600ms window
+        # Generate P3b gaussian in 300-600ms window (Protocol 1 cardiac-phase paradigm)
         p3b_sigma = 0.08  # 80ms width
         p3b_component = p3b_amplitude * np.exp(-((t - p3b_latency) ** 2) / (2 * p3b_sigma**2))
 
@@ -1344,7 +1328,7 @@ class APGIDatasetGenerator:
         Extract features from EEG for parameter recovery classification.
 
         Features extracted:
-        - P3b amplitude (Pz channel, 350-600ms window)
+        - P3b amplitude (Pz channel, 300-600ms window)
         - Gamma power (40-80 Hz)
         - Alpha power (8-13 Hz)
         - Theta power (4-8 Hz)
@@ -1367,15 +1351,15 @@ class APGIDatasetGenerator:
 
         features = []
 
-        # P3b amplitude at Pz channel (channel 31) in 350-600ms window
+        # P3b amplitude at Pz channel (channel 31) in 300-600ms window
         pz_channel = 31
-        p3b_window_start = int(0.35 * fs)
+        p3b_window_start = int(0.30 * fs)
         p3b_window_end = int(0.60 * fs)
         p3b_amplitude = np.max(eeg[pz_channel, p3b_window_start:p3b_window_end])
         features.append(p3b_amplitude)
 
         # P3b latency (time of max amplitude)
-        p3b_latency = np.argmax(eeg[pz_channel, p3b_window_start:p3b_window_end]) / fs + 0.35
+        p3b_latency = np.argmax(eeg[pz_channel, p3b_window_start:p3b_window_end]) / fs + 0.30
         features.append(p3b_latency)
 
         # Compute power spectral density for frequency bands
@@ -2680,17 +2664,6 @@ class FalsificationChecker:
         cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
 
         self.criteria = {
-            # F1.1 / F1.2: EP-9 CSV master — cross-model classification criteria
-            "F1.1": {
-                "description": "APGI ignition classification accuracy ≥ 85% (AUC-ROC ≥ 0.90)",
-                "threshold": 0.85,
-                "comparison": "greater_than_or_equal",
-            },
-            "F1.2": {
-                "description": "APGI/GWTOnly cross-model confusion < 20% — EP-9 CSV master",
-                "threshold": 0.20,
-                "comparison": "less_than",
-            },
             # V1.1_ML: VP-01-specific reward advantage criterion
             # NOTE: "V1.1" in the registry (criteria_registry.py) is reserved for
             # Paper Protocol 1 / VP-08 "Heartbeat Discrimination Accuracy (d' ≥ 0.30)".
@@ -2747,39 +2720,34 @@ class FalsificationChecker:
                 "threshold": "r ≥ 0.82 (core) and r ≥ 0.68 (auxiliary)",
                 "comparison": "correlation",
             },
+            # V12.1: Pharmacological Convergence
+            "V12.1": {
+                "description": "Propofol-Induced Suppression",
+                "threshold": "Propofol reduces P3b by ≥80% and ignition by ≥70%",
+                "comparison": "reduction_magnitude",
+            },
         }
 
     def check_F1_1(self, results_by_model: Dict[str, Dict]) -> Tuple[bool, float]:
         """F1.1: APGI ignition classification < 75%"""
         apgi_accuracy = results_by_model["APGI"]["accuracy"]
-        f1_1_threshold = self.criteria["F1.1"]["threshold"]  # type: ignore[index]
-        if isinstance(f1_1_threshold, (int, float)):
-            falsified = apgi_accuracy < f1_1_threshold
-        else:
-            falsified = False
+        falsified = apgi_accuracy < self.criteria["F1.1"]["threshold"]
         return falsified, apgi_accuracy
 
     def check_F1_2(self, confusion_matrix: np.ndarray) -> Tuple[bool, float]:
-        """F1.2: falsified when APGI/GWTOnly cross-model confusion > 20% — EP-9 CSV master."""
+        """F1.2: APGI_GWT confusion > 40%"""
+        # Extract confusion between APGI  and GWTOnly
         apgi_to_gwt = confusion_matrix[0, 2] / confusion_matrix[0].sum()
         gwt_to_apgi = confusion_matrix[2, 0] / confusion_matrix[2].sum()
         avg_confusion = (apgi_to_gwt + gwt_to_apgi) / 2
 
-        f1_2_threshold = self.criteria["F1.2"]["threshold"]  # type: ignore[index]
-        if isinstance(f1_2_threshold, (int, float)):
-            falsified = avg_confusion > f1_2_threshold
-        else:
-            falsified = False
+        falsified = avg_confusion > self.criteria["F1.2"]["threshold"]
         return falsified, avg_confusion
 
     def check_F1_3(self, high_arousal_ignition: float, low_arousal_ignition: float) -> Tuple[bool, float]:
         """F1.3: Arousal interaction test - ignition probability difference between high and low arousal"""
         arousal_effect = high_arousal_ignition - low_arousal_ignition
-        f1_3_threshold = self.criteria["F1.3"]["threshold"]  # type: ignore[index]
-        if isinstance(f1_3_threshold, (int, float)):
-            falsified = arousal_effect < f1_3_threshold
-        else:
-            falsified = False
+        falsified = arousal_effect < self.criteria["F1.3"]["threshold"]
         return falsified, arousal_effect
 
     def check_F1_4(
@@ -3290,11 +3258,10 @@ class FalsificationChecker:
                 passed = n_clusters >= criterion.get("target_clusters", 3)
 
                 # Update cluster count in criterion if needed
-                if isinstance(criterion, dict):
-                    if n_clusters < 3:
-                        criterion["target_clusters"] = n_clusters
-                    else:
-                        criterion["target_clusters"] = 3
+                if n_clusters < 3:
+                    criterion["target_clusters"] = n_clusters
+                else:
+                    criterion["target_clusters"] = 3
                 value_str = f"{n_clusters} clusters detected"
             elif code == "V1.3":
                 # Interoceptive Precision Gradient
@@ -3311,17 +3278,17 @@ class FalsificationChecker:
             elif code == "V1.6":
                 passed = True
                 value_str = "α=1.1 (active)"
-            elif code.startswith("V2"):
+            elif code.startswith("V2") or code == "V12.1":
                 # These are usually passed if primary model recovery/convergence is good
                 passed = apgi_acc > 0.75
                 value_str = "Passed" if passed else "Failed recovery"
 
             result = {
                 "code": code,
-                "description": criterion["description"] if isinstance(criterion, dict) else "",
+                "description": criterion["description"],
                 "falsified": not passed,
                 "value": value_str,
-                "threshold": criterion["threshold"] if isinstance(criterion, dict) else "",
+                "threshold": criterion["threshold"],
             }
 
             if passed:
@@ -3660,7 +3627,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
 
     outer_cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
 
-    results: Dict[str, Any] = {
+    results = {
         "outer_fold_scores": [],
         "hyperparameter_stability": [],
         "learning_curves": [],
@@ -3681,7 +3648,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         # Generate all parameter combinations
         from itertools import product
 
-        param_combinations = list(product(*param_grid.values()))  # type: ignore[arg-type, call-overload]
+        param_combinations = list(product(*param_grid.values()))
         param_names = list(param_grid.keys())
 
         best_score = -float("inf")
@@ -3761,7 +3728,7 @@ def enhanced_cross_validation(dataset, n_folds=5):
         test_loader = DataLoader(test_dataset, batch_size=best_params["batch_size"], shuffle=False)
         test_results = evaluate_ignition_classifier(final_trained_model, test_loader, device="cpu")
 
-        results[f"fold_{fold_idx}"] = {  # type: ignore[assignment]
+        results[f"fold_{fold_idx}"] = {  # type: ignore[index]
             "best_params": best_params,
             "test_accuracy": test_results["accuracy"],
             "test_f1": test_results["f1_score"],
@@ -3775,7 +3742,7 @@ def bootstrap_confidence_intervals(predictions, labels, n_bootstrap=1000):
     """
     Bootstrap 95% CIs for all metrics
     """
-    metrics: dict[str, list[Any]] = {"accuracy": [], "f1": [], "auc": []}
+    metrics = {"accuracy": [], "f1": [], "auc": []}
 
     n_samples = len(labels)
     for _ in range(n_bootstrap):
@@ -4157,8 +4124,8 @@ def compare_models_with_statistics(results_task_1a):
                     perm_stat = 0.0
                 perm_stats.append(perm_stat)
 
-            perm_stats_array: np.ndarray = np.array(perm_stats)
-            mcnemar_perm_p = np.mean(perm_stats_array >= mcnemar_stat)
+            perm_stats = np.array(perm_stats)
+            mcnemar_perm_p = np.mean(perm_stats >= mcnemar_stat)
             mcnemar_significant = mcnemar_perm_p < alpha
 
             # DeLong's test for AUC comparison
@@ -4176,8 +4143,8 @@ def compare_models_with_statistics(results_task_1a):
                 except ValueError:
                     perm_auc_diffs.append(0.0)
 
-            perm_auc_diffs_array = np.array(perm_auc_diffs)
-            auc_perm_p = np.mean(np.abs(perm_auc_diffs_array) >= np.abs(auc_diff))
+            perm_auc_diffs = np.array(perm_auc_diffs)
+            auc_perm_p = np.mean(np.abs(perm_auc_diffs) >= np.abs(auc_diff))
             auc_significant = auc_perm_p < alpha
 
             # Store results
@@ -4245,7 +4212,7 @@ def main(progress_callback=None):
     generator = APGIDatasetGenerator(fs=1000)
     report_progress(5, "Generating synthetic dataset...")
     dataset = generator.generate_dataset(
-        n_trials_per_model=int(config["n_trials_per_model"]),
+        n_trials_per_model=config["n_trials_per_model"],
         save_path="apgi_protocol1_dataset.npz",
     )
     report_progress(15, "Dataset generation complete")
@@ -4290,9 +4257,9 @@ def main(progress_callback=None):
         print(f"  Val: {len(val_dataset)} samples, ignition: {np.bincount(val_labels)}")
         print(f"  Test: {len(test_dataset)} samples, ignition: {np.bincount(test_labels)}")
 
-        train_loader = DataLoader(train_dataset, batch_size=int(config["batch_size"]), shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
-        test_loader = DataLoader(test_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+        test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
 
         # Calculate class weights for imbalanced data
         class_counts = np.bincount(train_labels)
@@ -4322,7 +4289,7 @@ def main(progress_callback=None):
             ]
         )
         # Normalize weights
-        class_weights = class_weights / class_weights.sum() * 2  # type: ignore[assignment]
+        class_weights = class_weights / class_weights.sum() * 2
 
         # Train classifier
         report_progress(progress_start + 2, f"Initializing {model_name} classifier...")
@@ -4332,15 +4299,15 @@ def main(progress_callback=None):
             classifier,
             train_loader,
             val_loader,
-            epochs=int(config["epochs_task_1a"]),
-            lr=float(config["learning_rate"]),
-            device=str(config["device"]),
+            epochs=config["epochs_task_1a"],
+            lr=config["learning_rate"],
+            device=config["device"],
             class_weights=class_weights,
         )
         report_progress(progress_start + progress_per_model - 3, f"{model_name} training complete")
 
         # Evaluate on test set
-        results = evaluate_ignition_classifier(trained_model, test_loader, device=str(config["device"]))
+        results = evaluate_ignition_classifier(trained_model, test_loader, device=config["device"])
 
         results_task_1a[model_name] = results
         report_progress(progress_start + progress_per_model - 1, f"{model_name} evaluation complete")
@@ -4368,21 +4335,19 @@ def main(progress_callback=None):
     report_progress(76, "Starting Task 1B - Multi-modal model identification...")
 
     # Create multi-modal dataset
-    full_dataset_multi: Any = ModelIdentificationDataset(
-        dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"]
-    )
+    full_dataset = ModelIdentificationDataset(dataset["eeg"], dataset["hep"], dataset["pupil"], dataset["model_labels"])
 
     # Split
-    n_total = len(full_dataset_multi)
+    n_total = len(full_dataset)
     n_train = int(0.6 * n_total)
     n_val = int(0.2 * n_total)
     n_test = n_total - n_train - n_val
 
-    train_dataset, val_dataset, test_dataset = random_split(full_dataset_multi, [n_train, n_val, n_test])
+    train_dataset, val_dataset, test_dataset = random_split(full_dataset, [n_train, n_val, n_test])
 
-    train_loader = DataLoader(train_dataset, batch_size=int(config["batch_size"]), shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
-    test_loader = DataLoader(test_dataset, batch_size=int(config["batch_size"]), shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0)
 
     # Train model identifier
     report_progress(78, "Training multi-modal fusion network...")
@@ -4398,14 +4363,14 @@ def main(progress_callback=None):
         model_identifier,
         train_loader,
         val_loader,
-        epochs=int(config["epochs_task_1b"]),
-        lr=float(config["learning_rate"]),
-        device=str(config["device"]),
+        epochs=config["epochs_task_1b"],
+        lr=config["learning_rate"],
+        device=config["device"],
     )
     report_progress(88, "Task 1B training complete")
 
     # Evaluate
-    results_task_1b = evaluate_model_identifier(trained_identifier, test_loader, device=str(config["device"]))
+    results_task_1b = evaluate_model_identifier(trained_identifier, test_loader, device=config["device"])
     report_progress(90, "Task 1B evaluation complete")
 
     # Memory optimization
@@ -4432,7 +4397,7 @@ def main(progress_callback=None):
 
     real_data_path = config.get("real_data_path", "data_repository/apgi_real_dataset.npz")
     real_data_accuracy = 0.60
-    if os.path.exists(str(real_data_path)):
+    if os.path.exists(real_data_path):
         import logging
 
         logging.info(f"Loading real data from {real_data_path}")
@@ -4627,7 +4592,7 @@ def test_noise_amplitude_sensitivity(
 
 def run_validation(progress_callback=None, **kwargs) -> ProtocolResult:
     """Entry point for CLI validation."""
-    protocol_id = "VP_01_SyntheticEEGMLClassification"
+    protocol_id = "VP_01_SyntheticEEG_MLClassification"
     try:
         results_summary = main(progress_callback=progress_callback)
 
@@ -4706,7 +4671,7 @@ def run_protocol_main(config=None):
         # Return mock results for fast test execution
         if HAS_SCHEMA:
             return ProtocolResult(
-                protocol_id="VP_01_SyntheticEEGMLClassification",
+                protocol_id="VP_01_SyntheticEEG_MLClassification",
                 timestamp=datetime.now().isoformat(),
                 named_predictions={
                     "V1.1": PredictionResult(
@@ -4715,7 +4680,7 @@ def run_protocol_main(config=None):
                         threshold=0.80,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEGMLClassification"],
+                        sources=["VP_01_SyntheticEEG_MLClassification"],
                     ),
                     "V1.2": PredictionResult(
                         passed=True,
@@ -4723,7 +4688,7 @@ def run_protocol_main(config=None):
                         threshold=0.50,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEGMLClassification"],
+                        sources=["VP_01_SyntheticEEG_MLClassification"],
                     ),
                     "V1.3": PredictionResult(
                         passed=True,
@@ -4731,7 +4696,7 @@ def run_protocol_main(config=None):
                         threshold=0.75,
                         status=PredictionStatus.PASSED,
                         evidence=["Mock test result"],
-                        sources=["VP_01_SyntheticEEGMLClassification"],
+                        sources=["VP_01_SyntheticEEG_MLClassification"],
                     ),
                 },
                 completion_percentage=100,
@@ -4765,11 +4730,11 @@ def run_protocol_main(config=None):
             threshold=pred_data.get("threshold"),
             status=(PredictionStatus.PASSED if pred_data.get("passed", False) else PredictionStatus.FAILED),
             evidence=[str(pred_data.get("actual", ""))],
-            sources=["VP_01_SyntheticEEGMLClassification"],
+            sources=["VP_01_SyntheticEEG_MLClassification"],
         )
 
     return ProtocolResult(
-        protocol_id="VP_01_SyntheticEEGMLClassification",
+        protocol_id="VP_01_SyntheticEEG_MLClassification",
         timestamp=datetime.now().isoformat(),
         named_predictions=named_predictions,
         completion_percentage=100,

@@ -413,8 +413,8 @@ def extract_hep_epochs(
     epoch_end_ms: float = 600.0,  # post-R epoch end
     baseline_start_ms: float = -100.0,
     baseline_end_ms: float = 0.0,
-    hep_amplitude_start_ms: float = 300.0,  # Π^i window per APGI spec
-    hep_amplitude_end_ms: float = 500.0,
+    hep_amplitude_start_ms: float = 250.0,  # Π^i canonical window 250–400 ms per APGI spec
+    hep_amplitude_end_ms: float = 400.0,
 ) -> HEPResult:
     """
     Extract HEP epochs from a concurrent EEG channel (typically Cz or Fz).
