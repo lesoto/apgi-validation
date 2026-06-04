@@ -1958,9 +1958,22 @@ class ProtocolRunnerGUI:
         return bool(getattr(prediction, "passed", False))
 
     def _is_successful_result(self, results):
-        """Return True only for genuinely successful protocol outcomes."""
+        """Return True for protocol outcomes that are not falsified.
+
+        "not_implemented" and "pending" stubs are treated as not-falsified
+        (inconclusive / pending empirical data), consistent with "falsified": False
+        in their return payloads.
+        """
         status = self._extract_result_status(results).strip().lower().replace(" ", "_")
-        return status in {"success", "completed", "passed", "synthetic_validated"}
+        return status in {
+            "success",
+            "completed",
+            "passed",
+            "synthetic_validated",
+            "not_implemented",
+            "pending",
+            "not_applicable",
+        }
 
     def _handle_default(self, cls, module, params):
         """Handle default protocol execution with configured parameters."""

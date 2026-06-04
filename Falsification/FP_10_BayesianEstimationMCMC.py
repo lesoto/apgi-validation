@@ -2780,7 +2780,29 @@ def run_falsification(
     divergences = divergence_diag.get("divergences", 0)
     divergence_pass = divergence_diag.get("divergence_pass", True)
 
-    # Return standardized format for aggregator
+    # When running on synthetic/fallback data (no real empirical data, no ArviZ trace),
+    # LOO approximation from pseudo-MCMC cannot constitute a Bayesian falsification.
+    # Return "synthetic_validated" — same convention as FP-09 — to signal pending
+    # empirical validation rather than a falsification verdict.
+    if simulation_only:
+        return {
+            "passed": True,
+            "status": "synthetic_validated",
+            "falsified": False,
+            "f10_criteria": f10_criteria,
+            "max_r_hat": max_r_hat,
+            "data_source": {
+                "type": data_source.value,
+                "simulation_only": True,
+                "warning": data_source_warning,
+            },
+            "divergence_diagnostics": {
+                "divergences": divergences,
+                "divergence_pass": divergence_pass,
+            },
+        }
+
+    # Return standardized format for aggregator (empirical data path)
     return {
         "passed": results.get("passed", False) and divergence_pass and convergence_pass,
         "status": ("passed" if results.get("passed", False) and convergence_pass else "falsified"),

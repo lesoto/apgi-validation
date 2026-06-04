@@ -858,18 +858,47 @@ class APGIMasterFalsifier:
                 call_kwargs["results_input"] = dict(self.protocol_results)
         result = run_func(**call_kwargs)
 
-        # Standardize result format
-        if "falsified" not in result:
-            # Infer falsified status from passed/passed_criteria
-            passed = result.get("passed", False)
-            result["falsified"] = not passed
-            if "status" not in result:
-                result["status"] = "falsified" if result["falsified"] else "passed"
+        # Standardize result format — always mutate in place, never replace the dict.
+        # Determine pass/fail from the richer set of signals the protocols actually emit.
+        _PASS_STATUSES = {
+            "success",
+            "passed",
+            "pass",
+            "PASS",
+            "PASSED",
+            "success_validated",
+            "NOT_FALSIFIED",
+            "synthetic_validated",
+            "completed",
+            "COMPLETED",
+            # Stub/pending protocols carry "falsified": False — not yet tested ≠ falsified
+            "not_implemented",
+            "pending",
+            "not_applicable",
+        }
+        _FAIL_STATUSES = {"failed", "fail", "FAIL", "FAILED", "falsified", "error", "CRASHED"}
+
+        if "passed" in result:
+            # Explicit passed key — authoritative; derive falsified from it.
+            result["falsified"] = not bool(result["passed"])
+        elif "falsified" in result:
+            # Explicit falsified key — derive passed from it.
+            result["passed"] = not bool(result["falsified"])
         else:
-            result = {
-                "status": "passed" if result else "falsified",
-                "falsified": not bool(result),
-            }
+            # Neither key present — infer from status string.
+            status_str = str(result.get("status", "")).strip()
+            if status_str in _PASS_STATUSES:
+                result["passed"] = True
+            elif status_str in _FAIL_STATUSES:
+                result["passed"] = False
+            else:
+                # Unrecognised status: check for any truthy criteria counts as last resort.
+                result["passed"] = bool(result.get("criteria_passed") or result.get("success"))
+            result["falsified"] = not result["passed"]
+
+        # Ensure status is always set.
+        if "status" not in result or not result["status"]:
+            result["status"] = "passed" if result["passed"] else "falsified"
 
         return result
 

@@ -2,8 +2,9 @@
 """
 APGI Open Science Framework (OSF) Protocol Management GUI
 
-Manages the 7 Empirical Protocols (EP-0 through EP-6):
-pre-registration tracking, dependency visualization, and report export.
+Manages 15 prediction suites (EP-0 through EP-14) defined in the APGI
+Framework Prediction Registry: pre-registration tracking, dependency
+visualization, and report export.
 """
 
 import json
@@ -115,6 +116,7 @@ class APGICard(ttk.Frame):
 # ── Protocol Definitions ──────────────────────────────────────────────────────
 
 EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
+    # ── Empirical Protocols ───────────────────────────────────────────────────
     "EP-0: HEP Proxy Validation": {
         "id": "EP-0",
         "title": "HEP Proxy Validation",
@@ -125,15 +127,30 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "status": "Not started",
         "description": (
             "Heartbeat-evoked potential (HEP) proxy validation for interoceptive precision gating. "
-            "Establishes baseline cardiac-neural coupling signatures required by all downstream EP protocols."
+            "Pred 0.A: r(HEP, interoceptive d′) > 0.35, p < 0.01, two-tailed; replicated r ≥ 0.25 "
+            "(N ≥ 30). Pred 0.B: physostigmine increases HEP amplitude ≥ 15% vs. placebo "
+            "(Cohen's d ≥ 0.50, BF₁₀ ≥ 10). Pred 0.C: r(HEP amplitude, aINS BOLD) > 0.30 "
+            "within participants after arousal covariate control."
         ),
         "platform": "OSF",
-        "sample_size": "N ≥ 30 (power analysis required)",
-        "measures": ["HEP amplitude", "Cardiac cycle phase", "Interoceptive accuracy (heartbeat detection)"],
-        "analysis": "Mixed-effects models, time-frequency decomposition, HEP source localization",
+        "sample_size": "N ≥ 30 primary; N ≥ 30 independent validation subsample (Pred 0.A replication)",
+        "measures": [
+            "HEP amplitude",
+            "Interoceptive d′ (heartbeat discrimination)",
+            "aINS BOLD (fMRI concurrent)",
+            "Cardiac cycle phase",
+            "Pupil diameter (ACh target-engagement control)",
+            "RMSSD (HRV arousal covariate)",
+        ],
+        "analysis": (
+            "Pearson r (HEP vs. interoceptive d′); linear mixed-effects (HEP ~ ACh × time); "
+            "within-participant partial correlation (HEP amplitude vs. aINS BOLD, arousal covariate controlled); "
+            "Bayes factor (BF₁₀) for physostigmine effect"
+        ),
         "falsification_criterion": (
-            "HEP modulation < 0.1 μV between high/low interoceptive precision conditions "
-            "falsifies cardiac-interoceptive coupling hypothesis."
+            "Pred 0.A: r < 0.20 across two independent samples. "
+            "Pred 0.B: No HEP amplitude change despite verified ACh elevation (pupil constriction confirmed). "
+            "Pred 0.C: aINS BOLD and HEP statistically independent after arousal covariate."
         ),
         "prereg_status": "Pending",
         "notes": "",
@@ -147,19 +164,38 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-0"],
         "status": "Not started",
         "description": (
-            "Tests APGI prediction that interoceptive precision gates sensory processing via EEG microstate "
-            "dynamics and global field power (GFP) modulation. Requires EP-0 baseline signatures."
+            "Tests APGI prediction that interoceptive precision gates sensory processing. "
+            "Pred 1.A (state): interoceptive focus produces greater P3b for near-threshold stimuli than "
+            "exteroceptive focus or dual-task control (ηₚ² ≥ 0.06, FWE); HEP predicts P3b (partial r > 0.4). "
+            "Pred 1.A-trait: high-IA d′ > low-IA d′ (Cohen's d ≥ 0.5) with group × modality dissociation. "
+            "Pred 1.B: cardiac-phase-locked detection advantage at diastole (300–500 ms) vs. systole (0–150 ms). "
+            "Pred 1.C: top-tertile IA shows strongest P3b condition effect (accuracy × condition ηₚ² ≥ 0.08)."
         ),
         "platform": "OSF",
-        "sample_size": "N ≥ 40",
-        "measures": ["EEG microstates", "GFP", "P3b amplitude", "Interoceptive precision estimates"],
-        "analysis": "Microstate segmentation, GFP analysis, Bayesian model comparison (APGI vs. null)",
+        "sample_size": "N ≥ 30 in preregistered contrast; N ≥ 30 per group for Pred 1.A-trait",
+        "measures": [
+            "P3b amplitude (near-threshold stimuli)",
+            "HEP amplitude",
+            "Interoceptive d′ (heartbeat detection)",
+            "Cardiac phase at stimulus onset (systole vs. diastole)",
+            "RMSSD and pupil diameter (arousal covariates)",
+        ],
+        "analysis": (
+            "Repeated-measures ANOVA / linear mixed-effects (P3b ~ condition, FWE-corrected); "
+            "logistic mixed-effects (detection ~ cardiac_phase × contrast + cardiac_phase | participant); "
+            "partial correlation HEP vs. P3b (RMSSD and pupil diameter controlled); "
+            "Mann–Whitney or independent-samples t (high-IA vs. low-IA d′)"
+        ),
         "falsification_criterion": (
-            "No GFP modulation by interoceptive precision prior (Bayes factor B < 1/3) "
-            "falsifies the APGI precision-gating hypothesis."
+            "Pred 1.A: No significant P3b condition main effect (all p > 0.10) across N ≥ 30 in preregistered "
+            "contrast; or HEP–P3b partial correlation < r = 0.20 after arousal covariate control. "
+            "Pred 1.A-trait: High-IA and Low-IA do not differ on interoceptive d′ (d < 0.3 across N ≥ 30 per "
+            "group); or d′ group difference replicates equally in exteroceptive condition (no interoceptive specificity). "
+            "Pred 1.B: Diastole vs. systole hit rate advantage < 5% across two independent samples (interaction p > 0.15). "
+            "Pred 1.C: Accuracy × condition interaction p > 0.10."
         ),
         "prereg_status": "Pending",
-        "notes": "",
+        "notes": "Near-threshold contrast titration mandatory; suprathreshold matched control block required.",
     },
     "EP-2: Causal TMS Insula/dlPFC": {
         "id": "EP-2",
@@ -170,16 +206,35 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-0"],
         "status": "Not started",
         "description": (
-            "Causal intervention using TMS over insular cortex and dorsolateral prefrontal cortex "
-            "to test APGI causal architecture predictions. Requires EP-0 HEP baselines."
+            "Causal TMS intervention over pIC, dlPFC/PPC, and vertex sham. "
+            "Pred 4.A: pIC TMS reduces PCI ~20%; dlPFC/PPC TMS reduces PCI 15–25%; "
+            "HEP–PCI coupling abolished under pIC TMS only (site × coupling interaction p < 0.05). "
+            "Pred 4.B: pIC TMS reduces HEP–P3b coupling to < 0.15 (baseline > 0.35) while sparing "
+            "exteroceptive P3b within 10% of vertex; dlPFC TMS leaves HEP unaffected (BF₀₁ ≥ 6). "
+            "Pred 4.C: high-baseline IA × TMS-site interaction on PCI (η² > 0.10); effect absent for dlPFC."
         ),
         "platform": "OSF",
-        "sample_size": "N ≥ 24",
-        "measures": ["TMS-evoked potentials (TEP)", "Behavioral accuracy", "Precision-weighted prediction errors"],
-        "analysis": "Repeated-measures ANOVA, TEP component analysis, causal inference modelling",
+        "sample_size": "N ≥ 24 (three-site within-participant crossover: pIC, dlPFC/PPC, vertex)",
+        "measures": [
+            "PCI (Perturbational Complexity Index)",
+            "HEP amplitude",
+            "HEP–PCI coupling coefficient",
+            "HEP–P3b coupling coefficient",
+            "Exteroceptive P3b amplitude",
+            "Interoceptive accuracy (IA)",
+        ],
+        "analysis": (
+            "Linear mixed-effects (PCI ~ TMS_site, p < 0.05); site × coupling interaction; "
+            "Bayesian equivalence testing (ROPE d = [−0.15, +0.15], BF₀₁ for dlPFC HEP effect); "
+            "accuracy × TMS-site ANOVA on PCI"
+        ),
         "falsification_criterion": (
-            "Insula TMS fails to modulate precision-weighted prediction errors (p > 0.05, d < 0.3) "
-            "falsifies the causal role of insula in APGI gating."
+            "Pred 4.A: No PCI change vs. vertex sham across all active sites; or equivalent PCI reduction "
+            "at vertex as active sites; or HEP–PCI coupling equally abolished by dlPFC TMS (no dissociation). "
+            "Pred 4.B: Uniform suppression of both interoceptive and exteroceptive P3b across pIC and dlPFC TMS; "
+            "or HEP equally reduced by dlPFC and pIC TMS. "
+            "Pred 4.C: No accuracy × TMS-site interaction; high- and low-accuracy groups show equivalent "
+            "PCI response across all TMS sites."
         ),
         "prereg_status": "Pending",
         "notes": "",
@@ -193,42 +248,85 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": [],
         "status": "Not started",
         "description": (
-            "Computational validation of the APGI active inference architecture via simulation benchmarks. "
-            "Establishes formal quantitative predictions for all empirical protocols (EP-1, EP-5, EP-6)."
+            "Computational validation of the APGI active inference architecture (Protocol 2). "
+            "Pred 2.A: Full APGI agents converge within 50–80 trials on IGT; cumulative reward ratio "
+            "APGI/β_SM-lesion > 1.15; APGI > GNWT-only > Standard PP (all pairwise permutation p < 0.05). "
+            "Pred 2.B: 70–85% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ|. "
+            "Pred 2.C: M̂ leads θₜ crossing by ≥ 1 trial in ≥ 75% of ignition events (Kendall τ > 0.3 at negative lag). "
+            "Pred 2.D: β_SM lesion degrades performance most at high-volatility σ_env = 0.6. "
+            "Pred 2.E: APGI BIC lower than alternatives by ΔBIC ≥ 10."
         ),
         "platform": "OSF",
-        "sample_size": "N/A (computational — 10 000 simulation runs minimum)",
-        "measures": ["Free energy minimisation", "Precision convergence", "Policy selection accuracy"],
-        "analysis": "Simulation benchmarking, parameter recovery, model comparison (BIC/AIC/WAIC)",
+        "sample_size": "N/A (computational) — convergence criterion: 50–80 trials per Pred 2.A",
+        "measures": [
+            "Cumulative reward (IGT, all volatility conditions)",
+            "Trial-to-criterion (convergence within 50–80 trials)",
+            "Post-ignition action selection entropy",
+            "Interoceptive dominance fraction (Πⁱ·|zⁱ| > Πᵉ·|zᵉ|)",
+            "Cross-correlation M̂ vs. θₜ crossing (lag −5 to +5 trials)",
+            "BIC/WAIC model comparison (APGI vs. Standard PP vs. GNWT-only)",
+        ],
+        "analysis": (
+            "Permutation tests (pairwise reward comparisons); Wilcoxon (entropy pre vs. post ignition); "
+            "cross-correlation analysis with Kendall τ; BIC/log-likelihood ratio test (LRT p < 0.01); "
+            "β_SM vs. Πⁱ-lesion contrast at σ_env = 0.6"
+        ),
         "falsification_criterion": (
-            "Active inference agent fails to minimise free energy below baseline "
-            "(>5 % residual prediction error) falsifies the APGI computational architecture."
+            "Pred 2.A: No significant pairwise performance advantage across all volatility conditions; "
+            "or APGI fails convergence within 80 trials even when cumulative reward advantage present. "
+            "Pred 2.B: < 60% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| (interoceptive dominance independently falsified). "
+            "Pred 2.C: M̂ activation simultaneous with or lagging threshold crossing; cross-correlation peak at lag 0 or positive. "
+            "Pred 2.D: β_SM produces equivalent or lesser deficit vs. Πⁱ-lesion under all volatility conditions. "
+            "Pred 2.E: APGI BIC ≥ any alternative model's BIC; or ΔBIC < 3 against GNWT-only."
         ),
         "prereg_status": "Pending",
-        "notes": "",
+        "notes": "Advantage must emerge within 80 trials, not just cumulatively (Pred 2.A).",
     },
     "EP-4: Disorders of Consciousness": {
         "id": "EP-4",
-        "title": "Disorders of Consciousness",
+        "title": "Disorders of Consciousness Biomarker",
         "priority": 3,
         "type": "Clinical",
         "prereg_required": True,
         "depends_on": ["EP-0"],
         "status": "Not started",
         "description": (
-            "Clinical validation of the APGI interoceptive precision model in patients with disorders of "
-            "consciousness (VS/UWS and MCS). Requires EP-0 HEP signatures as biomarker reference."
+            "Clinical validation of the APGI interoceptive precision model in VS/UWS and MCS patients (Protocol 6). "
+            "Pred 6.A: Joint HEP + PCI model ΔR² ≥ 0.05 over best univariate model (PRIMARY); AUC > 0.80 "
+            "(aspirational secondary only). "
+            "Pred 6.B: HEP amplitude MCS > VS/UWS (Mann–Whitney p < 0.05, d > 0.5); four-group ordinal "
+            "gradient confirmed for both HEP and PCI; DMN–PCI r > 0.5. "
+            "Pred 6.C: Interoceptive perturbation increases PCI ≥ 10% in MCS; VS/UWS shows no significant change. "
+            "Pred 6.D: Within-participant Spearman r(HEP, GCS-S) > 0.4 at 3-month follow-up."
         ),
         "platform": "OSF",
-        "sample_size": "N ≥ 20 DOC patients + N ≥ 20 healthy controls",
-        "measures": ["CRS-R scores", "HEP modulation", "Neural complexity (LZC, PCI)", "EEG connectivity"],
-        "analysis": "Group comparisons, ROC analysis, Bayesian classifier, permutation testing",
+        "sample_size": "N ≥ 20 DOC patients (VS/UWS and MCS) + N ≥ 20 healthy controls",
+        "measures": [
+            "HEP amplitude",
+            "PCI (Perturbational Complexity Index)",
+            "GCS-S score (3-month and 6-month follow-up)",
+            "DMN–PCI correlation",
+            "Perturbation-evoked ΔPCI",
+            "HEP–PCI change correlation",
+        ],
+        "analysis": (
+            "Linear regression (joint HEP + PCI model, ΔR², LRT p < 0.05); "
+            "Mann–Whitney (HEP MCS vs. VS/UWS); ordinal gradient test (four-group: VS/UWS < MCS < EMCS < controls); "
+            "paired t (PCI pre vs. post perturbation, within MCS and VS/UWS); "
+            "within-participant Spearman r(HEP, GCS-S) at 3-month follow-up"
+        ),
         "falsification_criterion": (
-            "HEP signatures fail to discriminate VS/UWS from MCS (AUC ≤ 0.70) "
-            "falsifies clinical validity of APGI interoceptive precision biomarker."
+            "Pred 6.A (PRIMARY): Joint model R² ≤ max(univariate HEP R², univariate PCI R²); or ΔR² < 0.05. "
+            "Pred 6.B: No significant HEP difference between MCS and VS/UWS; four-group gradient absent for HEP or PCI. "
+            "Pred 6.C: No significant PCI change post-perturbation in MCS (ΔPCI < 5%, p > 0.10); or equivalent PCI "
+            "change in VS/UWS and MCS; or perturbation-evoked ΔPCI statistically indistinguishable from arousal-matched control. "
+            "Pred 6.D: HEP shows no significant longitudinal correlation with GCS-S (r < 0.2) at 3-month follow-up."
         ),
         "prereg_status": "Pending",
-        "notes": "Ethics approval and patient consent protocols required before data collection.",
+        "notes": (
+            "Ethics approval and patient consent protocols required before data collection. "
+            "6-month follow-up (Pred 6.D) reported as exploratory pending OSF amendment."
+        ),
     },
     "EP-5: fMRI Anticipation vs. Experience": {
         "id": "EP-5",
@@ -239,16 +337,41 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-0"],
         "status": "Not started",
         "description": (
-            "fMRI study testing the APGI prediction that anticipatory interoceptive precision differs from "
-            "experience-based interoceptive processing in vmPFC/insula circuitry. Requires EP-0 baselines."
+            "fMRI study testing M̂ (somatic marker anticipation) vs. εⁱ (interoceptive error) dissociation (Protocol 3). "
+            "Pred 3.A: vmPFC BOLD parametrically modulated by EV during anticipation foreperiod (p < 0.05 FWE) "
+            "but does NOT correlate with outcome-locked SCR (r < 0.20); posterior insula–SCR r > 0.40. "
+            "Pred 3.B: vmPFC→aINS PPI coefficient increases during anticipation foreperiod (Δr ≥ 0.30); "
+            "vmPFC→pIC PPI remains flat (BF₀₁ ≥ 6, ROPE d=[−0.15,+0.15]). "
+            "Pred 3.C: vmPFC modulated by option EV (somatic valence), not sensory contrast (d > 0.4). "
+            "Pred 3.D: Removing foreperiod (0 ms ISI) abolishes vmPFC→aINS coupling (BF₀₁ ≥ 6) and "
+            "vmPFC EV parametric modulation, while leaving posterior insula outcome-locked activity intact."
         ),
         "platform": "OSF",
         "sample_size": "N ≥ 32",
-        "measures": ["BOLD vmPFC/insula", "Anticipatory vs. reactive contrasts", "Functional connectivity"],
-        "analysis": "GLM, psychophysiological interaction (PPI), dynamic causal modelling (DCM)",
+        "measures": [
+            "BOLD vmPFC (anticipation foreperiod, parametric EV modulation)",
+            "BOLD posterior insula (outcome-locked, SCR correlation)",
+            "SCR (skin conductance response)",
+            "PPI coefficient vmPFC→aINS",
+            "PPI coefficient vmPFC→pIC",
+            "Option expected value (EV) and sensory contrast regressors",
+        ],
+        "analysis": (
+            "GLM with parametric EV modulator (anticipation foreperiod vs. neutral baseline, p < 0.05 FWE); "
+            "PPI analysis (vmPFC seed → aINS and pIC); "
+            "Bayesian equivalence testing vmPFC→pIC coupling (ROPE d=[−0.15,+0.15], BF₀₁ ≥ 6); "
+            "0 ms ISI condition as foreperiod-abolition control"
+        ),
         "falsification_criterion": (
-            "No vmPFC/insula dissociation between anticipation and experience conditions (p > 0.05 FWE) "
-            "falsifies the predictive interoception model."
+            "Pred 3.A: vmPFC BOLD correlates significantly with outcome-locked SCR (r > 0.35), indicating vmPFC "
+            "encodes raw εⁱ rather than anticipatory M̂; or vmPFC shows no anticipation-period EV parametric "
+            "modulation (p > 0.20). "
+            "Pred 3.B: vmPFC→pIC coupling increases during anticipation (Δr > 0.30, p < 0.05); or vmPFC→aINS "
+            "coupling is absent; or aINS/pIC dissociation not significant (both estimates statistically equivalent). "
+            "Pred 3.C: vmPFC activation correlates with sensory contrast regardless of option valence; or valence "
+            "and contrast effects statistically equivalent. "
+            "Pred 3.D: vmPFC→aINS coupling in 0 ms foreperiod equivalent to standard foreperiod condition "
+            "(foreperiod removal does not reduce coupling)."
         ),
         "prereg_status": "Pending",
         "notes": "",
@@ -262,19 +385,400 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-3"],
         "status": "Not started",
         "description": (
-            "Intracranial EEG study in epilepsy patients testing the APGI prediction of all-or-none ignition "
-            "dynamics in insular/anterior cingulate circuits. Predictions supplied by EP-3 simulations."
+            "Intracranial EEG study in epilepsy patients testing APGI ignition predictions (Protocol 5). "
+            "Pred 5.A: frontoparietal cortex shows bimodal high-gamma power (Hartigan's dip p < 0.05; "
+            "2-component Gaussian ΔBIC > 10). "
+            "Pred 5.B: Bimodality specific to frontoparietal ignition network (not occipital); "
+            "intermediate-state bouts < 100 ms mean duration (prevalence < 15% of trial duration). "
+            "Pred 5.C: AC1 of pre-ignition high-gamma (70–150 Hz) increases monotonically 500 ms before "
+            "detected stimuli (Kendall τ > 0.3, permutation p < 0.05); absent in non-detected trials. "
+            "Pred 5.D: Long-range gamma coherence (15–80 Hz) frontoparietal sites predicts seen vs. unseen "
+            "(point-biserial r > 0.4, 200–400 ms); HEP–coherence r > 0.25 (APGI-specific tier)."
         ),
         "platform": "OSF",
         "sample_size": "N ≥ 10 iEEG patients",
-        "measures": ["iEEG local field potentials", "High-gamma activity (70–150 Hz)", "Phase-amplitude coupling"],
-        "analysis": "Single-trial ignition detection, phase transition analysis, Lempel-Ziv complexity",
+        "measures": [
+            "High-gamma power (70–150 Hz) — frontoparietal and occipital sites",
+            "Bimodality index (Hartigan's dip statistic)",
+            "AC1 of high-gamma envelope (500 ms pre-stimulus)",
+            "Long-range gamma coherence (15–80 Hz) frontoparietal",
+            "HEP amplitude (concurrent cardiac recording)",
+            "Trial-by-trial detection outcome (seen / unseen)",
+        ],
+        "analysis": (
+            "Hartigan's dip test and 2- vs. 1-component Gaussian BIC comparison; "
+            "mixed-effects region × bimodality-index interaction; "
+            "Kendall τ AC1 trend in detected vs. non-detected trials (10 000 permutations); "
+            "point-biserial r (coherence vs. detection); "
+            "Pearson r (HEP amplitude vs. coherence in seen trials)"
+        ),
         "falsification_criterion": (
-            "Graded (not threshold/all-or-none) responses in insula/ACC circuits "
-            "falsify the APGI ignition hypothesis."
+            "Pred 5.A: Unimodal continuous distribution of high-gamma power; dip test p > 0.20; no bistability. "
+            "Pred 5.B: Uniform bimodality across all recorded regions; or intermediate-state bouts > 150 ms in "
+            "≥ 50% of trials; or prevalence > 30% of trial duration. "
+            "Pred 5.C: AC1 flat or decreasing before detected stimuli; no monotonic pre-ignition trend. "
+            "Pred 5.D: r < 0.20 for frontoparietal coherence vs. detection; or coherence peak outside 200–400 ms; "
+            "or occipital coherence statistically equivalent to frontoparietal. "
+            "Note: failure of Pred 5.D criterion (3) alone reclassifies as GNW-consistent only — does not falsify "
+            "Pred 5.D but removes APGI-specific confirmation (pre-specified reclassification, no amendment required)."
         ),
         "prereg_status": "Pending",
         "notes": "Ethics approval required; patients recruited via epilepsy-monitoring unit.",
+    },
+    "EP-7: Pharmacological Modulation": {
+        "id": "EP-7",
+        "title": "Pharmacological Modulation",
+        "priority": 2,
+        "type": "Empirical",
+        "prereg_required": True,
+        "depends_on": ["EP-0"],
+        "status": "Not started",
+        "description": (
+            "Pharmacological modulation of interoceptive threshold and precision (Protocol 7). "
+            "Pred 7.A: cathodal tDCS → θₜ increase; ketamine → θₜ decrease; shift ≥ 0.05 units (d ≥ |0.4|); "
+            "slope unchanged (p > 0.10). "
+            "Pred 7.B: atomoxetine steepens psychometric slope (increased Πᵉ, p < 0.05) and decreases threshold; "
+            "propranolol selectively reduces interoceptive signal influence (β_SM shift, d > 0.4). "
+            "Pred 7.C: Monotonic dose-response (Jonckheere–Terpstra p < 0.01). "
+            "Pred 7.D: Active vs. placebo p < 0.01, BF₁₀ > 10."
+        ),
+        "platform": "OSF",
+        "sample_size": "N ≥ 30 per intervention arm (within-participant crossover where feasible)",
+        "measures": [
+            "Detection threshold θₜ",
+            "Psychometric slope",
+            "Interoceptive signal influence (β_SM)",
+            "Dose-response curves (propranolol 20/40/80 mg)",
+        ],
+        "analysis": (
+            "Psychometric function fitting (mixed-effects); Jonckheere–Terpstra monotonic trend test; "
+            "Bayesian factor analysis (BF₁₀ active vs. placebo); "
+            "paired t / equivalence tests for slope and threshold"
+        ),
+        "falsification_criterion": (
+            "Pred 7.A: Cathodal tDCS or ketamine fails to shift detection threshold ≥ 0.05 units in predicted "
+            "direction; or effect in opposite direction (p < 0.01). "
+            "Pred 7.B: Propranolol produces no significant reduction in interoceptive signal influence (p > 0.05); "
+            "or atomoxetine fails to steepen slope AND fails to shift threshold (d < 0.2 for both). "
+            "Pred 7.C: No monotonic dose-response (Jonckheere–Terpstra slope ≤ 0 or p > 0.05 for trend test). "
+            "Pred 7.D: Placebo produces effect statistically indistinguishable from active intervention "
+            "(equivalence test p < 0.05)."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    "EP-8: Psychophysical Individual Differences": {
+        "id": "EP-8",
+        "title": "Psychophysical Individual Differences",
+        "priority": 2,
+        "type": "Empirical",
+        "prereg_required": True,
+        "depends_on": ["EP-0"],
+        "status": "Not started",
+        "description": (
+            "Individual-difference mapping of APGI parameters (Protocol 8). "
+            "Pred 8.A: r(Πⁱ, HEP) > 0.40; r(Πⁱ, heartbeat d′) > 0.35; r(Πⁱ, HRV/RMSSD) > 0.30. "
+            "Pred 8.B: r(β_som, θ₀) < −0.25 (somatic facilitation — higher β_som lowers baseline threshold). "
+            "Pred 8.C: θ₀ ICC > 0.75; Πⁱ ICC > 0.65; α ICC > 0.70 at 1-week retest. "
+            "Pred 8.D: Factor analysis yields ≥ 2 interpretable components; |r|(β_som, β_ign) < 0.40. "
+            "Pred 8.E: TAI × Πⁱ r < −0.25; BDI × θ₀ r > 0.25."
+        ),
+        "platform": "OSF",
+        "sample_size": "N ≥ 100 for ICC reliability; N ≥ 30 per group for clinical correlates",
+        "measures": [
+            "Interoceptive precision (Πⁱ)",
+            "Baseline threshold (θ₀)",
+            "Learning rate (α)",
+            "Somatic gain (β_som) and ignition bias (β_ign)",
+            "HEP amplitude",
+            "Heartbeat detection d′",
+            "HRV/RMSSD",
+            "TAI (trait anxiety inventory)",
+            "BDI (Beck Depression Inventory)",
+        ],
+        "analysis": (
+            "Pearson/Spearman correlations; ICC(2,1) test-retest reliability at 1-week interval; "
+            "exploratory factor analysis; equivalence tests (β_som vs. β_ign independence)"
+        ),
+        "falsification_criterion": (
+            "Pred 8.A: Πⁱ fails to correlate with HEP amplitude (r < 0.30 or p > 0.05). "
+            "Pred 8.B: θ₀ and β_som show a positive relationship (r > 0, p < 0.05), contradicting somatic facilitation. "
+            "Pred 8.C: Test-retest ICC for θ₀ falls below 0.60, indicating parameters too unstable for trait inference. "
+            "Pred 8.D: All APGI parameters load onto a single factor; or |r| > 0.70 for all pairs (redundancy). "
+            "Pred 8.E: No clinical correlations exceed |r| = 0.20 (p > 0.05 for all)."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    # ── Computational Protocols ───────────────────────────────────────────────
+    "EP-9: ML Classification": {
+        "id": "EP-9",
+        "title": "ML Classification (CP-1)",
+        "priority": 2,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": ["EP-3"],
+        "status": "Not started",
+        "description": (
+            "APGI-generated synthetic neural signal classification (CP-1). "
+            "Pred 9.A: classification accuracy 85–92%; AUC-ROC 0.90–0.95; F1-score 0.85–0.90. "
+            "75–84% constitutes partial support only; < 75% falsified. "
+            "Pred 9.B: APGI vs. GWTOnly cross-model confusion < 40%; HEP-present feature drives discriminability. "
+            "Pred 9.C: Classifier trained on APGI synthetic data achieves > 55% accuracy on real human data "
+            "(Melloni et al., 2007; Sergent et al., 2005). "
+            "Pred 9.D: Standard PP (continuous, no threshold) does not match full APGI classification accuracy."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — synthetic signals from EP-3 simulation runs",
+        "measures": [
+            "Classification accuracy (ignition vs. no-ignition)",
+            "AUC-ROC",
+            "F1-score",
+            "Cross-model confusion rate (APGI ↔ GWTOnly)",
+            "Feature importance (HEP-present vs. HEP-absent)",
+            "Cross-paradigm accuracy on real human datasets",
+        ],
+        "analysis": (
+            "Supervised classifier (architecture pre-specified in pre-registration); "
+            "pairwise accuracy comparisons (APGI vs. Standard PP); "
+            "confusion matrix analysis (APGI vs. GWTOnly); "
+            "cross-paradigm transfer to Melloni et al. 2007 and Sergent et al. 2005 datasets"
+        ),
+        "falsification_criterion": (
+            "Pred 9.A: Classification accuracy < 75%; or 75–84% range not replicated above 85% with "
+            "architectural tuning (intermediate zone = partial support pending replication). "
+            "Pred 9.B: Confusion between APGI and GWTOnly > 40% (interoceptive precision feature not discriminating). "
+            "Pred 9.C: Accuracy < 55% on real human data (APGI signals don't capture genuine neural signatures). "
+            "Pred 9.D: Standard PP achieves equal or higher accuracy than full APGI."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    "EP-10: Bayesian Model Comparison": {
+        "id": "EP-10",
+        "title": "Bayesian Model Comparison (CP-4)",
+        "priority": 2,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": ["EP-3"],
+        "status": "Not started",
+        "description": (
+            "Bayesian model comparison across pre-registered consciousness datasets (CP-4). "
+            "Pred 10.A: APGI achieves lowest WAIC/LOO; expected ΔLOO vs. SDT: +15 to +40; vs. GWT: +5 to +20; "
+            "vs. Continuous: +25 to +70. "
+            "Pred 10.B: Partial r(conscious report, Πⁱ | attention) > 0.25; 95% CI excludes zero. "
+            "Pred 10.C: P3b predicted by (Sₜ − θₜ) not stimulus strength; R² improvement > 15%. "
+            "Pred 10.D: RT shows U-shape around threshold (quadratic (Sₜ − θₜ)² term significant; RT minimum "
+            "at |Sₜ − θₜ| > 0.3). "
+            "Pred 10.E: BF₁₀ > 3 (APGI vs. GWT) across all pre-registered datasets."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — fit to pre-registered human IGT and consciousness datasets",
+        "measures": [
+            "WAIC / LOO-CV (leave-one-out cross-validation)",
+            "ΔLOO vs. SDT, GWT-only, Continuous baselines",
+            "Partial r(conscious report, Πⁱ | attention covariate)",
+            "P3b ~ β₁(Sₜ − θₜ) + β₂(stimulus strength) regression",
+            "RT quadratic fit around threshold proximity",
+            "BF₁₀ (APGI vs. GWT)",
+        ],
+        "analysis": (
+            "LOO-CV (loo package or equivalent); LRT for nested model comparison; "
+            "partial regression (Πⁱ unique variance after attention covariate); "
+            "polynomial regression RT ~ (Sₜ − θₜ)²; "
+            "Bayesian factor computation across pre-registered datasets"
+        ),
+        "falsification_criterion": (
+            "Pred 10.A: APGI has higher (worse) LOO than SDT or GWT by > 10 points on any pre-registered dataset. "
+            "Pred 10.B: Πⁱ posterior includes zero in 80% credible interval (no unique variance beyond attention). "
+            "Pred 10.C: P3b better predicted by stimulus strength alone; or R² improvement < 5% from (Sₜ − θₜ). "
+            "Pred 10.D: RT does not show threshold-proximity U-shape; or RT is linear/monotonic in (Sₜ − θₜ). "
+            "Pred 10.E: BF₁₀ < 3 across all datasets (interoceptive component adds no explanatory power over GWT)."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    "EP-11: Active Inference Agent Computational": {
+        "id": "EP-11",
+        "title": "Active Inference Agent Computational (CP-3)",
+        "priority": 2,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": ["EP-3"],
+        "status": "Not started",
+        "description": (
+            "Extended computational validation of APGI agent in volatile, high-cost environments (CP-3). "
+            "Pred 11.A: APGI agent achieves > 70% optimal performance; convergence < 100 trials; "
+            "outperforms Standard PP, GWTOnly, ActorCritic pairwise at σ_env = 0.6. "
+            "Pred 11.B: ≥ 60% of significant behavioral shifts preceded by ignition within 200 ms window. "
+            "Pred 11.C: Disabling θₜ causes > 5% performance change; θₜ converges to non-extreme values. "
+            "Pred 11.D: β_SM converges outside [0.95, 1.05] and not near 0 in ≥ 80% of agents. "
+            "Pred 11.E: C_metabolic vs. θₜ r > 0.2, p < 0.05; θₜ decreases with V_information (r > 0.2)."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — multiple independent agent seeds required",
+        "measures": [
+            "Final performance (% optimal)",
+            "Convergence trial count",
+            "Behavioral shift timing relative to ignition events",
+            "θₜ value distribution (convergence check)",
+            "β_SM value distribution (degeneracy check)",
+            "C_metabolic vs. θₜ correlation across agent lifetimes",
+        ],
+        "analysis": (
+            "Pairwise permutation tests (APGI vs. alternatives at σ_env = 0.6); "
+            "causal timing analysis (ignition → behavioral shift within 200 ms); "
+            "parameter convergence diagnostics; "
+            "Pearson r (C_metabolic vs. θₜ)"
+        ),
+        "falsification_criterion": (
+            "Pred 11.A: Fails to outperform alternatives; performance < 70% optimal or convergence > 100 trials. "
+            "Pred 11.B: < 60% of significant behavioral shifts preceded by ignition within 200 ms. "
+            "Pred 11.C: Disabling θₜ causes < 5% performance change; or θₜ converges to extreme values "
+            "(near 0 or > 1.5 SD) in ≥ 90% of trials (mechanism degenerate). "
+            "Pred 11.D: β_SM converges to [0.95, 1.05] (no somatic bias) or near 0 (complete interoceptive "
+            "suppression) in ≥ 80% of agents. "
+            "Pred 11.E: Correlation C_metabolic vs. θₜ < 0.2 (p > 0.05)."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    "EP-12: Phase Transition Analysis": {
+        "id": "EP-12",
+        "title": "Phase Transition Analysis (CP-4-PT)",
+        "priority": 2,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": ["EP-3"],
+        "status": "Not started",
+        "description": (
+            "Phase transition and critical slowing signatures at ignition threshold (CP-4-PT). "
+            "Pred 12.A: Mean |dS/dt| discontinuity > 0.5 (Cohen's d > 0.8 vs. random timepoints). "
+            "Pred 12.B: Variance ratio (near threshold / far from threshold) > 2.0. "
+            "Pred 12.C: Autocorrelation ratio (near / far) > 1.5. "
+            "Pred 12.D: Φ at ignition > 2.0× baseline (full confirmation); 1.3–2.0× = partial support "
+            "(pre-specified indeterminate zone); < 1.3× = falsified. "
+            "Pred 12.E: Hurst exponent H > 0.6 near threshold; H ≈ 0.5 far from threshold."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — derived from EP-3 simulation time series",
+        "measures": [
+            "Mean |dS/dt| at ignition threshold crossing",
+            "Variance ratio (near threshold vs. far from threshold)",
+            "Autocorrelation ratio (AC1 near / far)",
+            "Integrated information Φ at ignition vs. baseline",
+            "Hurst exponent H (near threshold vs. far from threshold)",
+        ],
+        "analysis": (
+            "Permutation tests for |dS/dt| discontinuity; "
+            "variance and AC1 ratio calculations; "
+            "Φ estimation (per Innovation 11 threshold specification); "
+            "Hurst exponent estimation (rescaled range or DFA)"
+        ),
+        "falsification_criterion": (
+            "Pred 12.A: Discontinuity ≤ 0.5; or Cohen's d ≤ 0.5 against random timepoints. "
+            "Pred 12.B: Susceptibility ratio < 1.2 (no critical fluctuations near threshold). "
+            "Pred 12.C: Critical slowing ratio < 1.2 (continuous not discrete threshold behavior). "
+            "Pred 12.D: Φ at ignition < 1.3× baseline; or Cohen's d for Φ discontinuity < 0.5. "
+            "Results in 1.3–2.0× range = partial support (indeterminate zone, pre-specified). "
+            "Pred 12.E: H near threshold ≤ 0.6; no significant difference in H between near and far states."
+        ),
+        "prereg_status": "Pending",
+        "notes": "Pred 12.D partial-support zone (1.3–2.0×) is pre-specified; no amendment required to classify as partial.",
+    },
+    "EP-13: Evolutionary Emergence": {
+        "id": "EP-13",
+        "title": "Evolutionary Emergence (CP-5)",
+        "priority": 3,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": [],
+        "status": "Not started",
+        "description": (
+            "Evolutionary simulation of APGI architectural component selection (CP-5). "
+            "Pred 13.A: Selection coefficients — threshold mechanism > 0.02; interoceptive weighting > 0.02; "
+            "somatic markers > 0.015; all positive across environments. "
+            "Pred 13.B: > 80% of population carries all three components by generation 300. "
+            "Pred 13.C: Full APGI outperforms all 1–2 component architectures (all pairwise fitness comparisons). "
+            "Pred 13.D: Emergence order matches threshold → precision → interoceptive → somatic in ≥ 80% of runs. "
+            "Pred 13.E: Threshold mechanism > 60% population frequency by generation 500. "
+            "Pred 13.F: Interoceptive weighting shows monotonically increasing frequency (positive selection). "
+            "Pred 13.G: Somatic markers > 50% frequency at evolutionary steady-state. "
+            "Pred 13.H: Continuous (no-threshold) architectures achieve lower fitness than discrete-threshold APGI."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — ≥ 80% of independent simulation runs required for Pred 13.D",
+        "measures": [
+            "Selection coefficients (threshold, interoceptive, somatic components)",
+            "Population frequency per component across generations",
+            "Pairwise fitness comparisons (full vs. partial architectures)",
+            "Emergence order sequence across independent runs",
+            "Threshold mechanism frequency by generation 500",
+            "Somatic marker frequency at steady-state",
+        ],
+        "analysis": (
+            "Population genetics simulation; selection coefficient estimation; "
+            "pairwise fitness comparisons (p < 0.05); "
+            "sequence matching across ≥ 80% of independent runs (Pred 13.D)"
+        ),
+        "falsification_criterion": (
+            "Pred 13.A: Any selection coefficient ≤ 0 (negative selection) for any core APGI component. "
+            "Pred 13.B: < 80% of population carries all three components by generation 300. "
+            "Pred 13.C: Partial architectures (1–2 components) achieve equal or higher fitness than full APGI. "
+            "Pred 13.D: Emergence order differs significantly from predicted sequence across ≥ 50% of runs. "
+            "Pred 13.E: Threshold mechanism frequency ≤ 60% by generation 500. "
+            "Pred 13.F: Interoceptive weighting frequency decreases over generations (negative selection). "
+            "Pred 13.G: Somatic markers never exceed 50% frequency at steady-state. "
+            "Pred 13.H: Continuous architectures achieve equal or higher fitness than APGI."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
+    },
+    "EP-14: RNN Architectures": {
+        "id": "EP-14",
+        "title": "RNN Architectures with APGI Inductive Biases (CP-6)",
+        "priority": 2,
+        "type": "Computational",
+        "prereg_required": True,
+        "depends_on": ["EP-3"],
+        "status": "Not started",
+        "description": (
+            "APGI-constrained RNN vs. LSTM, Attention, and MLP baselines (CP-6). "
+            "Pred 14.A: APGI RNN AUC 0.85–0.92 (vs. LSTM 0.70–0.78; Attention 0.75–0.82); superiority > 2% AUC. "
+            "Pred 14.B: APGI RNN converges in 30–50% fewer epochs than comparison networks on interoceptive tasks. "
+            "Pred 14.C: Learned Πⁱ increases when interoceptive information is task-relevant; Πᵉ increases "
+            "when exteroceptive information is task-relevant (task × precision interaction p < 0.05). "
+            "Pred 14.D: Ignition probability vs. response accuracy r > 0.5; threshold converges to non-extreme "
+            "values in ≥ 90% of training runs."
+        ),
+        "platform": "OSF",
+        "sample_size": "N/A (computational) — multiple training seeds required",
+        "measures": [
+            "AUC (conscious/unconscious classification)",
+            "Epochs to convergence",
+            "Learned precision weights (Πⁱ, Πᵉ) across task conditions",
+            "Ignition probability vs. response accuracy correlation",
+            "Threshold parameter convergence distribution",
+        ],
+        "analysis": (
+            "AUC comparison across architectures; paired epoch-count comparison; "
+            "task × precision interaction (Πⁱ and Πᵉ across interoceptive vs. exteroceptive task variants); "
+            "Pearson r (ignition probability vs. response accuracy); "
+            "threshold convergence diagnostics"
+        ),
+        "falsification_criterion": (
+            "Pred 14.A: No AUC advantage over standard LSTM (within 2%); APGI architectural constraints "
+            "provide no classification benefit. "
+            "Pred 14.B: APGI RNN requires equal or more epochs to converge than comparison networks. "
+            "Pred 14.C: Learned Πⁱ does not increase when interoceptive information is relevant "
+            "(no significant task × Πⁱ interaction); or Πᵉ does not track exteroceptive task relevance. "
+            "Note: falsification targets Πⁱ/Πᵉ precision weights — NOT β_SM. "
+            "Pred 14.D: Threshold converges to extreme values (0 or ∞) in ≥ 50% of training runs (mechanism "
+            "degenerate); or attention-only network achieves equal or higher AUC than APGI (explicit ignition "
+            "gate unnecessary)."
+        ),
+        "prereg_status": "Pending",
+        "notes": "",
     },
 }
 
@@ -306,7 +810,7 @@ _PRIORITY_LABELS = {1: "Priority 1 — High", 2: "Priority 2 — Medium", 3: "Pr
 
 
 class OSFProtocolGUI:
-    """GUI for APGI Open Science Framework — EP-0 through EP-6 protocol management."""
+    """GUI for APGI Open Science Framework — EP-0 through EP-14 prediction registry management."""
 
     def __init__(self, root: tk.Tk, headless: bool = False) -> None:
         self.root = root
@@ -326,7 +830,7 @@ class OSFProtocolGUI:
         if not self.headless:
             apply_apgi_theme(self.root)
             self._process_gui_queue()
-            self.root.title("APGI Open Science Framework — Empirical Protocols (EP-0 – EP-6)")
+            self.root.title("APGI Open Science Framework — Prediction Registry (EP-0 – EP-14)")
             self.root.geometry("1020x740")
             self.root.minsize(800, 560)
             self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -396,7 +900,7 @@ class OSFProtocolGUI:
     def _show_about(self) -> None:
         messagebox.showinfo(
             "About",
-            "APGI Open Science Framework GUI\nEmpirical Protocol Manager (EP-0 – EP-6)\nVersion 1.0.0",
+            "APGI Open Science Framework GUI\nPrediction Registry Manager (EP-0 – EP-14)\nVersion 2.0.0",
         )
 
     # ── UI Construction ───────────────────────────────────────────────────────
@@ -579,7 +1083,7 @@ class OSFProtocolGUI:
         self.console.grid(row=0, column=0, sticky="nsew")
 
         self._log("OSF Protocol Manager initialised. Select a protocol to begin.")
-        self._log("7 protocols loaded  |  All status: Not started  |  Pre-reg: Pending")
+        self._log(f"{len(EP_PROTOCOLS)} protocols loaded  |  All status: Not started  |  Pre-reg: Pending")
 
     # ── Workspace helpers ─────────────────────────────────────────────────────
 

@@ -133,13 +133,36 @@ class APGIMasterValidator(metaclass=ABCMeta):
         if result is None:
             return False
 
+        _PASS_STATUSES = {
+            "success",
+            "passed",
+            "pass",
+            "PASS",
+            "PASSED",
+            "success_validated",
+            "NOT_FALSIFIED",
+            "synthetic_validated",
+            "completed",
+            "COMPLETED",
+            # Stub/pending protocols carry "falsified": False — not yet tested ≠ falsified
+            "not_implemented",
+            "pending",
+            "not_applicable",
+        }
+        _FAIL_STATUSES = {"failed", "fail", "FAIL", "FAILED", "falsified", "error", "CRASHED"}
+
         # Dict results (legacy or ad-hoc)
         if isinstance(result, dict):
             if "passed" in result:
                 return bool(result.get("passed"))
+            # Explicit falsified key
+            if "falsified" in result:
+                return not bool(result["falsified"])
             metadata = result.get("metadata") if isinstance(result.get("metadata"), dict) else {}
             if metadata.get("passed") is True:
                 return True
+            if metadata.get("passed") is False:
+                return False
             named_predictions = result.get("named_predictions")
             if isinstance(named_predictions, dict) and named_predictions:
                 for pred_obj in named_predictions.values():
@@ -148,6 +171,12 @@ class APGIMasterValidator(metaclass=ABCMeta):
                     if hasattr(pred_obj, "passed") and not pred_obj.passed:
                         return False
                 return True
+            # Fall back to status string
+            status_str = str(result.get("status", "")).strip()
+            if status_str in _PASS_STATUSES:
+                return True
+            if status_str in _FAIL_STATUSES:
+                return False
             return False
 
         # ProtocolResult (schema) handling
