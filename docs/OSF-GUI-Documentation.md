@@ -23,7 +23,7 @@ It does not connect to OSF automatically. Templates and reports are saved to you
 
 Open a terminal, navigate to the project folder, and run:
 
-```
+```bash
 python OSF_GUI.py
 ```
 
@@ -35,7 +35,7 @@ On first launch, all protocols show **Not started / Pending**. Your status entri
 
 ## The Interface at a Glance
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │  APGI OPEN SCIENCE FRAMEWORK — EMPIRICAL PROTOCOLS               │
 │  Protocols: 7  |  Pre-registered: 0/7  |  Completed: 0/7  OSF: Ready │
@@ -70,15 +70,15 @@ On first launch, all protocols show **Not started / Pending**. Your status entri
 
 ## The Seven Empirical Protocols
 
-| ID | Title | Type | Priority | Requires |
-|----|-------|------|----------|----------|
-| EP-0 | HEP Proxy Validation | Empirical | High | — |
-| EP-1 | EEG Interoceptive Precision Gating | Empirical | High | EP-0 |
-| EP-2 | Causal TMS Insula/dlPFC | Empirical | Medium | EP-0 |
-| EP-3 | Active Inference Simulations | Computational | High | — |
-| EP-4 | Disorders of Consciousness | Clinical | Long-term | EP-0 |
-| EP-5 | fMRI Anticipation vs. Experience | Empirical | High | EP-0 |
-| EP-6 | iEEG All-or-None Dynamics | Clinical-Empirical | Medium | EP-3 |
+| ID   | Title                              | Type                | Priority   | Requires   |
+|------|------------------------------------|---------------------|------------|------------|
+| EP-0 | HEP Proxy Validation                | Empirical           | High       | —          |
+| EP-1 | EEG Interoceptive Precision Gating  | Empirical           | High       | EP-0       |
+| EP-2 | Causal TMS Insula/dlPFC             | Empirical           | Medium     | EP-0       |
+| EP-3 | Active Inference Simulations        | Computational       | High       | —          |
+| EP-4 | Disorders of Consciousness          | Clinical            | Long-term  | EP-0       |
+| EP-5 | fMRI Anticipation vs. Experience     | Empirical           | High       | EP-0       |
+| EP-6 | iEEG All-or-None Dynamics           | Clinical-Empirical  | Medium     | EP-3       |
 
 **Dependency rule:** EP-0 must be completed before EP-1, EP-2, EP-4, or EP-5 can begin. EP-3 must be completed before EP-6. EP-0 and EP-3 have no upstream requirements.
 
@@ -109,25 +109,25 @@ After selecting a protocol:
 1. Scroll to the **PROTOCOL DETAILS & STATUS** section at the bottom of the workspace.
 2. Use the **Study Status** dropdown to record where the protocol currently stands:
 
-   | Status | When to use |
-   |--------|-------------|
-   | Not started | No work has begun |
-   | In preparation | Materials, ethics, or infrastructure being prepared |
-   | Pre-registered | Study plan submitted and locked on OSF |
-   | Data collection | Actively recruiting or collecting data |
-   | Analysis | Data collected; statistical analysis underway |
-   | Completed | Final results documented |
-   | On hold | Paused (note the reason in the Notes field) |
+   | Status          | When to use                                                     |
+   |-----------------|----------------------------------------------------------------|
+   | Not started     | No work has begun                                              |
+   | In preparation  | Materials, ethics, or infrastructure being prepared              |
+   | Pre-registered  | Study plan submitted and locked on OSF                          |
+   | Data collection | Actively recruiting or collecting data                         |
+   | Analysis        | Data collected; statistical analysis underway                   |
+   | Completed       | Final results documented                                       |
+   | On hold         | Paused (note the reason in the Notes field)                    |
 
 3. Use the **Pre-reg Status** dropdown to track registration specifically:
 
-   | Status | When to use |
-   |--------|-------------|
-   | Pending | No pre-registration action taken yet |
-   | Draft ready | Template complete; not yet submitted |
-   | Submitted | Submitted to OSF, awaiting confirmation |
-   | Registered | Locked and timestamped on OSF |
-   | Not applicable | Protocol type does not require pre-registration |
+   | Status           | When to use                                                     |
+   |------------------|----------------------------------------------------------------|
+   | Pending          | No pre-registration action taken yet                           |
+   | Draft ready      | Template complete; not yet submitted                          |
+   | Submitted        | Submitted to OSF, awaiting confirmation                       |
+   | Registered       | Locked and timestamped on OSF                                  |
+   | Not applicable   | Protocol type does not require pre-registration              |
 
 4. Add any context in the **Notes** box (e.g. ethics board reference, recruitment site, deviations from plan).
 5. Click **Save Changes**. The top counter updates immediately and a confirmation appears.
@@ -174,11 +174,13 @@ To share a snapshot of all seven protocols with collaborators or attach it to a 
 Your status entries, pre-reg statuses, and notes are **not** saved automatically. Use snapshots to persist your work across sessions.
 
 **Save a snapshot:**
+
 - **File → Save Status Snapshot** (or `Cmd+S`)
 - Choose a filename (default: `osf_status_snapshot.json`) and location.
 - Recommended: keep a dated copy alongside your OSF project files (e.g. `osf_snapshot_2026-06-03.json`).
 
 **Restore from a snapshot:**
+
 - **File → Load Status Snapshot**
 - Select the `.json` file you saved previously.
 - All status fields and notes are restored. The workspace refreshes immediately if a protocol is selected.
@@ -196,6 +198,7 @@ To understand the required execution order before planning data collection:
 3. This view is read-only — it is intended as a quick reference before scheduling work.
 
 **Key rules from the dependency graph:**
+
 - EP-0 is the gateway study. Its HEP baseline signatures are required by EP-1, EP-2, EP-4, and EP-5.
 - EP-3 (computational simulations) is independent and can run in parallel with EP-0.
 - EP-6 requires EP-3 to be complete.
@@ -206,21 +209,21 @@ To understand the required execution order before planning data collection:
 
 ### File Menu
 
-| Action | Shortcut | What it does |
-|--------|----------|--------------|
-| Export Protocol Report | `Cmd+E` | Save full report (TXT or JSON) |
-| Generate Pre-reg Template | `Cmd+G` | Generate pre-reg doc for selected protocol |
-| Save Status Snapshot | `Cmd+S` | Save all statuses and notes to a JSON file |
-| Load Status Snapshot | — | Restore statuses from a saved JSON file |
-| Quit | `Cmd+Q` | Close the application |
+| Action                     | Shortcut   | What it does                                        |
+|----------------------------|------------|-----------------------------------------------------|
+| Export Protocol Report     | `Cmd+E`    | Save full report (TXT or JSON)                     |
+| Generate Pre-reg Template  | `Cmd+G`    | Generate pre-reg doc for selected protocol          |
+| Save Status Snapshot       | `Cmd+S`    | Save all statuses and notes to a JSON file         |
+| Load Status Snapshot       | —          | Restore statuses from a saved JSON file            |
+| Quit                       | `Cmd+Q`    | Close the application                              |
 
 ### View Menu
 
-| Action | Shortcut | What it does |
-|--------|----------|--------------|
-| Clear Console | `Cmd+L` | Erase all entries from the output console |
-| Toggle Console | — | Collapse or expand the console panel |
-| Dependency Overview | — | Open the dependency graph window |
+| Action                | Shortcut   | What it does                                           |
+|-----------------------|------------|-------------------------------------------------------|
+| Clear Console         | `Cmd+L`    | Erase all entries from the output console             |
+| Toggle Console        | —          | Collapse or expand the console panel                   |
+| Dependency Overview   | —          | Open the dependency graph window                      |
 
 > On Windows or Linux, replace `Cmd` with `Ctrl`.
 
@@ -247,15 +250,15 @@ Use it to verify that saves and exports completed successfully, especially befor
 
 Each protocol carries a pre-specified falsification criterion. These are not optional thresholds — they define, in advance, what result would count as evidence against the APGI model:
 
-| Protocol | Falsification criterion |
-|----------|------------------------|
-| EP-0 | HEP modulation < 0.1 μV between high/low interoceptive precision conditions |
-| EP-1 | No GFP modulation by interoceptive precision prior (Bayes factor B < 1/3) |
-| EP-2 | Insula TMS fails to modulate precision-weighted prediction errors (p > 0.05, d < 0.3) |
-| EP-3 | Active inference agent fails to minimise free energy (>5% residual error at convergence) |
-| EP-4 | HEP signatures fail to discriminate VS/UWS from MCS (AUC ≤ 0.70) |
-| EP-5 | No vmPFC/insula dissociation between anticipatory and reactive conditions (p > 0.05 FWE) |
-| EP-6 | Graded (rather than threshold/all-or-none) responses in insular/ACC circuits |
+| Protocol | Falsification criterion                                                                    |
+|----------|-------------------------------------------------------------------------------------------|
+| EP-0     | HEP modulation < 0.1 μV between high/low interoceptive precision conditions               |
+| EP-1     | No GFP modulation by interoceptive precision prior (Bayes factor B < 1/3)                  |
+| EP-2     | Insula TMS fails to modulate precision-weighted prediction errors (p > 0.05, d < 0.3)   |
+| EP-3     | Active inference agent fails to minimise free energy (>5% residual error at convergence) |
+| EP-4     | HEP signatures fail to discriminate VS/UWS from MCS (AUC ≤ 0.70)                        |
+| EP-5     | No vmPFC/insula dissociation between anticipatory and reactive conditions (p > 0.05 FWE)  |
+| EP-6     | Graded (rather than threshold/all-or-none) responses in insular/ACC circuits              |
 
 These criteria are shown in the detail panel for each protocol. They appear verbatim in the pre-registration template — treat them as binding commitments once registered.
 
@@ -299,11 +302,11 @@ A typical session might look like this:
 
 ## Troubleshooting
 
-| Problem | Likely cause | What to do |
-|---------|-------------|------------|
-| Status changes not persisting after restart | Snapshot not saved | Use **File → Save Status Snapshot** before closing |
-| Pre-registration template button is greyed out | No protocol selected | Click a protocol name in the sidebar first |
-| Console panel takes up too much space | — | Click **▼ OUTPUT CONSOLE** to collapse it |
-| Fonts look incorrect | Noto Sans not installed | Install the Noto Sans font family for your OS |
-| Report saved as JSON but looks unreadable | JSON is machine format | Use `.txt` extension for a human-readable report |
-| Load snapshot shows an error | File is corrupt or wrong format | Use only `.json` files saved by this app |
+| Problem                                    | Likely cause              | What to do                                                  |
+|-------------------------------------------|---------------------------|-------------------------------------------------------------|
+| Status changes not persisting after restart | Snapshot not saved        | Use **File → Save Status Snapshot** before closing           |
+| Pre-registration template button is greyed out | No protocol selected   | Click a protocol name in the sidebar first                    |
+| Console panel takes up too much space       | —                         | Click **▼ OUTPUT CONSOLE** to collapse it                     |
+| Fonts look incorrect                        | Noto Sans not installed   | Install the Noto Sans font family for your OS                |
+| Report saved as JSON but looks unreadable   | JSON is machine format    | Use `.txt` extension for a human-readable report             |
+| Load snapshot shows an error                | File is corrupt or wrong format | Use only `.json` files saved by this app                   |

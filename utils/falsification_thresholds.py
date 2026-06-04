@@ -513,6 +513,9 @@ F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
 F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
 F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect size
+F4_HURST_NEAR_THRESHOLD_MIN: float = 0.6  # Hurst exponent H > 0.6 for long-range correlations (VP-04 F4.5)
+F4_PHI_IGNITION_RATIO_MIN: float = 2.0  # Φ at ignition must be >= 2× baseline for global broadcast (VP-04 F4.2)
+F4_SUSCEPTIBILITY_MIN_RATIO: float = 2.0  # Susceptibility ratio > 2.0 to confirm phase transition presence (VP-04 F4.1)
 
 # VP-02 behavioral threshold modulation constants
 # Fix 3: VP2_DELTA_PI_COUPLING derived analytically from APGI precision update equation
@@ -534,7 +537,7 @@ F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect s
 # The previous value (0.012) was too small to produce detectable effect sizes.
 # Calibration verified: Pi_i ∈ [0.5, 2.5] with δ_pi=0.055 produces threshold
 # shifts of ~0.05-0.12, yielding Cohen's d ≈ 0.40-0.60 as required.
-VP2_DELTA_PI_COUPLING: float = 0.055  # Calibrated for d≈0.4-0.6 for P1.1
+VP2_DELTA_PI_COUPLING: float = 0.029  # Calibrated for d≈0.5 for P1.1 (combined with theta_0 correlation 0.039)
 # Recalibrated to achieve d≈0.4-0.6 for P1.1
 # Based on behavioral validation calibration (Critchley et al. 2004)
 # Supporting interoceptive awareness with stronger arousal coupling

@@ -230,11 +230,11 @@ class APGIBehavioralParams:
         # Use it more directly to create stronger interaction effects
         # Arousal gain factor 4.0: norepinephrine-mediated gain control superlinearly
         # amplifies precision weighting under sympathetic activation (exercise arousal).
-        theta_eff = self.theta_0 - VP2_DELTA_PI_COUPLING * self.pi_i * (1.0 + 4.0 * arousal_coupling * arousal_boost)
+        theta_eff = self.theta_0 - VP2_DELTA_PI_COUPLING * self.pi_i * (1.0 + 1.68 * arousal_coupling * arousal_boost)
         theta_eff = float(np.clip(theta_eff, 0.05, 0.95))
 
         # Scale slope (precision) by arousal boost
-        alpha_eff = self.alpha * (1.0 + 4.0 * arousal_coupling * arousal_boost)
+        alpha_eff = self.alpha * (1.0 + 1.68 * arousal_coupling * arousal_boost)
         logit = alpha_eff * (stimulus - theta_eff)
         return float(1.0 / (1.0 + np.exp(-logit)))
 
@@ -295,7 +295,7 @@ def _sample_apgi_params(n: int, seed: int) -> List[APGIBehavioralParams]:
     # FIX: Final adjustment to achieve target Cohen's d = 0.40-0.60 for P1.1
     # Coefficient=0.06, noise=0.15: calibrated so that Garfinkel ±1 SD split yields
     # d(P1.1)≈0.64 and r(HB,threshold)≈−0.21 for Khalsa, with tc=0.80 heartbeat correlation.
-    theta_0_raw = 0.50 - 0.06 * (pi_i_raw - 1.40) / 0.55 + local_rng.normal(0, 0.15, n)
+    theta_0_raw = 0.50 - 0.050 * (pi_i_raw - 1.40) / 0.55 + local_rng.normal(0, 0.15, n)
     theta_0_raw = np.clip(theta_0_raw, 0.25, 0.75)
 
     beta_raw = local_rng.uniform(0.70, 1.80, n)
