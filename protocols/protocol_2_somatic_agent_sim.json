@@ -1,0 +1,231 @@
+{
+  "protocol_id": "APGI-P02",
+  "registry_ep": "EP-2",
+  "registry_protocol_label": "Protocol 2 — Somatic-AgentSim",
+  "title": "Active Inference Agent Simulations: Adaptive Advantages of Somatic Markers",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "2.0.0",
+  "last_updated": "2026-06-04",
+  "description": "Computational agent simulations test whether somatic marker integration M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a) confers measurable adaptive advantages over APGI agents lacking somatic marker function. Agents are evaluated on embodied decision tasks under volatility conditions where rapid threshold adaptation is required. Five sub-predictions are tested: (Pred 2.a) full APGI agents converge within 50–80 trials matching human IGT performance and outperform both GNWT-only and Standard PP agents in cumulative reward — all three pairwise comparisons significant; (Pred 2.b) post-ignition action selection entropy increases versus pre-ignition baseline, with 70–85% of ignition events satisfying Πⁱ·|zⁱ| > Πᵉ·|zᵉ|; (Pred 2.c) somatic marker retrieval M̂ temporally precedes threshold crossing θₜ; (Pred 2.d) β_SM lesion specifically degrades performance more than other single-parameter lesions, with the deficit largest in high-volatility blocks (σ_env = 0.6); and (Pred 2.e) the full APGI generative model achieves lower BIC than Standard PP and GNWT-only when fit to human IGT trial-by-trial choice sequences. Fully validated via APGI_Somatic_Marker_Identifiability.py.",
+  "prediction_cluster": "Pred 2.A–2.E",
+  "prediction_cluster_label": "Adaptive Advantages of Somatic Markers (Simulation + Model Comparison)",
+  "sub_predictions": [
+    {
+      "id": "Pred 2.A",
+      "claim": "Full APGI agents converge within 50–80 trials matching human IGT performance. APGI > GNWT-only > Standard PP in cumulative reward ranking (all three pairwise comparisons).",
+      "confirming_evidence": "APGI convergence within 50–80 trials; reward ratio APGI/β_SM-lesion > 1.15; APGI > GNWT-only > Pure PP in cumulative reward (all pairwise permutation p < 0.05). Advantage must emerge within 80 trials not just cumulatively.",
+      "falsifying_evidence": "No significant pairwise performance advantage across all volatility conditions; or APGI fails convergence within 80 trials even when cumulative reward advantage present.",
+      "confirming_thresholds": {
+        "convergence_trials_window": [50, 80],
+        "reward_ratio_apgi_lesion_minimum": 1.15,
+        "pairwise_comparisons": ["APGI > GNWT-only", "APGI > Standard_PP", "GNWT-only > Standard_PP"],
+        "permutation_p_threshold": 0.05,
+        "advantage_emergence_trial_cap": 80
+      },
+      "falsifying_thresholds": {
+        "condition_1": "No significant pairwise performance advantage across all volatility conditions",
+        "condition_2": "APGI fails convergence within 80 trials even when cumulative reward advantage present"
+      }
+    },
+    {
+      "id": "Pred 2.B",
+      "claim": "Post-ignition action selection entropy increases vs. pre-ignition baseline; 70–85% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| (high interoceptive component).",
+      "confirming_evidence": "Post-ignition entropy > pre-ignition (Wilcoxon p < 0.05); 70–85% of ignitions satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ|.",
+      "falsifying_evidence": "Ignition uncorrelated with post-ignition behavioral adaptation; or < 60% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| (interoceptive dominance criterion independently falsified).",
+      "confirming_thresholds": {
+        "entropy_test": "Wilcoxon signed-rank p < 0.05",
+        "interoceptive_dominance_proportion_range": [0.70, 0.85],
+        "criterion": "Πⁱ·|zⁱ| > Πᵉ·|zᵉ|"
+      },
+      "falsifying_thresholds": {
+        "interoceptive_dominance_proportion_threshold": 0.60,
+        "condition": "< 60% of ignition events satisfy criterion — independently falsified"
+      }
+    },
+    {
+      "id": "Pred 2.C",
+      "claim": "Somatic marker retrieval M̂ temporally precedes threshold crossing θₜ (cross-correlation peak at negative lag).",
+      "confirming_evidence": "Cross-correlation analysis (lag −5 to +5 trials): M̂ leads θₜ crossing by ≥ 1 trial in ≥ 75% of ignition events; Kendall τ > 0.3 at negative lag.",
+      "falsifying_evidence": "M̂ activation simultaneous with or lagging threshold crossing; cross-correlation peak at lag 0 or positive.",
+      "confirming_thresholds": {
+        "cross_correlation_lag_range": [-5, 5],
+        "m_hat_lead_trials_minimum": 1,
+        "proportion_ignition_events_minimum": 0.75,
+        "kendall_tau_threshold": 0.3,
+        "lag_direction": "negative (M̂ leads)"
+      },
+      "falsifying_thresholds": {
+        "condition": "Cross-correlation peak at lag 0 or positive lag"
+      }
+    },
+    {
+      "id": "Pred 2.D",
+      "claim": "β_SM lesion specifically degrades performance more than other single-parameter lesions; deficit largest in high-volatility blocks (σ_env = 0.6).",
+      "confirming_evidence": "β_SM agent reward significantly lower than Πⁱ-constant and α-lesion agents under matched volatility (permutation p < 0.05); β_SM vs. Πⁱ-lesion contrast significant specifically at high volatility σ_env = 0.6.",
+      "falsifying_evidence": "β_SM produces equivalent or lesser deficit compared to Πⁱ-lesion under all volatility conditions; or pathway specificity not demonstrated at high volatility.",
+      "confirming_thresholds": {
+        "permutation_p_threshold": 0.05,
+        "high_volatility_sigma": 0.6,
+        "comparison_lesions": ["Πⁱ-lesion (Πⁱ_eff = constant)", "α-lesion (α = 0)"],
+        "specificity_required": "β_SM vs. Πⁱ-lesion contrast significant at σ_env = 0.6"
+      },
+      "falsifying_thresholds": {
+        "condition_1": "β_SM produces equivalent or lesser deficit compared to Πⁱ-lesion under all volatility conditions",
+        "condition_2": "No pathway specificity at high volatility (σ_env = 0.6)"
+      }
+    },
+    {
+      "id": "Pred 2.E",
+      "claim": "Full APGI generative model achieves lower BIC than Standard PP and GNWT-only when fit to human IGT trial-by-trial choice sequences (model parsimony test, distinct from simulation performance).",
+      "confirming_evidence": "APGI BIC lower than Standard PP by ΔBIC ≥ 10; APGI BIC lower than GNWT-only by ΔBIC ≥ 10; cross-validated on held-out trials (log-likelihood improvement p < 0.01 via LRT).",
+      "falsifying_evidence": "APGI BIC ≥ any alternative model's BIC on pre-registered dataset; or ΔBIC < 3 against GNWT-only (interoceptive and somatic parameters add no explanatory value).",
+      "confirming_thresholds": {
+        "delta_bic_vs_standard_pp_minimum": 10,
+        "delta_bic_vs_gnwt_only_minimum": 10,
+        "lrt_p_threshold": 0.01,
+        "cross_validation": "held-out trials",
+        "dataset": "human IGT trial-by-trial choice sequences (pre-registered dataset)"
+      },
+      "falsifying_thresholds": {
+        "condition_1": "APGI BIC ≥ any alternative model BIC on pre-registered dataset",
+        "condition_2": "ΔBIC < 3 against GNWT-only"
+      }
+    }
+  ],
+  "validation_status": "validated",
+  "validation_notes": "Fully validated. The APGI_Somatic_Marker_Identifiability.py script is built, integrated, and passes all benchmarks for two-session parameter estimation, Fisher Information Matrix (FIM) block-diagonal verification (condition number < 100), and pathological free-β collinearity demonstration, achieving r > 0.75 across all simulated subjects. Pred 2.e (BIC model comparison) and three-way agent comparison (Pred 2.a) added to match registry EP-2 requirements.",
+  "participants": {
+    "n_target": 1000,
+    "n_minimum": 500,
+    "inclusion_criteria": [
+      "Synthetic agent: computational simulation only — no human participants",
+      "Agent initialised with APGI parameters within physiologically plausible bounds",
+      "Environment: stochastic multi-armed bandit with volatility schedule (σ_env ∈ {0.1, 0.3, 0.6})"
+    ],
+    "exclusion_criteria": [
+      "Simulation runs with numerical instability (S_t > 1e6 or NaN values) excluded",
+      "Runs where convergence not achieved within 500 trials excluded from analysis"
+    ],
+    "human_igt_dataset": {
+      "description": "Pre-registered human IGT choice sequence dataset for Pred 2.e BIC model comparison",
+      "n_minimum": 60,
+      "source": "Pre-registered open dataset (Ahn et al. 2014 or equivalent); exact dataset locked in OSF pre-registration"
+    }
+  },
+  "apparatus": {
+    "simulation_language": "Python 3.11 with NumPy 1.26, SciPy 1.13",
+    "agent_framework": "Custom APGI active inference agent (src/apgi/core.py + somatic marker extension)",
+    "required_script": "APGI_Somatic_Marker_Identifiability.py",
+    "environment": "Stochastic multi-armed bandit (3 arms) with hidden state volatility; reversal probability ∈ {0.02, 0.05, 0.10} per trial",
+    "comparison_conditions": [
+      "Full APGI agent (with somatic marker M̂, β ∈ [0.3, 0.8])",
+      "GNWT-only agent (global workspace ignition, no interoceptive precision weighting)",
+      "Standard PP agent (continuous prediction error, no ignition threshold)",
+      "β_SM-lesion agent (β = 0, somatic channel disabled)",
+      "Πⁱ-lesion agent (Πⁱ_eff = constant, no metabolic gating)",
+      "α-lesion agent (α = 0, metabolic weighting disabled)",
+      "Random baseline agent"
+    ],
+    "random_seeds": "1000 independent seeds per condition for bootstrapped confidence intervals"
+  },
+  "trial_structure": {
+    "isi_ms": null,
+    "target": {
+      "type": "Computational trial: agent selects action from {1, 2, 3}, receives stochastic reward signal",
+      "duration_ms": 0
+    },
+    "response": "Agent selects action via softmax policy over precision-weighted prediction errors"
+  },
+  "blocks": {
+    "practice_trials": 0,
+    "experimental_blocks": 5,
+    "trials_per_block": 100,
+    "total_experimental_trials": 500,
+    "volatility_schedule": "Block-wise: σ_env = [0.1, 0.3, 0.6, 0.3, 0.1]; reversal schedule pseudorandom within block",
+    "high_volatility_block": "Block 3 (σ_env = 0.6) is the primary test block for Pred 2.d pathway specificity"
+  },
+  "somatic_marker_model": {
+    "formula": "M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
+    "V_ca": "Anticipated value of action a in context c (learned via temporal difference)",
+    "A_ca": "Anticipated arousal signal associated with action a in context c (proxy for SCR/heart rate)",
+    "gamma_V_range": [0.3, 0.8],
+    "gamma_A_range": [0.1, 0.5],
+    "modulation_formula": "Πⁱ_eff = Πⁱ_baseline · exp(β · M̂(c,a))",
+    "identifiability_requirement": "Block-diagonal Fisher Information Matrix; M̂ must be orthogonal to raw Πⁱ in fitting procedure — requires APGI_Somatic_Marker_Identifiability.py"
+  },
+  "model_comparison_pred_2e": {
+    "models": [
+      {
+        "name": "Full APGI",
+        "free_parameters": ["θₜ", "Πⁱ", "Πᵉ", "β_SM", "α", "κ"],
+        "description": "Full model with somatic marker modulation and ignition threshold"
+      },
+      {
+        "name": "GNWT-only",
+        "free_parameters": ["θₜ", "Πᵉ", "α", "κ"],
+        "description": "Global workspace ignition without interoceptive precision weighting (β_SM = 0, Πⁱ = 0)"
+      },
+      {
+        "name": "Standard PP",
+        "free_parameters": ["Πⁱ", "Πᵉ", "α", "κ"],
+        "description": "Continuous prediction error model without ignition threshold (θₜ → 0)"
+      }
+    ],
+    "fitting_method": "Maximum likelihood estimation on trial-by-trial choice sequences",
+    "model_selection_criterion": "Bayesian Information Criterion (BIC); lower is better",
+    "cross_validation": "5-fold cross-validation on held-out trials; LRT for nested model comparison"
+  },
+  "dependent_variables": [
+    "Cumulative reward per agent type over 500 trials (primary outcome — Pred 2.a)",
+    "Convergence trial (first trial where running mean reward exceeds 70% optimal) per agent — Pred 2.a",
+    "Pairwise reward comparisons: APGI vs. GNWT-only, APGI vs. Standard PP, GNWT-only vs. Standard PP — Pred 2.a",
+    "Action selection entropy post-ignition vs. pre-ignition (bits) — Pred 2.b",
+    "Proportion of ignition events satisfying Πⁱ·|zⁱ| > Πᵉ·|zᵉ| — Pred 2.b",
+    "Cross-correlation lag: M̂ activation vs. θₜ crossing (lag −5 to +5 trials) — Pred 2.c",
+    "Proportion of ignition events where M̂ leads by ≥ 1 trial — Pred 2.c",
+    "Reward: β_SM-lesion vs. Πⁱ-lesion vs. α-lesion, per volatility block — Pred 2.d",
+    "Reward contrast: β_SM-lesion vs. Πⁱ-lesion specifically at σ_env = 0.6 — Pred 2.d",
+    "BIC: Full APGI vs. GNWT-only vs. Standard PP on human IGT dataset — Pred 2.e",
+    "ΔBIC: Full APGI vs. each alternative — Pred 2.e",
+    "LRT log-likelihood improvement on held-out trials — Pred 2.e",
+    "Ignition rate per agent type per volatility condition",
+    "Threshold adaptation speed (trials to re-optimise after reversal) per agent type"
+  ],
+  "primary_hypothesis": "Full APGI agents converge within 50–80 trials and achieve higher cumulative reward than both GNWT-only and Standard PP agents (all pairwise permutation p < 0.05), with the β_SM lesion deficit largest in high-volatility blocks (σ_env = 0.6), and the full APGI generative model achieving ΔBIC ≥ 10 over GNWT-only when fit to human IGT data.",
+  "primary_analysis": "Pred 2.a: three-way permutation test (10,000 permutations) on cumulative reward; convergence trial comparison. Pred 2.b: Wilcoxon signed-rank for entropy; proportion test for 70–85% interoceptive dominance. Pred 2.c: cross-correlation analysis (lag −5 to +5). Pred 2.d: permutation test for β_SM-lesion deficit specificity at σ_env = 0.6. Pred 2.e: BIC comparison on human IGT dataset; 5-fold cross-validation LRT.",
+  "power_analysis": {
+    "effect_size_d": 0.3,
+    "alpha": 0.05,
+    "power": 0.95,
+    "n_required": 500,
+    "software": "Custom bootstrap power simulation",
+    "based_on": "Damasio somatic marker advantage estimates; active inference agent benchmarks from Friston et al. (2017)"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.5,
+    "gamma_V": 0.6,
+    "gamma_A": 0.3,
+    "pi_i_baseline": 1.0
+  },
+  "ethics": {
+    "committee": "N/A — computational simulation study",
+    "protocol_number": "EXEMPT",
+    "approval_date": "2026-05-18",
+    "exempt_reason": "No human participants. All simulation data are synthetic; agents are computational simulations only. Human subjects ethics approval is not required. Human IGT dataset (Pred 2.e) is used from publicly available anonymised repository only."
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "Somatic marker model M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a) is one formalisation among several; Damasio's original account does not specify γ_V and γ_A uniquely. Values used here are motivated by interoceptive salience literature but require empirical calibration.",
+    "Agent performance advantages depend on volatility magnitude; effect may not replicate in stationary environments.",
+    "Pred 2.a requires a GNWT-only agent implementation that exactly parallels Full APGI except for removal of Πⁱ and β_SM; the architecture difference must be documented precisely to avoid confounding by parameter count.",
+    "Pred 2.e (BIC comparison on human IGT data) requires the specific dataset to be pre-registered before analysis; post-hoc dataset selection would not satisfy the registry criterion."
+  ]
+}

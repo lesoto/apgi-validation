@@ -1,0 +1,227 @@
+{
+  "protocol_id": "APGI-P01",
+  "registry_ep": "EP-1",
+  "registry_protocol_label": "Protocol 1 — Cardiac-EEG",
+  "title": "EEG Study of Interoceptive Precision Gating",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "2.0.0",
+  "last_updated": "2026-06-04",
+  "description": "This protocol examines whether interoceptive precision (Πⁱ), indexed by the heartbeat-evoked potential (HEP, 250–400 ms window), modulates conscious detection thresholds (θₜ). Stimuli are time-locked to cardiac phase to test four sub-predictions: (Pred 1.a) that state-level Πⁱ_eff produces greater P3b amplitude for near-threshold stimuli under interoceptive focus than exteroceptive focus or dual-task control — with the effect absent or reversed for suprathreshold stimuli; (Pred 1.a-trait) that trait-level Πⁱ_baseline, indexed by interoceptive accuracy (IA), predicts greater perceptual sensitivity (d′) in the interoceptive condition but not the exteroceptive condition; (Pred 1.b) that cardiac-phase-locked detection advantage exists at diastole versus systole; and (Pred 1.c) that top-tertile IA participants show the strongest state-level P3b condition effects and cardiac-phase detection advantages. Near-threshold contrast titration is mandatory; suprathreshold control blocks are required to confirm specificity.",
+  "prediction_cluster": "Pred 1.A–1.D",
+  "prediction_cluster_label": "Interoceptive Precision Modulates Detection Threshold",
+  "sub_predictions": [
+    {
+      "id": "Pred 1.A",
+      "claim": "State-level Πⁱ_eff → P3b: interoceptive focus produces greater P3b for near-threshold stimuli than exteroceptive focus or dual-task control. Near-threshold titration mandatory; effect must be absent or reversed for suprathreshold stimuli.",
+      "confirming_evidence": "P3b amplitude: interoceptive > exteroceptive > dual-task (p < 0.05 FWE; ηₚ² ≥ 0.06). Effect absent or reversed in suprathreshold matched control block. HEP predicts P3b (partial r > 0.4 surviving RMSSD and pupil diameter covariate control).",
+      "falsifying_evidence": "No significant P3b condition main effect (all p > 0.10) across N ≥ 30 in preregistered contrast; or HEP–P3b partial correlation < r = 0.20 after arousal covariate control.",
+      "confirming_thresholds": {
+        "p_threshold_fwe": 0.05,
+        "eta_p_squared_minimum": 0.06,
+        "hep_p3b_partial_r_minimum": 0.4,
+        "hep_p3b_covariates": ["RMSSD", "pupil diameter"],
+        "suprathreshold_control": "required — effect must be absent or reversed",
+        "condition_order": "interoceptive > exteroceptive > dual-task"
+      },
+      "falsifying_thresholds": {
+        "p_minimum_all_conditions": 0.10,
+        "n_minimum": 30,
+        "hep_p3b_partial_r_threshold": 0.20
+      }
+    },
+    {
+      "id": "Pred 1.A-trait",
+      "claim": "Trait-level Πⁱ_baseline → d′: high-IA (top tertile) shows greater perceptual sensitivity (d′) than low-IA (bottom tertile), specific to interoceptive detection condition. Group × modality dissociation control required.",
+      "confirming_evidence": "High-IA d′ > Low-IA d′ (independent-samples t or Mann–Whitney, p < 0.05; Cohen's d ≥ 0.5); group difference specific to interoceptive condition, absent in matched exteroceptive condition (group × modality interaction p < 0.05).",
+      "falsifying_evidence": "High-IA and Low-IA do not differ on interoceptive d′ (d < 0.3 across N ≥ 30 per group); or d′ group difference replicates equally in the exteroceptive condition, eliminating interoceptive specificity.",
+      "confirming_thresholds": {
+        "p_group_comparison": 0.05,
+        "cohens_d_minimum": 0.5,
+        "specificity_test": "group × modality interaction p < 0.05",
+        "tertile_grouping": "top vs. bottom tertile on IA (heartbeat counting accuracy)",
+        "n_minimum_per_group": 30
+      },
+      "falsifying_thresholds": {
+        "cohens_d_threshold": 0.3,
+        "n_minimum_per_group": 30,
+        "condition": "Group difference replicates equally in exteroceptive condition (no interaction)"
+      }
+    },
+    {
+      "id": "Pred 1.B",
+      "claim": "Cardiac-phase-locked detection advantage at diastole (300–500 ms post-R-peak) vs. systole (0–150 ms post-R-peak).",
+      "confirming_evidence": "Logistic mixed-effects model: detection ~ cardiac_phase × contrast + cardiac_phase | participant; significant cardiac_phase × contrast interaction (p < 0.05). d′ higher at diastole than systole.",
+      "falsifying_evidence": "Diastole vs. systole hit rate advantage < 5% across two independent samples (interaction p > 0.15); no d′ difference between cardiac phases.",
+      "confirming_thresholds": {
+        "interaction_p_threshold": 0.05,
+        "d_prime_direction": "diastole > systole",
+        "cardiac_phase_windows_ms": {
+          "diastole": [300, 500],
+          "systole": [0, 150]
+        }
+      },
+      "falsifying_thresholds": {
+        "hit_rate_advantage_threshold_percent": 5,
+        "samples_required": 2,
+        "interaction_p_minimum": 0.15
+      }
+    },
+    {
+      "id": "Pred 1.C",
+      "claim": "Top-tertile IA participants show strongest Pred 1.A (state P3b condition effect) and Pred 1.B (cardiac-phase detection advantage) effects.",
+      "confirming_evidence": "Accuracy × condition interaction on P3b amplitude significant (p < 0.05, ηₚ² ≥ 0.08); high-accuracy group shows larger P3b condition difference than low-accuracy group. Accuracy × cardiac-phase interaction on detection rate also significant (p < 0.05).",
+      "falsifying_evidence": "Accuracy × condition interaction p > 0.10; tertile groups do not differ in cardiac-phase detection advantage.",
+      "confirming_thresholds": {
+        "interaction_p_threshold": 0.05,
+        "eta_p_squared_minimum": 0.08,
+        "tertile_grouping": "top vs. bottom tertile on IA",
+        "secondary_cardiac_phase_interaction_p": 0.05
+      },
+      "falsifying_thresholds": {
+        "interaction_p_minimum": 0.10
+      }
+    },
+    {
+      "id": "Pred 1.D",
+      "claim": "HEP amplitude predicts trial-by-trial P3b independently of arousal (partial r > 0.40 after pupil/HRV control).",
+      "confirming_evidence": "Partial r(HEP, P3b | pupil diameter, HRV) > 0.40; p < 0.017 (Bonferroni corrected across three predictions).",
+      "falsifying_evidence": "Partial r < 0.20 after arousal control; or partial correlation indistinguishable from exteroceptive focus condition.",
+      "confirming_thresholds": {
+        "partial_r_minimum": 0.40,
+        "covariates": ["pupil diameter", "HRV (RMSSD)"],
+        "p_threshold_bonferroni": 0.017
+      },
+      "falsifying_thresholds": {
+        "partial_r_threshold": 0.20,
+        "condition": "Partial r < 0.20 after arousal control"
+      }
+    }
+  ],
+  "depends_on": ["EP-0"],
+  "validation_status": "specified",
+  "validation_notes": "Formally specified. Parameter identifiability confirmed via simulation (Appendix A.4). Identifiability of Πⁱ from HEP confirmed via block-diagonal Fisher Information Matrix. Pred 1.A-trait, Pred 1.C, and Pred 1.D added to match registry EP-1 requirements; suprathreshold control blocks added as mandatory. P3b canonical window standardised to 250–500 ms per global ERP Window Lookup Table.",
+  "participants": {
+    "n_target": 40,
+    "n_minimum": 32,
+    "n_per_tertile_group": 13,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Normal or corrected-to-normal vision",
+      "Resting heart rate 50–100 BPM with regular sinus rhythm",
+      "No psychoactive medication within 30 days",
+      "No history of cardiac arrhythmia or autonomic neuropathy"
+    ],
+    "exclusion_criteria": [
+      "Irregular ECG rhythm (assessed by study nurse at screening)",
+      "Resting heart rate < 50 or > 100 BPM",
+      "History of neurological or psychiatric disorder (DSM-5 criteria)",
+      "Use of beta-blockers or other HR-modifying medication",
+      "Inability to maintain fixation for 30-minute EEG blocks"
+    ]
+  },
+  "apparatus": {
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz, re-referenced offline to average mastoids",
+    "ECG": "BrainAmp ExG bipolar lead-II at 1000 Hz, synchronised to EEG clock",
+    "display": "VPixx ProPixx at 120 Hz, viewing distance 57 cm, gamma-corrected",
+    "stimulus_delivery": "Psychtoolbox-3 (MATLAB R2024b) with photodiode verification of onset timing",
+    "pupillometry": "Eyelink 1000 Plus (monocular, 500 Hz) for arousal covariate control (Pred 1.a)",
+    "cardiac_phase_algorithm": "R-peak detection via Pan-Tompkins (real-time), diastole window 300–500 ms post R-peak, systole window 0–150 ms post R-peak",
+    "ia_measure": "Heartbeat counting task (Schandry 1981) administered pre-scan: 6 intervals × 2 conditions; d′ computed as IA index for tertile grouping (Pred 1.a-trait, 1.C)"
+  },
+  "trial_structure": {
+    "isi_ms": [1200, 1600],
+    "fixation_duration_ms": 500,
+    "cardiac_phase_window_ms": {
+      "systole": [0, 150],
+      "diastole": [300, 500]
+    },
+    "jitter_tolerance_ms": 10,
+    "target": {
+      "type": "Gabor patch, vertical orientation",
+      "spatial_frequency_cpd": 3,
+      "contrast_levels_near_threshold": [0.02, 0.04, 0.08, 0.16],
+      "contrast_levels_suprathreshold": [0.64, 0.80],
+      "duration_ms": 33,
+      "background_luminance_cd_m2": 50
+    },
+    "conditions": [
+      "interoceptive_focus (attend to heartbeat while detecting stimulus)",
+      "exteroceptive_focus (attend to external tone while detecting stimulus)",
+      "dual_task_control (attend to both heartbeat and tone simultaneously)"
+    ],
+    "response": "2AFC (seen / not seen), response window 1500 ms, response-locked to keypress"
+  },
+  "blocks": {
+    "practice_trials": 20,
+    "experimental_blocks": 8,
+    "trials_per_block": 60,
+    "total_experimental_trials": 480,
+    "suprathreshold_control_block": "2 additional blocks (60 trials each) at suprathreshold contrast for Pred 1.a specificity test",
+    "break_duration_s": 60,
+    "condition_counterbalancing": "Cardiac phase pseudo-randomised across trials within block; attention condition (interoceptive/exteroceptive/dual-task) counterbalanced across blocks"
+  },
+  "eeg_analysis_pipeline": {
+    "bandpass_filter_hz": [0.1, 40],
+    "epoch_window_ms": [-200, 800],
+    "baseline_correction_ms": [-200, 0],
+    "artifact_rejection_threshold_uv": 100,
+    "hep_window_ms": [250, 400],
+    "hep_channels": ["Cz", "FCz", "Fz"],
+    "p3b_window_ms": [250, 500],
+    "p3b_channels": ["Pz", "P3", "P4"],
+    "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
+    "minimum_clean_epochs_per_condition": 30,
+    "arousal_covariates": ["HRV (RMSSD)", "pupil diameter (z-scored per block)"]
+  },
+  "dependent_variables": [
+    "P3b amplitude (300–600 ms, Pz) per attention condition (interoceptive / exteroceptive / dual-task) — primary (Pred 1.a)",
+    "P3b amplitude × condition ANOVA: ηₚ² for condition main effect — primary (Pred 1.a)",
+    "HEP amplitude (250–400 ms, Cz) per attention condition",
+    "HEP–P3b partial correlation (r), controlling for RMSSD and pupil diameter — Pred 1.a specificity",
+    "P3b condition effect at suprathreshold contrast — Pred 1.a control block",
+    "d-prime (signal detection theory) per attention condition and IA tertile group — Pred 1.a-trait",
+    "Group × modality interaction on d′ (high-IA vs. low-IA × interoceptive vs. exteroceptive) — Pred 1.a-trait",
+    "Detection rate per cardiac phase (systole vs. diastole) — Pred 1.b",
+    "d-prime per cardiac phase — Pred 1.b",
+    "IA (interoceptive accuracy) score per participant — tertile assignment (Pred 1.c)",
+    "Accuracy × attention-condition interaction on P3b amplitude — Pred 1.c",
+    "Accuracy × cardiac-phase interaction on detection rate — Pred 1.c",
+    "HRV (RMSSD) as arousal covariate"
+  ],
+  "primary_hypothesis": "Interoceptive focus produces greater P3b amplitude for near-threshold stimuli than exteroceptive focus or dual-task control (three-way condition difference, ηₚ² ≥ 0.06), this effect is absent at suprathreshold contrast, and HEP amplitude predicts P3b with partial r > 0.4 surviving arousal covariate control. High-IA participants show larger P3b condition effects and diastolic detection advantages than low-IA participants.",
+  "primary_analysis": "Repeated-measures ANOVA: P3b_amplitude ~ condition (interoceptive/exteroceptive/dual-task) × contrast (near/supra-threshold) × cardiac_phase, with HRV and pupil diameter as covariates. FWE-correction across electrode clusters. HEP–P3b partial correlation via mixed-effects with RMSSD and pupil as fixed covariates. IA tertile × condition interaction for Pred 1.c.",
+  "power_analysis": {
+    "effect_size_d": 0.4,
+    "alpha": 0.05,
+    "power": 0.9,
+    "n_required": 34,
+    "software": "G*Power 3.1",
+    "based_on": "Garfinkel et al. (2014) cardiac-phase detection effect; Canales-Johnson et al. (2020) HEP–P3b coupling"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-05-18"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "pi_i_cardiac_systole": 0.6,
+    "pi_i_cardiac_diastole": 1.2,
+    "pi_i_high_ia_estimate": 1.4,
+    "pi_i_low_ia_estimate": 0.7
+  },
+  "ethics": {
+    "committee": "Institutional Review Board",
+    "protocol_number": "IRB-2026-EEG-XXX",
+    "approval_date": "2026-05-01"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "Pred 1.a requires three attention conditions; dual-task control condition substantially increases session length — practice blocks must ensure participants understand the dual-task instruction.",
+    "Suprathreshold control blocks are mandatory for Pred 1.a specificity; failure to include them means Pred 1.a cannot be confirmed per registry criteria.",
+    "IA tertile grouping (Pred 1.a-trait, 1.C) requires pre-scan heartbeat counting; this must be administered identically across sites if multi-site."
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "protocol_id": "APGI-P00",
+  "registry_ep": "EP-0",
+  "registry_protocol_label": "Protocol 0 — Empirical Prerequisite",
+  "title": "HEP Proxy Validation: Establishing the Heartbeat-Evoked Potential as a Πⁱ Index",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-06-04",
+  "description": "This empirical prerequisite protocol establishes the heartbeat-evoked potential (HEP, 250–400 ms window) as a valid trial-by-trial proxy for interoceptive precision Πⁱ before any downstream EP-1 through EP-6 analyses are interpreted. Three sub-predictions are tested: that HEP amplitude correlates with an orthogonal Πⁱ index (heartbeat discrimination d′) independent of any EEG measure (Pred 0.A); that pharmacological elevation of acetylcholine via physostigmine increases HEP amplitude in a dose-dependent manner confirmed by pupillometric engagement (Pred 0.B); and that anterior insula (aINS) BOLD signal tracks HEP amplitude trial-by-trial within participants after controlling for arousal (Pred 0.C). All three predictions must pass before HEP is used as a Πⁱ proxy in downstream protocols. Failure of any Pred 0 criterion is a submission-blocking issue for all protocols referencing HEP.",
+  "prediction_cluster": "Pred 0.A–0.C",
+  "prediction_cluster_label": "HEP Proxy Validation (Empirical Prerequisite)",
+  "sub_predictions": [
+    {
+      "id": "Pred 0.A",
+      "claim": "HEP amplitude correlates with orthogonal Πⁱ index (heartbeat discrimination d′) — independent of any EEG measure",
+      "confirming_evidence": "r(HEP, interoceptive d′) > 0.35, p < 0.01, two-tailed; replicated r ≥ 0.25 in independent validation subsample (N ≥ 30)",
+      "falsifying_evidence": "r < 0.20 across two independent samples",
+      "confirming_thresholds": {
+        "r_primary_sample": 0.35,
+        "p_primary": 0.01,
+        "r_replication_sample": 0.25,
+        "n_replication_minimum": 30,
+        "test_type": "two-tailed"
+      },
+      "falsifying_thresholds": {
+        "r_threshold": 0.20,
+        "samples_required": 2
+      }
+    },
+    {
+      "id": "Pred 0.B",
+      "claim": "Physostigmine (ACh elevation) increases HEP amplitude",
+      "confirming_evidence": "HEP amplitude increases ≥15% vs. placebo (Cohen's d ≥ 0.50, BF₁₀ ≥ 100); pupil constriction confirms target engagement",
+      "falsifying_evidence": "No HEP change despite verified ACh elevation (pupil constriction confirmed)",
+      "confirming_thresholds": {
+        "hep_increase_percent_minimum": 15,
+        "cohens_d_minimum": 0.50,
+        "bf10_minimum": 100,
+        "engagement_check": "pupil constriction confirmed by pupillometry"
+      },
+      "falsifying_thresholds": {
+        "condition": "No HEP change when pupil constriction confirms physostigmine target engagement"
+      }
+    },
+    {
+      "id": "Pred 0.C",
+      "claim": "Anterior insula (aINS) BOLD tracks HEP amplitude trial-by-trial",
+      "confirming_evidence": "r(HEP amplitude, aINS BOLD) > 0.30 within participants after arousal covariate control",
+      "falsifying_evidence": "aINS BOLD and HEP statistically independent after arousal covariate",
+      "confirming_thresholds": {
+        "r_within_participant_minimum": 0.30,
+        "covariate_control": "arousal (HRV, pupil diameter)",
+        "analysis_level": "within-participant"
+      },
+      "falsifying_thresholds": {
+        "condition": "Statistically independent after arousal covariate"
+      }
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "Empirical prerequisite for all downstream protocols referencing HEP as a Πⁱ proxy. Failure of any sub-prediction (0.A, 0.B, or 0.C) constitutes a submission-blocking issue requiring protocol amendment before EP-1 through EP-6 results are submitted.",
+  "submission_blocking_status": "PREREQUISITE — all three predictions must pass before HEP is used as Πⁱ proxy in EP-1 through EP-6",
+  "participants": {
+    "n_target": 50,
+    "n_minimum": 40,
+    "n_validation_subsample": 30,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Normal or corrected-to-normal vision",
+      "Resting heart rate 50–100 BPM with regular sinus rhythm",
+      "No psychoactive medication within 30 days",
+      "No history of cardiac arrhythmia or autonomic neuropathy",
+      "Willingness to complete two sessions (main + replication subsample)"
+    ],
+    "exclusion_criteria": [
+      "Irregular ECG rhythm (assessed by study nurse at screening)",
+      "Resting heart rate < 50 or > 100 BPM",
+      "History of neurological or psychiatric disorder (DSM-5 criteria)",
+      "Use of beta-blockers or other HR-modifying medication",
+      "Contraindication to physostigmine: glaucoma, bradycardia, active asthma, peptic ulcer disease, urinary obstruction",
+      "Inability to maintain fixation for 30-minute EEG blocks",
+      "Pregnant or breastfeeding (physostigmine arm)"
+    ],
+    "physostigmine_arm_criteria": {
+      "n_target": 30,
+      "design": "Double-blind, placebo-controlled, crossover (physostigmine 1.0 mg i.v. vs. saline placebo)",
+      "washout_days": 7,
+      "monitoring": "Continuous ECG, blood pressure, pulse oximetry during infusion; physician present"
+    }
+  },
+  "apparatus": {
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz, re-referenced offline to average mastoids",
+    "ECG": "BrainAmp ExG bipolar lead-II at 1000 Hz, synchronised to EEG clock",
+    "pupillometry": "Eyelink 1000 Plus (monocular, 500 Hz) for pupil diameter as arousal covariate and physostigmine engagement check",
+    "fMRI_for_0C": "3T Siemens Prisma, 64-channel head coil; multi-band EPI TR = 1000 ms, TE = 30 ms, 2 mm isotropic (separate sub-session for Pred 0.C)",
+    "cardiac_phase_algorithm": "R-peak detection via Pan-Tompkins (real-time), HEP epoch −200 to +800 ms post R-peak",
+    "heartbeat_discrimination_task": "Modified Schandry task: participants count heartbeats during silent intervals (15, 25, 35, 45, 50 s); d′ computed from hit rate and false alarm rate against reference ECG"
+  },
+  "trial_structure": {
+    "isi_ms": null,
+    "target": {
+      "type": "Heartbeat discrimination trial: silent interval with ECG-verified heartbeat counting (Pred 0.A); resting EEG + physostigmine infusion (Pred 0.B); resting fMRI + EEG simultaneously (Pred 0.C)",
+      "duration_ms": 0
+    },
+    "response": "Pred 0.A: verbal count of perceived heartbeats per interval. Pred 0.B: no task (resting state, passive). Pred 0.C: passive resting state fMRI."
+  },
+  "blocks": {
+    "practice_trials": 5,
+    "experimental_blocks": 4,
+    "trials_per_block": 10,
+    "total_experimental_trials": 40,
+    "pred_0a_trials": "6 heartbeat discrimination intervals × 2 sessions (main + replication subsample)",
+    "pred_0b_sessions": "2 (physostigmine vs. placebo, counterbalanced, separated by 7-day washout)",
+    "pred_0c_session": "Single 45-minute simultaneous EEG-fMRI resting-state session"
+  },
+  "eeg_analysis_pipeline": {
+    "bandpass_filter_hz": [0.1, 40],
+    "epoch_window_ms": [-200, 800],
+    "baseline_correction_ms": [-200, 0],
+    "artifact_rejection_threshold_uv": 100,
+    "hep_window_ms": [250, 400],
+    "hep_channels": ["Cz", "FCz", "Fz"],
+    "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
+    "minimum_clean_epochs": 40,
+    "arousal_covariates": ["HRV (RMSSD)", "pupil diameter (z-scored per session)"]
+  },
+  "fmri_analysis_pipeline_pred_0c": {
+    "preprocessing_software": "fMRIPrep 23.2 (BIDS-compatible)",
+    "spatial_smoothing_fwhm_mm": 6,
+    "motion_correction": "ICA-AROMA denoising; scrubbing at FD > 0.5 mm",
+    "GLM_regressor": "Single-trial HEP amplitude (250–400 ms, Cz) as parametric modulator of BOLD signal",
+    "roi": "Anterior insula (aINS): anatomical mask from AAL2 atlas",
+    "nuisance_regressors": "6 motion parameters, CSF signal, WM signal, cardiac noise (RETROICOR)",
+    "arousal_covariate": "Mean pupil diameter per TR, RMSSD per 30-s window"
+  },
+  "dependent_variables": [
+    "Heartbeat discrimination d′ per participant (Pred 0.A)",
+    "HEP mean amplitude (250–400 ms) at Cz, FCz, Fz (all predictions)",
+    "r(HEP amplitude, heartbeat discrimination d′) — primary sample",
+    "r(HEP amplitude, heartbeat discrimination d′) — validation subsample (N ≥ 30)",
+    "HEP amplitude change: physostigmine vs. placebo, % and Cohen's d (Pred 0.B)",
+    "BF₁₀ for physostigmine HEP effect (Pred 0.B)",
+    "Pupil constriction onset time and magnitude: physostigmine vs. placebo (engagement check)",
+    "r(HEP amplitude, aINS BOLD) within participants after arousal covariate control (Pred 0.C)"
+  ],
+  "primary_hypothesis": "HEP amplitude in the 250–400 ms window serves as a valid proxy for interoceptive precision Πⁱ, evidenced by (1) correlation with orthogonal heartbeat discrimination d′ > 0.35 replicated across two independent samples, (2) significant increase under physostigmine-induced ACh elevation confirmed by pupillometry, and (3) within-participant tracking of anterior insula BOLD signal after arousal covariate control.",
+  "primary_analysis": "Pred 0.A: Pearson r between HEP amplitude and heartbeat d′; one-tailed test (directional) with pre-specified threshold r > 0.35; replicated in subsample. Pred 0.B: paired t-test (physostigmine vs. placebo) on HEP amplitude; Bayes Factor via JZS prior (r = 0.707). Pred 0.C: first-level GLM with single-trial HEP as parametric modulator; second-level t-test on aINS beta estimates; partial correlation controlling for pupil diameter and RMSSD.",
+  "power_analysis": {
+    "effect_size_d": 0.5,
+    "alpha": 0.01,
+    "power": 0.90,
+    "n_required": 40,
+    "software": "G*Power 3.1",
+    "based_on": "Canales-Johnson et al. (2020) HEP–interoception correlation r ≈ 0.38; Filippetti et al. (2022) physostigmine HEP effects d ≈ 0.55"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-06-04"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "hep_pi_i_mapping": "HEP₂₅₀₋₄₀₀ = a₀ + a₁·Πⁱ + ε_HEP; a₁ > 0 required for proxy validity",
+    "pi_i_resting_estimate": 1.0
+  },
+  "ethics": {
+    "committee": "Institutional Review Board (includes pharmacology sub-board for physostigmine arm)",
+    "protocol_number": "IRB-2026-HEP-PROXY-XXX",
+    "approval_date": "2026-06-04",
+    "physostigmine_ind": "Physostigmine administered under IND or equivalent local regulatory approval; physician present during infusion"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "Pred 0.B requires a separate pharmacological sub-session; if physostigmine arm cannot be completed (regulatory or safety reasons), Pred 0.B is downgraded to 'deferred' and does not block submission provided Pred 0.A and 0.C both pass.",
+    "Pred 0.C requires simultaneous EEG-fMRI, which introduces MRI gradient artifacts in EEG; ICA-based artifact removal is mandatory before HEP computation in scanner.",
+    "Heartbeat discrimination d′ is subject to demand characteristics; task instructions must avoid mentioning heartbeats to prevent voluntary respiratory synchronisation."
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "protocol_id": "APGI-P04",
+  "registry_ep": "EP-4",
+  "registry_protocol_label": "Protocol 4 — Metabolic-State Crossover",
+  "title": "Metabolic-State Crossover: Allostatic Threshold Modulation Under Energy Deficit",
+  "paper": "APGI Paper 1",
+  "osf_url": "https://osf.io/XXXXXX",
+  "version": "1.0.0",
+  "last_updated": "2026-06-19",
+  "description": "This protocol provides the direct human empirical validation for the claim that the ignition threshold θₜ is dynamically regulated by metabolic state as an allostatic triage mechanism. APGI posits that interoceptive precision weighting (Πⁱ_eff) and somatic-marker retrieval rely on metabolically expensive neuromodulatory gain. Under conditions of energy deficit, the framework predicts that the brain selectively elevates θₜ to suppress high-cost interoceptive channels, preserving essential exteroceptive processing. Three sub-predictions are tested: (Pred 4.A) metabolic depletion selectively elevates θₜ for high-interoceptive-load stimuli, reducing d′ disproportionately vs. neutral exteroceptive stimuli (Metabolic State × Interoceptive Load interaction, LMM p < 0.05, ηₚ² ≥ 0.06); (Pred 4.B) the neural ignition proxy (P3b amplitude) reflects selective θₜ elevation, disproportionately suppressed for interoceptive targets under metabolic depletion; (Pred 4.C) the allostatic triage effect is mediated by metabolic cost, not generalized cognitive fatigue — the interaction survives strict covariation for trial-level pupil diameter and RMSSD.",
+  "prediction_cluster": "Pred 4.A–4.C",
+  "prediction_cluster_label": "Metabolic Allostatic Triage: Selective θₜ Elevation for High-Interoceptive-Load Stimuli",
+  "sub_predictions": [
+    {
+      "id": "Pred 4.A",
+      "claim": "Metabolic depletion selectively elevates θₜ for high-interoceptive-load stimuli, reducing d′ disproportionately compared to neutral exteroceptive stimuli.",
+      "confirming_evidence": "Significant Metabolic State × Interoceptive Load interaction on d′ (LMM p < 0.05, ηₚ² ≥ 0.06); simple effects show d′ reduction for interoceptive load > 15% greater than for exteroceptive load under depletion.",
+      "falsifying_evidence": "(a) No significant Metabolic State × Interoceptive Load interaction on d′ or P3b amplitude (p > 0.10); OR (b) metabolic depletion produces a uniform, global suppression of ignition proxies across all stimulus types, indicating generalized cognitive fatigue rather than selective θₜ elevation.",
+      "confirming_thresholds": {
+        "lmm_interaction_p_threshold": 0.05,
+        "eta_p_squared_minimum": 0.06,
+        "d_prime_interoceptive_vs_exteroceptive_reduction_minimum_percent": 15,
+        "analysis": "Linear mixed-effects model with Metabolic State × Interoceptive Load interaction"
+      },
+      "falsifying_thresholds": {
+        "condition_1": "No significant interaction (p > 0.10) on d′ or P3b",
+        "condition_2": "Uniform global suppression across all stimulus types"
+      }
+    },
+    {
+      "id": "Pred 4.B",
+      "claim": "The neural ignition proxy (P3b amplitude) reflects selective θₜ elevation: P3b is disproportionately suppressed for detected high-interoceptive-load stimuli under metabolic depletion.",
+      "confirming_evidence": "Significant Metabolic State × Interoceptive Load interaction on P3b amplitude (p < 0.05); P3b reduction for interoceptive targets exceeds exteroceptive targets by ≥ 1.5 µV after arousal covariation.",
+      "falsifying_evidence": "Uniform P3b suppression across all stimulus types; or P3b interaction disappears after covarying for pupil diameter / HRV (indicating an arousal confound rather than allostatic triage).",
+      "confirming_thresholds": {
+        "interaction_p_threshold": 0.05,
+        "p3b_reduction_interoceptive_vs_exteroceptive_minimum_uv": 1.5,
+        "covariate_control": "arousal covariation (pupil diameter and RMSSD) required",
+        "channels": ["Pz", "P3", "P4"],
+        "window_ms": [250, 500]
+      },
+      "falsifying_thresholds": {
+        "condition_1": "Uniform P3b suppression across all stimulus types",
+        "condition_2": "Interaction disappears after arousal covariation (Δηₚ² < 0.02 or p > 0.10)"
+      }
+    },
+    {
+      "id": "Pred 4.C",
+      "claim": "The allostatic triage effect is mediated by metabolic cost, not generalized cognitive fatigue: the interaction survives strict covariation for general arousal.",
+      "confirming_evidence": "The Metabolic State × Interoceptive Load interaction on d′ and P3b remains significant (p < 0.05) when trial-level baseline pupil diameter and RMSSD are included as nuisance covariates in the mixed-effects model. BF₁₀ ≥ 100 for the interaction term.",
+      "falsifying_evidence": "The interaction effect is fully absorbed by arousal covariates (Δηₚ² < 0.02 or interaction p > 0.10 after covariation), indicating the effect is driven by LC-NE arousal rather than metabolic allostatic triage.",
+      "confirming_thresholds": {
+        "interaction_p_threshold": 0.05,
+        "bf10_minimum": 100,
+        "covariates_required": ["trial-level baseline pupil diameter", "RMSSD"],
+        "covariate_model": "LMM: d′ ~ MetabolicState × InteroceptiveLoad + PupilDiameter + RMSSD + (1 + MetabolicState | Participant) + (1 | Site)"
+      },
+      "falsifying_thresholds": {
+        "condition_1": "Δηₚ² < 0.02 after arousal covariation",
+        "condition_2": "Interaction p > 0.10 after covariation"
+      }
+    }
+  ],
+  "validation_status": "specified",
+  "validation_notes": "Pre-registered crossover design. Depends on EP-0 (HEP proxy validation) and EP-1 (cardiac-EEG) for interoceptive load stimulus validation. Multi-site design (≥ 2 independent laboratories) required for target N ≥ 60.",
+  "depends_on": ["EP-0", "EP-1"],
+  "participants": {
+    "n_target": 60,
+    "n_minimum": 48,
+    "n_sites": 2,
+    "attrition_allowance_percent": 15,
+    "inclusion_criteria": [
+      "Age 18–45 years",
+      "Normal or corrected-to-normal vision",
+      "No metabolic or endocrine disorder (diabetes, thyroid disease, eating disorder)",
+      "BMI 18–30 kg/m²",
+      "No history of cardiac arrhythmia or autonomic neuropathy",
+      "Willingness to complete two sessions separated by ≥ 7 days (fasted vs. fed crossover)",
+      "Right-handedness (Edinburgh Handedness Inventory ≥ +40)"
+    ],
+    "exclusion_criteria": [
+      "Diabetes mellitus type 1 or 2 (fasting arm contraindicated)",
+      "Current psychoactive or cardiovascular medication",
+      "Irregular ECG rhythm at screening",
+      "History of hypoglycemic episodes",
+      "History of neurological or psychiatric disorder (DSM-5 criteria)",
+      "Shift work schedule or irregular sleep during the preceding 2 weeks",
+      "Pregnancy or breastfeeding"
+    ],
+    "safety_monitoring": {
+      "fasting_arm": {
+        "screening": "Capillary blood glucose confirmed ≥ 4.5 mmol/L at session onset to confirm euglycemia pre-session",
+        "termination_criteria": [
+          "Symptomatic hypoglycemia (capillary glucose < 3.5 mmol/L)",
+          "Dizziness or presyncope"
+        ],
+        "post_termination": "Participants meeting any criterion are withdrawn from fasting arm but may complete vigilance arm at separate visit; study-level withdrawal requires medical review"
+      },
+      "vigilance_arm": {
+        "termination_criteria": [
+          "HRV (RMSSD) dropping > 40% from baseline with concurrent subjective distress (≥ 6/10 Borg fatigue scale)"
+        ],
+        "study_level_termination": "Two session-level terminations in the same participant require medical review before continuation"
+      },
+      "dsmb_reporting": "All AEs reported to DSMB per Global Safety Protocol"
+    }
+  },
+  "apparatus": {
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz; electrode impedance checks every 60 min during vigilance session; recordings with impedance > 20 kΩ at primary scalp sites flagged for offline interpolation",
+    "ECG": "BrainAmp ExG bipolar lead-II synchronised to EEG",
+    "pupillometry": "Eyelink 1000 Plus (monocular, 500 Hz) for trial-level pupil diameter as arousal covariate",
+    "cardiac_phase": "Real-time Pan-Tompkins R-peak detection; systolic phase 0–150 ms post-R-peak; diastolic phase 300–500 ms post-R-peak",
+    "blood_glucose": "HemoCue Glucose 201+ capillary glucose meter for fasting arm eligibility check and monitoring",
+    "display": "VPixx ProPixx at 120 Hz, gamma-corrected; photodiode-verified stimulus onset"
+  },
+  "design": {
+    "type": "Pre-registered, arousal-matched, within-subject crossover",
+    "metabolic_depletion_modalities": [
+      {
+        "modality": "16-hour overnight fast vs. fed control state",
+        "fed_control": "Standardized 600 kcal mixed-macronutrient meal consumed 2 hours prior; capillary glucose ≥ 4.5 mmol/L at session onset",
+        "counterbalancing": "Counterbalanced across participants or sites"
+      },
+      {
+        "modality": "Prolonged time-on-task vigilance paradigm (4-hour continuous AX-CPT) vs. rested baseline",
+        "counterbalancing": "Counterbalanced across participants or sites"
+      }
+    ],
+    "rationale": "Two validated induction modalities to avoid severe motion, sweat, and sympathetic EMG artifacts associated with exhaustive exercise or hypoglycemic clamps"
+  },
+  "trial_structure": {
+    "isi_ms": [800, 1200],
+    "fixation_duration_ms": 500,
+    "stimulus_streams": [
+      {
+        "type": "High-interoceptive-load",
+        "description": "Visual targets synchronized to systolic cardiac phase (or threat-conditioned cues validated in EP-1 / EP-3)"
+      },
+      {
+        "type": "Neutral exteroceptive",
+        "description": "Visual targets synchronized to diastole / unconditioned neutral cues"
+      }
+    ],
+    "target": {
+      "type": "Near-threshold Gabor patch or validated threat-conditioned cue",
+      "threshold_calibration": "Adaptive QUEST staircase, 50% detection criterion, pre-session",
+      "duration_ms": 33
+    },
+    "response": "2AFC (detected / not detected); response window 1500 ms; button press with non-dominant hand"
+  },
+  "blocks": {
+    "practice_trials": 20,
+    "experimental_blocks": 8,
+    "trials_per_block": 60,
+    "total_experimental_trials": 480,
+    "artifact_monitoring": "Continuous online amplitude threshold ±100 µV; sessions with > 30% trial rejection rate classified as unusable and trigger session-level protocol termination"
+  },
+  "eeg_analysis_pipeline": {
+    "bandpass_filter_hz": [0.1, 40],
+    "epoch_window_ms": [-200, 800],
+    "baseline_correction_ms": [-200, 0],
+    "artifact_rejection_threshold_uv": 100,
+    "p3b_window_ms": [250, 500],
+    "p3b_channels": ["Pz", "P3", "P4"],
+    "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
+    "minimum_clean_epochs": 40,
+    "arousal_covariates": ["trial-level baseline pupil diameter (z-scored per session)", "RMSSD (30-s window)"]
+  },
+  "statistical_model": {
+    "behavioral": "d′ ~ MetabolicState × InteroceptiveLoad + PupilDiameter + RMSSD + (1 + MetabolicState | Participant) + (1 | Site)",
+    "neural": "P3b_Amplitude ~ MetabolicState × InteroceptiveLoad + PupilDiameter + RMSSD + (1 + MetabolicState | Participant) + (1 | Site)",
+    "critical_test": "MetabolicState × InteroceptiveLoad interaction term",
+    "bayes_factor": "BF₁₀ computed for interaction term; BF₁₀ ≥ 100 required for strong confirmation",
+    "software": "lme4 package in R; BayesFactor package for BF₁₀"
+  },
+  "dependent_variables": [
+    "Perceptual sensitivity d′ per condition (Metabolic State × Interoceptive Load) — primary (Pred 4.A)",
+    "P3b amplitude (250–500 ms, Pz/P3/P4) per condition — primary neural (Pred 4.B)",
+    "Metabolic State × Interoceptive Load interaction on d′ (LMM, ηₚ²) — Pred 4.A",
+    "Metabolic State × Interoceptive Load interaction on P3b (LMM, ηₚ²) — Pred 4.B",
+    "d′ reduction: interoceptive load vs. exteroceptive load under depletion (% difference) — Pred 4.A simple effect",
+    "P3b reduction: interoceptive vs. exteroceptive under depletion (µV difference) — Pred 4.B simple effect",
+    "Interaction after arousal covariation (Δηₚ², p-value) — Pred 4.C",
+    "BF₁₀ for interaction term — Pred 4.C",
+    "Trial-level baseline pupil diameter (mm) per condition",
+    "RMSSD (ms) per 30-s window",
+    "Capillary blood glucose (mmol/L) at session onset — fasting arm eligibility"
+  ],
+  "primary_hypothesis": "Metabolic depletion (16-hour fast or 4-hour vigilance) selectively elevates θₜ for high-interoceptive-load stimuli, producing a significant Metabolic State × Interoceptive Load interaction on d′ (ηₚ² ≥ 0.06) and P3b amplitude that survives strict covariation for arousal (pupil diameter and RMSSD), consistent with allostatic triage rather than generalized cognitive fatigue.",
+  "primary_analysis": "Linear mixed-effects models fitted in R (lme4). Critical test: Metabolic State × Interoceptive Load interaction on d′ and P3b amplitude, with trial-level arousal covariates (pupil, RMSSD). BF₁₀ ≥ 100 required for strong confirmation. Simple effects reported for each metabolic depletion modality separately and combined.",
+  "power_analysis": {
+    "effect_size_d": 0.45,
+    "alpha": 0.05,
+    "power": 0.80,
+    "n_required": 52,
+    "n_target_with_attrition": 60,
+    "software": "G*Power 3.1",
+    "interaction_type": "within-subject 2×2 (Metabolic State × Interoceptive Load)",
+    "based_on": "Moderate interaction effect for metabolic-state modulation of near-threshold perceptual sensitivity; multi-site variance accounted for by (1 | Site) random effect"
+  },
+  "pre_registration": {
+    "platform": "OSF",
+    "url": "https://osf.io/XXXXXX",
+    "date": "2026-06-19"
+  },
+  "apgi_parameters": {
+    "kappa": 100,
+    "alpha": 0.3,
+    "beta_initial_estimate": 0.7,
+    "allostatic_threshold_equation": "dθ/dt = −(θ − θ₀)/τ_θ + γ_M · M(t) + γ_A · A(t)",
+    "gamma_M_estimated": 0.4,
+    "gamma_A_estimated": 0.2,
+    "theta_baseline": 1.0,
+    "tau_theta_estimated": 10
+  },
+  "ethics": {
+    "committee": "Institutional Review Board (multi-site; fasting arm requires metabolic safety clearance)",
+    "protocol_number": "IRB-2026-METABOLIC-XXX",
+    "approval_date": "2026-06-19",
+    "multi_site": "Coordinating IRB approval required; each site obtains local IRB approval for fasting arm"
+  },
+  "submission_blocking_issues": [],
+  "caveats": [
+    "Fasting arm participants must be medically screened for metabolic contraindications (diabetes, eating disorders) before enrollment.",
+    "The two metabolic depletion modalities (fasting vs. vigilance) are pre-specified as independent replications; failure of one modality does not block submission if the other confirms the interaction.",
+    "Electrode impedance must be checked every 60 minutes during the 4-hour vigilance arm; sessions exceeding > 30% trial rejection due to sweat artifacts are classified as unusable.",
+    "Pred 4.C requires that the interaction survives arousal covariation; if it does not, the effect is reclassified as LC-NE arousal-mediated rather than allostatic triage — this is a pre-specified reclassification, not a falsification of the existence of the effect.",
+    "Protocol depends on EP-0 for HEP proxy validity and EP-1 for interoceptive load stimulus characterization; if EP-0 fails, interoceptive load conditions relying on HEP as the Πⁱ index are reclassified as exploratory."
+  ]
+}
