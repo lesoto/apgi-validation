@@ -387,7 +387,7 @@ _PRIORITY_LABELS = {1: "Priority 1 — High", 2: "Priority 2 — Medium", 3: "Pr
 
 
 class OSFProtocolGUI:
-    """GUI for APGI Open Science Framework — EP-0 through EP-14 prediction registry management."""
+    """GUI for APGI Open Science Framework"""
 
     def __init__(self, root: tk.Tk, headless: bool = False) -> None:
         self.root = root
@@ -407,7 +407,7 @@ class OSFProtocolGUI:
         if not self.headless:
             apply_apgi_theme(self.root)
             self._process_gui_queue()
-            self.root.title("APGI Open Science Framework — Prediction Registry (EP-0 – EP-14)")
+            self.root.title("APGI Open Science Framework — Prediction Registry (Protocols 0 to 7)")
             self.root.geometry("1020x740")
             self.root.minsize(800, 560)
             self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -477,7 +477,7 @@ class OSFProtocolGUI:
     def _show_about(self) -> None:
         messagebox.showinfo(
             "About",
-            "APGI Open Science Framework GUI\nPrediction Registry Manager (EP-0 – EP-14)\nVersion 2.0.0",
+            "APGI Open Science Framework GUI\nPrediction Registry Manager (EP-0 – EP-7)\nVersion 2.0.0",
         )
 
     # ── UI Construction ───────────────────────────────────────────────────────

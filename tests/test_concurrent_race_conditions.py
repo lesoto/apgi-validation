@@ -118,6 +118,7 @@ class TestConfigManagerConcurrency:
 
         manager = ConfigManager()
         errors = []
+        created_profiles = []  # Track created profiles for cleanup
 
         def profile_creator(thread_id):
             try:
@@ -125,6 +126,7 @@ class TestConfigManagerConcurrency:
                     try:
                         profile_name = f"profile_{thread_id}_{i}"
                         manager.create_profile(profile_name, f"Test profile {i}", "test")
+                        created_profiles.append(profile_name)  # Track for cleanup
                     except (ValueError, AttributeError, TypeError):
                         pass  # Method might not exist or have different signature
             except Exception as e:
@@ -135,6 +137,13 @@ class TestConfigManagerConcurrency:
             t.start()
         for t in threads:
             t.join()
+
+        # Cleanup: Remove all created test profiles to avoid pollution
+        for profile_name in created_profiles:
+            try:
+                manager.delete_profile(profile_name)
+            except Exception:
+                pass  # Ignore errors during cleanup
 
         assert len(errors) == 0, f"Concurrent profile creation raised errors: {errors}"
 

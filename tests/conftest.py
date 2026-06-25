@@ -909,6 +909,70 @@ def assert_performance_within_tolerance(actual_time: float, expected_time: float
     ), f"Performance {actual_time:.3f}s not within tolerance of {expected_time:.3f}s ± {tolerance * 100}%"
 
 
+@pytest.fixture(autouse=True)
+def cleanup_test_profiles():
+    """Auto-cleanup test profiles created during tests.
+    
+    Prevents auto-generated profile files (like profile_0_0.yaml, profile_4_3.yaml)
+    from accumulating in config/profiles directory. This fixture automatically runs
+    before and after each test to clean up any temporary profiles created by tests.
+    """
+    # Get the profiles directory
+    project_root = Path(__file__).parent.parent
+    profiles_dir = project_root / "config" / "profiles"
+    
+    # List of known good profiles that should not be deleted
+    protected_profiles = {
+        "adhd.yaml",
+        "anxiety-disorder.yaml",
+        "autism-spectrum-disorder.yaml",
+        "research-default.yaml",
+        "generalized-anxiety-disorder.yaml",
+        "major-depressive-disorder.yaml",
+        "test_profile.yaml",
+        # Add other legitimate clinical profiles here
+        "acute-stress-disorder.yaml",
+        "anorexia-nervosa.yaml",
+        "binge-eating-disorder.yaml",
+        "bipolar-i.yaml",
+        "body-dysmorphic-disorder.yaml",
+        "borderline-personality-disorder.yaml",
+        "bulimia-nervosa.yaml",
+        "gender-dysphoria.yaml",
+        "hoarding-disorder.yaml",
+        "insomnia-disorder.yaml",
+        "obsessive-compulsive-disorder.yaml",
+        "panic-disorder.yaml",
+        "ptsd.yaml",
+        "schizophrenia.yaml",
+        "social-anxiety-disorder.yaml",
+        "somatic-symptom-disorder.yaml",
+        "specific-phobia.yaml",
+    }
+    
+    # Cleanup before test (remove any leftover test profiles)
+    if profiles_dir.exists():
+        for profile_file in profiles_dir.glob("profile_*.yaml"):
+            # Only delete numbered profiles (profile_X_Y.yaml pattern)
+            if profile_file.name.startswith("profile_") and "_" in profile_file.stem:
+                try:
+                    profile_file.unlink()
+                except Exception:
+                    pass  # Ignore errors during cleanup
+    
+    yield
+    
+    # Cleanup after test (remove any test profiles created during test)
+    if profiles_dir.exists():
+        for profile_file in profiles_dir.glob("*.yaml"):
+            # Delete auto-generated test profiles but protect known good profiles
+            if profile_file.name not in protected_profiles:
+                try:
+                    profile_file.unlink()
+                except Exception:
+                    pass  # Ignore errors during cleanup
+
+
 if __name__ == "__main__":
     print("conftest.py is a pytest configuration file and should not be run directly.")
     print("Use 'pytest' to run the test suite.")
