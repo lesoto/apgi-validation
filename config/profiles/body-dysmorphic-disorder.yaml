@@ -10,7 +10,7 @@ description: >
   Body Dysmorphic Disorder (BDD) - Hyper-precise visual self-representation 
   with appearance-focused prediction errors. Elevated precision on perceived 
   physical flaws and excessive self-monitoring.
-  Level 1 elevation - visual-perceptual processing dominates.
+  Tier 1 elevation - visual-perceptual processing dominates.
 empirical_validation:
   citations:
     - Buhlmann & Winter 2011 (BDD models)
@@ -24,7 +24,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 1
-  level_description: 'Level 1 elevation - visual-perceptual processing dominates'
+  level_description: 'Tier 1 elevation - visual-perceptual processing dominates'
   cross_level_coupling:
     L1_L2: 0.75
     L2_L3: 0.50

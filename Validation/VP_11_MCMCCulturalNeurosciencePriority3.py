@@ -29,8 +29,8 @@ to validate that:
   (c) Individual-difference structure in the posterior is consistent with
       paper predictions:
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA
@@ -3314,7 +3314,7 @@ def get_extended_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         },
         "F1.3": {
             "description": "Level-Specific Precision Weighting",
-            "threshold": "Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks",
+            "threshold": "Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Tier 1 interoceptive precision 25-40% higher than Tier 3 during interoceptive salience tasks",
             "test": "Repeated-measures ANOVA (Level × Precision Type), α = 0.001; post-hoc Tukey HSD",
             "effect_size": "Partial η² ≥ 0.15 for Level × Type interaction",
             "alternative": "Falsified if Level 1-3 interoceptive precision difference <15% OR interaction p ≥ 0.01 OR partial η² < 0.08",
@@ -3609,8 +3609,8 @@ def check_falsification(
         hierarchical_levels_detected: Number of hierarchical policy levels detected
         peak_separation_ratio: Ratio of peak separation to lower timescale
         eta_squared_timescales: Eta-squared for timescale ANOVA
-        level1_intero_precision: Level 1 interoceptive precision
-        level3_intero_precision: Level 3 interoceptive precision
+        level1_intero_precision: Tier 1 interoceptive precision
+        level3_intero_precision: Tier 3 interoceptive precision
         partial_eta_squared_f1_3: Partial η² for interaction
         p_interaction_f1_3: P-value for interaction
         threshold_adaptation: Percentage threshold adaptation

@@ -4,9 +4,9 @@ Falsification Protocol 3: Framework-Level Multi-Protocol Testing
 
 Framework-level falsification testing across multiple protocols simultaneously.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -2911,7 +2911,7 @@ def check_falsification(
         "cohens_d": cohens_d_rm,
         "p_value": p_rm,
         "t_statistic": t_stat,
-        "threshold": "Level 1 25-40% higher than Level 3, partial η² ≥ 0.15",
+        "threshold": "Tier 1 25-40% higher than Level 3, partial η² ≥ 0.15",
         "actual": f"{mean_diff:.2f}% higher, d={cohens_d_rm:.3f}",
     }
     if f1_3_pass:

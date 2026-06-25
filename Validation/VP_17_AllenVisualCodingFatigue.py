@@ -37,9 +37,9 @@ VP_ALL_Aggregator.py registration:
     "V17.2": "VP_17_AllenVisualCodingFatigue",
     "V17.3": "VP_17_AllenVisualCodingFatigue",
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.

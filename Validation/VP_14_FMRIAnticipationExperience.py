@@ -18,9 +18,9 @@ Simulates blood-oxygen-level-dependent (BOLD) tracking of APGI's
 internal variables S(t) [Salience/AI] and M(t) [vmPFC] during a threat
 anticipation paradigm.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 

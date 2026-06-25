@@ -10,7 +10,7 @@ description: >
   Somatic Symptom Disorder - Elevated interoceptive precision with amplified 
   somatic signals. Body-related prediction errors are given excessive precision 
   weighting, leading to distress and disproportionate concern.
-  Level 1 elevation - interoceptive signals dominate consciousness.
+  Tier 1 elevation - interoceptive signals dominate consciousness.
 empirical_validation:
   citations:
     - Kirmayer & Taillefer 1997 (SSD models)
@@ -24,7 +24,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 1
-  level_description: 'Level 1 elevation - interoceptive signals dominate consciousness'
+  level_description: 'Tier 1 elevation - interoceptive signals dominate consciousness'
   cross_level_coupling:
     L1_L2: 0.75
     L2_L3: 0.50

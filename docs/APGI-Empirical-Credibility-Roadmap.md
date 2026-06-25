@@ -264,7 +264,7 @@ The APGI framework implements **16 validation protocols** organized by tier:
 | **VP-01** | `VP_01_SyntheticEEG_MLClassification.py` | Primary | Synthetic Neural Data Simulations | None | ✅ Active |
 | **VP-02** | `VP_02_Behavioral_BayesianComparison.py` | Primary | Behavioral Bayesian Comparison | None | ✅ Active |
 | **VP-03** | `VP_03_ActiveInference_AgentSimulations.py` | Secondary | Active Inference Agent Simulations | None | ✅ Active |
-| **VP-04** | `VP_04_PhaseTransition_EpistemicLevel2.py` | Secondary | Phase Transition / Epistemic Level 2 | None | ✅ Active |
+| **VP-04** | `VP_04_PhaseTransition_EpistemicLevel2.py` | Secondary | Phase Transition / Epistemic Tier 2 | None | ✅ Active |
 | **VP-05** | `VP_05_EvolutionaryEmergence.py` | Tertiary | Evolutionary Emergence of APGI | None | ✅ Active |
 | **VP-06** | `VP_06_LiquidNetwork_InductiveBias.py` | Tertiary | Liquid Network Inductive Bias | None | ✅ Active |
 | **VP-07** | `VP_07_TMS_CausalInterventions.py` | Secondary | TMS/Pharmacological Causal Interventions | None | ✅ Active |

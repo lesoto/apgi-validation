@@ -67,7 +67,7 @@ All criteria follow this mandatory format:
 
 #### F1.3: Level-Specific Precision Weighting
 
-- **Quantitative threshold:** Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks
+- **Quantitative threshold:** Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Tier 1 interoceptive precision 25-40% higher than Tier 3 during interoceptive salience tasks
 - **Statistical test:** Repeated-measures ANOVA (Level × Precision Type), α = 0.001; post-hoc Tukey HSD
 - **Minimum effect size:** Partial η² ≥ 0.15 for Level × Type interaction
 - **Alternative hypothesis:** Falsified if Level 1-3 interoceptive precision difference <15% OR interaction p ≥ 0.01 OR partial η² < 0.08

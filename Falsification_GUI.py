@@ -198,12 +198,47 @@ class ProtocolRunnerGUI:
         if _proj_root not in sys.path:
             sys.path.insert(0, _proj_root)
 
+        # ======================================================================
+        # PROTOCOL NAMING MIGRATION: Phase 2-3 - Deprecation & Soft Warnings
+        # ======================================================================
+        # The APGI falsification framework uses canonical APGI-P## naming to
+        # link falsification protocols to their corresponding validation protocols.
+        #
+        # PROTOCOL MAPPING:
+        #   FP-01 → APGI-P02 (Somatic Agent Simulation)
+        #   FP-03 → APGI-P05 (Framework Multi-Protocol)
+        #   FP-04 → APGI-P06 (Phase Transition)
+        #   FP-09 → APGI-P01 (Neural Signatures)
+        #   FP-11 → APGI-P06 (Liquid Network Dynamics)
+        #   FP-12 → APGI-P04 (Cross-Species Scaling)
+        #   FP-13 → APGI-P07 (Clinical Cross-Species)
+        #   FP-14 → APGI-P03 (fMRI Anticipation vmPFC)
+        #
+        # LEGACY PROTOCOLS (Non-mapped):
+        #   FP-02, FP-05, FP-06, FP-07, FP-08, FP-10, FP-15
+        #
+        # MIGRATION TIMELINE:
+        #   - Phase 1 (2026-06-25): New APGI-P## linking introduced
+        #   - Phase 2 (2026-06-25): Deprecation notices added
+        #   - Phase 3 (2026-09-25): Soft deprecation with warnings [READY FOR DEPLOYMENT]
+        #   - Phase 4 (2026-12-25): Hard deprecation - legacy files removed (6+ months)
+        #
+        # PHASE 3 NOTICE: Starting September 2026, runtime warnings will be emitted
+        # when legacy falsification protocols are accessed. Warnings encourage but
+        # don't prevent use. See PROTOCOL-MIGRATION-PHASE-3.md for details.
+        #
+        # MIGRATION GUIDE: See PROTOCOL-MIGRATION-USER-GUIDE.md for details
+        # PHASE 3 DETAILS: See PROTOCOL-MIGRATION-PHASE-3.md for technical information
+        # QUICK REFERENCE: See PROTOCOL-QUICK-REFERENCE.md for complete mapping
+        # ======================================================================
         # Protocol definitions with parameters
+        # Updated to use canonical APGI-P## naming for core protocols
         self.protocols = {
-            "Protocol 1: APGI Agent": {
+            # Canonical Protocol Mappings (APGI-P01, P02, P04, P06)
+            "APGI-P02: Somatic Agent Sim (FP-01)": {
                 "file": "Falsification/FP_01_ActiveInference.py",
                 "class": "APGIActiveInferenceAgent",
-                "description": "Complete APGI-based active inference agent",
+                "description": "APGI-based active inference agent - Core falsification for APGI-P02",
                 "parameters": {
                     "lr_extero": {
                         "default": 0.01,
@@ -298,10 +333,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 2: Iowa Gambling Task": {
+            "FP-02: Iowa Gambling Task (Agent Comparison)": {
                 "file": "Falsification/FP_02_AgentComparisonConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
-                "description": "Iowa Gambling Task environment with interoceptive costs; agent comparison convergence benchmark (F3.1–F3.6)",
+                "description": "Iowa Gambling Task with interoceptive costs - Agent comparison convergence benchmark",
                 "parameters": {
                     "n_trials": {
                         "default": 100,
@@ -333,10 +368,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 3: Agent Comparison": {
+            "APGI-P05: Framework Multi-Protocol (FP-03)": {
                 "file": "Falsification/FP_03_FrameworkLevelMultiProtocol.py",
                 "class": "AgentComparisonExperiment",
-                "description": "Agent comparison experiment; framework-level multi-protocol falsification runner",
+                "description": "Framework-level multi-protocol falsification runner - Integration test for APGI-P05",
                 "parameters": {
                     "n_episodes": {
                         "default": 100,
@@ -361,10 +396,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 4: Phase Transition": {
+            "APGI-P06: Phase Transition (FP-04)": {
                 "file": "Falsification/FP_04_PhaseTransitionEpistemicArchitecture.py",
                 "class": "InformationTheoreticAnalysis",
-                "description": "Test APGI ignition phase transition signatures",
+                "description": "APGI ignition phase transition signatures - Falsification test for APGI-P06",
                 "parameters": {
                     "surprise_range": {
                         "default": "[0.1, 2.0]",
@@ -394,10 +429,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 5: Evolutionary": {
+            "FP-05: Evolutionary Plausibility": {
                 "file": "Falsification/FP_05_EvolutionaryPlausibility.py",
                 "class": "EvolutionaryAPGIEmergence",
-                "description": "Test APGI emergence under selection pressure",
+                "description": "Test APGI emergence and evolutionary plausibility under selection pressure",
                 "parameters": {
                     "population_size": {
                         "default": 50,
@@ -429,10 +464,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 6: Network Comparison": {
+            "FP-06: Liquid Network Energy Benchmark": {
                 "file": "Falsification/FP_06_LiquidNetworkEnergyBenchmark.py",
                 "class": "NetworkComparisonExperiment",
-                "description": "Compare APGI-inspired vs standard architectures",
+                "description": "Compare APGI-inspired vs standard neural network architectures and energy efficiency",
                 "parameters": {
                     "extero_dim": {
                         "default": 32,
@@ -471,10 +506,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 7: Mathematical Consistency": {
+            "FP-07: Mathematical Consistency": {
                 "file": "Falsification/FP_07_MathematicalConsistency.py",
                 "class": "MathematicalConsistencyChecker",
-                "description": "Test mathematical consistency of APGI equations",
+                "description": "Test mathematical consistency and correctness of all APGI core equations",
                 "parameters": {
                     "epsilon": {
                         "default": 1e-6,
@@ -499,10 +534,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 8: Parameter Sensitivity": {
+            "FP-08: Parameter Sensitivity & Identifiability": {
                 "file": "Falsification/FP_08_ParameterSensitivityIdentifiability.py",
                 "class": "ParameterSensitivityAnalyzer",
-                "description": "Parameter sensitivity and identifiability analysis",
+                "description": "Parameter sensitivity and identifiability analysis - Sobol and OAT methods",
                 "parameters": {
                     "n_samples": {
                         "default": 1000,
@@ -527,10 +562,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 9: Neural Signatures": {
+            "APGI-P01: Neural Signatures (FP-09)": {
                 "file": "Falsification/FP_09_NeuralSignaturesP3bHEP.py",
                 "class": "NeuralSignatureValidator",
-                "description": "Validate P3b and HEP neural signatures",
+                "description": "Validate P3b and HEP neural signatures - Core falsification for APGI-P01",
                 "parameters": {
                     "n_participants": {
                         "default": 50,
@@ -569,10 +604,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 10: Bayesian Estimation": {
+            "FP-10: Bayesian Estimation with MCMC": {
                 "file": "Falsification/FP_10_BayesianEstimationMCMC.py",
                 "class": "BayesianParameterRecovery",
-                "description": "Bayesian parameter recovery analysis",
+                "description": "Bayesian parameter recovery and MCMC-based estimation analysis",
                 "parameters": {
                     "n_samples": {
                         "default": 1000,
@@ -597,10 +632,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 11: Liquid Network Dynamics": {
+            "APGI-P06: Liquid Network Dynamics (FP-11)": {
                 "file": "Falsification/FP_11_LiquidNetworkDynamicsEchoState.py",
                 "class": "LiquidNetworkDynamicsAnalyzer",
-                "description": "Liquid network dynamics and echo state analysis",
+                "description": "Liquid network dynamics and echo state analysis - Extended for APGI-P06",
                 "parameters": {
                     "spectral_radius": {
                         "default": 0.9,
@@ -625,10 +660,10 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 12: Cross Species Scaling": {
+            "APGI-P04: Cross-Species Scaling (FP-12)": {
                 "file": "Falsification/FP_12_CrossSpeciesScaling.py",
                 "class": "LiquidTimeConstantChecker",
-                "description": "Cross-species allometric scaling and clinical convergence analysis",
+                "description": "Cross-species allometric scaling and clinical convergence analysis - APGI-P04 falsification",
                 "parameters": {
                     "spectral_radius": {
                         "default": 0.98,
@@ -653,19 +688,19 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 13: Clinical Cross-Species": {
+            "APGI-P07: Clinical Cross-Species (FP-13)": {
                 "file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
                 "class": "ClinicalCrossSpeciesProtocol",
-                "description": "Clinical cross-species convergence falsification stub",
+                "description": "Clinical cross-species convergence falsification - APGI-P07 tertiary falsification",
                 "parameters": {},
             },
-            "Protocol 14: fMRI Anticipation vmPFC": {
+            "APGI-P03: fMRI Anticipation vmPFC (FP-14)": {
                 "file": "Falsification/FP_14_fMRI_Anticipation_vmPFC.py",
                 "class": None,
-                "description": "fMRI anticipation vmPFC falsification stub",
+                "description": "fMRI anticipation vmPFC falsification - APGI-P03 tertiary falsification stub",
                 "parameters": {},
             },
-            "Protocol 15: Allen Visual Coding Fatigue": {
+            "FP-15: Allen Visual Coding Fatigue": {
                 "file": "Falsification/FP_15_AllenVisualCoding_Fatigue.py",
                 "class": None,
                 "description": "Allen visual coding fatigue threshold dynamics falsification stub",

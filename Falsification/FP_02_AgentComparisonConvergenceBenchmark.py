@@ -6,9 +6,9 @@ Implements F3.1-F3.6 falsification criteria for APGI framework.
 Tests performance convergence and computational efficiency of APGI agents
 compared to non-APGI baselines.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 """
@@ -1111,7 +1111,7 @@ def run_falsification() -> Dict[str, Any]:
     n_samples = 50  # Larger sample size for statistical power
 
     # Generate precision weights with realistic between-agent variance
-    # Level 1 precision should average ~1.4x Level 3 with individual variation
+    # Tier 1 precision should average ~1.4x Tier 3 with individual variation
     level3_base = np.random.normal(1.0, 0.25, n_samples)  # Increased variance
     level1_precision = level3_base * np.random.normal(1.4, 0.25, n_samples)  # Increased variance
     precision_weights = list(zip(level1_precision, level3_base))
@@ -1948,7 +1948,7 @@ def check_falsification(
         "cohens_d": cohens_d_rm,
         "p_value": p_rm,
         "t_statistic": t_stat,
-        "threshold": "Level 1 25-40% higher than Level 3, partial η² ≥ 0.15",
+        "threshold": "Tier 1 25-40% higher than Level 3, partial η² ≥ 0.15",
         "actual": f"{mean_diff:.2f}% higher, d={cohens_d_rm:.3f}",
     }
     if f1_3_pass:

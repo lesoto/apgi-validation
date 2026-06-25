@@ -4,7 +4,7 @@ Level Designation Compliance Checker
 =================================
 
 Automated compliance checker for APGI level designation enforcement.
-Scans Python files for proper LEVEL DESIGNATION declarations and validates
+Scans Python files for proper TIER DESIGNATION declarations and validates
 cross-level bridge invocations.
 
 Usage:
@@ -26,9 +26,9 @@ LEVEL_DEFINITIONS = {
 
 # Bridge requirements
 BRIDGE_REQUIREMENTS = {
-    1: [],  # Level 1 has no higher level to bridge to
-    2: [1],  # Level 2 can bridge to Level 1
-    3: [2, 1],  # Level 3 can bridge to Level 2 and Level 1
+    1: [],  # Tier 1 has no higher level to bridge to
+    2: [1],  # Tier 2 can bridge to Level 1
+    3: [2, 1],  # Tier 3 can bridge to Tier 2 and Level 1
 }
 
 
@@ -48,12 +48,12 @@ class LevelDesignationComplianceChecker:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Check for LEVEL DESIGNATION in raw content first (more reliable)
-            if "LEVEL DESIGNATION:" not in content and "LEVEL DESIGNATION:" not in content:
+            # Check for TIER DESIGNATION in raw content first (more reliable)
+            if "TIER DESIGNATION:" not in content and "TIER DESIGNATION:" not in content:
                 violations.append(
                     {
                         "type": "missing_level_designation",
-                        "message": "No LEVEL DESIGNATION declaration found",
+                        "message": "No TIER DESIGNATION declaration found",
                         "line": 1,
                     }
                 )
@@ -82,12 +82,12 @@ class LevelDesignationComplianceChecker:
                 }
 
             # Extract declared level from raw content
-            level_match = re.search(r"LEVEL DESIGNATION:.*?Level (\d+)", content, re.DOTALL)
+            level_match = re.search(r"TIER DESIGNATION:.*?Level (\d+)", content, re.DOTALL)
             if not level_match:
                 violations.append(
                     {
                         "type": "invalid_level_declaration",
-                        "message": "LEVEL DESIGNATION found but level not specified correctly",
+                        "message": "TIER DESIGNATION found but level not specified correctly",
                         "line": 1,
                     }
                 )

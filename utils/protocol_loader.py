@@ -1,19 +1,41 @@
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
+
+PROTOCOL MIGRATION: Phase 4 - Hard Deprecation Complete
+============================================================================
+LEGACY SUPPORT REMOVED: As of Phase 4, only canonical APGI-P## protocol
+naming is supported. All legacy VP-##/FP-## protocol IDs will raise ValueError.
+
+The protocols/legacy/ directory has been removed entirely. Legacy protocol
+files are no longer searchable and cannot be loaded.
+
+MIGRATION TIMELINE:
+  - Phase 1 (2026-06-25): New APGI-P## naming introduced
+  - Phase 2 (2026-06-25): Deprecation notices added
+  - Phase 3 (2026-09-25): Soft deprecation with warnings
+  - Phase 4 (2026-12-25): Hard deprecation - legacy files removed [CURRENT PHASE]
+
+All code must use canonical APGI-P## naming (APGI-P00, APGI-P01, etc.)
+
+Legacy protocols are archived for reference only and are not accessible
+via the protocol_loader module. Use canonical naming exclusively.
+
+See PROTOCOL-MIGRATION-USER-GUIDE.md for migration instructions and examples.
+============================================================================
 """
 
-from __future__ import annotations
-
 import json
-import warnings
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 _PROTOCOLS_DIR = Path(__file__).parent.parent / "protocols"
-_LEGACY_DIR = _PROTOCOLS_DIR / "legacy"
 
 
 @dataclass
@@ -85,25 +107,46 @@ class ProtocolSpec:
         return self._raw
 
 
-def _iter_protocol_files(include_legacy: bool = True) -> List[Path]:
-    """Return canonical protocol JSON files; optionally include archived legacy files."""
+def _iter_protocol_files() -> List[Path]:
+    """Return all canonical protocol JSON files (APGI-P## only)."""
     if not _PROTOCOLS_DIR.exists():
         return []
-    canonical = sorted(_PROTOCOLS_DIR.glob("protocol_*.json"))
-    if not include_legacy or not _LEGACY_DIR.exists():
-        return canonical
-    legacy = sorted(_LEGACY_DIR.glob("protocol_*.json"))
-    return canonical + legacy
+    # Only canonical protocol_*.json files in protocols/ root
+    return sorted(_PROTOCOLS_DIR.glob("protocol_*.json"))
+
 
 
 def _find_protocol_file(protocol_id: str) -> Optional[Path]:
-    """Resolve a protocol ID to its JSON file."""
+    """Resolve a protocol ID to its JSON file.
+    
+    Phase 4 (Hard Deprecation): ONLY canonical APGI-P## naming is supported.
+    Legacy VP-##/FP-## IDs will raise ValueError with clear error message.
+    
+    Args:
+        protocol_id: The protocol ID (must be in APGI-P## format)
+        
+    Returns:
+        Path to protocol JSON file, or None if not found
+        
+    Raises:
+        ValueError: If legacy VP-##/FP-## naming is attempted
+    """
     if not _PROTOCOLS_DIR.exists():
         return None
 
     normalized_id = protocol_id.strip()
+    
+    # PHASE 4: REJECT legacy protocol IDs
+    if normalized_id.startswith("VP-") or normalized_id.startswith("FP-"):
+        raise ValueError(
+            f"PROTOCOL MIGRATION - PHASE 4 HARD DEPRECATION:\n"
+            f"  Legacy protocol ID '{normalized_id}' is no longer supported.\n"
+            f"  Legacy protocol files have been removed permanently from protocols/legacy/.\n"
+            f"  You MUST use canonical APGI-P## naming (e.g., APGI-P01, APGI-P02).\n"
+            f"  See PROTOCOL-MIGRATION-USER-GUIDE.md for the mapping from legacy to canonical IDs."
+        )
 
-    # Fast path for the legacy APGI-P## naming convention.
+    # Canonical APGI-P## naming
     if normalized_id.startswith("APGI-P"):
         num_str = normalized_id.split("P")[-1]
         try:
@@ -121,7 +164,7 @@ def _find_protocol_file(protocol_id: str) -> Optional[Path]:
                     except ValueError:
                         continue
 
-    # Generic path for VP/FP/app integration: match the embedded protocol_id.
+    # Generic path: match the embedded protocol_id in JSON
     for path in _iter_protocol_files():
         try:
             with open(path, encoding="utf-8") as fh:
@@ -133,16 +176,9 @@ def _find_protocol_file(protocol_id: str) -> Optional[Path]:
             aliases = data.get("aliases", [])
             matched = isinstance(aliases, list) and normalized_id in aliases
         if matched:
-            if _LEGACY_DIR.exists() and path.is_relative_to(_LEGACY_DIR):
-                warnings.warn(
-                    f"Protocol '{normalized_id}' resolved to archived legacy file "
-                    f"'{path.name}'. Use the canonical APGI-P## ID instead. "
-                    "Legacy files in protocols/legacy/ will be removed in a future release.",
-                    DeprecationWarning,
-                    stacklevel=3,
-                )
             return path
     return None
+
 
 
 def load_protocol(protocol_id: str) -> Optional[ProtocolSpec]:
@@ -160,21 +196,27 @@ def load_protocol_file(path: Path) -> ProtocolSpec:
     return ProtocolSpec.from_dict(data)
 
 
-def load_all_protocols(include_legacy: bool = True) -> Dict[str, ProtocolSpec]:
-    """Load all protocol specs, keyed by protocol_id.
-
-    Legacy VP/FP files in protocols/legacy/ are included by default for backward
-    compatibility but will be removed in a future release. Pass include_legacy=False
-    to load only canonical APGI-P## protocols.
+def load_all_protocols() -> Dict[str, ProtocolSpec]:
+    """Load all canonical protocol specs (APGI-P## only), keyed by protocol_id.
+    
+    Phase 4 (Hard Deprecation): Legacy protocols in protocols/legacy/ are no
+    longer accessible. Only canonical APGI-P## protocols can be loaded.
+    
+    For legacy protocol references, update your code to use canonical naming
+    and review PROTOCOL-MIGRATION-USER-GUIDE.md for the mapping.
+    
+    Returns:
+        Dict mapping protocol_id (e.g., "APGI-P01") to ProtocolSpec objects
     """
     specs: Dict[str, ProtocolSpec] = {}
-    for path in _iter_protocol_files(include_legacy=include_legacy):
+    for path in _iter_protocol_files():
         try:
             spec = load_protocol_file(path)
             specs[spec.protocol_id] = spec
         except Exception:  # nosec B110
             pass
     return specs
+
 
 
 def get_apgi_parameters(protocol_id: str) -> Dict[str, Any]:

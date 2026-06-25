@@ -38,7 +38,7 @@ HARD REJECTION THRESHOLDS
 Each check is binary (True/False). A single failed check causes PROTOCOL FAIL.
 There is no partial-pass mode — mathematical consistency is all-or-nothing.
 
-LEVEL DESIGNATION: Level 3 (algorithmic/mathematical).
+TIER DESIGNATION: Tier 3 (algorithmic/mathematical).
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 

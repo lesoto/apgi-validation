@@ -34,12 +34,12 @@ Protocol specification:
                confirm that suppression is ignition-specific.
 
 MEASUREMENT GAPS:
-    This protocol tests REPRESENTATIONAL erasure at Level 3 (neural pattern
+    This protocol tests REPRESENTATIONAL erasure at Tier 3 (neural pattern
     decoding).  The thermodynamic cost of that erasure — Landauer's principle
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -714,7 +714,7 @@ class InformationErasureValidator:
                 "protocol_id": "VP_19_InformationErasureMVPA",
                 "validation_timestamp": datetime.now().isoformat(),
                 "measurement_gap_note": (
-                    "This protocol tests representational erasure at Level 3 "
+                    "This protocol tests representational erasure at Tier 3 "
                     "(neural MVPA decoding).  The thermodynamic cost of that "
                     "erasure — Landauer's principle applied to bit erasure "
                     "(Level 1) — is NOT directly measured here.  The link "

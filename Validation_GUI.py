@@ -121,33 +121,84 @@ except (ImportError, Exception):
         HeadlessRunner = None  # type: ignore
 
 # Protocol files for metadata
-# Labels use canonical APGI-P## naming; scripts are unchanged VP_NN_*.py
+# ==============================================================================
+# PROTOCOL NAMING MIGRATION: Phase 2-3 - Deprecation & Soft Warnings
+# ==============================================================================
+# The APGI validation framework uses canonical APGI-P## naming for its 8 core
+# validation protocols. Non-canonical protocols (VP-##) are supported but not
+# recommended for new code.
+#
+# CANONICAL PROTOCOLS (Recommended):
+#   APGI-P00: HEP Proxy Validation (Empirical Prerequisite)
+#   APGI-P01: Cardiac EEG (Interoceptive Gating)
+#   APGI-P02: Somatic Agent Simulation (Active Inference)
+#   APGI-P03: fMRI Anticipation (vmPFC)
+#   APGI-P04: Metabolic Crossover (Cross-Species)
+#   APGI-P05: Causal TMS & Neuromodulation
+#   APGI-P06: Ignition Dynamics (iEEG)
+#   APGI-P07: DOC Biomarker (Disorders of Consciousness)
+#
+# NON-CANONICAL PROTOCOLS (Legacy):
+#   VP-02, VP-04 through VP-08, VP-11, VP-17 through VP-22
+#
+# MIGRATION TIMELINE:
+#   - Phase 1 (2026-06-25): New APGI-P## naming introduced
+#   - Phase 2 (2026-06-25): Deprecation notices added
+#   - Phase 3 (2026-09-25): Soft deprecation with warnings [READY FOR DEPLOYMENT]
+#   - Phase 4 (2026-12-25): Hard deprecation - legacy files removed (6+ months)
+#
+# PHASE 3 NOTICE: Starting September 2026, runtime warnings will be emitted
+# when legacy protocols are accessed. Warnings encourage but don't prevent use.
+#
+# MIGRATION GUIDE: See PROTOCOL-MIGRATION-USER-GUIDE.md for details
+# PHASE 3 DETAILS: See PROTOCOL-MIGRATION-PHASE-3.md for technical information
+# QUICK REFERENCE: See PROTOCOL-QUICK-REFERENCE.md for complete mapping
+# ==============================================================================
+# Labels use canonical APGI-P## naming for 8 core protocols; VP-## for non-canonical protocols
+# Scripts are unchanged VP_NN_*.py (Python naming independent of JSON protocol file naming)
 protocol_files = [
-    ("APGI-P00: HEP Proxy Validation", "VP_00_HEPProxyValidation.py"),
-    ("APGI-P01: Cardiac EEG", "VP_01_SyntheticEEGMLClassification.py"),
-    ("VP-02: Behavioral Bayesian Comparison", "VP_02_BehavioralBayesianComparison.py"),
-    ("APGI-P02: Somatic Agent Simulation", "VP_03_ActiveInferenceAgentSimulations.py"),
-    ("VP-04: Phase Transition Epistemic L2", "VP_04_PhaseTransitionEpistemicLevel2.py"),
+    # Canonical protocols (APGI-P00 through APGI-P07)
+    ("APGI-P00: HEP Proxy Validation (Empirical Prerequisite)", "VP_00_HEPProxyValidation.py"),
+    ("APGI-P01: Cardiac EEG (Interoceptive Gating)", "VP_01_SyntheticEEGMLClassification.py"),
+    ("APGI-P02: Somatic Agent Simulation (Active Inference)", "VP_03_ActiveInferenceAgentSimulations.py"),
+    ("APGI-P03: fMRI Anticipation (vmPFC)", "VP_14_FMRIAnticipationExperience.py"),
+    ("APGI-P04: Metabolic Crossover (Cross-Species)", "VP_16_MetabolicATPGroundTruth.py"),
+    ("APGI-P05: Causal TMS & Neuromodulation", "VP_07_TMSCausalInterventions.py"),
+    ("APGI-P06: Ignition Dynamics (iEEG)", "VP_20_EmpiricalIEEG.py"),
+    ("APGI-P07: DOC Biomarker (Disorders of Consciousness)", "VP_13_EpistemicArchitecture.py"),
+    
+    # Non-canonical validation protocols (secondary and tertiary)
+    ("VP-02: Behavioral Bayesian Model Comparison", "VP_02_BehavioralBayesianComparison.py"),
+    ("VP-04: Phase Transition & Epistemic L2", "VP_04_PhaseTransitionEpistemicLevel2.py"),
     ("VP-05: Evolutionary Emergence", "VP_05_EvolutionaryEmergence.py"),
     ("VP-06: Liquid Network Inductive Bias", "VP_06_LiquidNetworkInductiveBias.py"),
-    ("APGI-P05: Causal TMS & Neuromodulation", "VP_07_TMSCausalInterventions.py"),
-    ("VP-07a: Mathematical Consistency", "VP_07a_MathematicalConsistency.py"),
-    ("VP-08: Psychophysical Threshold", "VP_08_PsychophysicalThresholdEstimation.py"),
-    ("APGI-P01 (Priority 1): Neural Signatures", "VP_09_NeuralSignaturesEmpiricalPriority1.py"),
-    ("APGI-P02 (Priority 2): Causal Manipulations", "VP_10_CausalManipulationsPriority2.py"),
-    ("VP-11: MCMC Cultural Neuroscience", "VP_11_MCMCCulturalNeurosciencePriority3.py"),
-    ("APGI-P04: Metabolic Crossover (VP-12)", "VP_12_ClinicalCrossSpeciesConvergence.py"),
-    ("APGI-P07: DOC Biomarker", "VP_13_EpistemicArchitecture.py"),
-    ("APGI-P03: fMRI Anticipation", "VP_14_FMRIAnticipationExperience.py"),
-    ("APGI-P03: fMRI Anticipation vmPFC", "VP_15_FMRIAnticipationVmPFC.py"),
-    ("APGI-P04: Metabolic ATP Ground Truth", "VP_16_MetabolicATPGroundTruth.py"),
+    ("VP-07a: Mathematical Consistency (Variant)", "VP_07a_MathematicalConsistency.py"),
+    ("VP-08: Psychophysical Threshold Estimation", "VP_08_PsychophysicalThresholdEstimation.py"),
+    
+    # APGI-P01 related validations (convergent neural signatures)
+    ("APGI-P01 (Extended): Neural Signatures Priority 1", "VP_09_NeuralSignaturesEmpiricalPriority1.py"),
+    
+    # APGI-P02 related validations (causal manipulations)
+    ("APGI-P02 (Extended): Causal Manipulations Priority 2", "VP_10_CausalManipulationsPriority2.py"),
+    
+    # Additional non-canonical validations
+    ("VP-11: MCMC Cultural Neuroscience Priority 3", "VP_11_MCMCCulturalNeurosciencePriority3.py"),
     ("VP-17: Allen Visual Coding Fatigue", "VP_17_AllenVisualCodingFatigue.py"),
-    ("VP-18: EEG Microstate GFP P3b", "VP_18_EEGMicrostateGFPP3b.py"),
+    ("VP-18: EEG Microstate GFP/P3b Analysis", "VP_18_EEGMicrostateGFPP3b.py"),
     ("VP-19: Information Erasure MVPA", "VP_19_InformationErasureMVPA.py"),
-    ("APGI-P06: Ignition Dynamics iEEG", "VP_20_EmpiricalIEEG.py"),
-    ("VP-21: Free Energy Prediction Error", "VP_21_FreeEnergyPredictionError.py"),
-    ("APGI-P05: Enhanced fMRI Anticipation", "VP_22_FMRIAnticipationExperience.py"),
-    ("ALL: VP Aggregator", "VP_ALL_Aggregator.py"),
+    ("VP-21: Free Energy & Prediction Error", "VP_21_FreeEnergyPredictionError.py"),
+    
+    # APGI-P03 related validations (fMRI vmPFC variants)
+    ("APGI-P03 (Variant): fMRI Anticipation vmPFC", "VP_15_FMRIAnticipationVmPFC.py"),
+    
+    # APGI-P04 related validations (metabolic and cross-species)
+    ("APGI-P04 (Extended): Clinical Cross-Species Convergence", "VP_12_ClinicalCrossSpeciesConvergence.py"),
+    
+    # APGI-P05 related validations (enhanced fMRI)
+    ("APGI-P05 (Extended): Enhanced fMRI Anticipation", "VP_22_FMRIAnticipationExperience.py"),
+    
+    # Aggregator (not a standalone protocol)
+    ("⚙️ VP Aggregator (Meta): Combines all VP results", "VP_ALL_Aggregator.py"),
 ]
 
 

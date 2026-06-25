@@ -21,9 +21,9 @@ Falsification threshold: If APGI shows no advantage over GWT in ≥2 of 3
 discriminating environments (volatile foraging, threat-reward trade-off, IGT),
 APGI's architectural claims are disconfirmed.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 """
@@ -2602,7 +2602,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         },
         "F1.3": {
             "description": "Level-Specific Precision Weighting",
-            "threshold": "Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks",
+            "threshold": "Tier 1 interoceptive precision 25-40% higher than Tier 3 during interoceptive salience tasks",
             "test": "Repeated-measures ANOVA (Level × Precision Type), α=0.001; post-hoc Tukey HSD",
             "effect_size": "Partial η² ≥ 0.15 for Level × Type interaction",
             "alternative": "Falsified if Level 1-3 difference <15% OR interaction p ≥ 0.01 OR partial η² < 0.08",

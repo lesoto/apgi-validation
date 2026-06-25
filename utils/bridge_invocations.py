@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 """
@@ -30,16 +30,16 @@ def bridge_to_thermodynamic(
     bridge_reason: str = "thermodynamic implications",
 ) -> Dict[str, Any]:
     """
-    Bridge from Level 2 (information-theoretic) to Level 1 (thermodynamic).
+    Bridge from Tier 2 (information-theoretic) to Tier 1 (thermodynamic).
 
     This function implements the explicit bridge invocation required for
-    Level 2 modules to make thermodynamic claims. It calls the
+    Tier 2 modules to make thermodynamic claims. It calls the
     APGI_Thermodynamic_Program_Aggregator to convert information-theoretic
     outputs to thermodynamic quantities.
 
     Args:
-        level2_data: Information-theoretic results from Level 2 module
-        module_name: Name of the calling Level 2 module
+        level2_data: Information-theoretic results from Tier 2 module
+        module_name: Name of the calling Tier 2 module
         bridge_reason: Description of why bridge is needed
 
     Returns:
@@ -49,15 +49,15 @@ def bridge_to_thermodynamic(
         BridgeValidationError: If bridge validation fails
     """
     try:
-        # Import Level 1 module
+        # Import Tier 1 module
         from Theory.APGI_Thermodynamic_Program_Aggregator import run_thermodynamic_analysis
 
         logger.info(f"Bridge L2→L1: {module_name} → APGI_Thermodynamic_Program_Aggregator")
         logger.info(f"Bridge reason: {bridge_reason}")
 
-        # Validate Level 2 data structure
+        # Validate Tier 2 data structure
         if not isinstance(level2_data, dict):
-            raise BridgeValidationError("Level 2 data must be a dictionary")
+            raise BridgeValidationError("Tier 2 data must be a dictionary")
 
         # Extract key information-theoretic quantities
         bandwidth_bits = level2_data.get("bandwidth_bits_per_second")
@@ -86,7 +86,7 @@ def bridge_to_thermodynamic(
         return thermodynamic_results
 
     except ImportError as e:
-        raise BridgeValidationError(f"Cannot import Level 1 module: {e}")
+        raise BridgeValidationError(f"Cannot import Tier 1 module: {e}")
     except Exception as e:
         raise BridgeValidationError(f"Bridge execution failed: {e}")
 
@@ -97,16 +97,16 @@ def bridge_to_information_theoretic(
     bridge_reason: str = "information-theoretic analysis",
 ) -> Dict[str, Any]:
     """
-    Bridge from Level 3 (algorithmic/mathematical) to Level 2 (information-theoretic).
+    Bridge from Tier 3 (algorithmic/mathematical) to Tier 2 (information-theoretic).
 
     This function implements the explicit bridge invocation required for
-    Level 3 modules to make information-theoretic claims. It calls the
+    Tier 3 modules to make information-theoretic claims. It calls the
     APGI_Information_Theoretic_Bandwidth module to convert algorithmic
     outputs to information-theoretic quantities.
 
     Args:
-        level3_data: Algorithmic/mathematical results from Level 3 module
-        module_name: Name of the calling Level 3 module
+        level3_data: Algorithmic/mathematical results from Tier 3 module
+        module_name: Name of the calling Tier 3 module
         bridge_reason: Description of why bridge is needed
 
     Returns:
@@ -116,7 +116,7 @@ def bridge_to_information_theoretic(
         BridgeValidationError: If bridge validation fails
     """
     try:
-        # Import Level 2 module
+        # Import Tier 2 module
         from Theory.APGI_Information_Theoretic_Bandwidth import (
             analyze_precision_weighting_gain,
             calculate_bandwidth_from_precision,
@@ -125,9 +125,9 @@ def bridge_to_information_theoretic(
         logger.info(f"Bridge L3→L2: {module_name} → APGI_Information_Theoretic_Bandwidth")
         logger.info(f"Bridge reason: {bridge_reason}")
 
-        # Validate Level 3 data structure
+        # Validate Tier 3 data structure
         if not isinstance(level3_data, dict):
-            raise BridgeValidationError("Level 3 data must be a dictionary")
+            raise BridgeValidationError("Tier 3 data must be a dictionary")
 
         # Extract key algorithmic quantities
         precision_values = level3_data.get("precision_values")
@@ -156,7 +156,7 @@ def bridge_to_information_theoretic(
         return info_theoretic_results
 
     except ImportError as e:
-        raise BridgeValidationError(f"Cannot import Level 2 module: {e}")
+        raise BridgeValidationError(f"Cannot import Tier 2 module: {e}")
     except Exception as e:
         raise BridgeValidationError(f"Bridge execution failed: {e}")
 
@@ -249,13 +249,13 @@ def create_bridge_function(source_level: int, target_level: int, source_module: 
         return lambda data: bridge_to_information_theoretic(
             level3_data=data,
             module_name=source_module,
-            bridge_reason=f"Level 3 {source_module} requires Level 2 analysis",
+            bridge_reason=f"Tier 3 {source_module} requires Tier 2 analysis",
         )
     elif source_level == 2 and target_level == 1:
         return lambda data: bridge_to_thermodynamic(
             level2_data=data,
             module_name=source_module,
-            bridge_reason=f"Level 2 {source_module} requires Level 1 thermodynamic analysis",
+            bridge_reason=f"Tier 2 {source_module} requires Tier 1 thermodynamic analysis",
         )
     else:
         raise BridgeValidationError(f"Invalid bridge: Level {source_level} → Level {target_level} not supported")
@@ -264,19 +264,19 @@ def create_bridge_function(source_level: int, target_level: int, source_module: 
 # Example bridge function for common use cases
 def bridge_l2_to_l1_with_validation(level2_data: Dict[str, Any], module_name: str) -> Dict[str, Any]:
     """
-    Bridge from Level 2 to Level 1 with validation.
+    Bridge from Tier 2 to Tier 1 with validation.
 
     This is a convenience function that combines validation and bridging
     for the most common L2→L1 transition.
 
     Args:
         level2_data: Information-theoretic results
-        module_name: Name of the Level 2 module
+        module_name: Name of the Tier 2 module
 
     Returns:
         Thermodynamic results with validation metadata
     """
-    # Validate Level 2 constraints
+    # Validate Tier 2 constraints
     validate_level_constraints(level2_data, 2, module_name)
 
     # Perform bridge
@@ -285,19 +285,19 @@ def bridge_l2_to_l1_with_validation(level2_data: Dict[str, Any], module_name: st
 
 def bridge_l3_to_l2_with_validation(level3_data: Dict[str, Any], module_name: str) -> Dict[str, Any]:
     """
-    Bridge from Level 3 to Level 2 with validation.
+    Bridge from Tier 3 to Tier 2 with validation.
 
     This is a convenience function that combines validation and bridging
     for the most common L3→L2 transition.
 
     Args:
         level3_data: Algorithmic/mathematical results
-        module_name: Name of the Level 3 module
+        module_name: Name of the Tier 3 module
 
     Returns:
         Information-theoretic results with validation metadata
     """
-    # Validate Level 3 constraints
+    # Validate Tier 3 constraints
     validate_level_constraints(level3_data, 3, module_name)
 
     # Perform bridge

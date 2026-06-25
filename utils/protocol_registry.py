@@ -1,5 +1,5 @@
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 """
@@ -745,7 +745,7 @@ def _initialize_registry():
             "T-BandwidthInfo",
             "APGI_Information_Theoretic_Bandwidth.py",
             "Information-Theoretic Bandwidth (~40 bits/s)",
-            "Level 2 derivation of conscious bandwidth from APGI parameters",
+            "Tier 2 derivation of conscious bandwidth from APGI parameters",
             ["BandwidthInfo", "APGI_Bandwidth"],
         ),
         (
@@ -814,8 +814,8 @@ def _initialize_registry():
         (
             "T-Thermodynamic",
             "APGI_Thermodynamic_Program_Aggregator.py",
-            "Thermodynamic Program Aggregator (Level 1 bridge)",
-            "Level 1 bridge: aggregates thermodynamic constraints",
+            "Thermodynamic Program Aggregator (Tier 1 bridge)",
+            "Tier 1 bridge: aggregates thermodynamic constraints",
             ["ThermodynamicAggregator", "APGI_Thermodynamic"],
         ),
         (

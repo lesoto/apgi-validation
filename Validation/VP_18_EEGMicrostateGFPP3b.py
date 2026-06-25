@@ -24,7 +24,7 @@ MEASUREMENT GAPS (required thermodynamic hedging):
     indexes global synchrony, not electromagnetic field energy in the physics
     sense.  The link to energy requires additional assumptions about current
     dipole density (Skrandies, 1990).  Accordingly, this protocol constitutes a
-    Level 3 → Level 1 inference that requires the Landauer bridge and does NOT
+    Tier 3 → Tier 1 inference that requires the Landauer bridge and does NOT
     constitute direct thermodynamic measurement.  Program 3 (PET) is required
     for that.  This limitation must appear explicitly in the paper's Measurement
     Gaps section.
@@ -38,9 +38,9 @@ Protocol specification:
     APGI prediction: GFP-AUC is significantly larger on ignition trials, and
               the effect magnitude correlates with Sₜ (ignition strength).
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -478,7 +478,7 @@ class GFPMicrostateValidator:
                     "— it indexes global synchrony, not field energy in the "
                     "physics sense. The link to metabolic energy requires "
                     "assumptions about current dipole density (Skrandies, 1990). "
-                    "This is a Level 3 → Level 1 inference requiring the Landauer "
+                    "This is a Tier 3 → Tier 1 inference requiring the Landauer "
                     "bridge; it does not constitute direct thermodynamic measurement."
                 ),
             }

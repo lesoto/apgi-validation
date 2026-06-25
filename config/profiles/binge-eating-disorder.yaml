@@ -10,7 +10,7 @@ description: >
   Binge Eating Disorder - Elevated reward precision with impaired satiety 
   signaling. High precision for food reward with reduced interoceptive 
   feedback from satiety mechanisms.
-  Level 1 elevation - reward-driven consumption dominates satiety signals.
+  Tier 1 elevation - reward-driven consumption dominates satiety signals.
 empirical_validation:
   citations:
     - Schulte et al. 2016 (BED neurobiology)
@@ -24,7 +24,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 1
-  level_description: 'Level 1 elevation - reward-driven consumption dominates satiety signals'
+  level_description: 'Tier 1 elevation - reward-driven consumption dominates satiety signals'
   cross_level_coupling:
     L1_L2: 0.80
     L2_L3: 0.45

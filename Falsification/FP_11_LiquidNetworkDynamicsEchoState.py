@@ -4,9 +4,9 @@ Falsification Protocol 12: Liquid Network Validation
 
 This protocol implements validation of liquid network properties for APGI models.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -3218,7 +3218,7 @@ def run_falsification(
         # Determine overall falsification
         overall_falsified = falsification_status.get("overall_falsified", False)
 
-        # Validate Level 1 (Thermodynamic) claims using empirical P-MRS/Calorimetry data
+        # Validate Tier 1 (Thermodynamic) claims using empirical P-MRS/Calorimetry data
         from utils.empirical_interfaces import PMRSCalorimetryInterface
 
         calorimetry = PMRSCalorimetryInterface()

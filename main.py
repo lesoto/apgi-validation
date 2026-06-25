@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LEVEL DESIGNATION: Level 3 (algorithmic/mathematical)
+TIER DESIGNATION: Tier 3 (algorithmic/mathematical)
 
 Bridge to Level 2
 Bridge to Level 1

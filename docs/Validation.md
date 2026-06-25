@@ -190,7 +190,7 @@ Comprehensive testing suite:
 | VP_01 | Synthetic EEG ML Classification | Primary |
 | VP_02 | Behavioral Bayesian Comparison | Primary |
 | VP_03 | Active Inference Agent Simulations | Primary |
-| VP_04 | Phase Transition Epistemic Level 2 | Primary |
+| VP_04 | Phase Transition Epistemic Tier 2 | Primary |
 | VP_05 | Evolutionary Emergence | Secondary |
 | VP_06 | Liquid Network Inductive Bias | Secondary |
 | VP_07 | TMS Causal Interventions (canonical P2.a–P2.c) | Primary |

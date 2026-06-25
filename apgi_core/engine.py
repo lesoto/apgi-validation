@@ -1,5 +1,5 @@
 """
-LEVEL DESIGNATION: Level 1 (thermodynamic)
+TIER DESIGNATION: Tier 1 (thermodynamic)
 
 """
 

@@ -10,7 +10,7 @@ description: >
   Generalized Anxiety Disorder (GAD) - Elevated exteroceptive precision for threat (Πₑ↑).
   Hyperactive prefrontal threat priors with mild somatic involvement.
   Prefrontal cortex generates high-confidence catastrophic predictions.
-  Level 3 elevation - cognitive-semantic threat predictions dominate.
+  Tier 3 elevation - cognitive-semantic threat predictions dominate.
 empirical_validation:
   citations:
     - Grupe & Nitschke 2013, Nature Reviews Neuroscience (precision_expectation_gap)
@@ -28,7 +28,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 3
-  level_description: 'Level 3 elevation - cognitive-semantic threat predictions dominate'
+  level_description: 'Tier 3 elevation - cognitive-semantic threat predictions dominate'
   cross_level_coupling:
     L1_L2: 0.65
     L2_L3: 0.90

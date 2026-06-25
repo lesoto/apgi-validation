@@ -10,7 +10,7 @@ description: >
   Specific Phobia - Object-specific threat precision elevation with acute 
   threshold reduction during phobic encounters. High precision for specific 
   threat objects with immediate bodily response.
-  Level 1 elevation - sensory-perceptual threat processing dominates.
+  Tier 1 elevation - sensory-perceptual threat processing dominates.
 empirical_validation:
   citations:
     - LeBeau et al. 2010 (specific phobia features)
@@ -24,7 +24,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 1
-  level_description: 'Level 1 elevation - sensory-perceptual threat processing dominates'
+  level_description: 'Tier 1 elevation - sensory-perceptual threat processing dominates'
   cross_level_coupling:
     L1_L2: 0.70
     L2_L3: 0.40

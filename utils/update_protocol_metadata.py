@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 """

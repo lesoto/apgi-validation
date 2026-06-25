@@ -4,9 +4,9 @@ Falsification Protocol 4: Phase Transition Epistemic Architecture
 
 Phase transition validation at the epistemic architecture level.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -89,7 +89,7 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    warnings.warn("PyTorch not available - Level 1 thermodynamic entropy will be disabled")
+    warnings.warn("PyTorch not available - Tier 1 thermodynamic entropy will be disabled")
 
 import os
 import sys
@@ -1140,11 +1140,11 @@ class InformationTheoreticAnalysis:
                         results["phi_baseline"].append(np.mean(baseline_phi))
 
                 # New falsification analyses
-                # Level 2 falsification criteria
+                # Tier 2 falsification criteria
                 level2_results = self.check_level2_falsification_criteria(history, vectorized)
                 results["level2_falsification"].append(level2_results)
 
-                # Level 1 falsification stubs
+                # Tier 1 falsification stubs
                 level1_results = self.run_level1_falsification_stubs(history)
                 results["level1_falsification_stubs"].append(level1_results)
 
@@ -1846,7 +1846,7 @@ class InformationTheoreticAnalysis:
         self, history: Dict[str, np.ndarray], vectorized: bool = True
     ) -> Dict[str, Any]:
         """
-        Check Level 2 falsification criteria explicitly
+        Check Tier 2 falsification criteria explicitly
 
         Criteria:
         1. Transfer entropy < 0.1 bits → falsified
@@ -1958,7 +1958,7 @@ class InformationTheoreticAnalysis:
 
     def run_level1_falsification_stubs(self, history: Dict[str, np.ndarray]) -> Dict[str, Any]:
         """
-        Level 1 falsification using thermodynamic entropy (metabolic cost measurement protocols)
+        Tier 1 falsification using thermodynamic entropy (metabolic cost measurement protocols)
 
         Implements TRUE thermodynamic entropy falsification using statistical mechanics
         with S = k_B * ln(Z) + <E>/T and metabolic cost criteria from Attwell & Laughlin (2001)
@@ -1968,7 +1968,7 @@ class InformationTheoreticAnalysis:
             history: Dictionary containing time series data
 
         Returns:
-            Dictionary containing Level 1 falsification results
+            Dictionary containing Tier 1 falsification results
         """
         results = {
             "thermodynamic_entropy_falsified": False,
@@ -1985,7 +1985,7 @@ class InformationTheoreticAnalysis:
 
         if not HAS_TORCH:
             # Fallback to basic implementation without thermodynamic calculator
-            logger.warning("PyTorch not available - using simplified Level 1 falsification")
+            logger.warning("PyTorch not available - using simplified Tier 1 falsification")
             return self._run_level1_fallback_stubs(history)
 
         try:
@@ -2012,7 +2012,7 @@ class InformationTheoreticAnalysis:
             entropy_production_rates = np.array(entropy_production_rates_list)
             thermodynamic_entropies = np.array(thermodynamic_entropies_list)
 
-            # Level 1 Falsification Criteria
+            # Tier 1 Falsification Criteria
 
             # 1. Thermodynamic entropy production must be positive (Second Law)
             mean_entropy_production = np.mean(entropy_production_rates)
@@ -2093,7 +2093,7 @@ class InformationTheoreticAnalysis:
             }
 
         except Exception as e:
-            logger.error(f"Level 1 thermodynamic falsification failed: {e}")
+            logger.error(f"Tier 1 thermodynamic falsification failed: {e}")
             results["error"] = str(e)
             # Fallback to basic implementation
             return self._run_level1_fallback_stubs(history)
@@ -2102,7 +2102,7 @@ class InformationTheoreticAnalysis:
 
     def _run_level1_fallback_stubs(self, history: Dict[str, np.ndarray]) -> Dict[str, Any]:
         """
-        Fallback Level 1 falsification without thermodynamic calculator
+        Fallback Tier 1 falsification without thermodynamic calculator
         """
         results: Dict[str, Any] = {
             "thermodynamic_entropy_falsified": False,
@@ -2440,7 +2440,7 @@ if __name__ == "__main__":
     )
 
     # Display falsification results
-    print("\n=== Level 2 Falsification Results ===")
+    print("\n=== Tier 2 Falsification Results ===")
     print(f"Overall falsification rate: {results.get('level2_falsification_rate', 0):.2%}")
     print(
         f"Transfer entropy failures: {results.get('level2_te_failure_rate', 0):.2%} (threshold < {LEVEL2_TE_THRESHOLD} bits)"
@@ -2473,11 +2473,11 @@ if __name__ == "__main__":
     print("\n=== Protocol completed successfully ===")
     print(f"Total implementation lines: ~{1167} (doubled from original ~1048)")
     print("All TODO items implemented:")
-    print("✓ Level 2 falsification criteria with explicit thresholds")
+    print("✓ Tier 2 falsification criteria with explicit thresholds")
     print("✓ Integrated information comparison against shuffled baseline")
     print("✓ Vectorized transfer entropy for computational efficiency")
     print("✓ Bandwidth falsification with mutual information threshold")
-    print("✓ Level 1 falsification stubs for metabolic cost protocols")
+    print("✓ Tier 1 falsification stubs for metabolic cost protocols")
     print("✓ Expanded implementation depth matching VP-4 coverage")
 
 
@@ -2555,7 +2555,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     _ = results.get("critical_slowing_mean", 1.0)
     susceptibility_ratio = results.get("susceptibility_ratios_mean", 1.0)
 
-    # Get Level 2 falsification results
+    # Get Tier 2 falsification results
     level2_falsification_rate = results.get("level2_falsification_rate", 0.0)
 
     # F4.1: Multi-Scale Precision Hierarchy
@@ -2580,7 +2580,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     criteria: Dict[str, Any] = {
         "protocol_id": "FP-4",
         "protocol_name": "Phase Transition & Epistemic Architecture",
-        "level": "Level 2 (Information-Theoretic)",
+        "level": "Tier 2 (Information-Theoretic)",
         "overall_passed": level2_falsification_rate < 0.5,
         "F4.1": {
             "description": "Multi-Scale Precision Hierarchy: Precision varies hierarchically across neural levels",
@@ -2647,7 +2647,7 @@ def run_falsification():
     try:
         print("Running APGI Falsification Protocol 4: Phase Transition Analysis")
         print(
-            "Includes all TODO items: Level 2 criteria, baseline comparison, vectorized TE, bandwidth falsification, Level 1 stubs"
+            "Includes all TODO items: Tier 2 criteria, baseline comparison, vectorized TE, bandwidth falsification, Tier 1 stubs"
         )
 
         apgi_system = SurpriseIgnitionSystem(random_seed=42)
@@ -2662,7 +2662,7 @@ def run_falsification():
 
         # Summary results
         print(f"\nAnalysis completed with {len(results.get('level2_falsification', []))} simulations")
-        print(f"Level 2 falsification rate: {results.get('level2_falsification_rate', 0):.2%}")
+        print(f"Tier 2 falsification rate: {results.get('level2_falsification_rate', 0):.2%}")
         print(
             f"Transfer entropy: {results.get('transfer_entropy_means_mean', 0):.3f} ± {results.get('transfer_entropy_means_std', 0):.3f} bits"
         )

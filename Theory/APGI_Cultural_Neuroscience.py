@@ -13,9 +13,9 @@ This module provides:
 3. Cross-cultural prediction maps
 4. Cultural modulation of APGI parameters
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -212,13 +212,13 @@ LINGUISTIC_PREDICTIONS = [
         effect_size_cohens_d=0.5,
         sample_size_per_group=40,
         measurement_method=(
-            "fMRI: Autocorrelation decay in Level 3 regions (posterior parietal cortex) "
+            "fMRI: Autocorrelation decay in Tier 3 regions (posterior parietal cortex) "
             "during temporal reasoning task"
         ),
         falsification_threshold=0.2,
         mechanism=(
             "Mandarin vertical time metaphors (past=up, future=down) structure "
-            "temporal cognition → modulates τ at Level 3 (event segmentation). "
+            "temporal cognition → modulates τ at Tier 3 (event segmentation). "
             "Predicted: Mandarin τ ≈ 0.6-0.8s vs English τ ≈ 0.4-0.6s"
         ),
     ),
@@ -320,7 +320,7 @@ FALSIFICATION_CRITERIA = {
     ),
     "linguistic": (
         "If within-subject language manipulation (bilingual design) shows NO effect "
-        "on Level 3 intrinsic timescale (d < 0.2), then linguistic framing does NOT "
+        "on Tier 3 intrinsic timescale (d < 0.2), then linguistic framing does NOT "
         "modulate temporal processing architecture."
     ),
     "self_construal": (

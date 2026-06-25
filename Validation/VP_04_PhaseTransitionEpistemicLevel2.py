@@ -5,11 +5,11 @@ APGI Protocol 4: Information-Theoretic Phase Transition Analysis (Level 2)
 LEVEL 2 FALSIFICATION TEST: Information-Theoretic Phase Transition Analysis
 ---------------------------------------------------------------------------
 
-This is a Level 2 (information-theoretic) falsification test per the epistemic
+This is a Tier 2 (information-theoretic) falsification test per the epistemic
 validation framework. It tests whether APGI's phase transition predictions manifest
 at the information-theoretic level, independent of specific neural implementations.
 
-FORMAL BRIDGE PRINCIPLE: Level 3 (Neural) → Level 2 (Information-Theoretic)
+FORMAL BRIDGE PRINCIPLE: Tier 3 (Neural) → Tier 2 (Information-Theoretic)
 -------------------------------------------------------------------------
 The bridge principle establishes that neural-level phase transitions (Level 3) must
 manifest as information-theoretic discontinuities (Level 2). Specifically:
@@ -27,10 +27,10 @@ manifest as information-theoretic discontinuities (Level 2). Specifically:
 3. Critical phenomena (susceptibility divergence, critical slowing) must be observable
    in both neural firing patterns and information-theoretic measures.
 
-This bridge ensures that Level 3 neural implementations are not mere epiphenomena
+This bridge ensures that Tier 3 neural implementations are not mere epiphenomena
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA (Updated per Scientific Validity Assessment)
@@ -40,7 +40,7 @@ VP-04 now includes TWO independent sub-protocols:
 SUB-PROTOCOL A: Information-Theoretic Phase Transition (original)
   If mutual information increase < 30% across predicted boundaries, or if transfer
   entropy does not diverge at the phase boundary (p > 0.05), or if critical phenomena
-  are absent (susceptibility χ² test p > 0.05), the Level 2 phase transition claim
+  are absent (susceptibility χ² test p > 0.05), the Tier 2 phase transition claim
   is falsified.
   NOTE: This sub-protocol is shared with standard GWT — passing Sub-A alone does
   NOT distinguish APGI from a fixed-threshold model.

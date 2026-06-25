@@ -10,9 +10,9 @@ Detection Threshold" - a psychophysics paradigm with human participants using he
 discrimination and near-threshold visual stimuli. This file implements computational
 simulations that support Protocol 1 predictions.
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -2682,7 +2682,7 @@ class FalsificationChecker:
             },
             "V1.3": {
                 "description": "Interoceptive Precision Gradient",
-                "threshold": "Level 1 precision 25–40% higher than Level 3",
+                "threshold": "Tier 1 precision 25–40% higher than Level 3",
                 "comparison": "percentage_difference",
                 "target_diff": 0.15,
             },
@@ -3265,7 +3265,7 @@ class FalsificationChecker:
                 value_str = f"{n_clusters} clusters detected"
             elif code == "V1.3":
                 # Interoceptive Precision Gradient
-                # Level 1 vs Level 3 precision difference
+                # Tier 1 vs Tier 3 precision difference
                 diff_val = 0.258  # Extracted from simulation previously
                 passed = diff_val >= criterion.get("target_diff", 0.15)
                 value_str = f"{diff_val * 100:.1f}% difference"

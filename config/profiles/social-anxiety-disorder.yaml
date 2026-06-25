@@ -10,7 +10,7 @@ description: >
   Social Anxiety Disorder (SAD) - Context-specific elevation of Πᵢ and Πₑ 
   during social evaluation. Hypervigilance to social cues with high precision 
   for facial expressions and interoceptive monitoring of visible symptoms.
-  Level 2 elevation - social-evaluative context drives precision allocation.
+  Tier 2 elevation - social-evaluative context drives precision allocation.
 empirical_validation:
   citations:
     - Hirsch & Clark 2004 (negative self-imagery)
@@ -26,7 +26,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 2
-  level_description: 'Level 2 elevation - social-evaluative context drives precision allocation'
+  level_description: 'Tier 2 elevation - social-evaluative context drives precision allocation'
   cross_level_coupling:
     L1_L2: 0.80
     L2_L3: 0.70

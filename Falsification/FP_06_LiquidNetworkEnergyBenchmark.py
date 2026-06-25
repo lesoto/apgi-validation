@@ -5,8 +5,8 @@ APGI Master Falsification Orchestrator
 
 Energy benchmarking for APGI liquid network architectures compared to baseline architectures.
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA
@@ -2479,7 +2479,7 @@ def check_falsification(
         "partial_eta_squared": partial_eta_sq,
         "p_value": p_rm,
         "t_statistic": t_stat,
-        "threshold": "Level 1 25-40% higher than Level 3, partial η² ≥ 0.15",
+        "threshold": "Tier 1 25-40% higher than Level 3, partial η² ≥ 0.15",
         "actual": f"{mean_diff:.2f}% higher, d={cohens_d_rm:.3f}, partial η²={partial_eta_sq:.3f}",
     }
     if f1_3_pass:

@@ -1,5 +1,5 @@
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 """
@@ -280,7 +280,7 @@ V17_ALPHA: float = 0.05  # significance level
 # ---------------------------------------------------------------------------
 # V21 – Free Energy Proxy: PE Tracking (MMN + HEP)
 # ---------------------------------------------------------------------------
-# Epistemological note: these thresholds govern Level 3 → Level 2 inference.
+# Epistemological note: these thresholds govern Tier 3 → Tier 2 inference.
 # MMN amplitude and HEP deviation are neural PE proxies, NOT direct measures
 # of variational free energy F(t).  The thermodynamic bridge (L2 → L1)
 # requires PET/fMRS and is out of scope for this protocol.
@@ -496,7 +496,7 @@ GENERIC_MEDIUM_COHENS_D: float = 0.50  # medium effect size gate
 GENERIC_BINARY_DECISION_THRESHOLD: float = 0.50  # default binary decision cut-off
 
 # F4 - Phase Transition & Epistemic Architecture thresholds
-# Level 2 Information-Theoretic thresholds (FP-04)
+# Tier 2 Information-Theoretic thresholds (FP-04)
 VP4_TE_N_BINS: int = 20  # Number of bins for transfer entropy discretization
 # Used in VP_04_PhaseTransition_EpistemicLevel2.py for information-theoretic analysis
 # Standard value for discretization in continuous information flow analysis
@@ -551,7 +551,7 @@ VP4_CALIBRATED_TAU: float = 0.20
 VP4_CALIBRATED_THETA_0: float = 0.12
 VP4_CALIBRATED_ALPHA: float = 35.0
 
-# VP-04 transfer entropy threshold for Level 2 phase transition analysis
+# VP-04 transfer entropy threshold for Tier 2 phase transition analysis
 TRANSFER_ENTROPY_THRESHOLD: float = 0.1  # Critical threshold for information flow (aligned with F4_TE_THRESHOLD)
 
 # Liquid / echo-state threshold gates

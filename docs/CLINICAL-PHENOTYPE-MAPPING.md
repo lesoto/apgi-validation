@@ -28,7 +28,7 @@ Each disorder is characterized not only by which parameter is dysregulated but b
 - **DSM-5 Code**: F41.0
 - **Level**: 1 (Sensory collapse)
 - **APGI Profile**: ↑Πᵢ (2.5×), ↓θₜ (-50%), ↑β (3.2)
-- **Mechanism**: Pathologically elevated interoceptive precision; somatic priors → catastrophe; Level 1 threshold collapse
+- **Mechanism**: Pathologically elevated interoceptive precision; somatic priors → catastrophe; Tier 1 threshold collapse
 - **Neural Signatures**: Exaggerated P3b to bodily perturbations; insula-amygdala-LC hyperconnectivity; heightened heartbeat-evoked potentials
 - **Treatment**: Interoceptive exposure; β-blockers; SSRIs
 - **Phenomenology**: Overwhelming, sudden conscious panic; bodily false alarms
@@ -230,9 +230,9 @@ print(f"Mean threshold: {simulation['mean_threshold']:.3f}")
 ### Comparing Disorders by Level
 
 ```python
-# Compare all Level 2 disorders
+# Compare all Tier 2 disorders
 level_2_comparison = mapper.compare_level_profiles(level=2)
-print(f"Level 2 disorders: {level_2_comparison['n_disorders']}")
+print(f"Tier 2 disorders: {level_2_comparison['n_disorders']}")
 print(f"Mean θₜ: {level_2_comparison['mean_theta_t']:.1f}%")
 ```
 

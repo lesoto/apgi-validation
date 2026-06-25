@@ -13,8 +13,8 @@ Validation Criteria:
 Aggregates named predictions across all validation protocols for framework
 validation status reporting.
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA
@@ -133,7 +133,7 @@ NAMED_PREDICTIONS = {
     "V20.1": "P6a — HG bimodal occupancy higher on conscious trials (d ≥ 0.50, BC ≥ 0.55)",
     "V20.2": "P6c — AC1 higher on hits-near-threshold vs. misses (critical slowing, p < 0.05)",
     "V20.3": "P6c — Variance higher on hits-near-threshold vs. misses (critical slowing, p < 0.05)",
-    # VP-21: Free Energy Proxy — MMN + HEP PE tracking (Level 3 → Level 2 only)
+    # VP-21: Free Energy Proxy — MMN + HEP PE tracking (Tier 3 → Tier 2 only)
     "V21.1": "MMN amplitude declines monotonically over 30-min task (R² ≥ 0.60, slope < 0)",
     "V21.2": "HEP deviation declines monotonically over 30-min task (R² ≥ 0.50, slope < 0)",
     "V21.3": "Ignition events spike PE ≥ 1.20× and resolve below pre-ignition baseline",

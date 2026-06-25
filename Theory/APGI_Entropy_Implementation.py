@@ -28,9 +28,9 @@ Based on:
 - Shannon (1948) - Mathematical Theory of Communication
 - Jaynes (1957) - Information Theory and Statistical Mechanics
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -906,8 +906,8 @@ class MultiLevelEntropyModule(nn.Module):
         """
         Verify Landauer's principle: ΔS_thermodynamic ≥ k_B ln 2 · ΔH_bits.
 
-        This is the computable bridge between Level 1 (thermodynamic) and
-        Level 2 (information-theoretic) entropy. Landauer's principle states
+        This is the computable bridge between Tier 1 (thermodynamic) and
+        Tier 2 (information-theoretic) entropy. Landauer's principle states
         that erasing one bit of information requires minimum thermodynamic
         entropy cost of k_B T ln 2.
 
@@ -2190,17 +2190,17 @@ class APGILiquidNetwork(nn.Module):
             # Neuromodulation
             "norepinephrine": neuromod_output["norepinephrine"],
             "acetylcholine": neuromod_output["acetylcholine"],
-            # NEW: Level 1 - Thermodynamic
+            # NEW: Tier 1 - Thermodynamic
             "S_thermodynamic": entropy_output.S_thermodynamic,
             "partition_function": entropy_output.partition_function,
             "F_thermodynamic": entropy_output.free_energy_thermodynamic,
-            # NEW: Level 2 - Shannon
+            # NEW: Tier 2 - Shannon
             "H_shannon": entropy_output.H_shannon,
             "H_shannon_bits": entropy_output.H_shannon / math.log(2),
             "information_gain": entropy_output.information_gain,
             "information_gain_bits": entropy_output.information_gain / math.log(2),
             "mutual_information": entropy_output.mutual_information,
-            # NEW: Level 3 - Variational
+            # NEW: Tier 3 - Variational
             "F_variational": entropy_output.F_variational,
             "kl_divergence": entropy_output.kl_divergence,
             "expected_log_likelihood": entropy_output.expected_log_likelihood,
@@ -2544,9 +2544,9 @@ if __name__ == "__main__":
     print(f"Total Parameters: {sum(p.numel() for p in network.parameters()):,}")
     print(f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms")
     print("\nEntropy Framework:")
-    print(f"  ✓ Level 1 (Thermodynamic): {config.use_rigorous_thermodynamic_entropy}")
-    print(f"  ✓ Level 2 (Shannon): {config.use_shannon_entropy}")
-    print(f"  ✓ Level 3 (Variational): {config.use_rigorous_variational_fe}")
+    print(f"  ✓ Tier 1 (Thermodynamic): {config.use_rigorous_thermodynamic_entropy}")
+    print(f"  ✓ Tier 2 (Shannon): {config.use_shannon_entropy}")
+    print(f"  ✓ Tier 3 (Variational): {config.use_rigorous_variational_fe}")
     print(f"  ✓ Cross-level validation: {config.cross_level_validation_enabled}")
 
     # Initialize state

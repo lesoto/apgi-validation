@@ -1,5 +1,5 @@
 """
-LEVEL DESIGNATION: Level 2 (information-theoretic)
+TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 """
@@ -361,7 +361,7 @@ class ClinicalPhenotypeMapper:
             "theta_t_range": (-25, -40),
             "somatic_bias_range": (1.8, 3.0),
             "level": 3,
-            "mechanism": "High-confidence threat priors; Level 3 elevation; worry as cognitive avoidance",
+            "mechanism": "High-confidence threat priors; Tier 3 elevation; worry as cognitive avoidance",
         },
         "panic-disorder": {
             "dsm5_code": "F41.0",
@@ -372,7 +372,7 @@ class ClinicalPhenotypeMapper:
             "theta_t_range": (-40, -60),
             "somatic_bias_range": (2.5, 4.0),
             "level": 1,
-            "mechanism": "↑Πᵢ & ↓θₜ; Level 1 threshold collapse; somatic priors → catastrophe",
+            "mechanism": "↑Πᵢ & ↓θₜ; Tier 1 threshold collapse; somatic priors → catastrophe",
         },
         "social-anxiety-disorder": {
             "dsm5_code": "F40.10",
@@ -643,7 +643,7 @@ class ClinicalPhenotypeMapper:
             "theta_t_range": (-40, -60),
             "somatic_bias_range": (2.0, 3.5),
             "level": 2,
-            "mechanism": "Labile Πᵢ & θₜ; Level 2 instability; intense unstable emotional consciousness",
+            "mechanism": "Labile Πᵢ & θₜ; Tier 2 instability; intense unstable emotional consciousness",
         },
         "avoidant-personality-disorder": {
             "dsm5_code": "F60.6",
@@ -1229,7 +1229,7 @@ if __name__ == "__main__":
 
     # Compare level profiles
     print(f"\n{separator}")
-    print("Level 1 Disorders (Sensory/Perceptual)")
+    print("Tier 1 Disorders (Sensory/Perceptual)")
     print(f"{separator}")
     level_comparison = mapper.compare_level_profiles(level=1)
     print(f"Level: {level_comparison['level_name']} ")

@@ -1168,8 +1168,8 @@ class TestLandauerConsistency:
     """
     Test Landauer's principle: ΔS_thermodynamic ≥ k_B ln 2 · ΔH_bits.
 
-    This is the falsifiable bridge principle between Level 1 (thermodynamic)
-    and Level 2 (information-theoretic) entropy. Violations would invalidate
+    This is the falsifiable bridge principle between Tier 1 (thermodynamic)
+    and Tier 2 (information-theoretic) entropy. Violations would invalidate
     F2 criterion for the three-level epistemic architecture.
     """
 

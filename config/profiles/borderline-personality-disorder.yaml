@@ -10,7 +10,7 @@ description: >
   Borderline Personality Disorder (BPD) - Labile interoceptive precision and 
   threshold dynamics. Unstable Πᵢ and θₜ leading to intense, unstable emotional
   consciousness. Attachment-related precision dysregulation.
-  Level 2 instability - fluctuating social-interoceptive integration.
+  Tier 2 instability - fluctuating social-interoceptive integration.
 empirical_validation:
   citations:
     - Linehan 1993 (biosocial theory)
@@ -26,7 +26,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 2
-  level_description: 'Level 2 instability - fluctuating social-interoceptive integration'
+  level_description: 'Tier 2 instability - fluctuating social-interoceptive integration'
   cross_level_coupling:
     L1_L2: 0.90
     L2_L3: 0.40

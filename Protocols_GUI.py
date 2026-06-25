@@ -120,17 +120,45 @@ except (ImportError, Exception):
     except (ImportError, Exception):
         HeadlessRunner = None  # type: ignore
 
-# Protocol files for metadata — canonical APGI-P00 through APGI-P07 only
-protocol_files = [
+# PROTOCOL NAMING MIGRATION: Phase 2-3 - Deprecation & Soft Warnings
+# ============================================================================
+# The legacy VP-## and FP-## naming conventions have been deprecated in favor
+# of canonical APGI-P## naming. See PROTOCOL-MIGRATION-GUIDE.md for details.
+#
+# DEPRECATION TIMELINE:
+# - 2026-06-25 (Phase 1): New APGI-P## naming introduced
+# - 2026-06-25 (Phase 2): Deprecation notices added
+# - 2026-09-25 (Phase 3): Soft deprecation with warnings [READY FOR DEPLOYMENT]
+# - 2026-12-25 (Phase 4): Hard deprecation - legacy files removed (6+ months)
+#
+# PHASE 3 NOTICE: Runtime warnings will be emitted starting September 2026
+# when legacy protocols (VP-##, FP-##) are accessed. Warnings encourage
+# migration to canonical APGI-P## naming. All existing code continues working.
+#
+# MIGRATION GUIDE: See PROTOCOL-MIGRATION-USER-GUIDE.md for step-by-step migration
+# QUICK REFERENCE: See PROTOCOL-QUICK-REFERENCE.md for protocol mapping
+# PHASE 3 DETAILS: See PROTOCOL-MIGRATION-PHASE-3.md for technical information
+# ============================================================================
+
+# Protocol files for metadata — canonical APGI-P00 through APGI-P07 (all validation protocols)
+# Maps canonical protocol IDs to their primary validation Python implementation
+# These 8 protocols represent the core APGI validation suite
+CANONICAL_PROTOCOLS = [
     ("APGI-P00: HEP Proxy Validation", "VP_00_HEPProxyValidation.py"),
-    ("APGI-P01: Cardiac EEG", "VP_01_SyntheticEEGMLClassification.py"),
-    ("APGI-P02: Somatic Agent Simulation", "VP_03_ActiveInferenceAgentSimulations.py"),
+    ("APGI-P01: Cardiac EEG (Interoceptive Gating)", "VP_01_SyntheticEEGMLClassification.py"),
+    ("APGI-P02: Somatic Agent Simulation (Active Inference)", "VP_03_ActiveInferenceAgentSimulations.py"),
     ("APGI-P03: fMRI Anticipation (vmPFC)", "VP_14_FMRIAnticipationExperience.py"),
-    ("APGI-P04: Metabolic Crossover", "VP_16_MetabolicATPGroundTruth.py"),
+    ("APGI-P04: Metabolic Crossover (Cross-Species)", "VP_16_MetabolicATPGroundTruth.py"),
     ("APGI-P05: Causal TMS & Neuromodulation", "VP_07_TMSCausalInterventions.py"),
     ("APGI-P06: Ignition Dynamics (iEEG)", "VP_20_EmpiricalIEEG.py"),
-    ("APGI-P07: DOC Biomarker", "VP_13_EpistemicArchitecture.py"),
+    ("APGI-P07: DOC Biomarker (Disorders of Consciousness)", "VP_13_EpistemicArchitecture.py"),
 ]
+
+# Legacy protocol list for reference (DEPRECATED — use CANONICAL_PROTOCOLS instead)
+# @deprecated Maintained for backward compatibility during transition period.
+#             Will be removed in Phase 4 (6+ months). Use CANONICAL_PROTOCOLS.
+# Migration: Update code to reference CANONICAL_PROTOCOLS instead of protocol_files
+protocol_files = CANONICAL_PROTOCOLS
 
 
 # ── APGI Design System ────────────────────────────────────────────────────────

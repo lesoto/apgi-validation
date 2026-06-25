@@ -9,7 +9,7 @@ dependencies: []
 description: >
   Panic Disorder - Pathologically elevated interoceptive precision (Πᵢ) with 
   collapsed threshold (θₜ). Somatic markers predict catastrophe creating 
-  positive feedback loop. Level 1 threshold collapse - bodily signals preempt 
+  positive feedback loop. Tier 1 threshold collapse - bodily signals preempt 
   perceptual processing.
 empirical_validation:
   citations:
@@ -27,7 +27,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 1
-  level_description: 'Level 1 threshold collapse - bodily signals preempt perceptual processing'
+  level_description: 'Tier 1 threshold collapse - bodily signals preempt perceptual processing'
   cross_level_coupling:
     L1_L2: 0.85
     L2_L3: 0.45

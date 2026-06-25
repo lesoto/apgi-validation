@@ -5,7 +5,7 @@ VP-21 / VP-FE-Proxy: Free Energy Approximation via Dual-Channel PE Tracking
 
 DEPRECATION STATUS: EXTENDED — FEP BRIDGE IS SPECULATIVE (NOT IN CANONICAL REGISTRY)
 --------------------------------------------------------------------------------------
-VP-21 implements a Level 3 → Level 2 proxy chain (MMN + HEP as PE trackers).
+VP-21 implements a Tier 3 → Tier 2 proxy chain (MMN + HEP as PE trackers).
 The FEP–APGI bridge is explicitly flagged as speculative/conjecture in the framework
 documents; the ALPHA_FEP calibration constant is undefined (see falsification_thresholds.py).
 
@@ -23,11 +23,11 @@ Variational free energy F in the FEP sense is a mathematical bound on
 surprise (negative log model evidence); it is NOT directly observable in
 neural data.  What is tractable is a three-level proxy chain:
 
-    Level 1 (thermodynamic):  ΔF → Landauer energy dissipation
-    Level 2 (computational):  PE magnitude → F proxy
-    Level 3 (neural correlate): MMN amplitude + HEP deviation → PE proxies
+    Tier 1 (thermodynamic):  ΔF → Landauer energy dissipation
+    Tier 2 (computational):  PE magnitude → F proxy
+    Tier 3 (neural correlate): MMN amplitude + HEP deviation → PE proxies
 
-This protocol operates at Level 3 → Level 2.  The paper MUST state this
+This protocol operates at Tier 3 → Level 2.  The paper MUST state this
 inference chain explicitly and must NOT claim to "track F(t) directly."
 See Friston (2010) for the FEP derivation; Näätänen et al. (2007) for
 MMN; Park et al. (2014) for interoceptive PE / HEP.
@@ -40,9 +40,9 @@ Exteroceptive PE proxy — Mismatch Negativity (MMN):
     window after deviant onset.  Amplitude tracks exteroceptive PE
     magnitude (larger MMN → higher surprise / free energy).
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -186,9 +186,9 @@ P3B_IGNITION_THRESHOLD_UV: float = 2.0
 
 # Proxy chain levels for provenance labelling
 PROXY_CHAIN = (
-    "Level 3 (neural correlate: MMN / HEP)"
-    " → Level 2 (computational: PE magnitude)"
-    " → Level 1 (thermodynamic: ΔF via Landauer bridge — NOT measured here)"
+    "Tier 3 (neural correlate: MMN / HEP)"
+    " → Tier 2 (computational: PE magnitude)"
+    " → Tier 1 (thermodynamic: ΔF via Landauer bridge — NOT measured here)"
 )
 
 

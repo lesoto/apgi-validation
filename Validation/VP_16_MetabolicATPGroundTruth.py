@@ -4,9 +4,9 @@ APGI Validation Protocol 16: Metabolic ATP Ground-Truth
 
 DEPRECATION STATUS: EXTENDED — THERMODYNAMIC CHECKS HANDLED OUTSIDE VP SYSTEM
 ------------------------------------------------------------------------------
-VP-16 covers Level 1 thermodynamic predictions (P9/Landauer bridge) using
+VP-16 covers Tier 1 thermodynamic predictions (P9/Landauer bridge) using
 simulated iATPSnFR2 / P-fMRS data.  These checks are authoritative when run
-through the standalone Level 1 Thermodynamic Programs:
+through the standalone Tier 1 Thermodynamic Programs:
     Theory/APGI_Thermodynamic_Program_Aggregator.py  (canonical, Level 1)
 
 V16.x predictions are NOT counted in the canonical 14-prediction tally.
@@ -31,9 +31,9 @@ Predictions:
 - V16.2: c1/c2 ratio consistency across frequency bands (10–100 Hz)
 - V16.3: Metabolic efficiency advantage >20% vs non-gating controls
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 

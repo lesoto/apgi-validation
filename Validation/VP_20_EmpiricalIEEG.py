@@ -40,9 +40,9 @@ MEASUREMENT GAPS (required hedging per APGI Paper 4)
     single-unit firing-rate measure.  The stronger bimodality prediction
     (P6a) requires Utah-array or tetrode recordings not available in
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -53,8 +53,8 @@ or if conscious trials do not show higher high-gamma mode occupancy (Cohen's d <
 or if critical slowing signatures are absent near threshold (AC1 difference p > 0.05),
 then the APGI iEEG neural signature claim is falsified. This would indicate that
 intracranial EEG does not support APGI predictions about neural dynamics.
-    standard clinical iEEG.  Results here constitute Level 3 (neural
-    correlate) evidence, not Level 1 (single-neuron) ground-truth.
+    standard clinical iEEG.  Results here constitute Tier 3 (neural
+    correlate) evidence, not Tier 1 (single-neuron) ground-truth.
 
 2.  CLINICAL RECORDING BIAS: iEEG electrode placement is driven by
     clinical-seizure mapping, not cognitive-neuroscience needs; coverage
@@ -253,7 +253,7 @@ class ValidationSummary:
     measurement_gap_note: str = (
         "High-gamma power is a population-level firing proxy; single-unit "
         "bimodality requires Utah-array / tetrode recordings not available in "
-        "standard clinical iEEG (Level 3 evidence only)."
+        "standard clinical iEEG (Tier 3 evidence only)."
     )
 
 
@@ -1206,7 +1206,7 @@ class EmpiricalIEEGValidator:
             "MEASUREMENT GAPS: (1) High-gamma LFP power is a population-level "
             "firing-rate proxy; single-unit bimodality requires Utah-array or "
             "tetrode recordings unavailable in standard clinical iEEG — results "
-            "here are Level 3 neural-correlate evidence only. "
+            "here are Tier 3 neural-correlate evidence only. "
             "(2) Clinical electrode placement is seizure-driven; prefrontal/insula "
             "coverage varies by patient. "
             f"(3) Data source for this run: {self.data_source.upper()} — synthetic "

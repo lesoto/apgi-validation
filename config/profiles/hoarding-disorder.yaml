@@ -10,7 +10,7 @@ description: >
   Hoarding Disorder - Elevated precision on object value with loss prediction 
   errors. High precision on acquisition and difficulty with discarding due to 
   loss aversion and excessive valuation of possessions.
-  Level 3 elevation - semantic value representations dominate.
+  Tier 3 elevation - semantic value representations dominate.
 empirical_validation:
   citations:
     - Tolin et al. 2012 (hoarding mechanisms)
@@ -24,7 +24,7 @@ empirical_validation:
   status: VALIDATED_EMPIRICAL
 hierarchical_profile:
   affected_level: 3
-  level_description: 'Level 3 elevation - semantic value representations dominate'
+  level_description: 'Tier 3 elevation - semantic value representations dominate'
   cross_level_coupling:
     L1_L2: 0.55
     L2_L3: 0.80

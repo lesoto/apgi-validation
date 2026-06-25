@@ -4,8 +4,8 @@ APGI Validation Package.
 
 Contains validation protocols and GUI tools for testing APGI theory predictions.
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA

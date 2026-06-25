@@ -6,7 +6,7 @@ APGI THERMODYNAMIC PROGRAM AGGREGATOR
 
 Derives and audits the κ ≈ 100 ATP/bit claim that is central to APGI Level 1
 (thermodynamic self-application).  The script makes the Double Bridge
-(Level 3 → Level 2 → Level 1) computable rather than rhetorical.
+(Tier 3 → Tier 2 → Level 1) computable rather than rhetorical.
 
 CRITICAL DISTINCTION (enforced throughout):
   (a) Thermodynamic capacity  — Landauer minimum energy to erase one bit
@@ -30,9 +30,9 @@ Integration layer runs all four modules, generates a unified text report,
 and produces a log-log figure of ATP cost per bit vs. brain mass with the
 APGI prediction band overlaid on empirical species data.
 
-LEVEL DESIGNATION: All outputs are Level 1 (thermodynamic).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 3 requires standard algorithmic implementations.
+TIER DESIGNATION: All outputs are Tier 1 (thermodynamic).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 3 requires standard algorithmic implementations.
 This script does NOT claim algorithmic or information-theoretic implications
 without explicit bridge invocation.
 
@@ -271,7 +271,7 @@ class DoubleBridgeResult:
     def summary(self) -> str:
         range_str = "IN RANGE" if self.kappa_in_range else "OUT OF RANGE"
         lines = [
-            "Double Bridge (Level 3 → Level 2 → Level 1):",
+            "Double Bridge (Tier 3 → Tier 2 → Level 1):",
             f"  I_bits = {self.I_bits:.2f} bits",
             f"  metabolic_cost = {self.metabolic_cost_ATP:.3e} ATP molecules",
             f"  κ = {self.kappa:.3e} ATP/bit  [{range_str}]",
@@ -300,9 +300,9 @@ class DoubleBridgeCalculator:
     Module 3 — Derives κ and connects thermodynamic floor to neural cost.
 
     This is the Double Bridge:
-      Level 3 (PCI / mutual information)  →  I_bits
-      Level 2 (metabolic firing cost)     →  metabolic_cost_ATP
-      Level 1 (Landauer floor)            →  efficiency_ratio
+      Tier 3 (PCI / mutual information)  →  I_bits
+      Tier 2 (metabolic firing cost)     →  metabolic_cost_ATP
+      Tier 1 (Landauer floor)            →  efficiency_ratio
 
     κ = metabolic_cost_ATP / I_bits
 
@@ -324,7 +324,7 @@ class DoubleBridgeCalculator:
     ) -> DoubleBridgeResult:
         """
         Args:
-            I_bits: Information gained at ignition from Level 2 mutual
+            I_bits: Information gained at ignition from Tier 2 mutual
                     information estimate [bits].
             metabolic_result: Output of NeuralMetabolicCost.compute().
 
@@ -343,7 +343,7 @@ class DoubleBridgeCalculator:
         falsification_note = (
             "κ_conscious > κ_unconscious required (one-tailed t-test p<0.05, d>0.5). "
             "If κ does not differ significantly between conscious and unconscious "
-            "ignition, the Level 1 thermodynamic claim is falsified."
+            "ignition, the Tier 1 thermodynamic claim is falsified."
         )
 
         return DoubleBridgeResult(
@@ -587,7 +587,7 @@ class AggregatorConfig:
     cost_per_spike_J: float = COST_PER_SPIKE_J
 
     # Module 3 — Double Bridge
-    I_bits: float = 4.0  # Bits gained at ignition (from Level 2 MI)
+    I_bits: float = 4.0  # Bits gained at ignition (from Tier 2 MI)
     # Sensitivity analysis ranges
     I_bits_min: float = 1.0
     I_bits_max: float = 10.0

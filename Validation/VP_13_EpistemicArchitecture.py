@@ -9,7 +9,7 @@ architecture predictions (P5–P12).  It is NOT counted in the 14-prediction
 canonical falsification tally.
 
 Reason: The Epistemic Architecture rubric (P5–P12 in the Epistemic Architecture
-paper) is evaluated through standalone Level 1 Thermodynamic Programs and the
+paper) is evaluated through standalone Tier 1 Thermodynamic Programs and the
 APGI_Thermodynamic_Program_Aggregator, not through the VP numbering system.
 Running VP-13 provides supplementary coverage; it does not replace those programs.
 
@@ -23,7 +23,7 @@ here are not propagated to the master falsification registry tally.
 
 Complete implementation of Paper 4 Epistemic Architecture predictions (P5–P12).
 
-This protocol validates Level 1 (P9–P12) and Level 2 (P5–P8) predictions:
+This protocol validates Tier 1 (P9–P12) and Tier 2 (P5–P8) predictions:
 - P5: Mutual information increase with precision cueing
 - P6: Bandwidth expansion asymptote at ~40 bits/s
 - P7: Optimal Bayesian detector performance
@@ -35,15 +35,15 @@ This protocol validates Level 1 (P9–P12) and Level 2 (P5–P8) predictions:
 
 Implementation Flags:
 ✅ Comprehensive coverage of Paper 4's epistemic predictions
-⚠️ Level 1 thermodynamic predictions share the same PyTorch dependency problem as FP-04 — if torch is absent, Level 1 tests are skipped
-⚠️ Level 3 computational claims (reservoir computing efficiency) benchmarked against a toy 100-node network — not validated at the biologically realistic scale (~10⁷ cortical neurons)
+⚠️ Tier 1 thermodynamic predictions share the same PyTorch dependency problem as FP-04 — if torch is absent, Tier 1 tests are skipped
+⚠️ Tier 3 computational claims (reservoir computing efficiency) benchmarked against a toy 100-node network — not validated at the biologically realistic scale (~10⁷ cortical neurons)
 
 Critical Fixes:
 ✅ Same PyTorch guard fix as FP-04
-✅ Cross-paper consistency check: run VP-13 Level 2 predictions through FP-04's criteria
+✅ Cross-paper consistency check: run VP-13 Tier 2 predictions through FP-04's criteria
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 2 (information-theoretic).
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
 
 FALSIFICATION_CRITERIA
@@ -81,7 +81,7 @@ except ImportError:
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.metrics import roc_auc_score
 
-# PyTorch guard for Level 1 thermodynamic predictions (same pattern as FP-04)
+# PyTorch guard for Tier 1 thermodynamic predictions (same pattern as FP-04)
 try:
     import torch  # noqa: F401
     import torch.nn as nn  # noqa: F401
@@ -89,7 +89,7 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
-    warnings.warn("PyTorch not available - Level 1 thermodynamic predictions will be disabled")
+    warnings.warn("PyTorch not available - Tier 1 thermodynamic predictions will be disabled")
 
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
@@ -162,7 +162,7 @@ class EpistemicArchitectureValidator:
         Returns:
             Dictionary with all validation results
         """
-        # Level 2 predictions (P5–P8)
+        # Tier 2 predictions (P5–P8)
         self.results["level_2_predictions"] = {
             "P5_mutual_information": self._validate_P5_mutual_information(),
             "P6_bandwidth_expansion": self._validate_P6_bandwidth_expansion(),
@@ -170,7 +170,7 @@ class EpistemicArchitectureValidator:
             "P8_information_erasure": self._validate_P8_information_erasure(),
         }
 
-        # Level 1 predictions (P9–P12)
+        # Tier 1 predictions (P9–P12)
         self.results["level_1_predictions"] = {
             "P9_metabolic_cost": self._validate_P9_metabolic_cost(),
             "P10_energy_efficiency": self._validate_P10_energy_efficiency(),
@@ -178,12 +178,12 @@ class EpistemicArchitectureValidator:
             "P12_cross_species_scaling": self._validate_P12_cross_species_scaling(),
         }
 
-        # Level 3 computational claims (reservoir computing - toy scale)
+        # Tier 3 computational claims (reservoir computing - toy scale)
         self.results["level_3_predictions"] = {
             "L3_reservoir_computing": self._validate_level3_computational_claims(),
         }
 
-        # Cross-paper consistency check: VP-13 Level 2 vs FP-04 criteria
+        # Cross-paper consistency check: VP-13 Tier 2 vs FP-04 criteria
         self.results["cross_paper_consistency"] = self._run_cross_paper_consistency_check()
 
         # Calculate overall score
@@ -596,7 +596,7 @@ class EpistemicArchitectureValidator:
 
         Threshold: Conscious processing costs ≥15% more metabolic resources
 
-        NOTE: This is a Level 1 thermodynamic prediction. If PyTorch is not available,
+        NOTE: This is a Tier 1 thermodynamic prediction. If PyTorch is not available,
         the test is skipped with a warning (same pattern as FP-04).
         """
         np.random.seed(42)
@@ -848,12 +848,12 @@ class EpistemicArchitectureValidator:
 
     def _run_cross_paper_consistency_check(self) -> Dict[str, Any]:
         """
-        Cross-paper consistency check: Run VP-13 Level 2 predictions through FP-04's criteria.
+        Cross-paper consistency check: Run VP-13 Tier 2 predictions through FP-04's criteria.
 
-        This ensures VP-13 Level 2 predictions (P5-P8) are consistent with FP-04's Level 2
+        This ensures VP-13 Tier 2 predictions (P5-P8) are consistent with FP-04's Level 2
         falsification criteria, verifying no conflicts between validation and falsification.
 
-        FP-04 Level 2 criteria checked:
+        FP-04 Tier 2 criteria checked:
         - F4.1: Multi-Scale Precision Hierarchy (susceptibility ratio ≥ 2.0)
         - F4.2: Cross-Level Coherence (mutual information ≥ 10.0 bits/s)
         - F4.3: Spectral Slope Hierarchy (Hurst exponent ∈ [0.65, 0.85])
@@ -863,7 +863,7 @@ class EpistemicArchitectureValidator:
         Returns:
             Dictionary with consistency check results
         """
-        logger.info("Running cross-paper consistency check with FP-04 Level 2 criteria...")
+        logger.info("Running cross-paper consistency check with FP-04 Tier 2 criteria...")
 
         try:
             # Import FP-04's falsification criteria function
@@ -871,11 +871,11 @@ class EpistemicArchitectureValidator:
                 get_falsification_criteria as get_fp04_criteria,
             )
 
-            # Get FP-04's Level 2 falsification criteria (for reference)
+            # Get FP-04's Tier 2 falsification criteria (for reference)
             fp04_criteria = get_fp04_criteria()
             logger.debug(f"FP-04 criteria available: {list(fp04_criteria.keys())}")
 
-            # Get VP-13 Level 2 results
+            # Get VP-13 Tier 2 results
             level2_results = self.results.get("level_2_predictions", {})
 
             # Check consistency for each criterion
@@ -938,7 +938,7 @@ class EpistemicArchitectureValidator:
                 "conflict_details": conflicts,
                 "individual_checks": consistency_checks,
                 "fp04_criteria_available": True,
-                "note": "VP-13 Level 2 predictions checked against FP-04 falsification criteria",
+                "note": "VP-13 Tier 2 predictions checked against FP-04 falsification criteria",
             }
 
         except ImportError as e:
@@ -964,20 +964,20 @@ class EpistemicArchitectureValidator:
 
     def _validate_level3_computational_claims(self) -> Dict[str, Any]:
         """
-        Validate Level 3 computational claims: Reservoir computing efficiency.
+        Validate Tier 3 computational claims: Reservoir computing efficiency.
 
         This is a stub implementation that benchmarks against a toy 100-node network.
         NOTE: Not validated at biologically realistic scale (~10⁷ cortical neurons).
 
-        Level 3 Predictions:
+        Tier 3 Predictions:
         - Reservoir computing efficiency advantage
         - Echo state property maintenance
         - Information capacity scaling
 
         Returns:
-            Dictionary with Level 3 validation results
+            Dictionary with Tier 3 validation results
         """
-        logger.info("Running Level 3 computational claims validation...")
+        logger.info("Running Tier 3 computational claims validation...")
 
         np.random.seed(42)
 
@@ -1012,7 +1012,7 @@ class EpistemicArchitectureValidator:
         overall_pass = echo_state_valid and memory_valid and efficiency_valid
 
         return {
-            "level": "Level 3 - Computational",
+            "level": "Tier 3 - Computational",
             "n_nodes": n_nodes,
             "biologically_realistic": False,
             "biological_scale_note": "Toy 100-node network, not ~10^7 cortical neurons",
@@ -1045,14 +1045,14 @@ class EpistemicArchitectureValidator:
         """Calculate overall epistemic validation score (0-1)"""
         scores = []
 
-        # Level 2 predictions (weight: 0.5)
+        # Tier 2 predictions (weight: 0.5)
         level_2_results = self.results["level_2_predictions"]
         for pred_code, result in level_2_results.items():
             weight = 0.125  # 4 predictions, equal weight
             passed = not result.get("falsified", True)
             scores.append(weight * (1.0 if passed else 0.0))
 
-        # Level 1 predictions (weight: 0.5)
+        # Tier 1 predictions (weight: 0.5)
         level_1_results = self.results["level_1_predictions"]
         for pred_code, result in level_1_results.items():
             weight = 0.125  # 4 predictions, equal weight
@@ -1078,12 +1078,12 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 
         # Apply multiple comparison correction to all predictions
         predictions_p_values = []
-        # Collect p-values from Level 2 predictions
+        # Collect p-values from Tier 2 predictions
         for pred_code, result in results.get("level_2_predictions", {}).items():
             # Use falsified status as proxy: if not falsified, p < 0.05
             p_val = 0.04 if not result.get("falsified", True) else 0.5
             predictions_p_values.append(p_val)
-        # Collect p-values from Level 1 predictions
+        # Collect p-values from Tier 1 predictions
         for pred_code, result in results.get("level_1_predictions", {}).items():
             p_val = 0.04 if not result.get("falsified", True) else 0.5
             predictions_p_values.append(p_val)
@@ -1264,14 +1264,14 @@ if __name__ == "__main__":
     print("APGI Epistemic Architecture Validation Results:")
     print(f"Overall Score: {results['overall_epistemic_score']:.3f}")
 
-    print("\nLevel 2 Predictions (P5–P8):")
+    print("\nTier 2 Predictions (P5–P8):")
     for pred_code, result in results["level_2_predictions"].items():
         status = "✓ PASS" if not result.get("falsified", True) else "✗ FAIL"
         print(f"  {pred_code}: {status}")
         if result.get("falsified", True):
             print(f"    {result.get('description', '')}")
 
-    print("\nLevel 1 Predictions (P9–P12):")
+    print("\nTier 1 Predictions (P9–P12):")
     for pred_code, result in results["level_1_predictions"].items():
         status = "✓ PASS" if not result.get("falsified", True) else "✗ FAIL"
         print(f"  {pred_code}: {status}")

@@ -3,7 +3,7 @@
 APGI INFORMATION-THEORETIC BANDWIDTH
 =============================================================================
 
-Level 2 (information-theoretic) derivation of the ~40 bits/s conscious
+Tier 2 (information-theoretic) derivation of the ~40 bits/s conscious
 bandwidth constraint from APGI precision-gating parameters.
 
 THEORETICAL CLAIM (derived, not assumed):
@@ -26,9 +26,9 @@ Modules
   2. PrecisionWeightingGain   — ΔI from precision-on vs. precision-off conditions
   3. ClinicalBandwidthMap     — bandwidth under MDD, ADHD, Schizophrenia profiles
 
-LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
-Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+TIER DESIGNATION: All outputs are Tier 3 (algorithmic/mathematical).
+Bridge to Tier 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.
 This script does NOT claim thermodynamic or information-theoretic implications
 without explicit bridge invocation.
 This script does NOT claim thermodynamic implications without explicit bridge invocation.
@@ -285,7 +285,7 @@ class BandwidthDerivation:
     """
     Module 1 — Derives the conscious bandwidth constraint from APGI parameters.
 
-    The central Level 2 claim:
+    The central Tier 2 claim:
 
         I_conscious = I_total × P(ignition)
 
@@ -953,7 +953,7 @@ class BandwidthReport:
         sep = "=" * 70
         print(sep)
         print("APGI INFORMATION-THEORETIC BANDWIDTH — UNIFIED REPORT")
-        print("Level 2 (information-theoretic) | NOT thermodynamic")
+        print("Tier 2 (information-theoretic) | NOT thermodynamic")
         print(sep)
         print()
         print("THEORETICAL CLAIM: I_conscious = I_total × P(ignition)")
@@ -1000,7 +1000,7 @@ class BandwidthReport:
             print(f"             {key:<6} deficit            : {pct:.1f}%")
         print()
         print("  NOTE: No thermodynamic claims are made here.")
-        print("  Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.py")
+        print("  Bridge to Tier 1 requires APGI_Thermodynamic_Program_Aggregator.py")
         if self.figure_path:
             print(f"\n  Figure saved: {self.figure_path}")
         print(f"\n{sep}\n")
