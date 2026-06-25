@@ -7,11 +7,13 @@ Bridge to Level 1
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 _PROTOCOLS_DIR = Path(__file__).parent.parent / "protocols"
+_LEGACY_DIR = _PROTOCOLS_DIR / "legacy"
 
 
 @dataclass
@@ -83,11 +85,15 @@ class ProtocolSpec:
         return self._raw
 
 
-def _iter_protocol_files() -> List[Path]:
-    """Return all protocol JSON files in the protocols directory."""
+def _iter_protocol_files(include_legacy: bool = True) -> List[Path]:
+    """Return canonical protocol JSON files; optionally include archived legacy files."""
     if not _PROTOCOLS_DIR.exists():
         return []
-    return sorted(_PROTOCOLS_DIR.glob("protocol_*.json"))
+    canonical = sorted(_PROTOCOLS_DIR.glob("protocol_*.json"))
+    if not include_legacy or not _LEGACY_DIR.exists():
+        return canonical
+    legacy = sorted(_LEGACY_DIR.glob("protocol_*.json"))
+    return canonical + legacy
 
 
 def _find_protocol_file(protocol_id: str) -> Optional[Path]:
@@ -122,10 +128,19 @@ def _find_protocol_file(protocol_id: str) -> Optional[Path]:
                 data = json.load(fh)
         except Exception:  # nosec B110,B112
             continue
-        if data.get("protocol_id") == normalized_id:
-            return path
-        aliases = data.get("aliases", [])
-        if isinstance(aliases, list) and normalized_id in aliases:
+        matched = data.get("protocol_id") == normalized_id
+        if not matched:
+            aliases = data.get("aliases", [])
+            matched = isinstance(aliases, list) and normalized_id in aliases
+        if matched:
+            if _LEGACY_DIR.exists() and path.is_relative_to(_LEGACY_DIR):
+                warnings.warn(
+                    f"Protocol '{normalized_id}' resolved to archived legacy file "
+                    f"'{path.name}'. Use the canonical APGI-P## ID instead. "
+                    "Legacy files in protocols/legacy/ will be removed in a future release.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
             return path
     return None
 
@@ -145,10 +160,15 @@ def load_protocol_file(path: Path) -> ProtocolSpec:
     return ProtocolSpec.from_dict(data)
 
 
-def load_all_protocols() -> Dict[str, ProtocolSpec]:
-    """Load all protocol specs from the protocols/ directory, keyed by protocol_id."""
+def load_all_protocols(include_legacy: bool = True) -> Dict[str, ProtocolSpec]:
+    """Load all protocol specs, keyed by protocol_id.
+
+    Legacy VP/FP files in protocols/legacy/ are included by default for backward
+    compatibility but will be removed in a future release. Pass include_legacy=False
+    to load only canonical APGI-P## protocols.
+    """
     specs: Dict[str, ProtocolSpec] = {}
-    for path in _iter_protocol_files():
+    for path in _iter_protocol_files(include_legacy=include_legacy):
         try:
             spec = load_protocol_file(path)
             specs[spec.protocol_id] = spec
