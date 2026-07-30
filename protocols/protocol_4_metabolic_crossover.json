@@ -4,9 +4,14 @@
   "registry_protocol_label": "Protocol 4 — Metabolic-State Crossover",
   "title": "Metabolic-State Crossover: Allostatic Threshold Modulation Under Energy Deficit",
   "paper": "APGI Paper 1",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "1.0.0",
-  "last_updated": "2026-06-19",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "1.1.0",
+  "last_updated": "2026-07-30",
   "description": "This protocol provides the direct human empirical validation for the claim that the ignition threshold θₜ is dynamically regulated by metabolic state as an allostatic triage mechanism. APGI posits that interoceptive precision weighting (Πⁱ_eff) and somatic-marker retrieval rely on metabolically expensive neuromodulatory gain. Under conditions of energy deficit, the framework predicts that the brain selectively elevates θₜ to suppress high-cost interoceptive channels, preserving essential exteroceptive processing. Three sub-predictions are tested: (Pred 4.A) metabolic depletion selectively elevates θₜ for high-interoceptive-load stimuli, reducing d′ disproportionately vs. neutral exteroceptive stimuli (Metabolic State × Interoceptive Load interaction, LMM p < 0.05, ηₚ² ≥ 0.06); (Pred 4.B) the neural ignition proxy (P3b amplitude) reflects selective θₜ elevation, disproportionately suppressed for interoceptive targets under metabolic depletion; (Pred 4.C) the allostatic triage effect is mediated by metabolic cost, not generalized cognitive fatigue — the interaction survives strict covariation for trial-level pupil diameter and RMSSD.",
   "prediction_cluster": "Pred 4.A–4.C",
   "prediction_cluster_label": "Metabolic Allostatic Triage: Selective θₜ Elevation for High-Interoceptive-Load Stimuli",
@@ -15,7 +20,7 @@
       "id": "Pred 4.A",
       "claim": "Metabolic depletion selectively elevates θₜ for high-interoceptive-load stimuli, reducing d′ disproportionately compared to neutral exteroceptive stimuli.",
       "confirming_evidence": "Significant Metabolic State × Interoceptive Load interaction on d′ (LMM p < 0.05, ηₚ² ≥ 0.06); simple effects show d′ reduction for interoceptive load > 15% greater than for exteroceptive load under depletion.",
-      "falsifying_evidence": "(a) No significant Metabolic State × Interoceptive Load interaction on d′ or P3b amplitude (p > 0.10); OR (b) metabolic depletion produces a uniform, global suppression of ignition proxies across all stimulus types, indicating generalized cognitive fatigue rather than selective θₜ elevation.",
+      "falsifying_evidence": "(a) No significant Metabolic State × Interoceptive Load interaction on d′ or P3b, classified as Scenario E (frequentist p ≥ 0.05 AND BF₀₁ ≥ 6); OR (b) metabolic depletion produces uniform suppression of ignition proxies across all stimulus types, indicating generalised cognitive fatigue rather than selective θₜ elevation.",
       "confirming_thresholds": {
         "lmm_interaction_p_threshold": 0.05,
         "eta_p_squared_minimum": 0.06,
@@ -23,8 +28,10 @@
         "analysis": "Linear mixed-effects model with Metabolic State × Interoceptive Load interaction"
       },
       "falsifying_thresholds": {
-        "condition_1": "No significant interaction (p > 0.10) on d′ or P3b",
-        "condition_2": "Uniform global suppression across all stimulus types"
+        "scenario_e_p_minimum": 0.05,
+        "scenario_e_bf01_minimum": 6,
+        "condition_1": "No significant interaction meeting Scenario E (p ≥ 0.05 AND BF₀₁ ≥ 6) on d′ or P3b",
+        "condition_2": "Uniform global suppression across all stimulus types (generalised fatigue)"
       }
     },
     {
@@ -36,8 +43,15 @@
         "interaction_p_threshold": 0.05,
         "p3b_reduction_interoceptive_vs_exteroceptive_minimum_uv": 1.5,
         "covariate_control": "arousal covariation (pupil diameter and RMSSD) required",
-        "channels": ["Pz", "P3", "P4"],
-        "window_ms": [250, 500]
+        "channels": [
+          "Pz",
+          "P3",
+          "P4"
+        ],
+        "window_ms": [
+          250,
+          500
+        ]
       },
       "falsifying_thresholds": {
         "condition_1": "Uniform P3b suppression across all stimulus types",
@@ -52,18 +66,26 @@
       "confirming_thresholds": {
         "interaction_p_threshold": 0.05,
         "bf10_minimum": 100,
-        "covariates_required": ["trial-level baseline pupil diameter", "RMSSD"],
+        "covariates_required": [
+          "trial-level baseline pupil diameter",
+          "RMSSD"
+        ],
         "covariate_model": "LMM: d′ ~ MetabolicState × InteroceptiveLoad + PupilDiameter + RMSSD + (1 + MetabolicState | Participant) + (1 | Site)"
       },
       "falsifying_thresholds": {
-        "condition_1": "Δηₚ² < 0.02 after arousal covariation",
-        "condition_2": "Interaction p > 0.10 after covariation"
+        "condition_1": "Interaction fully absorbed by arousal covariates (Δηₚ² < 0.02 after covariation)",
+        "condition_2": "Interaction p > 0.10 after covariation",
+        "condition_3": "Interaction meets Scenario E (p ≥ 0.05 AND BF₀₁ ≥ 6) after covariation",
+        "doc_note": "APGI-Protocols.md states the absorption criterion as 'Δηₚ² < 0.02' in the Protocol 4 sub-prediction table and as 'Δη² ≥ 0.02' in the framework Falsification Conditions table. The sub-prediction table (Δηₚ² < 0.02, i.e. the interaction no longer carries unique variance) is implemented here; the discrepancy is flagged for author resolution."
       }
     }
   ],
   "validation_status": "specified",
   "validation_notes": "Pre-registered crossover design. Depends on EP-0 (HEP proxy validation) and EP-1 (cardiac-EEG) for interoceptive load stimulus validation. Multi-site design (≥ 2 independent laboratories) required for target N ≥ 60.",
-  "depends_on": ["EP-0", "EP-1"],
+  "depends_on": [
+    "EP-0",
+    "EP-1"
+  ],
   "participants": {
     "n_target": 60,
     "n_minimum": 48,
@@ -103,7 +125,8 @@
         "study_level_termination": "Two session-level terminations in the same participant require medical review before continuation"
       },
       "dsmb_reporting": "All AEs reported to DSMB per Global Safety Protocol"
-    }
+    },
+    "design_note": "Fixed-N design across two independent laboratories; no interim analyses are performed and no stopping rule applies."
   },
   "apparatus": {
     "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz; electrode impedance checks every 60 min during vigilance session; recordings with impedance > 20 kΩ at primary scalp sites flagged for offline interpolation",
@@ -129,7 +152,10 @@
     "rationale": "Two validated induction modalities to avoid severe motion, sweat, and sympathetic EMG artifacts associated with exhaustive exercise or hypoglycemic clamps"
   },
   "trial_structure": {
-    "isi_ms": [800, 1200],
+    "isi_ms": [
+      800,
+      1200
+    ],
     "fixation_duration_ms": 500,
     "stimulus_streams": [
       {
@@ -156,15 +182,34 @@
     "artifact_monitoring": "Continuous online amplitude threshold ±100 µV; sessions with > 30% trial rejection rate classified as unusable and trigger session-level protocol termination"
   },
   "eeg_analysis_pipeline": {
-    "bandpass_filter_hz": [0.1, 40],
-    "epoch_window_ms": [-200, 800],
-    "baseline_correction_ms": [-200, 0],
+    "bandpass_filter_hz": [
+      0.1,
+      40
+    ],
+    "epoch_window_ms": [
+      -200,
+      800
+    ],
+    "baseline_correction_ms": [
+      -200,
+      0
+    ],
     "artifact_rejection_threshold_uv": 100,
-    "p3b_window_ms": [250, 500],
-    "p3b_channels": ["Pz", "P3", "P4"],
+    "p3b_window_ms": [
+      250,
+      500
+    ],
+    "p3b_channels": [
+      "Pz",
+      "P3",
+      "P4"
+    ],
     "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
     "minimum_clean_epochs": 40,
-    "arousal_covariates": ["trial-level baseline pupil diameter (z-scored per session)", "RMSSD (30-s window)"]
+    "arousal_covariates": [
+      "trial-level baseline pupil diameter (z-scored per session)",
+      "RMSSD (30-s window)"
+    ]
   },
   "statistical_model": {
     "behavioral": "d′ ~ MetabolicState × InteroceptiveLoad + PupilDiameter + RMSSD + (1 + MetabolicState | Participant) + (1 | Site)",
@@ -189,19 +234,23 @@
   "primary_hypothesis": "Metabolic depletion (16-hour fast or 4-hour vigilance) selectively elevates θₜ for high-interoceptive-load stimuli, producing a significant Metabolic State × Interoceptive Load interaction on d′ (ηₚ² ≥ 0.06) and P3b amplitude that survives strict covariation for arousal (pupil diameter and RMSSD), consistent with allostatic triage rather than generalized cognitive fatigue.",
   "primary_analysis": "Linear mixed-effects models fitted in R (lme4). Critical test: Metabolic State × Interoceptive Load interaction on d′ and P3b amplitude, with trial-level arousal covariates (pupil, RMSSD). BF₁₀ ≥ 100 required for strong confirmation. Simple effects reported for each metabolic depletion modality separately and combined.",
   "power_analysis": {
+    "primary_test": "Metabolic State × Interoceptive Load interaction (within-subject 2×2) on d′ and P3b",
     "effect_size_d": 0.45,
     "alpha": 0.05,
-    "power": 0.80,
-    "n_required": 52,
-    "n_target_with_attrition": 60,
+    "power": 0.8,
+    "n_required": 60,
+    "n_target": 60,
+    "n_minimum": 48,
+    "attrition_allowance_percent": 15,
     "software": "G*Power 3.1",
-    "interaction_type": "within-subject 2×2 (Metabolic State × Interoceptive Load)",
-    "based_on": "Moderate interaction effect for metabolic-state modulation of near-threshold perceptual sensitivity; multi-site variance accounted for by (1 | Site) random effect"
+    "based_on": "Moderate interaction effect for metabolic-state modulation of near-threshold perceptual sensitivity; multi-site variance absorbed by a (1 | Site) random effect"
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-06-19"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -226,5 +275,14 @@
     "Electrode impedance must be checked every 60 minutes during the 4-hour vigilance arm; sessions exceeding > 30% trial rejection due to sweat artifacts are classified as unusable.",
     "Pred 4.C requires that the interaction survives arousal covariation; if it does not, the effect is reclassified as LC-NE arousal-mediated rather than allostatic triage — this is a pre-specified reclassification, not a falsification of the existence of the effect.",
     "Protocol depends on EP-0 for HEP proxy validity and EP-1 for interoceptive load stimulus characterization; if EP-0 fails, interoceptive load conditions relying on HEP as the Πⁱ index are reclassified as exploratory."
-  ]
+  ],
+  "multiple_comparisons": {
+    "family": "Two primary models (d′ and P3b) plus the Pred 4.C covariate model",
+    "correction": "Bonferroni",
+    "alpha_per_test": 0.0167,
+    "bayes_factor_requirement": "BF₁₀ ≥ 100 on the interaction term is required for strong confirmation"
+  },
+  "level_2_ordering_falsification_target": "The Protocol 4 sustained-vigilance arm (4-hour AX-CPT) is the committed Level-2 falsification target for the three-timescale ordering τ_int_ℓ > τ_ign_ℓ > τ_θ_ℓ. Evidence-accumulation slowing (τ_int_2, drift-rate decline), broadcast-maintenance change (τ_ign_2, P3b duration) and refractory recovery (τ_θ_2, post-response threshold rebound) are estimated across the vigilance decrement and tested for the predicted ordering. Where a Level-2 estimate is unavailable, the ordering prediction is labelled 'deferred — Level 2' rather than treated as tested at Level 1.",
+  "allostatic_timescale_falsification": "If rapid threshold recovery (τ_θ < 3 s) is observed, or threshold shows no decay within 60 s (τ_θ > 60 s), in ≥ 60% of participants (N ≥ 60, exact binomial, α = 0.05), the allostatic timescale claim is falsified. Deviations within 2–5× (e.g. τ_θ = 5 s or 50 s) require parameter refinement, not framework rejection. Predicted: rapid decrease τ ≈ 200–500 ms during surprise accumulation; slow recovery τ ≈ 10–30 s following sustained activation.",
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

@@ -4,11 +4,16 @@
   "registry_protocol_label": "Protocol 6 — Ignition-iEEG",
   "title": "Intracranial EEG During Near-Threshold Detection: All-or-None Ignition Dynamics",
   "paper": "APGI Paper 2",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "2.0.0",
-  "last_updated": "2026-06-04",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "2.1.0",
+  "last_updated": "2026-07-30",
   "description": "Intracranial EEG (iEEG) recordings in epilepsy patients performing a near-threshold visual detection task test whether conscious access produces all-or-none (bistable) firing rate distributions in the frontoparietal network, as predicted by APGI's ignition criterion Bₜ. Four sub-predictions are tested: (Pred 6.A) frontoparietal cortex shows bimodal high-gamma power distributions with Hartigan's dip p < 0.05 AND 2-component Gaussian BIC substantially lower than 1-component (ΔBIC > 10); (Pred 6.B) bimodality is specific to the frontoparietal ignition network with occipital units showing graded responses, and intermediate-state bouts show a mean duration < 100 ms (sharp transitions) with prevalence < 15% of trial duration; (Pred 6.C, bifurcation falsification criterion) AC1 of pre-ignition high-gamma power increases monotonically in the 500 ms preceding detected stimuli — the distinguishing APGI prediction over standard GWT; (Pred 6.D) near-threshold stimuli produce stable intermediate high-gamma states lasting > 100 ms in > 15% of near-threshold trials. Fully validated via APGI_LNN_Bifurcation_Analysis.py.",
-  "prediction_cluster": "Pred 6.A–6.D",
+  "prediction_cluster": "Pred 6.A–6.E",
   "prediction_cluster_label": "All-or-None Ignition Dynamics (Bifurcation + Critical Slowing + Intermediate States)",
   "sub_predictions": [
     {
@@ -20,12 +25,18 @@
         "hartigan_dip_p_threshold": 0.05,
         "gaussian_bic_delta_minimum": 10,
         "bic_direction": "2-component BIC substantially lower than 1-component",
-        "low_mode_hz_range": [5, 10],
-        "high_mode_hz_range": [40, 60],
+        "low_mode_hz_range": [
+          5,
+          10
+        ],
+        "high_mode_hz_range": [
+          40,
+          60
+        ],
         "both_criteria_required": "Hartigan AND BIC — both must be met for confirmation"
       },
       "falsifying_thresholds": {
-        "hartigan_dip_p_minimum": 0.20,
+        "hartigan_dip_p_minimum": 0.2,
         "condition": "Unimodal continuous distribution — no evidence of bistability"
       }
     },
@@ -38,12 +49,14 @@
         "region_bimodality_interaction_p": 0.05,
         "frontoparietal_dip_greater_than_occipital": true,
         "intermediate_state_mean_bout_duration_ms_maximum": 100,
-        "intermediate_state_prevalence_maximum_percent": 15
+        "intermediate_state_prevalence_maximum_percent": 15,
+        "intermediate_dwell_definition": "Dwell time in the intermediate firing-rate range (middle 40–60th percentile) as a proportion of trial duration",
+        "occipital_dip_p_minimum": 0.2
       },
       "falsifying_thresholds": {
         "condition_1": "Uniform bimodality across all regions",
         "condition_2": "Intermediate-state bouts > 150 ms in ≥ 50% of trials",
-        "condition_3": "Prevalence > 30% of trial duration"
+        "condition_3": "> 30% dwell time in the intermediate range"
       }
     },
     {
@@ -57,8 +70,14 @@
         "ac1_permutation_test_n": 10000,
         "ac1_p_threshold": 0.05,
         "ac1_non_detected_requirement": "AC1 trend absent or reversed in non-detected trials",
-        "window_ms": [-500, 0],
-        "high_gamma_band_hz": [70, 150]
+        "window_ms": [
+          -500,
+          0
+        ],
+        "high_gamma_band_hz": [
+          70,
+          150
+        ]
       },
       "falsifying_thresholds": {
         "condition_1": "AC1 flat or decreasing before detected stimuli",
@@ -67,21 +86,52 @@
     },
     {
       "id": "Pred 6.D",
-      "claim": "Near-threshold stimuli produce stable intermediate high-gamma states lasting > 100 ms in > 15% of near-threshold trials before resolving to detected or non-detected outcome.",
-      "confirming_evidence": "Proportion of near-threshold trials with intermediate high-gamma state > 100 ms duration > 15%.",
-      "falsifying_evidence": "Rapid commitment to high/low state within 50 ms in ≥ 85% of near-threshold trials; intermediate-state prevalence < 5%.",
+      "claim": "Long-range gamma coherence binds ignition: beta/gamma coherence (15–80 Hz) between frontoparietal sites predicts seen vs. unseen trials, increasing on detected trials and peaking 200–400 ms post-stimulus during the ignition window. This is the primary Protocol 6 test linking APGI to the Global Neuronal Workspace benchmark and enabling the adversarial APGI-vs-GNWT comparison.",
+      "confirming_evidence": "Point-biserial r > 0.40 between frontoparietal beta/gamma (15–80 Hz) coherence and detection; coherence increase peaks 200–400 ms post-stimulus; absent or reversed for the frontoparietal–occipital control pair.",
+      "falsifying_evidence": "Point-biserial r < 0.20; or the coherence peak occurs outside the 200–400 ms window; or an equivalent coherence increase is found at the occipital control electrode pair.",
       "confirming_thresholds": {
-        "intermediate_state_duration_ms_minimum": 100,
-        "near_threshold_trial_proportion_minimum_percent": 15,
-        "intermediate_state_definition": "Single-trial high-gamma amplitude between 25% and 75% of bimodal peak separation"
+        "point_biserial_r_minimum": 0.4,
+        "coherence_band_hz": [
+          15,
+          80
+        ],
+        "coherence_peak_window_ms": [
+          200,
+          400
+        ],
+        "electrode_pair": "frontoparietal",
+        "control_pair": "frontoparietal–occipital: effect must be absent or reversed",
+        "bf01_minimum_per_participant": 6
       },
       "falsifying_thresholds": {
-        "condition_1": "Rapid commitment within 50 ms in ≥ 85% of near-threshold trials",
-        "condition_2": "Intermediate-state prevalence < 5% of near-threshold trials"
-      }
+        "point_biserial_r_threshold": 0.2,
+        "condition_1": "Point-biserial coherence–detection r < 0.20",
+        "condition_2": "Coherence peak outside the 200–400 ms post-stimulus window",
+        "condition_3": "Equivalent coherence increase at the occipital control electrode pair"
+      },
+      "epistemic_status": "Confirmatory (CE) — the GNWT adversarial benchmark",
+      "revision_note": "Replaces a prior stored Pred 6.D ('stable intermediate high-gamma states > 100 ms in > 15% of near-threshold trials'), which was not the registry prediction and contradicted Pred 6.B (which requires intermediate dwell time < 15% and is falsified above 30%). The intermediate-state dwell criterion belongs to Pred 6.B."
+    },
+    {
+      "id": "Pred 6.E",
+      "claim": "Interoceptive-precision (Πⁱ) modulation predicts multi-timescale temporal clustering of ignition events: ≥ 3 dissociable clustering timescales, versus a single ignition timescale under GNWT.",
+      "confirming_evidence": "The multi-timescale model recovers ≥ 3 dissociable clustering timescales and beats the single-timescale alternative by BF ≥ 100",
+      "falsifying_evidence": "Only a single timescale is identifiable, or the single-timescale model is favoured (BF₀₁ ≥ 6)",
+      "confirming_thresholds": {
+        "dissociable_timescales_minimum": 3,
+        "bf_vs_single_timescale_minimum": 100,
+        "contrast": "multi-timescale model vs. single-timescale GNWT alternative"
+      },
+      "falsifying_thresholds": {
+        "single_timescale_bf01_minimum": 6,
+        "condition": "Only a single timescale identifiable, or the single-timescale model favoured"
+      },
+      "epistemic_status": "Confirmatory (CE)"
     }
   ],
-  "depends_on": ["EP-2"],
+  "depends_on": [
+    "EP-2"
+  ],
   "validation_status": "validated",
   "validation_notes": "Fully validated. The APGI_LNN_Bifurcation_Analysis.py script is built, integrated, and passes all benchmarks for automated clinical iEEG state detection, Hartigan's dip bimodality tests, and lag-1 autocorrelation (AC1) pre-ignition slowing indicators. Renamed from EP-5 to EP-6 and moved to Paper 2 per DOCX registry update (2026-06-19). Predictions consolidated to Pred 6.A–6.D; pharmacological arm (propofol, ketamine, psilocybin) removed from confirmatory scope pending separate registration. Pred 6.D replaces the coherence tier-structure prediction with the intermediate-states bistability criterion.",
   "participants": {
@@ -101,7 +151,10 @@
       "Electrode placement limited to mesial temporal structures without frontoparietal coverage",
       "Visual field defect covering stimulus region",
       "Sedating medication (benzodiazepines, phenobarbital) within 24 hours of session"
-    ]
+    ],
+    "n_with_adequate_frontoparietal_coverage": "8–15 expected",
+    "coverage_note": "Electrode coverage is clinically determined. Analyses are reported at both the full and the coverage-restricted N; the coverage-restricted N is the one to which the falsifiers apply. Minimum required coverage (≥ 4 electrodes in prefrontal and parietal cortex bilaterally) is an inclusion criterion.",
+    "recruitment_stopping_rule": "Recruitment continues to the N = 20 target or until the aggregate Bayes factor across patients exceeds 20 in either direction, whichever occurs first, evaluated after every fifth patient."
   },
   "apparatus": {
     "iEEG_system": "Natus Quantum or Blackrock Microsystems NeuroPort; sampling rate ≥ 2000 Hz; 0.3–600 Hz hardware bandpass",
@@ -120,12 +173,22 @@
     "ecg_for_hep": "Bipolar ECG lead-II synchronised to iEEG clock for HEP extraction (Pred 6.D criterion 3)"
   },
   "trial_structure": {
-    "isi_ms": [1000, 1500],
+    "isi_ms": [
+      1000,
+      1500
+    ],
     "fixation_duration_ms": 500,
     "target": {
       "type": "Gabor patch, vertical orientation, foveally presented",
       "spatial_frequency_cpd": 3,
-      "contrast_levels": [0.0, 0.02, 0.04, 0.08, 0.16, 0.32],
+      "contrast_levels": [
+        0.0,
+        0.02,
+        0.04,
+        0.08,
+        0.16,
+        0.32
+      ],
       "near_threshold_contrast": "Individual threshold determined by adaptive QUEST procedure in 50-trial pre-session",
       "duration_ms": 33,
       "eccentricity_deg": 0,
@@ -150,10 +213,19 @@
       "Common average re-referencing per electrode array",
       "Manual rejection of ictal and interictal discharge epochs"
     ],
-    "high_gamma_band_hz": [70, 150],
+    "high_gamma_band_hz": [
+      70,
+      150
+    ],
     "high_gamma_extraction": "Bandpass filter + Hilbert analytic signal; amplitude envelope at 10 ms resolution",
-    "epoch_window_ms": [-500, 1000],
-    "baseline_window_ms": [-500, -200],
+    "epoch_window_ms": [
+      -500,
+      1000
+    ],
+    "baseline_window_ms": [
+      -500,
+      -200
+    ],
     "bimodality_test": {
       "primary": "Hartigan's dip test on single-trial high-gamma amplitude distribution at near-threshold contrast; significance threshold p < 0.05",
       "secondary": "2-component vs. 1-component Gaussian mixture model; ΔBIC > 10 required for confirmation (Pred 6.A)",
@@ -161,14 +233,20 @@
     },
     "ac1_analysis": {
       "description": "Autocorrelation coefficient (lag-1) of high-gamma envelope in 500 ms pre-ignition window",
-      "window_ms": [-500, 0],
+      "window_ms": [
+        -500,
+        0
+      ],
       "step_ms": 50,
       "ignition_event_definition": "Single trial classified as detected (seen); near-threshold contrast only",
       "trend_test": "Kendall τ across consecutive 50 ms windows in pre-ignition epoch; comparison detected vs. non-detected via permutation (10,000 permutations)"
     },
     "intermediate_state_detection": {
       "definition": "Single trial high-gamma amplitude between 25% and 75% of bimodal peak separation",
-      "analysis_window_ms": [0, 400],
+      "analysis_window_ms": [
+        0,
+        400
+      ],
       "bout_duration_measurement": "Mean duration of intermediate-state bouts per trial; must be < 100 ms for Pred 6.B confirmation",
       "prevalence_measurement": "Proportion of trial duration spent in intermediate state; must be < 15% for Pred 6.B confirmation"
     },
@@ -179,12 +257,21 @@
     },
     "coherence_analysis": {
       "description": "Long-range gamma coherence between frontoparietal electrode pairs (Pred 6.D)",
-      "frequency_band_hz": [15, 80],
-      "epoch_window_ms": [-200, 800],
+      "frequency_band_hz": [
+        15,
+        80
+      ],
+      "epoch_window_ms": [
+        -200,
+        800
+      ],
       "method": "Multitaper coherence estimation (DPSS, time-bandwidth product 4); imaginary coherence to avoid volume conduction",
       "frontoparietal_pairs": "All pairs between prefrontal and parietal electrode clusters",
       "occipital_pairs": "All pairs involving occipital/V1/V2 electrodes (regional comparison, Pred 6.D criterion 2)",
-      "peak_window_ms": [200, 400],
+      "peak_window_ms": [
+        200,
+        400
+      ],
       "detection_correlation": "Point-biserial r between coherence magnitude and binary detection outcome",
       "hep_coherence_correlation": "Pearson r between single-trial HEP amplitude (250–400 ms, bipolar ECG-referenced) and single-trial frontoparietal coherence in seen trials (Pred 6.D criterion 3, APGI-specific)"
     },
@@ -212,15 +299,17 @@
   "power_analysis": {
     "effect_size_d": 0.7,
     "alpha": 0.05,
-    "power": 0.80,
+    "power": 0.8,
     "n_required": 12,
     "software": "Custom bootstrap (rare iEEG populations preclude standard power calculators)",
     "based_on": "Schurger et al. (2012) bistability in iEEG; King et al. (2013) all-or-none frontoparietal dynamics"
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-05-18"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -249,5 +338,23 @@
     "Pred 6.D criterion 3 (HEP–coherence) requires simultaneous cardiac ECG recording synchronised to iEEG clock; this must be verified during electrode implantation setup.",
     "Pred 6.D three-tier reclassification rule must be locked in pre-registration before any analysis; post-hoc application of tier structure would not satisfy registry criteria.",
     "TTL trigger accuracy < 5 ms is mandatory for all temporal analyses; photodiode verification required at session start."
-  ]
+  ],
+  "ce_status": {
+    "status": "CE — Confirmatory-Exploratory",
+    "rationale": "Reflects the inherent sample-size constraints of iEEG epilepsy cohorts.",
+    "minimum_bayes_factors": {
+      "Pred 6.A": "BF₀₁ ≥ 6 per participant; aggregate BF ≥ 20 across N ≥ 8",
+      "Pred 6.B": "BF₀₁ ≥ 6",
+      "Pred 6.C": "BF₁₀ ≥ 100 — the highest threshold, as Pred 6.C is the critical APGI-distinguishing prediction",
+      "Pred 6.D": "BF₀₁ ≥ 6 per participant"
+    },
+    "upgrade_criteria": "Upgrade to fully Confirmatory requires (a) all sub-predictions meeting their BF thresholds in the primary cohort AND (b) independent replication in a second iEEG cohort (N ≥ 8) achieving BF₁₀ ≥ 3 for combined evidence.",
+    "until_upgrade": "Protocol 6 results contribute strong convergent evidence but do not count as independent confirmation in the cross-protocol BY-FDR calculation."
+  },
+  "multiple_comparisons": {
+    "scope": "Group-level inference across Pred 6.A–6.E, electrode clusters and regions",
+    "correction": "Benjamini–Yekutieli FDR at q = 0.05 (positive dependence)"
+  },
+  "bifurcation_falsification_criterion": "Pred 6.C (AC1 increase in pre-ignition high-gamma) is the bifurcation falsification criterion distinguishing APGI from standard Global Workspace Theory. Standard GWT predicts threshold-crossing as a deterministic event without precursor dynamics. Failure of Pred 6.C would not falsify APGI's core threshold-crossing account but would eliminate the bifurcation interpretation of ignition dynamics. Framework falsifier: AC1 flat, defined as Kendall τ < 0.20 with the null supported at BF₀₁ ≥ 3. Values in 0.20 ≤ τ < 0.30 are reported as inconclusive, since 0.30 is the minimum detectable correlation at n = 20 (one-tailed, 80% power) and a null in that band cannot be distinguished from insufficient sensitivity.",
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

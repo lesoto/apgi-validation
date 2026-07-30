@@ -4,11 +4,16 @@
   "registry_protocol_label": "Protocol 1 — Cardiac-EEG",
   "title": "EEG Study of Interoceptive Precision Gating",
   "paper": "APGI Paper 1",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "2.0.0",
-  "last_updated": "2026-06-04",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "2.1.0",
+  "last_updated": "2026-07-30",
   "description": "This protocol examines whether interoceptive precision (Πⁱ), indexed by the heartbeat-evoked potential (HEP, 250–400 ms window), modulates conscious detection thresholds (θₜ). Stimuli are time-locked to cardiac phase to test four sub-predictions: (Pred 1.a) that state-level Πⁱ_eff produces greater P3b amplitude for near-threshold stimuli under interoceptive focus than exteroceptive focus or dual-task control — with the effect absent or reversed for suprathreshold stimuli; (Pred 1.a-trait) that trait-level Πⁱ_baseline, indexed by interoceptive accuracy (IA), predicts greater perceptual sensitivity (d′) in the interoceptive condition but not the exteroceptive condition; (Pred 1.b) that cardiac-phase-locked detection advantage exists at diastole versus systole; and (Pred 1.c) that top-tertile IA participants show the strongest state-level P3b condition effects and cardiac-phase detection advantages. Near-threshold contrast titration is mandatory; suprathreshold control blocks are required to confirm specificity.",
-  "prediction_cluster": "Pred 1.A–1.D",
+  "prediction_cluster": "Pred 1.A–1.E (Pred 1.A-trait and Pred 1.F reported separately)",
   "prediction_cluster_label": "Interoceptive Precision Modulates Detection Threshold",
   "sub_predictions": [
     {
@@ -20,14 +25,17 @@
         "p_threshold_fwe": 0.05,
         "eta_p_squared_minimum": 0.06,
         "hep_p3b_partial_r_minimum": 0.4,
-        "hep_p3b_covariates": ["RMSSD", "pupil diameter"],
+        "hep_p3b_covariates": [
+          "RMSSD",
+          "pupil diameter"
+        ],
         "suprathreshold_control": "required — effect must be absent or reversed",
         "condition_order": "interoceptive > exteroceptive > dual-task"
       },
       "falsifying_thresholds": {
-        "p_minimum_all_conditions": 0.10,
+        "p_minimum_all_conditions": 0.1,
         "n_minimum": 30,
-        "hep_p3b_partial_r_threshold": 0.20
+        "hep_p3b_partial_r_threshold": 0.2
       }
     },
     {
@@ -37,10 +45,14 @@
       "falsifying_evidence": "High-IA and Low-IA do not differ on interoceptive d′ (d < 0.3 across N ≥ 30 per group); or d′ group difference replicates equally in the exteroceptive condition, eliminating interoceptive specificity.",
       "confirming_thresholds": {
         "p_group_comparison": 0.05,
-        "cohens_d_minimum": 0.5,
+        "cohens_d_minimum": 0.4,
         "specificity_test": "group × modality interaction p < 0.05",
         "tertile_grouping": "top vs. bottom tertile on IA (heartbeat counting accuracy)",
-        "n_minimum_per_group": 30
+        "n_minimum_per_group": 30,
+        "cohens_d_expected_range": [
+          0.4,
+          0.6
+        ]
       },
       "falsifying_thresholds": {
         "cohens_d_threshold": 0.3,
@@ -57,13 +69,18 @@
         "interaction_p_threshold": 0.05,
         "d_prime_direction": "diastole > systole",
         "cardiac_phase_windows_ms": {
-          "diastole": [300, 500],
-          "systole": [0, 150]
+          "diastole": [
+            300,
+            500
+          ],
+          "systole": [
+            0,
+            150
+          ]
         }
       },
       "falsifying_thresholds": {
         "hit_rate_advantage_threshold_percent": 5,
-        "samples_required": 2,
         "interaction_p_minimum": 0.15
       }
     },
@@ -79,7 +96,7 @@
         "secondary_cardiac_phase_interaction_p": 0.05
       },
       "falsifying_thresholds": {
-        "interaction_p_minimum": 0.10
+        "interaction_p_minimum": 0.1
       }
     },
     {
@@ -88,23 +105,49 @@
       "confirming_evidence": "Partial r(HEP, P3b | pupil diameter, HRV) > 0.40; p < 0.017 (Bonferroni corrected across three predictions).",
       "falsifying_evidence": "Partial r < 0.20 after arousal control; or partial correlation indistinguishable from exteroceptive focus condition.",
       "confirming_thresholds": {
-        "partial_r_minimum": 0.40,
-        "covariates": ["pupil diameter", "HRV (RMSSD)"],
-        "p_threshold_bonferroni": 0.017
+        "partial_r_minimum": 0.4,
+        "covariates": [
+          "pupil diameter",
+          "HRV (RMSSD)"
+        ],
+        "p_threshold_bonferroni": 0.0125,
+        "arousal_reclassification_rule": "Confirmed only if partial r(HEP–P3b | pupil diameter) remains > 0.25 at p < 0.05; if the partial correlation drops below r = 0.15 after the pupil covariate the result is reclassified as an arousal confound"
       },
       "falsifying_thresholds": {
-        "partial_r_threshold": 0.20,
+        "partial_r_threshold": 0.2,
         "condition": "Partial r < 0.20 after arousal control"
       }
+    },
+    {
+      "id": "Pred 1.E",
+      "claim": "Near-threshold psychometric steepness: the near-threshold psychometric function is steep (α_psy ≥ 10), a discrete phase-transition signature sharper than graded drift-diffusion accumulation (α_psy ≈ 2–6). Estimated on the full six-level contrast grid (0.25–2.0 × c₅₀); evaluated by parameter estimation and model comparison, not NHST.",
+      "confirming_evidence": "Best-fitting α_psy ≥ 10 in near-threshold psychometric fits; sharper than the best graded-accumulation alternative",
+      "falsifying_evidence": "Best-fitting α_psy < 5 across all paradigms, or a graded-accumulation model wins by formal comparison (ΔAIC > 10)",
+      "confirming_thresholds": {
+        "alpha_psy_minimum": 10,
+        "graded_accumulation_reference_range": [
+          2,
+          6
+        ],
+        "estimation_grid": "six fixed contrast levels spaced geometrically about c₅₀ (0.25–2.0 × c₅₀), ≥ 60 trials per level",
+        "inference_mode": "parameter estimation and formal model comparison — carries no α, excluded from the Bonferroni family"
+      },
+      "falsifying_thresholds": {
+        "alpha_psy_threshold": 5,
+        "delta_aic_graded_model_wins": 10
+      },
+      "epistemic_status": "Primary confirmatory (estimation-based)"
     }
   ],
-  "depends_on": ["EP-0"],
+  "depends_on": [
+    "EP-0"
+  ],
   "validation_status": "specified",
   "validation_notes": "Formally specified. Parameter identifiability confirmed via simulation (Appendix A.4). Identifiability of Πⁱ from HEP confirmed via block-diagonal Fisher Information Matrix. Pred 1.A-trait, Pred 1.C, and Pred 1.D added to match registry EP-1 requirements; suprathreshold control blocks added as mandatory. P3b canonical window standardised to 250–500 ms per global ERP Window Lookup Table.",
   "participants": {
-    "n_target": 40,
-    "n_minimum": 32,
-    "n_per_tertile_group": 13,
+    "n_target": 62,
+    "n_minimum": 48,
+    "n_per_tertile_group": 20,
     "inclusion_criteria": [
       "Age 18–45 years",
       "Normal or corrected-to-normal vision",
@@ -118,7 +161,8 @@
       "History of neurological or psychiatric disorder (DSM-5 criteria)",
       "Use of beta-blockers or other HR-modifying medication",
       "Inability to maintain fixation for 30-minute EEG blocks"
-    ]
+    ],
+    "sample_size_rationale": "N = 62 target / N = 48 minimum. Powered on a within-subject HEP amplitude difference of d = 0.45 (conservative lower bound of published interoceptive effects; Pollatos et al., 2007) at α = 0.05, power = 0.80, which also yields ≈ 94% power for the primary HEP–P3b correlation. Target enrolment reflects the expected final N after Bayesian sequential stopping; 15% attrition allowed. Effect-size anchors: Garfinkel et al. (2014) cardiac-phase detection; Canales-Johnson et al. (2020) HEP–P3b coupling."
   },
   "apparatus": {
     "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz, re-referenced offline to average mastoids",
@@ -130,18 +174,35 @@
     "ia_measure": "Heartbeat counting task (Schandry 1981) administered pre-scan: 6 intervals × 2 conditions; d′ computed as IA index for tertile grouping (Pred 1.a-trait, 1.C)"
   },
   "trial_structure": {
-    "isi_ms": [1200, 1600],
+    "isi_ms": [
+      1200,
+      1600
+    ],
     "fixation_duration_ms": 500,
     "cardiac_phase_window_ms": {
-      "systole": [0, 150],
-      "diastole": [300, 500]
+      "systole": [
+        0,
+        150
+      ],
+      "diastole": [
+        300,
+        500
+      ]
     },
     "jitter_tolerance_ms": 10,
     "target": {
       "type": "Gabor patch, vertical orientation",
       "spatial_frequency_cpd": 3,
-      "contrast_levels_near_threshold": [0.02, 0.04, 0.08, 0.16],
-      "contrast_levels_suprathreshold": [0.64, 0.80],
+      "contrast_levels_near_threshold": [
+        0.02,
+        0.04,
+        0.08,
+        0.16
+      ],
+      "contrast_levels_suprathreshold": [
+        0.64,
+        0.8
+      ],
       "duration_ms": 33,
       "background_luminance_cd_m2": 50
     },
@@ -162,17 +223,43 @@
     "condition_counterbalancing": "Cardiac phase pseudo-randomised across trials within block; attention condition (interoceptive/exteroceptive/dual-task) counterbalanced across blocks"
   },
   "eeg_analysis_pipeline": {
-    "bandpass_filter_hz": [0.1, 40],
-    "epoch_window_ms": [-200, 800],
-    "baseline_correction_ms": [-200, 0],
+    "bandpass_filter_hz": [
+      0.1,
+      40
+    ],
+    "epoch_window_ms": [
+      -200,
+      800
+    ],
+    "baseline_correction_ms": [
+      -200,
+      0
+    ],
     "artifact_rejection_threshold_uv": 100,
-    "hep_window_ms": [250, 400],
-    "hep_channels": ["Cz", "FCz", "Fz"],
-    "p3b_window_ms": [250, 500],
-    "p3b_channels": ["Pz", "P3", "P4"],
+    "hep_window_ms": [
+      250,
+      400
+    ],
+    "hep_channels": [
+      "Cz",
+      "FCz",
+      "Fz"
+    ],
+    "p3b_window_ms": [
+      250,
+      500
+    ],
+    "p3b_channels": [
+      "Pz",
+      "P3",
+      "P4"
+    ],
     "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
     "minimum_clean_epochs_per_condition": 30,
-    "arousal_covariates": ["HRV (RMSSD)", "pupil diameter (z-scored per block)"]
+    "arousal_covariates": [
+      "HRV (RMSSD)",
+      "pupil diameter (z-scored per block)"
+    ]
   },
   "dependent_variables": [
     "P3b amplitude (300–600 ms, Pz) per attention condition (interoceptive / exteroceptive / dual-task) — primary (Pred 1.a)",
@@ -192,17 +279,23 @@
   "primary_hypothesis": "Interoceptive focus produces greater P3b amplitude for near-threshold stimuli than exteroceptive focus or dual-task control (three-way condition difference, ηₚ² ≥ 0.06), this effect is absent at suprathreshold contrast, and HEP amplitude predicts P3b with partial r > 0.4 surviving arousal covariate control. High-IA participants show larger P3b condition effects and diastolic detection advantages than low-IA participants.",
   "primary_analysis": "Repeated-measures ANOVA: P3b_amplitude ~ condition (interoceptive/exteroceptive/dual-task) × contrast (near/supra-threshold) × cardiac_phase, with HRV and pupil diameter as covariates. FWE-correction across electrode clusters. HEP–P3b partial correlation via mixed-effects with RMSSD and pupil as fixed covariates. IA tertile × condition interaction for Pred 1.c.",
   "power_analysis": {
-    "effect_size_d": 0.4,
+    "primary_test": "Within-subjects t-test on HEP amplitude (interoceptive vs. exteroceptive focus)",
+    "effect_size_d": 0.45,
     "alpha": 0.05,
-    "power": 0.9,
-    "n_required": 34,
+    "power": 0.8,
+    "n_required": 62,
+    "n_target": 62,
+    "n_minimum": 48,
+    "power_for_hep_p3b_correlation": 0.94,
     "software": "G*Power 3.1",
-    "based_on": "Garfinkel et al. (2014) cardiac-phase detection effect; Canales-Johnson et al. (2020) HEP–P3b coupling"
+    "based_on": "Pollatos et al. (2007) interoceptive effect lower bound d = 0.45; Garfinkel et al. (2014) cardiac-phase detection effect; Canales-Johnson et al. (2020) HEP–P3b coupling"
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-05-18"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -223,5 +316,25 @@
     "Pred 1.a requires three attention conditions; dual-task control condition substantially increases session length — practice blocks must ensure participants understand the dual-task instruction.",
     "Suprathreshold control blocks are mandatory for Pred 1.a specificity; failure to include them means Pred 1.a cannot be confirmed per registry criteria.",
     "IA tertile grouping (Pred 1.a-trait, 1.C) requires pre-scan heartbeat counting; this must be administered identically across sites if multi-site."
-  ]
+  ],
+  "bayesian_sequential_design": {
+    "interim_analysis_n": [
+      30,
+      50,
+      60
+    ],
+    "stop_for_efficacy": "BF₁₀ ≥ 30 (decisive evidence) at any interim check",
+    "stop_for_futility": "BF₁₀ ≤ 1/10 at N = 50",
+    "logging": "Stopping decisions logged as timestamped OSF pre-registration addenda before any data are inspected beyond the interim count",
+    "note": "Final N is determined by the Bayesian criteria, not by a fixed ceiling; N = 62 is the expected final N."
+  },
+  "multiple_comparisons": {
+    "primary_nhst_family": "Pred 1.A–1.D",
+    "correction": "Bonferroni",
+    "alpha_per_test": 0.0125,
+    "secondary_family_pred_1a_trait_alpha": 0.05,
+    "pred_1e_note": "Pred 1.E is evaluated by parameter estimation and model comparison rather than NHST; it carries no α and is excluded from the Bonferroni family by design.",
+    "pred_1f_note": "Pred 1.F (R_P3b interoceptive-to-exteroceptive ratio) is registered separately as a secondary prediction."
+  },
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

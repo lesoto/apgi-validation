@@ -3481,7 +3481,7 @@ def open_science(
                 secondary_analyses=["fMRI analysis"],
                 exclusion_criteria=["Poor data quality"],
                 data_repository=data_repository,
-                code_repository="https://github.com/apgi-research/study",
+                code_repository="https://github.com/apgiframework/apgi-implementation",
                 open_materials=True,
                 open_data=True,
             )

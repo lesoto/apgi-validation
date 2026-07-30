@@ -4,9 +4,14 @@
   "registry_protocol_label": "Protocol 0 — Empirical Prerequisite",
   "title": "HEP Proxy Validation: Establishing the Heartbeat-Evoked Potential as a Πⁱ Index",
   "paper": "APGI Paper 1",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "1.0.0",
-  "last_updated": "2026-06-04",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "1.1.0",
+  "last_updated": "2026-07-30",
   "description": "This empirical prerequisite protocol establishes the heartbeat-evoked potential (HEP, 250–400 ms window) as a valid trial-by-trial proxy for interoceptive precision Πⁱ before any downstream EP-1 through EP-6 analyses are interpreted. Three sub-predictions are tested: that HEP amplitude correlates with an orthogonal Πⁱ index (heartbeat discrimination d′) independent of any EEG measure (Pred 0.A); that pharmacological elevation of acetylcholine via physostigmine increases HEP amplitude in a dose-dependent manner confirmed by pupillometric engagement (Pred 0.B); and that anterior insula (aINS) BOLD signal tracks HEP amplitude trial-by-trial within participants after controlling for arousal (Pred 0.C). All three predictions must pass before HEP is used as a Πⁱ proxy in downstream protocols. Failure of any Pred 0 criterion is a submission-blocking issue for all protocols referencing HEP.",
   "prediction_cluster": "Pred 0.A–0.C",
   "prediction_cluster_label": "HEP Proxy Validation (Empirical Prerequisite)",
@@ -24,7 +29,7 @@
         "test_type": "two-tailed"
       },
       "falsifying_thresholds": {
-        "r_threshold": 0.20,
+        "r_threshold": 0.2,
         "samples_required": 2
       }
     },
@@ -35,7 +40,7 @@
       "falsifying_evidence": "No HEP change despite verified ACh elevation (pupil constriction confirmed)",
       "confirming_thresholds": {
         "hep_increase_percent_minimum": 15,
-        "cohens_d_minimum": 0.50,
+        "cohens_d_minimum": 0.5,
         "bf10_minimum": 100,
         "engagement_check": "pupil constriction confirmed by pupillometry"
       },
@@ -49,7 +54,7 @@
       "confirming_evidence": "r(HEP amplitude, aINS BOLD) > 0.30 within participants after arousal covariate control",
       "falsifying_evidence": "aINS BOLD and HEP statistically independent after arousal covariate",
       "confirming_thresholds": {
-        "r_within_participant_minimum": 0.30,
+        "r_within_participant_minimum": 0.3,
         "covariate_control": "arousal (HRV, pupil diameter)",
         "analysis_level": "within-participant"
       },
@@ -62,8 +67,8 @@
   "validation_notes": "Empirical prerequisite for all downstream protocols referencing HEP as a Πⁱ proxy. Failure of any sub-prediction (0.A, 0.B, or 0.C) constitutes a submission-blocking issue requiring protocol amendment before EP-1 through EP-6 results are submitted.",
   "submission_blocking_status": "PREREQUISITE — all three predictions must pass before HEP is used as Πⁱ proxy in EP-1 through EP-6",
   "participants": {
-    "n_target": 50,
-    "n_minimum": 40,
+    "n_target": 115,
+    "n_minimum": 115,
     "n_validation_subsample": 30,
     "inclusion_criteria": [
       "Age 18–45 years",
@@ -87,10 +92,14 @@
       "design": "Double-blind, placebo-controlled, crossover (physostigmine 1.0 mg i.v. vs. saline placebo)",
       "washout_days": 7,
       "monitoring": "Continuous ECG, blood pressure, pulse oximetry during infusion; physician present"
-    }
+    },
+    "sample_size_rationale": "N = 115 healthy adults: 90% power to detect r = 0.35 at α = 0.01, two-tailed (Fisher-z; n_required = 114). Fixed-N design — the Pred 0.A correlation, not the Pred 0.B pharmacological contrast, sets the sample size.",
+    "screening_criteria": [
+      "Minimum resting RMSSD ≥ 20 ms over a 5-minute supine rest period (required for any HEP-based confirmatory analysis; applied uniformly across Protocols 0, 1, 4, 7)"
+    ]
   },
   "apparatus": {
-    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz, re-referenced offline to average mastoids",
+    "EEG": "64-channel BrainAmp DC (Brain Products GmbH) at 1000 Hz, referenced to FCz; A1/A2 (or TP9/TP10) recorded separately and re-referenced offline to the average reference (mandated cross-protocol for P3b amplitude comparability; supersedes the bilateral mastoid average)",
     "ECG": "BrainAmp ExG bipolar lead-II at 1000 Hz, synchronised to EEG clock",
     "pupillometry": "Eyelink 1000 Plus (monocular, 500 Hz) for pupil diameter as arousal covariate and physostigmine engagement check",
     "fMRI_for_0C": "3T Siemens Prisma, 64-channel head coil; multi-band EPI TR = 1000 ms, TE = 30 ms, 2 mm isotropic (separate sub-session for Pred 0.C)",
@@ -115,15 +124,34 @@
     "pred_0c_session": "Single 45-minute simultaneous EEG-fMRI resting-state session"
   },
   "eeg_analysis_pipeline": {
-    "bandpass_filter_hz": [0.1, 40],
-    "epoch_window_ms": [-200, 800],
-    "baseline_correction_ms": [-200, 0],
+    "bandpass_filter_hz": [
+      0.1,
+      40
+    ],
+    "epoch_window_ms": [
+      -200,
+      800
+    ],
+    "baseline_correction_ms": [
+      -200,
+      0
+    ],
     "artifact_rejection_threshold_uv": 100,
-    "hep_window_ms": [250, 400],
-    "hep_channels": ["Cz", "FCz", "Fz"],
+    "hep_window_ms": [
+      250,
+      400
+    ],
+    "hep_channels": [
+      "Cz",
+      "FCz",
+      "Fz"
+    ],
     "ica_components": "Automated rejection of cardiac and ocular ICA components (EEGLAB ADJUST)",
     "minimum_clean_epochs": 40,
-    "arousal_covariates": ["HRV (RMSSD)", "pupil diameter (z-scored per session)"]
+    "arousal_covariates": [
+      "HRV (RMSSD)",
+      "pupil diameter (z-scored per session)"
+    ]
   },
   "fmri_analysis_pipeline_pred_0c": {
     "preprocessing_software": "fMRIPrep 23.2 (BIDS-compatible)",
@@ -145,19 +173,26 @@
     "r(HEP amplitude, aINS BOLD) within participants after arousal covariate control (Pred 0.C)"
   ],
   "primary_hypothesis": "HEP amplitude in the 250–400 ms window serves as a valid proxy for interoceptive precision Πⁱ, evidenced by (1) correlation with orthogonal heartbeat discrimination d′ > 0.35 replicated across two independent samples, (2) significant increase under physostigmine-induced ACh elevation confirmed by pupillometry, and (3) within-participant tracking of anterior insula BOLD signal after arousal covariate control.",
-  "primary_analysis": "Pred 0.A: Pearson r between HEP amplitude and heartbeat d′; one-tailed test (directional) with pre-specified threshold r > 0.35; replicated in subsample. Pred 0.B: paired t-test (physostigmine vs. placebo) on HEP amplitude; Bayes Factor via JZS prior (r = 0.707). Pred 0.C: first-level GLM with single-trial HEP as parametric modulator; second-level t-test on aINS beta estimates; partial correlation controlling for pupil diameter and RMSSD.",
+  "primary_analysis": "Pred 0.A: Pearson r between HEP amplitude and heartbeat d′; two-tailed test with pre-specified threshold r > 0.35 at p < 0.01; replicated in subsample. Pred 0.B: paired t-test (physostigmine vs. placebo) on HEP amplitude; Bayes Factor via JZS prior (r = 0.707). Pred 0.C: first-level GLM with single-trial HEP as parametric modulator; second-level t-test on aINS beta estimates; partial correlation controlling for pupil diameter and RMSSD.",
   "power_analysis": {
-    "effect_size_d": 0.5,
+    "primary_test": "Pearson correlation r(HEP, interoceptive d′) — Pred 0.A",
+    "effect_size_r": 0.35,
     "alpha": 0.01,
-    "power": 0.90,
-    "n_required": 40,
+    "tails": "two-tailed",
+    "power": 0.9,
+    "n_required": 114,
+    "n_target": 115,
+    "method": "Fisher-z transformation",
     "software": "G*Power 3.1",
+    "secondary_test_pred_0b": "Physostigmine vs. placebo paired contrast, Cohen's d ≥ 0.50, BF₁₀ ≥ 100",
     "based_on": "Canales-Johnson et al. (2020) HEP–interoception correlation r ≈ 0.38; Filippetti et al. (2022) physostigmine HEP effects d ≈ 0.55"
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-06-04"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -177,5 +212,55 @@
     "Pred 0.B requires a separate pharmacological sub-session; if physostigmine arm cannot be completed (regulatory or safety reasons), Pred 0.B is downgraded to 'deferred' and does not block submission provided Pred 0.A and 0.C both pass.",
     "Pred 0.C requires simultaneous EEG-fMRI, which introduces MRI gradient artifacts in EEG; ICA-based artifact removal is mandatory before HEP computation in scanner.",
     "Heartbeat discrimination d′ is subject to demand characteristics; task instructions must avoid mentioning heartbeats to prevent voluntary respiratory synchronisation."
-  ]
+  ],
+  "fallback_proxy_matrix": {
+    "protocol_id": "APGI-P00-B",
+    "title": "Protocol 0-B (Proxy Contingency): Fallback Πⁱ Proxy Matrix",
+    "trigger": "≥ 2 of Pred 0.A–0.C not met",
+    "decision_rule": "The highest-ranked fallback proxy whose infrastructure is available is elevated to primary Πⁱ proxy and its Protocol 0-B validation is executed before any confirmatory unblinding. Protocols 1, 4, 5 and 7 retain confirmatory status only if the substitute proxy passes. If no fallback proxy passes, interoceptive-precision predictions are reported as exploratory and the exteroceptive-only reduction of the ignition model (Πⁱ_eff omitted) becomes the pre-registered confirmatory target.",
+    "ranked_fallbacks": [
+      {
+        "rank": 1,
+        "id": "Pred 0-B.1",
+        "proxy": "Gastric myoelectric–cortical coupling (EGG)",
+        "validation": "EGG–cortical coupling correlates with orthogonal interoceptive d′ at r > 0.30 (p < 0.01) across two independent samples, with cholinergic-challenge sensitivity ≥ 10% (BF₁₀ ≥ 30)",
+        "references": "Rebollo et al., 2018; Richter et al., 2017"
+      },
+      {
+        "rank": 2,
+        "id": "Pred 0-B.2",
+        "proxy": "Respiratory-sinus-arrhythmia-gated pupillometry (RSA-P)",
+        "validation": "Phase-gated pupil response correlates with interoceptive d′ at r > 0.25 (p < 0.01), with beta-adrenergic blockade (propranolol) confirming autonomic specificity"
+      },
+      {
+        "rank": 3,
+        "id": "Pred 0-B.3",
+        "proxy": "Anterior-insula multivoxel pattern analysis (aINS-MVPA)",
+        "validation": "Cross-validated AUC ≥ 0.70 against the behavioural interoceptive-precision tertile, with the decoded state predicting near-threshold ignition above stimulus intensity (ΔAUC ≥ 0.03)"
+      }
+    ]
+  },
+  "reclassification_decision_tree": [
+    {
+      "failure_pattern": "Pred 0.A fails (r < 0.20); 0.B and 0.C pass",
+      "action": "HEP reclassified as a state marker (manipulation check), not a trait Πⁱ index; all between-subject HEP predictions become exploratory; within-manipulation HEP contrasts retain confirmatory status"
+    },
+    {
+      "failure_pattern": "Pred 0.B fails; 0.A and 0.C pass",
+      "action": "HEP reclassified as an interoceptive-attention proxy only; removed from neuromodulator mapping claims in Protocol 5; retained for Protocols 1 and 4"
+    },
+    {
+      "failure_pattern": "Pred 0.C fails; 0.A and 0.B pass",
+      "action": "HEP reclassified as a peripheral cardiac-cortical index; claims requiring the insula–HEP mechanistic chain (Protocols 5 and 3) become exploratory; Protocols 1 and 7 retain confirmatory status"
+    },
+    {
+      "failure_pattern": "≥ 2 of Pred 0.A–0.C fail",
+      "action": "HEP-dependent confirmatory protocols (1, 4, 5, 7) relegate HEP to a secondary descriptive measure pending revalidation via the Protocol 0-B fallback matrix. Protocols 2 (simulation) and 6 (iEEG) do not use HEP and are unaffected"
+    },
+    {
+      "failure_pattern": "Any prediction inconclusive (p ≥ α with 1/3 < BF₁₀ < 3)",
+      "action": "Protocol 0 extended to the pre-registered maximum N; if exhausted, affected downstream claims are labelled 'proxy-unvalidated' (neither confirmatory nor reclassified) and Stage 2 reporting states that the gate did not resolve"
+    }
+  ],
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

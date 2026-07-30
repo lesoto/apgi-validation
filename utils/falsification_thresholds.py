@@ -488,8 +488,38 @@ P7_MIN_AUC: float = 0.85  # AUC ≥ 0.85 for APGI as optimal Bayesian detector
 GENERIC_ALPHA: float = 0.05  # Generic significance threshold (standard p < 0.05)
 GENERIC_MIN_R2: float = 0.70  # Clinical biomarker thresholds (FP-04)
 GENERIC_MIN_AUC: float = 0.70  # Generic AUC threshold (DOC range 0.75-0.85)
-DOC_AUC_MIN = 0.75  # AUC target 0.75–0.85 for DoC classification
-DOC_AUC_MAX = 0.85  # AUC target 0.75–0.85 for DoC classification
+# APGI-Protocols.md Pred 7.A: the joint HEP + PCI classifier must reach "combined AUC
+# > 0.80" against a best univariate AUC of ≈ 0.70. Was 0.75, which sat below the
+# registered confirmatory floor and would have passed non-confirming classifiers.
+DOC_AUC_MIN = 0.80  # Pred 7.A: joint HEP + PCI classifier AUC > 0.80
+DOC_AUC_MAX = 0.85  # upper end of the reported target band
+DOC_AUC_BEST_UNIVARIATE = 0.70  # Pred 7.A: expected best univariate AUC ≈ 0.70
+
+# =============================================================================
+# PROTOCOL 0 (APGI-P00) — HEP PROXY VALIDATION
+# Empirical prerequisite. HEP is retained as the Πⁱ proxy for all downstream
+# confirmatory protocols (1, 4, 5, 7) only if ALL THREE of Pred 0.A–0.C pass.
+# Source: APGI-Protocols.md §"Protocol 0 — Minimum Retention Threshold".
+# =============================================================================
+P0_A_R_CONFIRM: float = 0.35  # Pred 0.A: r(HEP, interoceptive d′) > 0.35, p < 0.01, two-tailed
+P0_A_P_CONFIRM: float = 0.01  # Pred 0.A significance level
+P0_A_R_REPLICATE: float = 0.25  # Pred 0.A: replicated r ≥ 0.25 in validation subsample (N ≥ 30)
+P0_A_N_REPLICATE_MIN: int = 30  # Pred 0.A validation subsample size
+P0_A_R_FALSIFY: float = 0.20  # Pred 0.A: r < 0.20 across two independent samples = falsify
+P0_B_HEP_INCREASE_PCT: float = 15.0  # Pred 0.B: physostigmine raises HEP ≥ 15% vs. placebo
+P0_B_COHENS_D: float = 0.50  # Pred 0.B: Cohen's d ≥ 0.50
+P0_B_BF10: float = 100.0  # Pred 0.B: BF₁₀ ≥ 100
+P0_C_HEP_AINS_R: float = 0.30  # Pred 0.C: r(HEP, aINS BOLD) > 0.30 within participants
+P0_N_TARGET: int = 115  # 90% power for r = 0.35 at α = 0.01, two-tailed (Fisher-z; n_required = 114)
+
+# Signal-quality gates for the Protocol 0 cardiac/HEP pipeline. These are acquisition
+# admissibility checks, not the Pred 0.A–0.C statistical criteria above.
+P0_HEP_MIN_AMPLITUDE_UV: float = 0.2  # |HEP| in the 250–400 ms post-R window
+P0_DETECTION_QUALITY_MIN: float = 0.6  # below → R-peaks unreliable, protocol aborted
+P0_IBI_CV_MAX: float = 0.3  # IBI coefficient-of-variation ceiling (pathological variability)
+P0_RMSSD_MIN_MS: float = 20.0  # screening: resting RMSSD ≥ 20 ms for HEP-based confirmatory analysis
+P0_HEP_WINDOW_MS: tuple = (250.0, 400.0)  # canonical HEP window, all protocols
+P0_TRIAL_REJECTION_MAX_PCT: float = 30.0  # Gate 0 data-admissibility: EEG trial rejection ≤ 30%
 GENERIC_MIN_CORR: float = 0.30  # Generic correlation threshold
 GENERIC_MIN_COHENS_D: float = 0.70  # Generic Cohen's d effect size
 GENERIC_MEDIUM_COHENS_D: float = 0.50  # medium effect size gate
@@ -626,6 +656,18 @@ THRESHOLD_REGISTRY = {
     "F6.2_INTEGRATION_RATIO": F6_2_MIN_INTEGRATION_RATIO,
     "F6.2_R2": F6_2_MIN_CURVE_FIT_R2,
     "P7_MIN_AUC": P7_MIN_AUC,
+    "P0.A_R_CONFIRM": P0_A_R_CONFIRM,
+    "P0.A_R_REPLICATE": P0_A_R_REPLICATE,
+    "P0.A_R_FALSIFY": P0_A_R_FALSIFY,
+    "P0.B_HEP_INCREASE_PCT": P0_B_HEP_INCREASE_PCT,
+    "P0.B_COHENS_D": P0_B_COHENS_D,
+    "P0.B_BF10": P0_B_BF10,
+    "P0.C_HEP_AINS_R": P0_C_HEP_AINS_R,
+    "P0_HEP_MIN_AMPLITUDE_UV": P0_HEP_MIN_AMPLITUDE_UV,
+    "P0_DETECTION_QUALITY_MIN": P0_DETECTION_QUALITY_MIN,
+    "P0_IBI_CV_MAX": P0_IBI_CV_MAX,
+    "DOC_AUC_MIN": DOC_AUC_MIN,
+    "DOC_AUC_MAX": DOC_AUC_MAX,
     "V11_MIN_R2": V11_MIN_R2,
     "V11_MIN_DELTA_R2": V11_MIN_DELTA_R2,
     "V11_MIN_COHENS_D": V11_MIN_COHENS_D,

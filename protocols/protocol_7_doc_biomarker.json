@@ -4,24 +4,34 @@
   "registry_protocol_label": "Protocol 7 — DoC-Biomarker",
   "title": "Disorders of Consciousness Biomarker: Joint Roles of Ignition Capacity and Interoceptive Precision",
   "paper": "APGI Paper 3",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "2.0.0",
-  "last_updated": "2026-06-04",
-  "description": "This clinical biomarker study examines whether interoceptive precision (indexed by HEP amplitude, 250–400 ms at Cz) and ignition capacity (indexed by the Perturbational Complexity Index, PCI) jointly predict clinical recovery outcomes across the full disorders of consciousness (DoC) spectrum better than either biomarker alone. Four patient and control groups are studied: VS/UWS (N=30), MCS (N=30), EMCS (N=20), and healthy age/sex-matched controls (N=30); total N=110. Five sub-predictions are tested: (Pred 7.A) joint HEP + PCI model explains more variance in 3-month GCS-S outcome than either biomarker alone (ΔR² ≥ 0.05, AUC > 0.80); (Pred 7.B) HEP amplitude discriminates MCS from VS/UWS; four-group gradient confirmed; DMN↔PCI r > 0.50; DMN↔HEP r < 0.20 (double dissociation); (Pred 7.C) interoceptive perturbation via CCRC (5% CO₂/95% O₂, 90-second) increases PCI ≥ 10% in MCS but not VS/UWS, exceeding arousal-matched white-noise control; (Pred 7.D) HEP amplitude correlates with GCS-S at 3-month and 6-month follow-up (Spearman r > 0.4), with JMbayes2 joint modelling for longitudinal analysis and LOCF explicitly excluded; (Pred 7.E, exploratory) somatic bias modulates reportable embodiment weighting toward 'bodily/visceral' dimensions under high-β attentional focus. Directly supported by Paper 3 Appendix DoC Table.",
-  "prediction_cluster": "Pred 7.A–7.E",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "2.1.0",
+  "last_updated": "2026-07-30",
+  "description": "This clinical biomarker study examines whether interoceptive precision (indexed by HEP amplitude, 250–400 ms at Cz) and ignition capacity (indexed by the Perturbational Complexity Index, PCI) jointly predict clinical recovery outcomes across the full disorders of consciousness (DoC) spectrum better than either biomarker alone. Four patient and control groups are studied: VS/UWS (N=30), MCS (N=30), EMCS (N=20), and healthy age/sex-matched controls (N=30); total N=110. Five sub-predictions are tested: (Pred 7.A) joint HEP + PCI model explains more variance in 3-month CRS-R outcome than either biomarker alone (ΔR² ≥ 0.05, AUC > 0.80); (Pred 7.B) HEP amplitude discriminates MCS from VS/UWS; four-group gradient confirmed; DMN↔PCI r > 0.50; DMN↔HEP r < 0.20 (double dissociation); (Pred 7.C) interoceptive perturbation via CCRC (5% CO₂/95% O₂, 90-second) increases PCI ≥ 10% in MCS but not VS/UWS, exceeding arousal-matched white-noise control; (Pred 7.D) HEP amplitude correlates with CRS-R total score at 3-month and 6-month follow-up (Spearman r > 0.4), with JMbayes2 joint modelling for longitudinal analysis and LOCF explicitly excluded; (Pred 7.E, exploratory) somatic bias modulates reportable embodiment weighting toward 'bodily/visceral' dimensions under high-β attentional focus. Directly supported by Paper 3 Appendix DoC Table.",
+  "prediction_cluster": "Pred 7.A–7.F",
   "prediction_cluster_label": "Joint Roles of Ignition and Interoception in Disorders of Consciousness (+ Exploratory: Somatic Bias → Embodiment Weighting)",
   "sub_predictions": [
     {
       "id": "Pred 7.A",
-      "claim": "Joint HEP + PCI model explains significantly more variance in 3-month GCS-S outcome than either biomarker alone.",
-      "confirming_evidence": "ΔR² ≥ 0.05 over best univariate model (primary confirmatory threshold); LRT p < 0.05; AUC > 0.80 (aspirational secondary metric only).",
+      "claim": "Joint HEP + PCI model explains significantly more variance in 3-month CRS-R outcome than either biomarker alone.",
+      "confirming_evidence": "Joint model R² (or AUC) significantly exceeds both the univariate HEP and univariate PCI models (LRT p < 0.05); combined AUC > 0.80; ΔR² improvement of the joint model over the best univariate model ≥ 0.05 (primary confirmatory threshold). ΔR² > 0.10 is the theoretically expected upper bound and is reported as a secondary outcome.",
       "falsifying_evidence": "Joint model R² ≤ max(univariate HEP R², univariate PCI R²); or ΔR² < 0.05 in primary analysis.",
       "confirming_thresholds": {
         "delta_r_squared_primary_minimum": 0.05,
         "lrt_p_threshold": 0.05,
-        "auc_aspirational_secondary": 0.80,
-        "secondary_metric_note": "AUC > 0.80 is aspirational secondary metric ONLY — not required for confirmation",
-        "outcome": "3-month CRS-R total score"
+        "auc_joint_minimum": 0.8,
+        "auc_best_univariate_expected": 0.7,
+        "delta_r_squared_secondary_expected_range": [
+          0.1,
+          0.15
+        ],
+        "outcome": "3-month CRS-R total score",
+        "metric_note": "ΔR² ≥ 0.05 is the single primary metric; combined AUC > 0.80 is a co-registered confirming criterion (APGI-Protocols.md Protocol 7 sub-prediction table); ΔR² 0.10–0.15 over the clinical standard (CRS-R + structural imaging, R² ≈ 0.30) is secondary."
       },
       "falsifying_thresholds": {
         "condition_1": "Joint model R² ≤ max(univariate HEP R², univariate PCI R²)",
@@ -37,10 +47,13 @@
         "mcs_vs_uws_p_threshold": 0.05,
         "cohens_d_minimum": 0.5,
         "four_group_gradient": "VS/UWS < MCS < EMCS < controls",
-        "biomarkers": ["HEP amplitude", "PCI"],
+        "biomarkers": [
+          "HEP amplitude",
+          "PCI"
+        ],
         "dmn_pci_r_minimum": 0.5,
-        "dmn_hep_r_maximum": 0.20,
-        "dmn_hep_constraint": "DMN–HEP r < 0.20 (double dissociation: DMN↔PCI r > 0.50 AND DMN↔HEP r < 0.20)"
+        "dmn_hep_r_maximum": 0.2,
+        "dmn_hep_constraint": "Double dissociation: DMN↔PCI r > 0.50 AND DMN↔HEP r < 0.20; the DMN–HEP partial correlation must fall below the DMN–PCI correlation"
       },
       "falsifying_thresholds": {
         "condition_1": "No significant HEP difference between MCS and VS/UWS",
@@ -61,7 +74,11 @@
           "End-tidal CO₂ > 60 mmHg",
           "HR increase > 40 bpm from resting baseline"
         ],
-        "contraindications": ["severe COPD", "active seizure disorder", "hemodynamic instability"],
+        "contraindications": [
+          "severe COPD",
+          "active seizure disorder",
+          "hemodynamic instability"
+        ],
         "contraindicated_patients": "Receive white-noise condition only; analyzed in pre-specified sensitivity analysis",
         "cpt_exclusion": "Cold Pressor Test explicitly excluded from DoC patient cohort on ethical grounds (nociceptive stimulus in population unable to provide meaningful voluntary withdrawal)"
       },
@@ -91,7 +108,7 @@
       "falsifying_evidence": "HEP shows no significant longitudinal correlation with CRS-R (r < 0.2) at either follow-up; or joint model predictive values do not exceed clinical benchmarks.",
       "missing_data_protocol": {
         "locf_exclusion": "LOCF is EXPLICITLY EXCLUDED from all longitudinal analyses — LOCF assumes a static post-dropout state that is clinically false in DoC populations and introduces directional bias in predictive value estimates",
-        "primary_model": "JMbayes2 (Rizopoulos 2012) joint modelling of longitudinal GCS-S outcomes and time-to-event data (death or clinical withdrawal), treating informative dropout as structural",
+        "primary_model": "JMbayes2 (Rizopoulos 2012) joint modelling of longitudinal CRS-R outcomes and time-to-event data (death or clinical withdrawal), treating informative dropout as structural",
         "sensitivity_analysis_mar": "MICE (m = 50 imputations) for MCAR/MAR missingness",
         "sensitivity_analysis_mnar": "Pattern-mixture models with δ-adjustment (δ = 0, −0.5 SD, −1.0 SD) for MNAR robustness",
         "robustness_criterion": "Pred 7.D classified as robust only if joint model and MICE sensitivity estimates agree in sign and both meet ΔR² ≥ 0.05 at p < 0.05"
@@ -102,17 +119,42 @@
         "spearman_r_6mo_minimum": 0.4,
         "followup_3mo_status": "PRIMARY CONFIRMATORY",
         "followup_6mo_status": "PRIMARY CONFIRMATORY (both required per DOCX registry update 2026-06-19)",
-        "ppv_minimum": 0.70,
-        "npv_minimum": 0.70,
+        "ppv_minimum": 0.7,
+        "npv_minimum": 0.7,
         "predictive_values_outcome": "6-month recovery status (binary: recovered vs. not)"
       },
       "falsifying_thresholds": {
         "spearman_r_threshold": 0.2,
-        "condition": "No significant longitudinal correlation with GCS-S at either follow-up"
+        "condition": "No significant longitudinal correlation with CRS-R at either follow-up"
       }
     },
     {
       "id": "Pred 7.E",
+      "claim": "Hierarchical-nesting biomarker: theta (4–8 Hz)–infraslow (< 0.1 Hz) phase–amplitude coupling (PAC), measured on ≥ 30-min bedside EEG, increases across the disorders-of-consciousness gradient (VS/UWS < MCS < EMCS < controls) and tracks CRS-R total score. PAC indexes the hierarchical nesting of fast workspace dynamics within slow allostatic-state fluctuations predicted by APGI.",
+      "confirming_evidence": "Significant Jonckheere–Terpstra ordered-trend test across the four groups (p < 0.05) and a positive PAC↔CRS-R correlation (r ≥ 0.30, N ≥ 80 pooled)",
+      "falsifying_evidence": "Trend p > 0.10 AND r < 0.20",
+      "confirming_thresholds": {
+        "jonckheere_terpstra_p_threshold": 0.05,
+        "ordered_gradient": "VS/UWS < MCS < EMCS < controls",
+        "pac_crsr_r_minimum": 0.3,
+        "n_pooled_minimum": 80,
+        "theta_band_hz": [
+          4,
+          8
+        ],
+        "infraslow_band_hz_maximum": 0.1,
+        "recording_duration_minutes_minimum": 30,
+        "band_definitions": "Match Appendix A (theta 4–8 Hz; infraslow < 0.1 Hz)"
+      },
+      "falsifying_thresholds": {
+        "trend_p_minimum": 0.1,
+        "pac_crsr_r_threshold": 0.2,
+        "condition": "Trend p > 0.10 and r < 0.20"
+      },
+      "epistemic_status": "Exploratory — relative to the confirmatory Pred 7.A–7.D; does not gate framework-level assessment"
+    },
+    {
+      "id": "Pred 7.F",
       "status": "exploratory",
       "claim": "Somatic bias (β_SM) modulates the reportable content weighting of the global workspace, shifting subjective self-report profiles toward 'bodily/visceral' dimensions under high-β attentional focus (Tier 3 access proxy; L4 phenomenal claims excluded).",
       "confirming_evidence": "Body focus condition yields elevated 'bodily/visceral' subscale ratings (d > 0.45) and reduced 'detached/cognitive' ratings; effect survives arousal covariation (pupil diameter, HRV).",
@@ -128,17 +170,21 @@
       "confirming_thresholds": {
         "cohens_d_minimum": 0.45,
         "target_dimension": "bodily/visceral subscale elevation AND detached/cognitive reduction",
-        "covariate_survival": "Effect must survive covariation for pupil diameter and HRV"
+        "covariate_survival": "Effect must survive covariation for pupil diameter and HRV",
+        "population_scope": "EMCS participants with confirmed behavioural command-following and MCS+ patients with CRS-R ≥ 8 who can produce binary motor responses; VS/UWS participants are excluded on ethical and methodological grounds"
       },
       "falsifying_thresholds": {
         "condition_1": "d < 0.20 on reportable embodiment dimensions",
         "condition_2": "Effect fully absorbed by general arousal covariates",
         "scope_note": "This scoped falsifier does not bear on the core hierarchical ignition account (Pred 7.A–7.D)"
       },
-      "exploratory_note": "Exploratory prediction. Confirmation not required for primary DoC-Biomarker claims (Pred 7.A–7.D). Tests the downstream behavioral readout of the β_SM → Πⁱ_eff → θₜ pathway at the Tier 3 access level."
+      "exploratory_note": "Exploratory prediction. Confirmation not required for primary DoC-Biomarker claims (Pred 7.A–7.D). Tests the downstream behavioral readout of the β_SM → Πⁱ_eff → θₜ pathway at the Tier 3 access level.",
+      "renumbering_note": "Renumbered from 'Pred 7.E' to 'Pred 7.F'. APGI-Protocols.md §'Prediction 7.F: Somatic Bias Modulates Reportable Embodiment Weighting' and the Pred 7.A–7.F cluster table both assign this claim the code 7.F; 7.E is the hierarchical-nesting PAC biomarker. The single 'Protocols and Predictions' summary row that labels this claim 7.E is a residual inconsistency in the source document and is flagged for author resolution."
     }
   ],
-  "depends_on": ["EP-0"],
+  "depends_on": [
+    "EP-0"
+  ],
   "validation_status": "specified",
   "validation_notes": "Formally specified. Directly supported by Paper 3 Appendix (Disorders of Consciousness Table). Updated 2026-06-19 per DOCX registry (EP-7, Paper 3): n_target increased to 110 (VS/UWS=30, MCS=30, EMCS=20, controls=30); Pred 7.C updated to CCRC protocol (CO₂ rebreathing replacing heartbeat attention task); Pred 7.D updated with JMbayes2 joint modelling and explicit LOCF exclusion; Pred 7.E reframed from somatic-bias-PQS to embodiment-weighting exploratory; 6-month follow-up now primary confirmatory (both 3-mo and 6-mo) per DOCX.",
   "participants": {
@@ -154,7 +200,7 @@
     "emcs_note": "EMCS group (N=20) required for four-group gradient confirmation (Pred 7.B). If insufficient EMCS patients recruited (n < 10), Pred 7.B four-group gradient downgraded to exploratory; three-group (VS/UWS, MCS, controls) treated as primary.",
     "blinding_note": "Administering neurologist strictly blinded to PCI and HEP biomarker results to prevent diagnostic expectation bias.",
     "inclusion_criteria": [
-      "Clinical DoC diagnosis by certified neurologist using CRS-R and GCS-S",
+      "Clinical DoC diagnosis by certified neurologist using CRS-R and CRS-R",
       "Age 18–70 years",
       "Stable medical condition permitting EEG and TMS assessment",
       "Etiology: traumatic or hypoxic-ischemic brain injury",
@@ -180,7 +226,7 @@
     "TMS_for_PCI": "Magstim Rapid² with 70 mm figure-of-eight coil; vertex stimulation protocol for PCI",
     "clinical_scales": [
       "Coma Recovery Scale-Revised (CRS-R)",
-      "Glasgow Coma Scale-Stimulation (GCS-S)",
+      "Glasgow Coma Scale-Stimulation (CRS-R)",
       "Disorder of Consciousness Score (DoCS)"
     ],
     "interoceptive_stimulation": "CCRC (Controlled CO₂ Rebreathing Challenge): 5% CO₂/95% O₂ via non-rebreather mask, 90-second exposure; continuous SpO₂ and end-tidal CO₂ monitoring; stopping criteria: SpO₂ drop > 5%, ETCO₂ > 60 mmHg, or HR increase > 40 bpm",
@@ -201,19 +247,35 @@
     "trials_per_block": 40,
     "total_experimental_trials": 120,
     "sessions": {
-      "baseline": "Enrolment (week 0): EEG resting state + PCI + CRS-R + GCS-S + DMN proxy",
+      "baseline": "Enrolment (week 0): EEG resting state + PCI + CRS-R + CRS-R + DMN proxy",
       "stimulation": "Week 1: CCRC block + post-CCRC PCI + white-noise control block + post-control PCI (counterbalanced order)",
-      "followup_3mo": "Month 3: EEG + PCI + CRS-R + GCS-S (PRIMARY CONFIRMATORY for Pred 7.D)",
-      "followup_6mo": "Month 6: EEG + PCI + CRS-R + GCS-S (PRIMARY CONFIRMATORY for Pred 7.D — both 3-mo and 6-mo required per DOCX 2026-06-19)"
+      "followup_3mo": "Month 3: EEG + PCI + CRS-R + CRS-R (PRIMARY CONFIRMATORY for Pred 7.D)",
+      "followup_6mo": "Month 6: EEG + PCI + CRS-R + CRS-R (PRIMARY CONFIRMATORY for Pred 7.D — both 3-mo and 6-mo required per DOCX 2026-06-19)"
     }
   },
   "eeg_analysis_pipeline": {
-    "bandpass_filter_hz": [0.1, 40],
-    "epoch_window_ms": [-200, 800],
-    "baseline_correction_ms": [-200, 0],
+    "bandpass_filter_hz": [
+      0.1,
+      40
+    ],
+    "epoch_window_ms": [
+      -200,
+      800
+    ],
+    "baseline_correction_ms": [
+      -200,
+      0
+    ],
     "artifact_rejection_threshold_uv": 150,
-    "hep_window_ms": [250, 400],
-    "hep_channels": ["Cz", "FCz", "Fz"],
+    "hep_window_ms": [
+      250,
+      400
+    ],
+    "hep_channels": [
+      "Cz",
+      "FCz",
+      "Fz"
+    ],
     "minimum_clean_epochs": 20,
     "ica_cardiac_artifact": "Automated ICA cardiac component rejection (EEGLAB ADJUST)",
     "pci_computation_software": "Comolatti et al. (2019) open-source toolbox; PCI threshold for consciousness = 0.31",
@@ -235,7 +297,7 @@
     "Group × stimulation interaction on ΔPCI — Pred 7.C",
     "Spearman r(HEP amplitude, CRS-R total score) at 3-month follow-up within-participant — confirmatory Pred 7.D",
     "Spearman r(HEP amplitude, CRS-R total score) at 6-month follow-up within-participant — confirmatory Pred 7.D",
-    "JMbayes2 joint model: longitudinal GCS-S + time-to-event — Pred 7.D",
+    "JMbayes2 joint model: longitudinal CRS-R + time-to-event — Pred 7.D",
     "PPV and NPV: joint model prediction of 6-month recovery status — Pred 7.D"
   ],
   "primary_hypothesis": "A linear model including both HEP amplitude and PCI at enrolment explains ΔR² ≥ 0.05 more variance in 3-month CRS-R total score outcome than either biomarker alone. HEP amplitude and PCI show a four-group gradient (VS/UWS < MCS < EMCS < controls), DMN–PCI r > 0.50 AND DMN–HEP r < 0.20 (double dissociation), interoceptive perturbation increases PCI ≥ 10% in MCS but not VS/UWS with ΔPCI exceeding arousal-matched control, and HEP amplitude correlates with CRS-R total score at 3-month and 6-month follow-up (Spearman r > 0.4).",
@@ -251,10 +313,12 @@
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-05-18",
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
     "locf_exclusion": "LOCF is explicitly excluded from all longitudinal analyses (Pred 7.D). JMbayes2 joint model is primary; MICE (m=50) is pre-specified sensitivity analysis.",
-    "amendment_note": "6-month follow-up is now PRIMARY CONFIRMATORY (not exploratory) per DOCX registry update 2026-06-19; no OSF amendment required for 6-month analysis."
+    "amendment_note": "6-month follow-up is now PRIMARY CONFIRMATORY (not exploratory) per DOCX registry update 2026-06-19; no OSF amendment required for 6-month analysis.",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -281,5 +345,15 @@
     "Pred 7.D uses JMbayes2 joint modelling; LOCF is explicitly excluded. The 6-month follow-up is now PRIMARY CONFIRMATORY (not exploratory) per DOCX registry update 2026-06-19.",
     "An independent DSMB oversees all patient recruitment and CCRC sessions. CCRC stopping criteria (SpO₂ drop > 5%, ETCO₂ > 60 mmHg, HR > 40 bpm above baseline) are absolute; a dedicated nursing observer monitors all patient CCRC sessions continuously.",
     "PCI subsample may be smaller than full HEP cohort due to TMS contraindications; all analyses distinguish the full HEP cohort (N up to 110) from the PCI subsample."
-  ]
+  ],
+  "interim_analysis": {
+    "conducted_by": "DSMB only; the study team remains blind to interim efficacy results",
+    "alpha_spending": "O'Brien–Fleming: α = 0.005 at interim, α = 0.045 at final"
+  },
+  "multiple_comparisons": {
+    "scope": "Pred 7.A–7.F across four groups and two follow-up timepoints",
+    "correction": "Benjamini–Yekutieli FDR at q = 0.05"
+  },
+  "crs_r_administration_standard": "Clinical diagnosis and longitudinal tracking follow the Coma Recovery Scale–Revised (CRS-R), administered by two independent certified raters blinded both to each other's scores and to HEP/PCI results; inter-rater reliability κ ≥ 0.80 required. All patients enrolled at ≥ 4 weeks post-injury; etiology (traumatic vs. hypoxic-ischemic) recorded and entered as a covariate in every model. Surrogate consent from next-of-kin or legal guardian obtained for all patients. GOS-E is recorded as a secondary exploratory functional metric for TBI etiology subsets only.",
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

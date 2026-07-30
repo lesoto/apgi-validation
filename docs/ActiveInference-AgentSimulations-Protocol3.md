@@ -873,7 +873,7 @@ If using this implementation in research:
   author = {APGI Framework},
   year = {2026},
   version = {1.0},
-  url = {https://github.com/apgi-framework/protocols}
+  url = {https://github.com/apgiframework/apgi-implementation}
 }
 ```text
 
@@ -888,7 +888,7 @@ MIT License - See LICENSE file for details
 
 
 For questions, bug reports, or contributions:
-- GitHub Issues: [github.com/apgi-framework/protocols/issues]
+- GitHub Issues: [github.com/apgiframework/apgi-implementation/issues]
 - Email: research@apgi-framework.org
 
 

@@ -4,11 +4,16 @@
   "registry_protocol_label": "Protocol 5 — Insula-TMS",
   "title": "Causal Neuromodulation Study: Insular and Frontoparietal Gating of Ignition Threshold via Dissociable Mechanisms",
   "paper": "APGI Paper 2",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "2.0.0",
-  "last_updated": "2026-06-04",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "2.1.0",
+  "last_updated": "2026-07-30",
   "description": "Single-pulse TMS and transcranial focused ultrasound (tFUS/LIFU) are applied under fMRI-guided neuronavigation to four cortical targets to test whether anterior insula (aINS, interoceptive precision integrator) and the frontoparietal workspace (dlPFC, PPC) causally regulate the APGI ignition threshold θₜ through dissociable mechanisms. APGI predicts that aINS stimulation selectively disrupts interoceptive gating — reducing Πⁱ_eff and abolishing HEP–PCI coupling while sparing exteroceptive P3b — whereas dlPFC and PPC stimulation reduces global ignition probability (Bₜ) across both interoceptive and exteroceptive streams without selectively affecting HEP. The primary modality for the aINS arm is tFUS (required for depth penetration to aINS ≈ 3–4 cm below scalp). Vertex serves as active sham control. Four sub-predictions are tested: (Pred 5.A) aINS and frontoparietal TMS both reduce PCI via dissociable mechanisms; (Pred 5.B) aINS TMS selectively disrupts interoceptive gating (HEP–P3b coupling) while sparing exteroceptive P3b; (Pred 5.C) high baseline IA participants show strongest aINS TMS effects on PCI; (Pred 5.D) high-Πⁱ individuals show larger PCI decreases following aINS TMS than low-Πⁱ, absent for dlPFC.",
-  "prediction_cluster": "Pred 5.A–5.D",
+  "prediction_cluster": "Pred 5.A–5.E",
   "prediction_cluster_label": "Causal aINS/dlPFC Dissociation of Interoceptive Gating vs. Global Ignition",
   "sub_predictions": [
     {
@@ -31,60 +36,96 @@
     {
       "id": "Pred 5.B",
       "claim": "TMS of anterior insula (aINS) selectively disrupts interoceptive gating (HEP–P3b coupling) while sparing exteroceptive P3b. dlPFC TMS reduces P3b globally without affecting HEP.",
-      "confirming_evidence": "aINS TMS: HEP–P3b coupling coefficient < 0.15; exteroceptive P3b spared (within 10% of vertex baseline). dlPFC TMS: HEP unaffected (BF₀₁ ≥ 6 for equivalence, ROPE d = [−0.15, +0.15]).",
+      "confirming_evidence": "aINS stimulation: HEP–P3b coupling coefficient < 0.15 (vs. vertex baseline > 0.35); aINS HEP reduction ≥ 30% AND PCI reduction ≥ 20%; exteroceptive P3b amplitude not significantly reduced (within 10% of vertex baseline). dlPFC TMS: P3b reduced for both streams; HEP unaffected (BF₀₁ ≥ 6, ROPE d = [−0.15, +0.15]).",
       "falsifying_evidence": "Uniform suppression of both P3b streams; or HEP equally reduced by dlPFC and aINS.",
       "confirming_thresholds": {
         "ains_tms": {
           "hep_p3b_coupling_threshold_active": 0.15,
-          "exteroceptive_p3b_within_percent_of_vertex": 10
+          "exteroceptive_p3b_within_percent_of_vertex": 10,
+          "hep_p3b_coupling_vertex_baseline_minimum": 0.35,
+          "hep_reduction_minimum_percent": 30,
+          "pci_reduction_minimum_percent": 20
         },
         "dlpfc_tms": {
           "hep_equivalence_bf01_minimum": 6,
-          "hep_equivalence_rope_d": [-0.15, 0.15],
+          "hep_equivalence_rope_d": [
+            -0.15,
+            0.15
+          ],
           "p3b_reduction": "across both interoceptive and exteroceptive streams"
         }
       },
       "falsifying_thresholds": {
         "condition_1": "Uniform P3b suppression across aINS and dlPFC sites (no stream specificity)",
-        "condition_2": "HEP equally reduced by dlPFC and aINS TMS"
+        "condition_2": "HEP equally reduced by dlPFC and aINS TMS",
+        "condition_3": "aINS HEP or PCI reduction < 10% (framework-level Protocol 5 falsifier)"
       }
     },
     {
       "id": "Pred 5.C",
-      "claim": "High baseline IA participants show strongest aINS TMS effects, producing a significant accuracy × TMS-site interaction on PCI; effect absent for dlPFC TMS site.",
-      "confirming_evidence": "Accuracy × TMS site interaction on PCI (p < 0.05, η² > 0.10); high-accuracy group shows larger PCI reduction under aINS TMS than low-accuracy group; interaction absent for dlPFC TMS site.",
-      "falsifying_evidence": "No interaction between baseline accuracy and TMS site.",
+      "claim": "Omnibus interaction: baseline interoceptive-accuracy × TMS-site interaction on PCI is significant — aINS effects on PCI are largest for high-IA participants (top tertile); absent for dlPFC and PPC.",
+      "confirming_evidence": "Accuracy × TMS-site interaction on PCI (p < 0.05, η² > 0.10); high-accuracy group shows larger PCI reduction under aINS stimulation than low-accuracy group; effect absent at dlPFC and PPC.",
+      "falsifying_evidence": "No interaction between baseline accuracy and TMS site; high- and low-accuracy groups show equivalent PCI response across all TMS sites.",
       "confirming_thresholds": {
         "interaction_p_threshold": 0.05,
-        "eta_squared_minimum": 0.10,
-        "site_specificity": "interaction present for aINS site only, absent for dlPFC site",
+        "eta_squared_minimum": 0.1,
+        "site_specificity": "Interaction present for aINS only; absent for dlPFC and PPC",
         "accuracy_grouping": "IA tertile (top vs. bottom)"
       },
       "falsifying_thresholds": {
         "condition": "No accuracy × TMS-site interaction across all sites"
-      }
+      },
+      "analysis_role": "Omnibus interaction test"
     },
     {
       "id": "Pred 5.D",
-      "claim": "High-Πⁱ individuals show larger PCI decreases following aINS TMS than low-Πⁱ individuals; equivalent pattern absent for dlPFC TMS site.",
-      "confirming_evidence": "High-Πⁱ individuals show larger PCI decreases following aINS TMS than low-Πⁱ; absent for dlPFC. No interaction between IA tertiles and TMS site for dlPFC.",
-      "falsifying_evidence": "No interaction; equivalent PCI response across IA tertiles at aINS site.",
+      "claim": "Directional simple-effect (pre-specified): within aINS, high-Πⁱ individuals show larger PCI decreases than low-Πⁱ individuals; the effect is absent at dlPFC and PPC.",
+      "confirming_evidence": "Within-aINS contrast p < 0.05, η² > 0.10 (high-Πⁱ > low-Πⁱ); interaction absent at dlPFC/PPC",
+      "falsifying_evidence": "η² < 0.04, or the directional effect replicates at dlPFC/PPC (non-specific)",
       "confirming_thresholds": {
-        "ains_pi_i_interaction_p_threshold": 0.05,
-        "dlpfc_no_interaction_bf01_minimum": 3,
+        "within_ains_contrast_p_threshold": 0.05,
+        "within_ains_eta_squared_minimum": 0.1,
+        "direction": "high-Πⁱ > low-Πⁱ PCI decrease",
+        "dlpfc_ppc_absence_required": true,
         "pi_i_grouping": "Interoceptive accuracy tertile (top vs. bottom)"
       },
       "falsifying_thresholds": {
-        "condition": "No IA tertile × TMS site interaction; equivalent PCI response at aINS across Πⁱ tertiles"
-      }
+        "eta_squared_threshold": 0.04,
+        "condition": "η² < 0.04, or the directional effect replicates at dlPFC/PPC (non-specific)"
+      },
+      "analysis_role": "Directional simple-effect, conditional on the Pred 5.C omnibus interaction"
+    },
+    {
+      "id": "Pred 5.E",
+      "claim": "dlPFC null-on-HEP equivalence: dlPFC TMS leaves HEP amplitude unchanged (Bayesian equivalence), dissociating workspace disruption from interoceptive-precision disruption.",
+      "confirming_evidence": "HEP change under dlPFC TMS falls within the ROPE d = [−0.15, +0.15] with BF₀₁ ≥ 6 (Wagenmakers et al., 2018)",
+      "falsifying_evidence": "BF₀₁ < 3, or the effect falls outside the ROPE (dlPFC TMS reduces HEP)",
+      "confirming_thresholds": {
+        "rope_cohens_d": [
+          -0.15,
+          0.15
+        ],
+        "bf01_minimum": 6,
+        "test": "Bayesian equivalence test, paired within-subject",
+        "scenario_b_band": "BF₀₁ between 3 and 6 → Scenario B (tentative null)",
+        "scenario_d_band": "BF₀₁ < 3 with d inside the ROPE → Scenario D (ambiguous, requires additional data)",
+        "binding_note": "This decision criterion is binding and must be registered prior to data unblinding."
+      },
+      "falsifying_thresholds": {
+        "bf01_threshold": 3,
+        "condition": "BF₀₁ < 3, or effect outside the ROPE d = [−0.15, +0.15]"
+      },
+      "epistemic_status": "Confirmatory — the equivalence half of the Pred 5.B double dissociation"
     }
   ],
-  "depends_on": ["EP-0"],
+  "depends_on": [
+    "EP-0"
+  ],
   "validation_status": "specified_with_caveat",
   "validation_notes": "Prediction structurally sound. The registry (EP-5, Protocol 5) specifies aINS (via tFUS) and dlPFC/PPC as the causal targets. Primary modality for aINS arm is tFUS (required for depth penetration ≈ 3–4 cm); H-coil dTMS retained as secondary modality at sites lacking tFUS infrastructure, with mandatory target-engagement verification (concurrent fMRI-BOLD suppression or EEG spectral change). Claustrum and mediodorsal thalamic involvement remain viable alternative substrates and must be acknowledged in the paper.",
   "participants": {
-    "n_target": 36,
-    "n_minimum": 28,
+    "n_target": 44,
+    "n_minimum": 36,
     "inclusion_criteria": [
       "Age 18–45 years",
       "Right-handedness (Edinburgh Handedness Inventory ≥ +40)",
@@ -103,7 +144,9 @@
       "History of significant head injury (loss of consciousness > 5 min)",
       "Irregular cardiac rhythm on screening ECG"
     ],
-    "tms_screening": "Safety checklist per Rossi et al. (2021) Clin. Neurophysiol.; written informed consent to TMS risks"
+    "tms_screening": "Safety checklist per Rossi et al. (2021) Clin. Neurophysiol.; written informed consent to TMS risks",
+    "n_analysis_floor_pci": 28,
+    "sample_size_rationale": "N = 44 target / N = 36 minimum. Primary contrast is the within-subject site × HEP–P3b coupling comparison (aINS vs. vertex). G*Power 3.1 (paired t, d = 0.5, α = 0.05, power = 0.90) yields N_required = 44; N = 36 is the registered analysis floor (power ≈ 0.83–0.86 at d = 0.5, ≥ 0.90 at d ≥ 0.55). Analyses below N = 44 are reported as falling short of the registered power target. Minimum acceptable N for PCI analyses is 28. Right-handed (Edinburgh Handedness Inventory ≥ +40); individual T1-weighted MPRAGE acquired for neuronavigation."
   },
   "apparatus": {
     "TMS_system": "Magstim Rapid² with 70 mm figure-of-eight coil (dlPFC/PPC and vertex arms); tFUS system (e.g., Sonic Concepts H-317 or equivalent) for aINS arm",
@@ -111,7 +154,11 @@
     "target_regions": [
       {
         "name": "Anterior insula (aINS)",
-        "MNI_coordinate": [34, 14, 0],
+        "MNI_coordinate": [
+          34,
+          14,
+          0
+        ],
         "bilateral": true,
         "modality": "Primary: tFUS (transcranial focused ultrasound / LIFU); Secondary: H-coil dTMS with mandatory target-engagement verification",
         "rationale": "aINS encodes precision-weighted prediction errors and computes Πⁱ; lies ≈ 3–4 cm below scalp — standard figure-of-eight TMS is contraindicated. Stimulating aINS (not pIC) tests the APGI precision-weighting mechanism. Registry EP-5 primary interoceptive site.",
@@ -119,15 +166,27 @@
       },
       {
         "name": "Dorsolateral prefrontal / posterior parietal cortex (dlPFC/PPC)",
-        "MNI_coordinate_dlpfc": [44, 36, 20],
-        "MNI_coordinate_ppc": [36, -56, 44],
+        "MNI_coordinate_dlpfc": [
+          44,
+          36,
+          20
+        ],
+        "MNI_coordinate_ppc": [
+          36,
+          -56,
+          44
+        ],
         "modality": "Standard figure-of-eight TMS coil",
         "rationale": "Frontoparietal ignition network; global broadcast and threshold regulation. Registry EP-5 second active site. One target per participant selected based on individual fMRI functional localiser.",
         "site_selection": "Individual fMRI functional localiser (N-back task); site selected pre-scan, blinded to condition assignment"
       },
       {
         "name": "Vertex (sham control)",
-        "MNI_coordinate": [0, -30, 70],
+        "MNI_coordinate": [
+          0,
+          -30,
+          70
+        ],
         "modality": "Standard figure-of-eight TMS coil",
         "rationale": "Active control for nonspecific TMS effects"
       }
@@ -142,18 +201,30 @@
     "RMT_muscle": "First dorsal interosseus (FDI)",
     "coil_orientation_degrees": 45,
     "SOA_ms": 100,
-    "conditions": ["pIC_active", "dlPFC_PPC_active", "vertex_sham"],
+    "conditions": [
+      "pIC_active",
+      "dlPFC_PPC_active",
+      "vertex_sham"
+    ],
     "max_pulses_per_hour": 600,
     "inter_pulse_interval_s": 4
   },
   "trial_structure": {
-    "isi_ms": [2000, 2500],
+    "isi_ms": [
+      2000,
+      2500
+    ],
     "fixation_duration_ms": 500,
     "tms_to_stimulus_soa_ms": 100,
     "target": {
       "type": "Gabor patch",
       "spatial_frequency_cpd": 3,
-      "contrast_levels": [0.04, 0.08, 0.16, 0.32],
+      "contrast_levels": [
+        0.04,
+        0.08,
+        0.16,
+        0.32
+      ],
       "duration_ms": 33
     },
     "mask": {
@@ -199,17 +270,25 @@
   "primary_hypothesis": "Active aINS stimulation (tFUS) reduces PCI and abolishes HEP–PCI coupling relative to vertex sham, while dlPFC/PPC TMS reduces PCI across both interoceptive and exteroceptive streams without affecting the HEP (BF₀₁ ≥ 6). High-IA participants show a larger PCI reduction under aINS stimulation than low-IA participants, with this accuracy × site interaction absent for the dlPFC/PPC site.",
   "primary_analysis": "Linear mixed-effects: PCI ~ site * stream + IA_tertile + (site | participant). Site × HEP–PCI coupling interaction via LME. Bayesian equivalence for dlPFC HEP effect: BF₀₁ using JZS prior (r = 0.707), ROPE d = [−0.15, +0.15]. IA × site interaction: two-way ANOVA with η² for interaction term. Πⁱ tertile × site interaction for Pred 5.D.",
   "power_analysis": {
+    "primary_test": "Within-subject site × HEP–P3b coupling comparison (aINS vs. vertex), paired t",
     "effect_size_d": 0.5,
     "alpha": 0.05,
     "power": 0.9,
-    "n_required": 28,
+    "n_required": 44,
+    "n_target": 44,
+    "n_minimum": 36,
+    "n_analysis_floor_pci": 28,
+    "power_at_n36": 0.83,
+    "secondary_test": "Repeated-measures ANOVA, 4 sites × 2 streams, ρ = 0.5: N = 44 achieves 90% power at η² = 0.06",
     "software": "G*Power 3.1",
-    "based_on": "Rosanova et al. (2012) TMS–EEG PCI effects; typical insula TMS interoception disruption Cohen's d ≈ 0.5"
+    "based_on": "Rosanova et al. (2012) TMS–EEG PCI effects; typical insula stimulation interoception disruption Cohen's d ≈ 0.5"
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-05-18"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -235,5 +314,103 @@
     "aINS arm requires tFUS infrastructure; sites lacking tFUS must use H-coil dTMS with mandatory target-engagement verification (concurrent fMRI-BOLD suppression or EEG spectral power change) before participant enrollment begins.",
     "Individual fMRI-guided site selection for dlPFC vs. PPC introduces variability; pre-specified site selection criteria must be locked in the OSF pre-registration before scanning begins.",
     "Pred 5.B Bayesian equivalence (BF₀₁ ≥ 6) for dlPFC HEP effect requires ≥ 28 participants; if n < 28, BF₀₁ analysis should still be reported with confidence interval on Cohen's d."
-  ]
+  ],
+  "bayesian_sequential_design": {
+    "interim_looks_n": [
+      20,
+      30,
+      36
+    ],
+    "stop_for_efficacy": "BF₁₀ ≥ 10",
+    "stop_for_futility": "BF₀₁ ≥ 6",
+    "n_minimum_before_first_look": 20,
+    "n_maximum": 44,
+    "alpha_spending": "None — no frequentist alpha-spending is applied; frequentist statistics are reported only for the final N."
+  },
+  "multiple_comparisons": {
+    "within_protocol": "Family-wise error across 4 sites × 2 outcome streams controlled by FWE correction",
+    "cross_prediction": "Pred 5.A–5.E additionally controlled by Benjamini–Yekutieli FDR at q = 0.05"
+  },
+  "stimulation_parameters": {
+    "aINS_primary_modality": "tFUS — stereotaxically neuronavigated transducer array, 720 kHz centre frequency, 500 ms sonication bursts, ISPTA ≤ 720 mW/cm² per FDA guidelines (Legon et al., 2018)",
+    "aINS_secondary_modality": "H-coil deep TMS (dTMS), retained only at sites lacking tFUS, subject to mandatory target-engagement verification before enrolment",
+    "dlPFC_PPC_vertex": "Single-pulse TMS, Magstim Rapid² with 70 mm figure-of-eight coil; monophasic pulses at 110% resting motor threshold (calibrated on first dorsal interosseous), 45° coil orientation, 100 ms stimulus onset asynchrony",
+    "eeg": "64-channel TMS-compatible BrainAmp at 5,000 Hz with Fastrak neuronavigation; TMS artifacts suppressed via sequential SSP and ICA (Hernandez-Pavon et al., 2023)",
+    "pci_pipeline": "Comolatti et al. (2019) open-source toolbox; pre-specified consciousness demarcation threshold PCI > 0.31 (Casali et al., 2013)"
+  },
+  "target_sites": [
+    {
+      "site": "aINS",
+      "label": "Anterior insula (interoceptive precision gating)",
+      "mni": [
+        34,
+        14,
+        0
+      ],
+      "mni_note": "±34, 14, 0; functional localizer-derived",
+      "modality": "tFUS (Tier 1) or dTMS (Tier 2)"
+    },
+    {
+      "site": "dlPFC",
+      "label": "Left dorsolateral prefrontal cortex (global-ignition control)",
+      "mni": [
+        -44,
+        36,
+        20
+      ],
+      "modality": "figure-of-eight TMS"
+    },
+    {
+      "site": "PPC",
+      "label": "Bilateral posterior parietal cortex (global-ignition control)",
+      "mni": [
+        28,
+        -60,
+        46
+      ],
+      "mni_note": "±28, −60, 46",
+      "modality": "figure-of-eight TMS"
+    },
+    {
+      "site": "vertex",
+      "label": "Vertex active sham (nonspecific control)",
+      "mni": [
+        0,
+        -30,
+        70
+      ],
+      "modality": "figure-of-eight TMS; matched sham for tFUS arm"
+    }
+  ],
+  "site_selection_decision_tree": [
+    {
+      "tier": 1,
+      "status": "Preferred",
+      "modality": "tFUS to aINS",
+      "requirement": "~720 kHz centre-frequency transducer array with MRI-guided targeting, spatial resolution ≤ 5 mm at 3 cm depth (Legon et al., 2018; Deffieux et al., 2013). Sites using a 1 MHz nominal array must provide documented off-resonance characterisation and receive coordinating-centre approval before enrolment.",
+      "pred_5b_status": "Confirmatory"
+    },
+    {
+      "tier": 2,
+      "status": "Acceptable",
+      "modality": "Deep TMS (H-coil; Brainsway H1 or equivalent)",
+      "requirement": "Demonstrated aINS reach at ≥ 3 cm depth with ≤ 10% EMG coil variability on motor mapping; mandatory concurrent target-engagement verification before enrolment — ≥ 10% BOLD change in the aINS ROI (≥ 15 functional voxels, p < 0.05 FWE small-volume corrected) or ≥ 15% change in the EEG aperiodic 1/f exponent over anterior-temporal sensors, relative to vertex sham.",
+      "pred_5b_status": "Confirmatory with modality note"
+    },
+    {
+      "tier": 3,
+      "status": "Fallback",
+      "modality": "Pharmacological EEG arm",
+      "requirement": "Propranolol 40 mg oral (β-adrenergic blockade targeting interoceptive Πⁱ) vs. atomoxetine 40 mg (NE reuptake inhibitor targeting exteroceptive Πᵉ) vs. placebo; triple-arm within-subject crossover, N = 48, EEG throughout. Primary outcome: HEP amplitude and psychometric threshold per drug arm.",
+      "pred_5b_status": "Exploratory; requires independent replication with Tier 1/2 for confirmatory designation"
+    },
+    {
+      "tier": "per-participant",
+      "status": "Localizer failure",
+      "modality": "Tier 1 or 2 available but individual MRI localizer fails (poor insula activation, n < 15 functional ROI voxels)",
+      "requirement": "Reclassify that participant's Pred 5.B data as exploratory; retain others",
+      "pred_5b_status": "Exploratory (that participant only)"
+    }
+  ],
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

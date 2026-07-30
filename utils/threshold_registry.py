@@ -3,9 +3,40 @@ TIER DESIGNATION: Tier 2 (information-theoretic)
 
 Bridge to Level 1
 
-All numeric thresholds are sourced verbatim from the APGI Framework Prediction Registry.
-Field names follow the pattern pred_<protocol_code>_<metric> so every value is traceable
-to its prediction code (Pred 0.A, Pred 2.A, etc.).
+All numeric thresholds are sourced verbatim from the APGI Framework Prediction Registry
+(APGI-Protocols.md; APGI-OSF-Preregistration.md). Field names follow the pattern
+pred_<protocol_code>_<metric> so every value is traceable to its prediction code.
+
+LEGACY NUMBERING WARNING
+------------------------
+The ``pred_*`` field names below predate the migration to the canonical APGI-P00–P07
+protocol map and DO NOT all match the current prediction codes. The canonical registry
+defines exactly eight protocols (Protocol 0–7, prediction codes Pred 0.A–Pred 7.F);
+several legacy field prefixes point at a different protocol than their number suggests:
+
+    legacy field prefix   legacy section header        canonical protocol / codes
+    ------------------    -----------------------      --------------------------
+    pred_0*               EP-0 (Protocol 0)            Protocol 0 — Pred 0.A–0.C   [match]
+    pred_1*               EP-1 (Protocol 1)            Protocol 1 — Pred 1.A–1.E   [match]
+    pred_2*               EP-3 (Protocol 2)            Protocol 2 — Pred 2.A–2.F   [match]
+    pred_3*               EP-5 (Protocol 3)            Protocol 3 — Pred 3.A–3.D   [match]
+    pred_4*               EP-2 "Causal TMS"            Protocol 5 — Pred 5.A–5.E   [MISMATCH]
+    pred_5*               EP-6 "iEEG"                  Protocol 6 — Pred 6.A–6.E   [MISMATCH]
+    pred_6*               EP-4 "DoC Biomarker"         Protocol 7 — Pred 7.A–7.F   [MISMATCH]
+    pred_7*               EP-7 "Pharmacological"       no canonical protocol       [LEGACY]
+    pred_8* … pred_14*    EP-8 … EP-14                 no canonical protocol       [LEGACY]
+
+Canonically named aliases for the three mismatched blocks are defined in
+CANONICAL_THRESHOLD_ALIASES below and resolved by
+``ThresholdRegistry.get_threshold()``. Prefer the canonical names in new code; the
+legacy fields are retained so existing callers and tests keep working.
+
+Protocol 4 (Metabolic-State Crossover) has no thresholds in this registry at all; its
+criteria live in protocols/protocol_4_metabolic_crossover.json.
+
+The pred_7*–pred_14* blocks correspond to legacy prediction suites that were retired by
+the canonical migration. They are NOT in the current registry documents and must not be
+cited as pre-registered APGI falsifiers.
 """
 
 import logging
@@ -57,7 +88,7 @@ class FalsificationThresholds:
     # Pred 0.B: physostigmine (ACh elevation) increases HEP amplitude
     pred_0b_hep_increase_pct: float = 15.0  # HEP amplitude increases ≥ 15% vs. placebo
     pred_0b_cohens_d: float = 0.50  # Cohen's d ≥ 0.50
-    pred_0b_bf10: float = 10.0  # BF₁₀ ≥ 10
+    pred_0b_bf10: float = 100.0  # BF₁₀ ≥ 100 (Protocol 0 minimum retention threshold)
 
     # Pred 0.C: anterior insula (aINS) BOLD tracks HEP amplitude trial-by-trial
     pred_0c_hep_ins_r: float = 0.30  # r(HEP amplitude, aINS BOLD) > 0.30 within participants
@@ -69,28 +100,57 @@ class FalsificationThresholds:
     pred_1a_hep_p3b_r_falsify: float = 0.20  # HEP–P3b partial r < 0.20 after arousal covariate = falsify
 
     # Pred 1.A-trait: trait-level Πⁱ_baseline → d′
-    pred_1a_trait_cohens_d: float = 0.50  # Cohen's d ≥ 0.5 (high-IA d′ > low-IA d′)
+    pred_1a_trait_cohens_d: float = 0.40  # Cohen's d = 0.40–0.60 (high-IA d′ > low-IA d′); 0.40 = floor
+    pred_1a_trait_cohens_d_max: float = 0.60  # upper end of the predicted range
+    pred_1a_trait_cohens_d_falsify: float = 0.30  # d < 0.3 across N ≥ 30 per group = falsify
 
     # Pred 1.B: cardiac-phase-locked detection advantage (diastole 300–500 ms vs. systole 0–150 ms)
     pred_1b_diastole_advantage_pct: float = 5.0  # hit rate advantage < 5% across two samples = falsify
 
     # Pred 1.C: top-tertile IA × condition interaction on P3b
     pred_1c_p3b_eta2: float = 0.08  # accuracy × condition interaction: ηₚ² ≥ 0.08
+    pred_1c_p3b_eta2_falsify: float = 0.04  # ηₚ² < 0.04 (or interaction p > 0.10) = falsify
+
+    # Pred 1.D: HEP predicts trial-by-trial P3b independently of arousal
+    pred_1d_partial_r: float = 0.40  # partial r(HEP, P3b | pupil, HRV) > 0.40
+    pred_1d_partial_r_retain: float = 0.25  # confirmed only if partial r remains > 0.25 after pupil
+    pred_1d_partial_r_arousal_confound: float = 0.15  # partial r < 0.15 = reclassified arousal confound
+    pred_1d_alpha_bonferroni: float = 0.0125  # Bonferroni α across the Pred 1.A–1.D family
+
+    # Pred 1.E: near-threshold psychometric steepness (estimation-based; carries no α)
+    pred_1e_alpha_psy_confirm: float = 10.0  # best-fitting α_psy ≥ 10 (discrete phase transition)
+    pred_1e_alpha_psy_falsify: float = 5.0  # α_psy < 5 across all paradigms = falsify
+    pred_1e_graded_delta_aic: float = 10.0  # graded-accumulation model wins by ΔAIC > 10 = falsify
 
     # ── EP-2 (Protocol 4) — Causal TMS Insula/dlPFC ──────────────────────────
-    # Pred 4.A: pIC and frontoparietal TMS reduce PCI via dissociable mechanisms
-    pred_4a_pic_pci_reduction_pct: float = 20.0  # pIC TMS reduces PCI ~20% vs. vertex
+    # Pred 5.A (legacy name pred_4a): aINS and frontoparietal stimulation reduce PCI via
+    # dissociable mechanisms. Target is the ANTERIOR insula (aINS, MNI ±34, 14, 0), not pIC:
+    # pIC encodes raw |εⁱ| intensity and stimulating it would not test the Πⁱ mechanism.
+    pred_4a_pic_pci_reduction_pct: float = 20.0  # aINS stimulation reduces PCI ~20% vs. vertex
     pred_4a_dlpfc_pci_reduction_min_pct: float = 15.0  # dlPFC/PPC TMS: 15–25% PCI reduction
     pred_4a_dlpfc_pci_reduction_max_pct: float = 25.0
 
-    # Pred 4.B: pIC TMS selectively disrupts HEP–P3b coupling
-    pred_4b_hep_p3b_coupling_falsify: float = 0.15  # pIC TMS reduces coupling to < 0.15
+    # Pred 5.B (legacy name pred_4b): aINS stimulation selectively disrupts HEP–P3b coupling
+    pred_4b_hep_p3b_coupling_falsify: float = 0.15  # aINS reduces coupling to < 0.15
+    pred_4b_hep_reduction_min_pct: float = 30.0  # aINS HEP reduction ≥ 30% required
+    pred_4b_pci_reduction_min_pct: float = 20.0  # aINS PCI reduction ≥ 20% required
+    pred_4b_reduction_falsify_pct: float = 10.0  # aINS HEP or PCI reduction < 10% = falsify
     pred_4b_hep_p3b_baseline: float = 0.35  # vertex baseline > 0.35
     pred_4b_exteroceptive_p3b_within_pct: float = 10.0  # exteroceptive P3b within 10% of vertex
     pred_4b_dlpfc_bf01: float = 6.0  # dlPFC leaves HEP unaffected: BF₀₁ ≥ 6, ROPE d=[−0.15,+0.15]
 
-    # Pred 4.C: high-baseline IA × TMS-site interaction on PCI
+    # Pred 5.C (legacy name pred_4c): omnibus baseline-IA × TMS-site interaction on PCI
     pred_4c_eta2: float = 0.10  # accuracy × TMS-site: η² > 0.10
+
+    # Pred 5.D: directional simple-effect within aINS (high-Πⁱ > low-Πⁱ PCI decrease)
+    pred_5d_within_ains_eta2: float = 0.10  # within-aINS contrast η² > 0.10, p < 0.05
+    pred_5d_within_ains_eta2_falsify: float = 0.04  # η² < 0.04, or effect replicates at dlPFC/PPC
+
+    # Pred 5.E: dlPFC null-on-HEP Bayesian equivalence
+    pred_5e_rope_d_lower: float = -0.15  # ROPE d = [−0.15, +0.15]
+    pred_5e_rope_d_upper: float = 0.15
+    pred_5e_bf01_confirm: float = 6.0  # BF₀₁ ≥ 6 required to conclude equivalence
+    pred_5e_bf01_falsify: float = 3.0  # BF₀₁ < 3, or effect outside the ROPE = falsify
 
     # ── EP-3 (Protocol 2) — Active Inference Agent Simulations ───────────────
     # Pred 2.A: full APGI converges within 50–80 trials, outperforms GNWT-only and Standard PP
@@ -113,7 +173,8 @@ class FalsificationThresholds:
     # ── EP-4 (Protocol 6) — Disorders of Consciousness Biomarker ─────────────
     # Pred 6.A: joint HEP + PCI model explains variance beyond either alone (primary)
     pred_6a_delta_r2: float = 0.05  # ΔR² ≥ 0.05 over best univariate model (PRIMARY criterion)
-    pred_6a_auc: float = 0.80  # AUC > 0.80 (aspirational secondary metric only)
+    pred_6a_auc: float = 0.80  # combined AUC > 0.80 (co-registered confirming criterion)
+    pred_6a_auc_best_univariate: float = 0.70  # expected best univariate AUC ≈ 0.70
 
     # Pred 6.B: HEP amplitude discriminates MCS from VS/UWS
     pred_6b_cohens_d: float = 0.50  # d > 0.5 (MCS vs. VS/UWS)
@@ -124,9 +185,21 @@ class FalsificationThresholds:
     pred_6c_perturbation_margin_pct: float = 5.0  # ΔPCI_perturbation > ΔPCI_control + 5%
     pred_6c_hep_pci_r: float = 0.40  # PCI change correlates with HEP change: r > 0.4
 
-    # Pred 6.D: HEP amplitude correlates with GCS-S at 3-month follow-up
-    pred_6d_spearman_r: float = 0.40  # within-participant Spearman r(HEP, GCS-S) > 0.4
+    # Pred 7.D (legacy name pred_6d): HEP correlates with CRS-R total score at 3- and 6-month
+    # follow-up. The outcome measure is CRS-R, not GCS-S.
+    pred_6d_spearman_r: float = 0.40  # within-participant Spearman r(HEP, CRS-R) > 0.4 at both
+    pred_6d_spearman_r_falsify: float = 0.20  # r < 0.2 = no longitudinal correlation (falsify)
     pred_6d_ppv_npv_pct: float = 70.0  # joint baseline model PPV ≥ 70% and NPV ≥ 70%
+
+    # Pred 7.E (exploratory): theta–infraslow PAC increases across the DoC gradient
+    pred_7e_jonckheere_p: float = 0.05  # Jonckheere–Terpstra ordered-trend p < 0.05
+    pred_7e_pac_crsr_r: float = 0.30  # PAC ↔ CRS-R r ≥ 0.30 (N ≥ 80 pooled)
+    pred_7e_trend_p_falsify: float = 0.10  # trend p > 0.10 AND r < 0.20 = falsify
+    pred_7e_pac_crsr_r_falsify: float = 0.20
+
+    # Pred 7.F (exploratory): somatic bias modulates reportable embodiment weighting
+    pred_7f_cohens_d_confirm: float = 0.45  # body-focus condition: d > 0.45 on bodily/visceral subscale
+    pred_7f_cohens_d_falsify: float = 0.20  # d < 0.20, or effect absorbed by arousal covariates
 
     # ── EP-5 (Protocol 3) — fMRI Anticipation vs. Experience ─────────────────
     # Pred 3.A: vmPFC BOLD parametrically modulated by EV, NOT correlated with outcome SCR
@@ -159,6 +232,17 @@ class FalsificationThresholds:
     pred_5d_coherence_r: float = 0.40  # point-biserial r > 0.4, peaking 200–400 ms
     pred_5d_occipital_r_falsify: float = 0.20  # occipital coherence–detection r < 0.20 (frontoparietal specificity)
     pred_5d_hep_coherence_r: float = 0.25  # HEP–coherence r > 0.25 in seen trials (APGI-specific tier)
+    pred_5d_coherence_peak_ms_min: float = 200.0  # coherence peak must fall in 200–400 ms post-stimulus
+    pred_5d_coherence_peak_ms_max: float = 400.0
+
+    # Pred 6.E: Πⁱ modulation predicts multi-timescale clustering of ignition events
+    pred_6e_timescales_min: float = 3.0  # ≥ 3 dissociable clustering timescales
+    pred_6e_bf_vs_single_timescale: float = 100.0  # BF ≥ 100 vs. the single-timescale alternative
+    pred_6e_single_timescale_bf01_falsify: float = 6.0  # single-timescale model favoured at BF₀₁ ≥ 6
+
+    # Pred 6.C framework-level falsifier band (bifurcation criterion)
+    pred_6c_ac1_tau_falsify: float = 0.20  # AC1 "flat": Kendall τ < 0.20 with BF₀₁ ≥ 3
+    pred_6c_ac1_tau_inconclusive_upper: float = 0.30  # 0.20 ≤ τ < 0.30 reported as inconclusive
 
     # ── EP-7 (Protocol 7) — Pharmacological Modulation ───────────────────────
     # Pred 7.A: threshold-modulating interventions (cathodal tDCS, ketamine)
@@ -309,6 +393,47 @@ class FalsificationThresholds:
     # Pred 14.D: ignition probability predicts behavioral performance; threshold non-degenerate
     pred_14d_ignition_accuracy_r: float = 0.50  # r > 0.5 between ignition probability and response accuracy
     pred_14d_training_runs_pct: float = 90.0  # threshold converges to non-extreme values in ≥ 90% of runs
+
+
+# Canonical prediction-code names for the three legacy blocks whose field prefixes do not
+# match the APGI-P00–P07 registry. Maps canonical name -> legacy dataclass field name.
+# Prefer the canonical names in new code.
+CANONICAL_THRESHOLD_ALIASES: Dict[str, str] = {
+    # Protocol 5 (Insula-TMS) — stored under the legacy pred_4* prefix
+    "pred_5a_ains_pci_reduction_pct": "pred_4a_pic_pci_reduction_pct",
+    "pred_5a_dlpfc_pci_reduction_min_pct": "pred_4a_dlpfc_pci_reduction_min_pct",
+    "pred_5a_dlpfc_pci_reduction_max_pct": "pred_4a_dlpfc_pci_reduction_max_pct",
+    "pred_5b_hep_p3b_coupling_falsify": "pred_4b_hep_p3b_coupling_falsify",
+    "pred_5b_hep_p3b_baseline": "pred_4b_hep_p3b_baseline",
+    "pred_5b_hep_reduction_min_pct": "pred_4b_hep_reduction_min_pct",
+    "pred_5b_pci_reduction_min_pct": "pred_4b_pci_reduction_min_pct",
+    "pred_5b_reduction_falsify_pct": "pred_4b_reduction_falsify_pct",
+    "pred_5b_exteroceptive_p3b_within_pct": "pred_4b_exteroceptive_p3b_within_pct",
+    "pred_5b_dlpfc_bf01": "pred_4b_dlpfc_bf01",
+    "pred_5c_eta2": "pred_4c_eta2",
+    # Protocol 6 (Ignition-iEEG) — stored under the legacy pred_5* prefix
+    "pred_6a_bic_delta": "pred_5a_bic_delta",
+    "pred_6b_intermediate_bout_ms": "pred_5b_intermediate_bout_ms",
+    "pred_6b_prevalence_pct": "pred_5b_prevalence_pct",
+    "pred_6c_ac1_kendall_tau": "pred_5c_ac1_kendall_tau",
+    "pred_6d_coherence_r": "pred_5d_coherence_r",
+    "pred_6d_occipital_r_falsify": "pred_5d_occipital_r_falsify",
+    "pred_6d_hep_coherence_r": "pred_5d_hep_coherence_r",
+    "pred_6d_coherence_peak_ms_min": "pred_5d_coherence_peak_ms_min",
+    "pred_6d_coherence_peak_ms_max": "pred_5d_coherence_peak_ms_max",
+    # Protocol 7 (DoC-Biomarker) — stored under the legacy pred_6* prefix
+    "pred_7a_delta_r2": "pred_6a_delta_r2",
+    "pred_7a_auc": "pred_6a_auc",
+    "pred_7a_auc_best_univariate": "pred_6a_auc_best_univariate",
+    "pred_7b_cohens_d": "pred_6b_cohens_d",
+    "pred_7b_dmn_pci_r": "pred_6b_dmn_pci_r",
+    "pred_7c_mcs_pci_increase_pct": "pred_6c_mcs_pci_increase_pct",
+    "pred_7c_perturbation_margin_pct": "pred_6c_perturbation_margin_pct",
+    "pred_7c_hep_pci_r": "pred_6c_hep_pci_r",
+    "pred_7d_spearman_r": "pred_6d_spearman_r",
+    "pred_7d_spearman_r_falsify": "pred_6d_spearman_r_falsify",
+    "pred_7d_ppv_npv_pct": "pred_6d_ppv_npv_pct",
+}
 
 
 class ThresholdRegistry:
@@ -499,13 +624,19 @@ class ThresholdRegistry:
         return self.thresholds
 
     def get_threshold(self, name: str) -> float:
-        """Return a specific threshold by its field name."""
+        """Return a specific threshold by its field name or canonical alias.
+
+        Canonical APGI-P00–P07 prediction-code names (see CANONICAL_THRESHOLD_ALIASES)
+        are resolved to the legacy field they are stored under.
+        """
+        name = CANONICAL_THRESHOLD_ALIASES.get(name, name)
         if not hasattr(self.thresholds, name):
             raise ValueError(f"Unknown threshold: {name}")
         return getattr(self.thresholds, name)
 
     def update_threshold(self, name: str, value: float) -> bool:
-        """Update a specific threshold value."""
+        """Update a specific threshold value, by field name or canonical alias."""
+        name = CANONICAL_THRESHOLD_ALIASES.get(name, name)
         if not hasattr(self.thresholds, name):
             raise ValueError(f"Unknown threshold: {name}")
         setattr(self.thresholds, name, value)

@@ -653,7 +653,7 @@ If you use this protocol, please cite:
   title={APGI Protocol 8: Psychophysical Threshold Estimation and Individual Differences},
   author={APGI Framework},
   year={2026},
-  url={https://github.com/apgi-framework/protocols}
+  url={https://github.com/apgiframework/apgi-implementation}
 }
 ```text
 

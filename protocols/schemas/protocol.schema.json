@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/lesoto/apgi-framework/protocols/schemas/protocol.schema.json",
+  "$id": "https://github.com/apgiframework/apgi-implementation/protocols/schemas/protocol.schema.json",
   "title": "APGI Experimental Protocol",
   "description": "Schema for APGI experimental protocol specification files.",
   "type": "object",
@@ -105,9 +105,12 @@
     },
     "power_analysis": {
       "type": "object",
-      "required": ["effect_size_d", "alpha", "power", "n_required"],
+      "description": "Power analysis. Exactly one effect-size metric is required: effect_size_d for mean-difference designs, or effect_size_r for correlation-powered designs (Protocol 0 is powered on r = 0.35 via Fisher-z, not on a d).",
+      "required": ["alpha", "power", "n_required"],
+      "anyOf": [{"required": ["effect_size_d"]}, {"required": ["effect_size_r"]}],
       "properties": {
         "effect_size_d": {"type": "number", "exclusiveMinimum": 0},
+        "effect_size_r": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
         "alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
         "power": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
         "n_required": {"type": "integer", "minimum": 1},

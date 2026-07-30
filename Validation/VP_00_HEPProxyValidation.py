@@ -12,11 +12,30 @@ Algorithmic components (ported from HEPLAB MATLAB toolbox):
   • IBI computation                   → M(c,a) (somatic marker context)
   • OnlineVarianceEstimator           → running Z-scores of prediction errors
 
-FALSIFICATION CRITERIA
-----------------------
+SIGNAL-QUALITY GATES (this module)
+----------------------------------
   1. Detection quality < 0.6  → R-peaks unreliable; protocol aborted.
-  2. |HEP mean amplitude| < 0.2 µV in 250–400 ms post-R window → Π^i falsified.
+  2. |HEP mean amplitude| < 0.2 µV in 250–400 ms post-R window → Π^i proxy signal absent.
   3. IBI coefficient of variation > 0.3 (pathological variability) → M(c,a) unreliable.
+
+These are acquisition-admissibility checks on the cardiac/HEP pipeline. They are NOT
+the Protocol 0 confirmatory criteria.
+
+PROTOCOL 0 FALSIFICATION CRITERIA (Pred 0.A–0.C)
+------------------------------------------------
+  Pred 0.A  r(HEP, interoceptive d′) > 0.35 (p < 0.01, two-tailed), replicated at
+            r ≥ 0.25 in an independent subsample of N ≥ 30. Falsified at r < 0.20
+            across two independent samples.
+  Pred 0.B  Physostigmine raises HEP amplitude ≥ 15% vs. placebo (Cohen's d ≥ 0.50,
+            BF₁₀ ≥ 100). Falsified by no HEP change despite verified ACh elevation.
+  Pred 0.C  r(HEP, anterior-insula BOLD) > 0.30 within participants after arousal
+            control. Falsified by statistical independence after the arousal covariate.
+
+ALL THREE must pass for HEP to retain confirmatory status as the Π^i proxy in
+Protocols 1, 4, 5 and 7. If ≥ 2 fail, the Protocol 0-B fallback proxy matrix is
+triggered. Evaluating them requires the full Protocol 0 dataset (N = 115: behavioural
+heartbeat discrimination, physostigmine crossover, concurrent EEG-fMRI) and is out of
+scope for this signal-processing module.
 
 APGI PARAMETER OUTPUTS
 -----------------------
@@ -39,6 +58,19 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+from utils.falsification_thresholds import (
+    GENERIC_ALPHA,
+    P0_A_R_CONFIRM,
+    P0_A_R_FALSIFY,
+    P0_A_R_REPLICATE,
+    P0_B_BF10,
+    P0_B_COHENS_D,
+    P0_B_HEP_INCREASE_PCT,
+    P0_C_HEP_AINS_R,
+    P0_DETECTION_QUALITY_MIN,
+    P0_HEP_MIN_AMPLITUDE_UV,
+    P0_IBI_CV_MAX,
+)
 from utils.heplab_cardiac_engine import (
     CardiacEvents,
     HEPResult,
@@ -50,13 +82,28 @@ from utils.heplab_cardiac_engine import (
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Thresholds (match FP_09 where overlapping)
+# Thresholds — sourced from utils.falsification_thresholds so every value is
+# traceable to APGI-Protocols.md. Do not hardcode; edit the registry instead.
 # ──────────────────────────────────────────────────────────────────────────────
 
-HEP_MIN_AMPLITUDE_UV = 0.2  # µV; paper prediction P2.a
-DETECTION_QUALITY_MIN = 0.6  # below → abort
-IBI_CV_MAX = 0.3  # IBI coefficient of variation ceiling
-ALPHA = 0.05  # statistical significance level
+# Signal-quality gates for this pipeline (acquisition admissibility).
+HEP_MIN_AMPLITUDE_UV = P0_HEP_MIN_AMPLITUDE_UV  # µV, 250–400 ms post-R window
+DETECTION_QUALITY_MIN = P0_DETECTION_QUALITY_MIN  # below → abort
+IBI_CV_MAX = P0_IBI_CV_MAX  # IBI coefficient of variation ceiling
+ALPHA = GENERIC_ALPHA  # statistical significance level
+
+# Pred 0.A–0.C confirmatory criteria (APGI-Protocols.md, Protocol 0 Minimum
+# Retention Threshold). All three must pass for HEP to retain confirmatory
+# status as the Πⁱ proxy in Protocols 1, 4, 5 and 7. These require the full
+# Protocol 0 dataset (behavioural d′, physostigmine crossover, concurrent
+# EEG-fMRI) and are not evaluated by this signal-processing module.
+PRED_0A_R_CONFIRM = P0_A_R_CONFIRM  # r(HEP, interoceptive d′) > 0.35, p < 0.01
+PRED_0A_R_REPLICATE = P0_A_R_REPLICATE  # replicated r ≥ 0.25 (N ≥ 30)
+PRED_0A_R_FALSIFY = P0_A_R_FALSIFY  # r < 0.20 across two samples → falsify
+PRED_0B_HEP_INCREASE_PCT = P0_B_HEP_INCREASE_PCT  # physostigmine raises HEP ≥ 15%
+PRED_0B_COHENS_D = P0_B_COHENS_D  # Cohen's d ≥ 0.50
+PRED_0B_BF10 = P0_B_BF10  # BF₁₀ ≥ 100
+PRED_0C_HEP_AINS_R = P0_C_HEP_AINS_R  # r(HEP, aINS BOLD) > 0.30 within participants
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Synthetic data generator (for headless / no-data runs)

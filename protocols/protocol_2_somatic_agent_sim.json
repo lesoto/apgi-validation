@@ -4,9 +4,14 @@
   "registry_protocol_label": "Protocol 2 — Somatic-AgentSim",
   "title": "Active Inference Agent Simulations: Adaptive Advantages of Somatic Markers",
   "paper": "APGI Paper 1",
-  "osf_url": "https://osf.io/XXXXXX",
-  "version": "2.0.0",
-  "last_updated": "2026-06-04",
+  "osf_url": "https://osf.io/t5hcq",
+  "zenodo_doi": "10.5281/zenodo.21632264",
+  "zenodo_url": "https://doi.org/10.5281/zenodo.21632264",
+  "code_repository": "https://github.com/apgiframework/apgi-implementation",
+  "code_repository_org": "https://github.com/apgiframework",
+  "orcid": "https://orcid.org/0009-0005-0328-2896",
+  "version": "2.1.0",
+  "last_updated": "2026-07-30",
   "description": "Computational agent simulations test whether somatic marker integration M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a) confers measurable adaptive advantages over APGI agents lacking somatic marker function. Agents are evaluated on embodied decision tasks under volatility conditions where rapid threshold adaptation is required. Five sub-predictions are tested: (Pred 2.a) full APGI agents converge within 50–80 trials matching human IGT performance and outperform both GNWT-only and Standard PP agents in cumulative reward — all three pairwise comparisons significant; (Pred 2.b) post-ignition action selection entropy increases versus pre-ignition baseline, with 70–85% of ignition events satisfying Πⁱ·|zⁱ| > Πᵉ·|zᵉ|; (Pred 2.c) somatic marker retrieval M̂ temporally precedes threshold crossing θₜ; (Pred 2.d) β_SM lesion specifically degrades performance more than other single-parameter lesions, with the deficit largest in high-volatility blocks (σ_env = 0.6); and (Pred 2.e) the full APGI generative model achieves lower BIC than Standard PP and GNWT-only when fit to human IGT trial-by-trial choice sequences. Fully validated via APGI_Somatic_Marker_Identifiability.py.",
   "prediction_cluster": "Pred 2.A–2.E",
   "prediction_cluster_label": "Adaptive Advantages of Somatic Markers (Simulation + Model Comparison)",
@@ -17,31 +22,54 @@
       "confirming_evidence": "APGI convergence within 50–80 trials; reward ratio APGI/β_SM-lesion > 1.15; APGI > GNWT-only > Pure PP in cumulative reward (all pairwise permutation p < 0.05). Advantage must emerge within 80 trials not just cumulatively.",
       "falsifying_evidence": "No significant pairwise performance advantage across all volatility conditions; or APGI fails convergence within 80 trials even when cumulative reward advantage present.",
       "confirming_thresholds": {
-        "convergence_trials_window": [50, 80],
+        "convergence_trials_window": [
+          50,
+          80
+        ],
         "reward_ratio_apgi_lesion_minimum": 1.15,
-        "pairwise_comparisons": ["APGI > GNWT-only", "APGI > Standard_PP", "GNWT-only > Standard_PP"],
+        "pairwise_comparisons": [
+          "APGI > GNWT-only",
+          "APGI > Standard_PP",
+          "GNWT-only > Standard_PP"
+        ],
         "permutation_p_threshold": 0.05,
-        "advantage_emergence_trial_cap": 80
+        "advantage_emergence_trial_cap": 80,
+        "reward_advantage_percent_range": [
+          15,
+          25
+        ],
+        "comparator_convergence": {
+          "beta_SM_lesion_trials_minimum": 150,
+          "GNWT_only_trials_range": [
+            100,
+            120
+          ]
+        }
       },
       "falsifying_thresholds": {
         "condition_1": "No significant pairwise performance advantage across all volatility conditions",
-        "condition_2": "APGI fails convergence within 80 trials even when cumulative reward advantage present"
+        "condition_2": "All agent types converge within equivalent trial windows (difference < 5%)"
       }
     },
     {
       "id": "Pred 2.B",
-      "claim": "Post-ignition action selection entropy increases vs. pre-ignition baseline; 70–85% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| (high interoceptive component).",
-      "confirming_evidence": "Post-ignition entropy > pre-ignition (Wilcoxon p < 0.05); 70–85% of ignitions satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ|.",
-      "falsifying_evidence": "Ignition uncorrelated with post-ignition behavioral adaptation; or < 60% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| (interoceptive dominance criterion independently falsified).",
+      "claim": "Interoceptive dominance at ignition: ≥ 70–85% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ| — the interoceptive precision-weighted prediction error exceeds the exteroceptive one at the moment of threshold crossing. Mechanistic (composition of the trigger), not consequential.",
+      "confirming_evidence": "≥ 70–85% of ignition events satisfy Πⁱ·|zⁱ| > Πᵉ·|zᵉ|; the proportion exceeds the pre-registered 60% floor (binomial p < 0.05)",
+      "falsifying_evidence": "< 60% of ignition events interoceptively dominant (Πⁱ·|zⁱ| ≤ Πᵉ·|zᵉ| in the majority of events)",
       "confirming_thresholds": {
-        "entropy_test": "Wilcoxon signed-rank p < 0.05",
-        "interoceptive_dominance_proportion_range": [0.70, 0.85],
+        "interoceptive_dominance_proportion_range": [
+          0.7,
+          0.85
+        ],
+        "interoceptive_dominance_floor": 0.6,
+        "binomial_p_threshold": 0.05,
         "criterion": "Πⁱ·|zⁱ| > Πᵉ·|zᵉ|"
       },
       "falsifying_thresholds": {
-        "interoceptive_dominance_proportion_threshold": 0.60,
+        "interoceptive_dominance_proportion_threshold": 0.6,
         "condition": "< 60% of ignition events satisfy criterion — independently falsified"
-      }
+      },
+      "note": "Post-ignition action-selection entropy was moved to Pred 2.F-flex (exploratory), per APGI-Protocols.md Protocol 2 sub-prediction table."
     },
     {
       "id": "Pred 2.C",
@@ -49,7 +77,10 @@
       "confirming_evidence": "Cross-correlation analysis (lag −5 to +5 trials): M̂ leads θₜ crossing by ≥ 1 trial in ≥ 75% of ignition events; Kendall τ > 0.3 at negative lag.",
       "falsifying_evidence": "M̂ activation simultaneous with or lagging threshold crossing; cross-correlation peak at lag 0 or positive.",
       "confirming_thresholds": {
-        "cross_correlation_lag_range": [-5, 5],
+        "cross_correlation_lag_range": [
+          -5,
+          5
+        ],
         "m_hat_lead_trials_minimum": 1,
         "proportion_ignition_events_minimum": 0.75,
         "kendall_tau_threshold": 0.3,
@@ -67,7 +98,10 @@
       "confirming_thresholds": {
         "permutation_p_threshold": 0.05,
         "high_volatility_sigma": 0.6,
-        "comparison_lesions": ["Πⁱ-lesion (Πⁱ_eff = constant)", "α-lesion (α = 0)"],
+        "comparison_lesions": [
+          "Πⁱ-lesion (Πⁱ_eff = constant)",
+          "α-lesion (α = 0)"
+        ],
         "specificity_required": "β_SM vs. Πⁱ-lesion contrast significant at σ_env = 0.6"
       },
       "falsifying_thresholds": {
@@ -91,6 +125,22 @@
         "condition_1": "APGI BIC ≥ any alternative model BIC on pre-registered dataset",
         "condition_2": "ΔBIC < 3 against GNWT-only"
       }
+    },
+    {
+      "id": "Pred 2.F-flex",
+      "claim": "Post-ignition behavioural flexibility: action-selection entropy increases relative to the pre-ignition baseline, and post-ignition strategy change (win-stay/lose-shift switching) rises, indexing the adaptive flexibility conferred by ignition.",
+      "confirming_evidence": "Post-ignition action-selection entropy > pre-ignition baseline (Wilcoxon signed-rank, p < 0.05); post-ignition strategy-change rate elevated relative to pre-ignition",
+      "falsifying_evidence": "Ignition uncorrelated with post-ignition adaptation; no post-ignition entropy increase (d < 0.20)",
+      "confirming_thresholds": {
+        "entropy_test": "Wilcoxon signed-rank, p < 0.05",
+        "entropy_direction": "post-ignition > pre-ignition baseline",
+        "strategy_change_metric": "win-stay/lose-shift switching rate"
+      },
+      "falsifying_thresholds": {
+        "cohens_d_threshold": 0.2,
+        "condition": "No post-ignition entropy increase; ignition uncorrelated with post-ignition adaptation"
+      },
+      "epistemic_status": "Exploratory — relative to the confirmatory Pred 2.A–2.E"
     }
   ],
   "validation_status": "validated",
@@ -108,10 +158,12 @@
       "Runs where convergence not achieved within 500 trials excluded from analysis"
     ],
     "human_igt_dataset": {
-      "description": "Pre-registered human IGT choice sequence dataset for Pred 2.e BIC model comparison",
-      "n_minimum": 60,
-      "source": "Pre-registered open dataset (Ahn et al. 2014 or equivalent); exact dataset locked in OSF pre-registration"
-    }
+      "description": "Human IGT trial-by-trial choice sequences used for the Pred 2.E BIC model comparison",
+      "n_target": 80,
+      "n_minimum": 80,
+      "source": "Pre-registered open dataset (Ahn et al. 2014 or equivalent); exact dataset locked in the OSF pre-registration"
+    },
+    "seed_policy": "seed = condition_index × 1000 + replicate_index (NumPy default_rng), replicate_index 0–999 per condition, so every run is independently reproducible from the released code."
   },
   "apparatus": {
     "simulation_language": "Python 3.11 with NumPy 1.26, SciPy 1.13",
@@ -149,8 +201,14 @@
     "formula": "M̂(c,a) = γ_V·V(c,a) + γ_A·A(c,a)",
     "V_ca": "Anticipated value of action a in context c (learned via temporal difference)",
     "A_ca": "Anticipated arousal signal associated with action a in context c (proxy for SCR/heart rate)",
-    "gamma_V_range": [0.3, 0.8],
-    "gamma_A_range": [0.1, 0.5],
+    "gamma_V_range": [
+      0.3,
+      0.8
+    ],
+    "gamma_A_range": [
+      0.1,
+      0.5
+    ],
     "modulation_formula": "Πⁱ_eff = Πⁱ_baseline · exp(β · M̂(c,a))",
     "identifiability_requirement": "Block-diagonal Fisher Information Matrix; M̂ must be orthogonal to raw Πⁱ in fitting procedure — requires APGI_Somatic_Marker_Identifiability.py"
   },
@@ -158,17 +216,34 @@
     "models": [
       {
         "name": "Full APGI",
-        "free_parameters": ["θₜ", "Πⁱ", "Πᵉ", "β_SM", "α", "κ"],
+        "free_parameters": [
+          "θₜ",
+          "Πⁱ",
+          "Πᵉ",
+          "β_SM",
+          "α",
+          "κ"
+        ],
         "description": "Full model with somatic marker modulation and ignition threshold"
       },
       {
         "name": "GNWT-only",
-        "free_parameters": ["θₜ", "Πᵉ", "α", "κ"],
+        "free_parameters": [
+          "θₜ",
+          "Πᵉ",
+          "α",
+          "κ"
+        ],
         "description": "Global workspace ignition without interoceptive precision weighting (β_SM = 0, Πⁱ = 0)"
       },
       {
         "name": "Standard PP",
-        "free_parameters": ["Πⁱ", "Πᵉ", "α", "κ"],
+        "free_parameters": [
+          "Πⁱ",
+          "Πᵉ",
+          "α",
+          "κ"
+        ],
         "description": "Continuous prediction error model without ignition threshold (θₜ → 0)"
       }
     ],
@@ -204,8 +279,10 @@
   },
   "pre_registration": {
     "platform": "OSF",
-    "url": "https://osf.io/XXXXXX",
-    "date": "2026-05-18"
+    "url": "https://osf.io/t5hcq",
+    "date": "2026-07-30",
+    "zenodo_doi": "10.5281/zenodo.21632264",
+    "orcid": "https://orcid.org/0009-0005-0328-2896"
   },
   "apgi_parameters": {
     "kappa": 100,
@@ -227,5 +304,20 @@
     "Agent performance advantages depend on volatility magnitude; effect may not replicate in stationary environments.",
     "Pred 2.a requires a GNWT-only agent implementation that exactly parallels Full APGI except for removal of Πⁱ and β_SM; the architecture difference must be documented precisely to avoid confounding by parameter count.",
     "Pred 2.e (BIC comparison on human IGT data) requires the specific dataset to be pre-registered before analysis; post-hoc dataset selection would not satisfy the registry criterion."
-  ]
+  ],
+  "m_hat_calibration_sub_protocol": {
+    "id": "CP-3a",
+    "status": "Mandatory before any confirmatory simulation",
+    "procedure": "Fit M̂(c,a) = γ_V·V(c,a) + γ_A^SM·A(c,a) to a published human Iowa Gambling Task dataset (minimum N = 60) and estimate γ_V and γ_A by maximum likelihood.",
+    "theoretical_defaults": {
+      "gamma_V": 0.6,
+      "gamma_A_SM": 0.3
+    },
+    "recalibration_rule": "If the 95% CI for γ_V excludes 0.6, or for γ_A excludes 0.3, by more than 0.15, recalibrate and amend the OSF pre-registration before confirmatory analysis; calibrated γ values then replace the theoretical defaults in all reported analyses.",
+    "n_minimum": 60
+  },
+  "multiple_comparisons": {
+    "volatility_comparisons": "Benjamini–Hochberg FDR at q = 0.05 across the three volatility conditions (σ_env ∈ {0.1, 0.3, 0.6})"
+  },
+  "source_of_truth": "APGI-Protocols.md (Protocols & Prediction Registry) and APGI-OSF-Preregistration.md. Where the two disagree with stored values, the documents govern. Deposited on OSF (osf.io/t5hcq) and archived at Zenodo (DOI 10.5281/zenodo.21632264)."
 }

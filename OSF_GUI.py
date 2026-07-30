@@ -2,9 +2,10 @@
 """
 APGI Open Science Framework (OSF) Protocol Management GUI
 
-Manages 15 prediction suites (EP-0 through EP-14) defined in the APGI
-Framework Prediction Registry: pre-registration tracking, dependency
-visualization, and report export.
+Manages the eight canonical prediction suites (EP-0 through EP-7, i.e.
+Protocols APGI-P00 through APGI-P07) defined in the APGI Framework
+Prediction Registry: pre-registration tracking, dependency visualization,
+and report export.
 """
 
 import json
@@ -113,6 +114,27 @@ class APGICard(ttk.Frame):
             ).pack(anchor="w")
 
 
+# ── Framework Credentials ─────────────────────────────────────────────────────
+# Single source of truth for the APGI framework's public identifiers, as
+# recorded in APGI-Protocols.md §"Data and Code Availability" and the OSF
+# pre-registration. Update here, not at the call sites.
+
+APGI_ORCID = "https://orcid.org/0009-0005-0328-2896"
+APGI_OSF_PROJECT = "https://osf.io/t5hcq"
+APGI_ZENODO_DOI = "10.5281/zenodo.21632264"
+APGI_ZENODO_URL = "https://doi.org/10.5281/zenodo.21632264"
+APGI_CODE_REPOSITORY = "https://github.com/apgiframework/apgi-implementation"
+APGI_CODE_REPOSITORY_ORG = "https://github.com/apgiframework"
+
+APGI_CREDENTIALS: Dict[str, str] = {
+    "orcid": APGI_ORCID,
+    "osf_project": APGI_OSF_PROJECT,
+    "zenodo_doi": APGI_ZENODO_DOI,
+    "zenodo_url": APGI_ZENODO_URL,
+    "code_repository": APGI_CODE_REPOSITORY,
+    "code_repository_org": APGI_CODE_REPOSITORY_ORG,
+}
+
 # ── Protocol Definitions ──────────────────────────────────────────────────────
 
 EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
@@ -128,9 +150,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "This empirical prerequisite protocol establishes the heartbeat-evoked potential (HEP, 250\u2013400 ms window) as a valid trial-by-trial proxy for interoceptive precision \u03a0\u2071 before any downstream EP-1 through EP-6 analyses are interpreted. Three sub-predictions are tested: that HEP amplitude correlates with an orthogonal \u03a0\u2071 index (heartbeat discrimination d\u2032) independent of any EEG measure (Pred 0.A); that pharmacological elevation of acetylcholine via physostigmine increases HEP amplitude in a dose-dependent manner confirmed by pupillometric engagement (Pred 0.B); and that anterior insula (aINS) BOLD signal tracks HEP amplitude trial-by-trial within participants after controlling for arousal (Pred 0.C). All three predictions must pass before HEP is used as a \u03a0\u2071 proxy in downstream protocols. Failure of any Pred 0 criterion is a submission-blocking issue for all protocols referencing HEP."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 1",
-        "sample_size": "N = 40",
+        "sample_size": "N = 115 (fixed-N; 90% power for r = 0.35 at \u03b1 = 0.01, two-tailed)",
         "measures": ["Heartbeat discrimination d\u2032 per participant", "HEP mean amplitude", "r", "r", "HEP amplitude change: physostigmine vs. placebo, % and Cohen's d", "BF\u2081\u2080 for physostigmine HEP effect", "Pupil constriction onset time and magnitude: physostigmine vs. placebo", "r"],
         "analysis": (
             ""
@@ -158,9 +180,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "This protocol examines whether interoceptive precision (\u03a0\u2071), indexed by the heartbeat-evoked potential (HEP, 250\u2013400 ms window), modulates conscious detection thresholds (\u03b8\u209c). Stimuli are time-locked to cardiac phase to test four sub-predictions: (Pred 1.a) that state-level \u03a0\u2071_eff produces greater P3b amplitude for near-threshold stimuli under interoceptive focus than exteroceptive focus or dual-task control \u2014 with the effect absent or reversed for suprathreshold stimuli; (Pred 1.a-trait) that trait-level \u03a0\u2071_baseline, indexed by interoceptive accuracy (IA), predicts greater perceptual sensitivity (d\u2032) in the interoceptive condition but not the exteroceptive condition; (Pred 1.b) that cardiac-phase-locked detection advantage exists at diastole versus systole; and (Pred 1.c) that top-tertile IA participants show the strongest state-level P3b condition effects and cardiac-phase detection advantages. Near-threshold contrast titration is mandatory; suprathreshold control blocks are required to confirm specificity."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 1",
-        "sample_size": "N = 32",
+        "sample_size": "N = 62 target / N = 48 minimum (Bayesian sequential)",
         "measures": ["P3b amplitude", "P3b amplitude \u00d7 condition ANOVA: \u03b7\u209a\u00b2 for condition main effect \u2014 primary", "HEP amplitude", "HEP\u2013P3b partial correlation", "P3b condition effect at suprathreshold contrast \u2014 Pred 1.a control block", "d-prime", "Group \u00d7 modality interaction on d\u2032", "Detection rate per cardiac phase"],
         "analysis": (
             ""
@@ -171,8 +193,8 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "primary_hypothesis": (
             "Interoceptive focus produces greater P3b amplitude for near-threshold stimuli than exteroceptive focus or dual-task control (three-way condition difference, \u03b7\u209a\u00b2 \u2265 0.06), this effect is absent at suprathreshold contrast, and HEP amplitude predicts P3b with partial r > 0.4 surviving arousal covariate control. High-IA participants show larger P3b condition effects and diastolic detection advantages than low-IA participants."
         ),
-        "sub_predictions": ["Pred 1.A", "Pred 1.A-trait", "Pred 1.B", "Pred 1.C", "Pred 1.D"],
-        "prediction_cluster": "Pred 1.A\u20131.D",
+        "sub_predictions": ["Pred 1.A", "Pred 1.A-trait", "Pred 1.B", "Pred 1.C", "Pred 1.D", "Pred 1.E"],
+        "prediction_cluster": "Pred 1.A\u20131.E (Pred 1.A-trait and Pred 1.F reported separately)",
         "prereg_status": "Pending",
         "notes": "Pred 1.a requires three attention conditions; dual-task control condition substantially increases session length \u2014 practice blocks must ensure participants understand the dual-task instruction.",
     },
@@ -188,9 +210,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "Computational agent simulations test whether somatic marker integration M\u0302(c,a) = \u03b3_V\u00b7V(c,a) + \u03b3_A\u00b7A(c,a) confers measurable adaptive advantages over APGI agents lacking somatic marker function. Agents are evaluated on embodied decision tasks under volatility conditions where rapid threshold adaptation is required. Five sub-predictions are tested: (Pred 2.a) full APGI agents converge within 50\u201380 trials matching human IGT performance and outperform both GNWT-only and Standard PP agents in cumulative reward \u2014 all three pairwise comparisons significant; (Pred 2.b) post-ignition action selection entropy increases versus pre-ignition baseline, with 70\u201385% of ignition events satisfying \u03a0\u2071\u00b7|z\u2071| > \u03a0\u1d49\u00b7|z\u1d49|; (Pred 2.c) somatic marker retrieval M\u0302 temporally precedes threshold crossing \u03b8\u209c; (Pred 2.d) \u03b2_SM lesion specifically degrades performance more than other single-parameter lesions, with the deficit largest in high-volatility blocks (\u03c3_env = 0.6); and (Pred 2.e) the full APGI generative model achieves lower BIC than Standard PP and GNWT-only when fit to human IGT trial-by-trial choice sequences. Fully validated via APGI_Somatic_Marker_Identifiability.py."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 1",
-        "sample_size": "N = 500",
+        "sample_size": "N = 1,000 simulation seeds per condition (minimum 500); human IGT fitting sample N = 80",
         "measures": ["Cumulative reward per agent type over 500 trials", "Convergence trial", "Pairwise reward comparisons: APGI vs. GNWT-only, APGI vs. Standard PP, GNWT-only vs. Standard PP \u2014 Pred 2.a", "Action selection entropy post-ignition vs. pre-ignition", "Proportion of ignition events satisfying \u03a0\u2071\u00b7|z\u2071| > \u03a0\u1d49\u00b7|z\u1d49| \u2014 Pred 2.b", "Cross-correlation lag: M\u0302 activation vs. \u03b8\u209c crossing", "Proportion of ignition events where M\u0302 leads by \u2265 1 trial \u2014 Pred 2.c", "Reward: \u03b2_SM-lesion vs. \u03a0\u2071-lesion vs. \u03b1-lesion, per volatility block \u2014 Pred 2.d"],
         "analysis": (
             ""
@@ -201,8 +223,8 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "primary_hypothesis": (
             "Full APGI agents converge within 50\u201380 trials and achieve higher cumulative reward than both GNWT-only and Standard PP agents (all pairwise permutation p < 0.05), with the \u03b2_SM lesion deficit largest in high-volatility blocks (\u03c3_env = 0.6), and the full APGI generative model achieving \u0394BIC \u2265 10 over GNWT-only when fit to human IGT data."
         ),
-        "sub_predictions": ["Pred 2.A", "Pred 2.B", "Pred 2.C", "Pred 2.D", "Pred 2.E"],
-        "prediction_cluster": "Pred 2.A\u20132.E",
+        "sub_predictions": ["Pred 2.A", "Pred 2.B", "Pred 2.C", "Pred 2.D", "Pred 2.E", "Pred 2.F-flex"],
+        "prediction_cluster": "Pred 2.A\u20132.E (Pred 2.F-flex exploratory)",
         "prereg_status": "Pending",
         "notes": "Somatic marker model M\u0302(c,a) = \u03b3_V\u00b7V(c,a) + \u03b3_A\u00b7A(c,a) is one formalisation among several; Damasio's original account does not specify \u03b3_V and \u03b3_A uniquely. Values used here are motivated by interoceptive salience literature but require empirical calibration.",
     },
@@ -218,9 +240,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "This fMRI study uses a risky-choice task with variable foreperiod to test whether somatic marker retrieval M\u0302(c,a) modulates effective interoceptive precision \u03a0\u2071_eff during anticipation, rather than directly encoding the raw prediction error \u03b5\u2071 during outcome. APGI predicts that vmPFC\u2013anterior insula (aINS) connectivity emerges during the anticipation window (before stimulus onset) while vmPFC\u2013posterior insula (pIC) connectivity remains flat, and that these effects are sensitive to option valence rather than sensory contrast. Four sub-predictions are tested: (Pred 3.a) vmPFC BOLD is parametrically modulated by EV during anticipation but does NOT correlate with outcome-locked SCR, while posterior insula outcome-locked BOLD correlates with SCR as an active \u03b5\u2071 control; (Pred 3.b) vmPFC\u2192aINS coupling increases during anticipation (precision-gain pathway) while vmPFC\u2192pIC coupling remains statistically flat (BF\u2080\u2081 \u2265 6, ROPE d = [\u22120.15, +0.15]); (Pred 3.c) vmPFC anticipation-period activation is context-specific \u2014 modulated by option valence (EV) and high-somatic-cost > low-somatic-cost at matched monetary value \u2014 not by sensory contrast; (Pred 3.d) removing the anticipation foreperiod (0 ms ISI) abolishes vmPFC\u2192aINS coupling AND vmPFC EV parametric modulation while leaving posterior insula outcome-locked activity intact. Identifiability of \u03b2 and \u03a0\u2071 is fully resolved via block-diagonal Fisher Information Matrix."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 1",
-        "sample_size": "N = 26",
+        "sample_size": "N = 40 target / N = 36 minimum",
         "measures": ["vmPFC BOLD: anticipation-period parametric modulation by EV", "vmPFC\u2013SCR outcome-period correlation", "Posterior insula", "vmPFC\u2192aINS PPI coefficient: anticipation foreperiod > neutral baseline", "vmPFC\u2192pIC PPI coefficient: anticipation foreperiod vs. neutral baseline", "aINS vs. pIC PPI dissociation significance \u2014 Pred 3.b", "vmPFC activation: parametric modulation by EV", "vmPFC activation: parametric modulation by sensory contrast"],
         "analysis": (
             ""
@@ -248,9 +270,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "This protocol provides the direct human empirical validation for the claim that the ignition threshold \u03b8\u209c is dynamically regulated by metabolic state as an allostatic triage mechanism. APGI posits that interoceptive precision weighting (\u03a0\u2071_eff) and somatic-marker retrieval rely on metabolically expensive neuromodulatory gain. Under conditions of energy deficit, the framework predicts that the brain selectively elevates \u03b8\u209c to suppress high-cost interoceptive channels, preserving essential exteroceptive processing. Three sub-predictions are tested: (Pred 4.A) metabolic depletion selectively elevates \u03b8\u209c for high-interoceptive-load stimuli, reducing d\u2032 disproportionately vs. neutral exteroceptive stimuli (Metabolic State \u00d7 Interoceptive Load interaction, LMM p < 0.05, \u03b7\u209a\u00b2 \u2265 0.06); (Pred 4.B) the neural ignition proxy (P3b amplitude) reflects selective \u03b8\u209c elevation, disproportionately suppressed for interoceptive targets under metabolic depletion; (Pred 4.C) the allostatic triage effect is mediated by metabolic cost, not generalized cognitive fatigue \u2014 the interaction survives strict covariation for trial-level pupil diameter and RMSSD."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 1",
-        "sample_size": "N = 48",
+        "sample_size": "N = 60 target / N = 48 minimum",
         "measures": ["Perceptual sensitivity d\u2032 per condition", "P3b amplitude", "Metabolic State \u00d7 Interoceptive Load interaction on d\u2032", "Metabolic State \u00d7 Interoceptive Load interaction on P3b", "d\u2032 reduction: interoceptive load vs. exteroceptive load under depletion", "P3b reduction: interoceptive vs. exteroceptive under depletion", "Interaction after arousal covariation", "BF\u2081\u2080 for interaction term \u2014 Pred 4.C"],
         "analysis": (
             ""
@@ -278,9 +300,9 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
             "Single-pulse TMS and transcranial focused ultrasound (tFUS/LIFU) are applied under fMRI-guided neuronavigation to four cortical targets to test whether anterior insula (aINS, interoceptive precision integrator) and the frontoparietal workspace (dlPFC, PPC) causally regulate the APGI ignition threshold \u03b8\u209c through dissociable mechanisms. APGI predicts that aINS stimulation selectively disrupts interoceptive gating \u2014 reducing \u03a0\u2071_eff and abolishing HEP\u2013PCI coupling while sparing exteroceptive P3b \u2014 whereas dlPFC and PPC stimulation reduces global ignition probability (B\u209c) across both interoceptive and exteroceptive streams without selectively affecting HEP. The primary modality for the aINS arm is tFUS (required for depth penetration to aINS \u2248 3\u20134 cm below scalp). Vertex serves as active sham control. Four sub-predictions are tested: (Pred 5.A) aINS and frontoparietal TMS both reduce PCI via dissociable mechanisms; (Pred 5.B) aINS TMS selectively disrupts interoceptive gating (HEP\u2013P3b coupling) while sparing exteroceptive P3b; (Pred 5.C) high baseline IA participants show strongest aINS TMS effects on PCI; (Pred 5.D) high-\u03a0\u2071 individuals show larger PCI decreases following aINS TMS than low-\u03a0\u2071, absent for dlPFC."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 2",
-        "sample_size": "N = 28",
+        "sample_size": "N = 44 target / N = 36 minimum (PCI analysis floor N = 28)",
         "measures": ["PCI per stimulation condition", "HEP amplitude", "HEP\u2013PCI coupling coefficient per stimulation condition \u2014 Pred 5.A dissociation", "Site \u00d7 HEP\u2013PCI coupling interaction", "HEP\u2013P3b coupling coefficient per stimulation condition \u2014 Pred 5.B", "Exteroceptive P3b amplitude per stimulation condition \u2014 Pred 5.B stream specificity", "BF\u2080\u2081 for dlPFC effect on HEP", "PAS rating distribution per stimulation condition"],
         "analysis": (
             ""
@@ -291,8 +313,8 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "primary_hypothesis": (
             "Active aINS stimulation (tFUS) reduces PCI and abolishes HEP\u2013PCI coupling relative to vertex sham, while dlPFC/PPC TMS reduces PCI across both interoceptive and exteroceptive streams without affecting the HEP (BF\u2080\u2081 \u2265 6). High-IA participants show a larger PCI reduction under aINS stimulation than low-IA participants, with this accuracy \u00d7 site interaction absent for the dlPFC/PPC site."
         ),
-        "sub_predictions": ["Pred 5.A", "Pred 5.B", "Pred 5.C", "Pred 5.D"],
-        "prediction_cluster": "Pred 5.A\u20135.D",
+        "sub_predictions": ["Pred 5.A", "Pred 5.B", "Pred 5.C", "Pred 5.D", "Pred 5.E"],
+        "prediction_cluster": "Pred 5.A\u20135.E",
         "prereg_status": "Pending",
         "notes": "Registry EP-5 specifies aINS (tFUS) and dlPFC/PPC (TMS) as the two active stimulation sites. Mediodorsal thalamus and claustrum remain viable alternative substrates for \u03b8\u209c regulation but are not causal targets in this protocol. Paper captions must include: 'aINS and dlPFC/PPC involvement is consistent with APGI threshold predictions but does not exclude thalamic, claustrum-mediated, or GABAergic cortical inhibitory mechanisms.'",
     },
@@ -305,24 +327,24 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-2"],
         "status": "Not started",
         "description": (
-            "Intracranial EEG (iEEG) recordings in epilepsy patients performing a near-threshold visual detection task test whether conscious access produces all-or-none (bistable) firing rate distributions in the frontoparietal network, as predicted by APGI's ignition criterion B\u209c. Four sub-predictions are tested: (Pred 6.A) frontoparietal cortex shows bimodal high-gamma power distributions with Hartigan's dip p < 0.05 AND 2-component Gaussian BIC substantially lower than 1-component (\u0394BIC > 10); (Pred 6.B) bimodality is specific to the frontoparietal ignition network with occipital units showing graded responses, and intermediate-state bouts show a mean duration < 100 ms (sharp transitions) with prevalence < 15% of trial duration; (Pred 6.C, bifurcation falsification criterion) AC1 of pre-ignition high-gamma power increases monotonically in the 500 ms preceding detected stimuli \u2014 the distinguishing APGI prediction over standard GWT; (Pred 6.D) near-threshold stimuli produce stable intermediate high-gamma states lasting > 100 ms in > 15% of near-threshold trials. Fully validated via APGI_LNN_Bifurcation_Analysis.py."
+            "Intracranial EEG (iEEG) recordings in epilepsy patients performing a near-threshold visual detection task test whether conscious access produces all-or-none (bistable) firing rate distributions in the frontoparietal network, as predicted by APGI's ignition criterion B\u209c. Five sub-predictions are tested: (Pred 6.A) frontoparietal cortex shows bimodal high-gamma power distributions with Hartigan's dip p < 0.05 AND 2-component Gaussian BIC substantially lower than 1-component (\u0394BIC > 10); (Pred 6.B) bimodality is specific to the frontoparietal ignition network with occipital units showing graded responses, and intermediate-state bouts show a mean duration < 100 ms (sharp transitions) with prevalence < 15% of trial duration; (Pred 6.C, bifurcation falsification criterion) AC1 of pre-ignition high-gamma power increases monotonically in the 500 ms preceding detected stimuli \u2014 the distinguishing APGI prediction over standard GWT; (Pred 6.D) long-range beta/gamma coherence (15\u201380 Hz) between frontoparietal sites predicts seen vs. unseen trials (point-biserial r > 0.40), peaking 200\u2013400 ms post-stimulus \u2014 the adversarial APGI-vs-GNWT benchmark; (Pred 6.E) \u03a0\u2071 modulation predicts multi-timescale temporal clustering of ignition events (\u2265 3 dissociable timescales, BF \u2265 100 vs. the single-timescale alternative). Fully validated via APGI_LNN_Bifurcation_Analysis.py."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 2",
-        "sample_size": "N = 12",
+        "sample_size": "N = 20 target / N = 12 minimum",
         "measures": ["Hartigan's dip statistic: frontoparietal high-gamma distribution per contrast level \u2014 Pred 6.A primary", "\u0394BIC", "Modal separation: low mode and high mode frequencies", "Hartigan's dip statistic: occipital high-gamma distribution", "Region \u00d7 bimodality-index interaction \u2014 Pred 6.B", "Mean intermediate-state bout duration", "Intermediate-state prevalence", "AC1 time series: high-gamma envelope in 500 ms pre-ignition window \u2014 Pred 6.C"],
         "analysis": (
             ""
         ),
         "falsification_criterion": (
-            "Pred 6.A: Unimodal continuous distribution of high-gamma power across all contrast levels; dip test p > 0.20; no evidence of bistability. Pred 6.B: Uniform bimodality across all recorded regions; or intermediate-state bouts > 150 ms in \u2265 50% of trials; or prevalence > 30% of trial duration (inconsistent with sharp bifurcation). Pred 6.C: AC1 flat or decreasing before detected stimuli; no monotonic pre-ignition trend. Pred 6.D: Rapid commitment to high/low state within 50 ms in \u2265 85% of near-threshold trials; intermediate-state prevalence < 5%."
+            "Pred 6.A: Unimodal continuous distribution of high-gamma power across all contrast levels; dip test p > 0.20; no evidence of bistability. Pred 6.B: Uniform bimodality across all recorded regions; or intermediate-state bouts > 150 ms in \u2265 50% of trials; or prevalence > 30% of trial duration (inconsistent with sharp bifurcation). Pred 6.C: AC1 flat or decreasing before detected stimuli; no monotonic pre-ignition trend. Pred 6.D: Point-biserial coherence\u2013detection r < 0.20; or the coherence peak falls outside the 200\u2013400 ms post-stimulus window; or an equivalent coherence increase appears at the occipital control pair. Pred 6.E: Only a single clustering timescale is identifiable, or the single-timescale model is favoured (BF\u2080\u2081 \u2265 6)."
         ),
         "primary_hypothesis": (
             "High-gamma power in frontoparietal iEEG shows a bimodal distribution (Hartigan's dip p < 0.05 AND \u0394BIC > 10); AC1 increases monotonically in the 500 ms preceding detected stimuli (Kendall \u03c4 > 0.3) with the effect absent or reversed in non-detected trials; bimodality is specific to frontoparietal (not occipital) cortex; and near-threshold stimuli produce stable intermediate high-gamma states > 100 ms in > 15% of near-threshold trials."
         ),
-        "sub_predictions": ["Pred 6.A", "Pred 6.B", "Pred 6.C", "Pred 6.D"],
-        "prediction_cluster": "Pred 6.A\u20136.D",
+        "sub_predictions": ["Pred 6.A", "Pred 6.B", "Pred 6.C", "Pred 6.D", "Pred 6.E"],
+        "prediction_cluster": "Pred 6.A\u20136.E",
         "prereg_status": "Pending",
         "notes": "iEEG patient populations have limited sample sizes; statistical power is constrained. Single-participant case series may supplement group analysis.",
     },
@@ -335,24 +357,24 @@ EP_PROTOCOLS: Dict[str, Dict[str, Any]] = {
         "depends_on": ["EP-0"],
         "status": "Not started",
         "description": (
-            "This clinical biomarker study examines whether interoceptive precision (indexed by HEP amplitude, 250\u2013400 ms at Cz) and ignition capacity (indexed by the Perturbational Complexity Index, PCI) jointly predict clinical recovery outcomes across the full disorders of consciousness (DoC) spectrum better than either biomarker alone. Four patient and control groups are studied: VS/UWS (N=30), MCS (N=30), EMCS (N=20), and healthy age/sex-matched controls (N=30); total N=110. Five sub-predictions are tested: (Pred 7.A) joint HEP + PCI model explains more variance in 3-month GCS-S outcome than either biomarker alone (\u0394R\u00b2 \u2265 0.05, AUC > 0.80); (Pred 7.B) HEP amplitude discriminates MCS from VS/UWS; four-group gradient confirmed; DMN\u2194PCI r > 0.50; DMN\u2194HEP r < 0.20 (double dissociation); (Pred 7.C) interoceptive perturbation via CCRC (5% CO\u2082/95% O\u2082, 90-second) increases PCI \u2265 10% in MCS but not VS/UWS, exceeding arousal-matched white-noise control; (Pred 7.D) HEP amplitude correlates with GCS-S at 3-month and 6-month follow-up (Spearman r > 0.4), with JMbayes2 joint modelling for longitudinal analysis and LOCF explicitly excluded; (Pred 7.E, exploratory) somatic bias modulates reportable embodiment weighting toward 'bodily/visceral' dimensions under high-\u03b2 attentional focus. Directly supported by Paper 3 Appendix DoC Table."
+            "This clinical biomarker study examines whether interoceptive precision (indexed by HEP amplitude, 250\u2013400 ms at Cz) and ignition capacity (indexed by the Perturbational Complexity Index, PCI) jointly predict clinical recovery outcomes across the full disorders of consciousness (DoC) spectrum better than either biomarker alone. Four patient and control groups are studied: VS/UWS (N=30), MCS (N=30), EMCS (N=20), and healthy age/sex-matched controls (N=30); total N=110. Six sub-predictions are tested: (Pred 7.A) joint HEP + PCI model explains more variance in 3-month CRS-R outcome than either biomarker alone (\u0394R\u00b2 \u2265 0.05, AUC > 0.80); (Pred 7.B) HEP amplitude discriminates MCS from VS/UWS; four-group gradient confirmed; DMN\u2194PCI r > 0.50; DMN\u2194HEP r < 0.20 (double dissociation); (Pred 7.C) interoceptive perturbation via CCRC (5% CO\u2082/95% O\u2082, 90-second) increases PCI \u2265 10% in MCS but not VS/UWS, exceeding arousal-matched white-noise control; (Pred 7.D) HEP amplitude correlates with CRS-R total score at 3-month and 6-month follow-up (Spearman r > 0.4), with JMbayes2 joint modelling for longitudinal analysis and LOCF explicitly excluded; (Pred 7.E, exploratory) theta (4\u20138 Hz)\u2013infraslow (< 0.1 Hz) phase\u2013amplitude coupling on \u2265 30-min bedside EEG increases across the DoC gradient and tracks CRS-R (Jonckheere\u2013Terpstra p < 0.05; PAC\u2194CRS-R r \u2265 0.30); (Pred 7.F, exploratory) somatic bias modulates reportable embodiment weighting toward 'bodily/visceral' dimensions under high-\u03b2 attentional focus. Directly supported by Paper 3 Appendix DoC Table."
         ),
         "platform": "OSF",
-        "osf_url": "https://osf.io/XXXXXX",
+        "osf_url": APGI_OSF_PROJECT,
         "paper": "APGI Paper 3",
-        "sample_size": "N = 96",
+        "sample_size": "N = 110 target / N = 96 minimum (VS/UWS 30, MCS 30, EMCS 20, controls 30)",
         "measures": ["HEP amplitude", "PCI per DoC group and time point \u2014 primary", "\u0394R\u00b2", "AUC", "Univariate model R\u00b2 for HEP alone and PCI alone", "Four-group ordinal gradient: HEP and PCI across VS/UWS, MCS, EMCS, controls \u2014 Pred 7.B", "DMN\u2013PCI correlation", "DMN\u2013HEP partial correlation"],
         "analysis": (
             ""
         ),
         "falsification_criterion": (
-            "Pred 7.A: Joint model R\u00b2 \u2264 max(univariate HEP R\u00b2, univariate PCI R\u00b2); or \u0394R\u00b2 < 0.05 in primary analysis. Pred 7.B: No significant HEP difference between MCS and VS/UWS; four-group gradient absent for HEP or PCI. Pred 7.C: No significant PCI change post-CCRC in MCS (\u0394PCI < 5%, p > 0.10); or equivalent PCI change in VS/UWS and MCS; or CCRC-evoked PCI change statistically indistinguishable from white-noise control (p > 0.10), indicating arousal rather than interoceptive prediction error. Pred 7.D: HEP shows no significant longitudinal correlation with CRS-R (r < 0.2) at either follow-up; or joint model predictive values do not exceed clinical benchmarks. Pred 7.E: Manipulation produces no effect on reportable embodiment dimensions (d < 0.20); or effect is fully absorbed by general arousal covariates."
+            "Pred 7.A: Joint model R\u00b2 \u2264 max(univariate HEP R\u00b2, univariate PCI R\u00b2); or \u0394R\u00b2 < 0.05 in primary analysis. Pred 7.B: No significant HEP difference between MCS and VS/UWS; four-group gradient absent for HEP or PCI. Pred 7.C: No significant PCI change post-CCRC in MCS (\u0394PCI < 5%, p > 0.10); or equivalent PCI change in VS/UWS and MCS; or CCRC-evoked PCI change statistically indistinguishable from white-noise control (p > 0.10), indicating arousal rather than interoceptive prediction error. Pred 7.D: HEP shows no significant longitudinal correlation with CRS-R (r < 0.2) at either follow-up; or joint model predictive values do not exceed clinical benchmarks. Pred 7.E: Jonckheere\u2013Terpstra trend p > 0.10 AND PAC\u2194CRS-R r < 0.20. Pred 7.F: Manipulation produces no effect on reportable embodiment dimensions (d < 0.20); or effect is fully absorbed by general arousal covariates."
         ),
         "primary_hypothesis": (
             "A linear model including both HEP amplitude and PCI at enrolment explains \u0394R\u00b2 \u2265 0.05 more variance in 3-month CRS-R total score outcome than either biomarker alone. HEP amplitude and PCI show a four-group gradient (VS/UWS < MCS < EMCS < controls), DMN\u2013PCI r > 0.50 AND DMN\u2013HEP r < 0.20 (double dissociation), interoceptive perturbation increases PCI \u2265 10% in MCS but not VS/UWS with \u0394PCI exceeding arousal-matched control, and HEP amplitude correlates with CRS-R total score at 3-month and 6-month follow-up (Spearman r > 0.4)."
         ),
-        "sub_predictions": ["Pred 7.A", "Pred 7.B", "Pred 7.C", "Pred 7.D", "Pred 7.E"],
-        "prediction_cluster": "Pred 7.A\u20137.E",
+        "sub_predictions": ["Pred 7.A", "Pred 7.B", "Pred 7.C", "Pred 7.D", "Pred 7.E", "Pred 7.F"],
+        "prediction_cluster": "Pred 7.A\u20137.F",
         "prereg_status": "Pending",
         "notes": "PCI requires TMS, which cannot be applied to patients with metallic implants or unstable hemodynamics; PCI subsample may be smaller than full cohort.",
     },
